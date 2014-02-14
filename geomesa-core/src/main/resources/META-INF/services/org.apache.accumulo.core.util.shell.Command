@@ -1,0 +1,2 @@
+geomesa.core.util.shell.ListFeaturesCommand
+geomesa.core.util.shell.InitializeFeatureCommand

@@ -36,6 +36,7 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
   def createNewDataStore(params: JMap[String, Serializable]) = createDataStore(params)
 
   def createDataStore(params: JMap[String, Serializable]) = {
+
     val authsStr = authsParam.lookUp(params).asInstanceOf[String]
 
     val authorizations =
@@ -55,12 +56,14 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
     }
 
     val tableName = tableNameParam.lookUp(params).asInstanceOf[String]
+    val connector =
+      if(params.containsKey(connParam.key)) connParam.lookUp(params).asInstanceOf[Connector]
+      else buildAccumuloConnector(params)
+
     if (mapreduceParam.lookUp(params) != null && mapreduceParam.lookUp(params).asInstanceOf[String] == "true")
-      new MapReduceAccumuloDataStore(buildAccumuloConnector(params), tableName,
-                                      authorizations, params, indexSchemaFormat)
+      new MapReduceAccumuloDataStore(connector, tableName, authorizations, params, indexSchemaFormat)
     else
-      new AccumuloDataStore(buildAccumuloConnector(params), tableName,
-                             authorizations, indexSchemaFormat)
+      new AccumuloDataStore(connector, tableName, authorizations, indexSchemaFormat)
   }
 
   def buildAccumuloConnector(params: JMap[String,Serializable]): Connector = {
@@ -84,7 +87,8 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
     Array(instanceIdParam, zookeepersParam, userParam, passwordParam,
           authsParam, tableNameParam, indexSchemaFormatParam)
 
-  def canProcess(params: JMap[String,Serializable]) = params.containsKey(instanceIdParam.key)
+  def canProcess(params: JMap[String,Serializable]) =
+    params.containsKey(instanceIdParam.key) || params.containsKey(connParam.key)
 
   override def isAvailable = true
 
@@ -93,6 +97,7 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
 
 object AccumuloDataStoreFactory {
   object params {
+    val connParam = new Param("connector", classOf[Connector], "The Accumulo connector", false)
     val instanceIdParam = new Param("instanceId", classOf[String], "The Accumulo Instance ID", true)
     val zookeepersParam = new Param("zookeepers", classOf[String], "Zookeepers", true)
     val userParam = new Param("user", classOf[String], "Accumulo user", true)

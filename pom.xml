@@ -40,7 +40,7 @@
 
         <!-- environment-dependent versions -->
         <zookeeper.version>3.3.6</zookeeper.version>
-        <accumulo.version>1.5.0</accumulo.version>
+        <accumulo.version>1.5.1-SNAPSHOT</accumulo.version>
         <hadoop.version>2.2.0</hadoop.version>
 
         <!-- logging properties
