@@ -175,7 +175,7 @@ class SFTIngest(args: Args) extends Job(args) {
       val lat = propMap(latField).asInstanceOf[String].toDouble
       val lon = propMap(lonField).asInstanceOf[String].toDouble
       val dtg =
-        if(propMap(dtgField).isInstanceOf[Long]) new DateTime(propMap(dtgField.asInstanceOf[Long]))
+        if(propMap(dtgField).isInstanceOf[Long]) new DateTime(propMap(dtgField).asInstanceOf[Long])
         else dtFormat.parseDateTime(propMap(dtgField).asInstanceOf[String])
 
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
