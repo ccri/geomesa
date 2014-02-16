@@ -149,7 +149,7 @@ class SFTIngest(args: Args) extends Job(args) {
 
   lazy val strippedAttributes = sft.getAttributeDescriptors.reverse.drop(3).reverse
 
-  TextLine(path).flatMapTo('entry) { line: String =>
+  TextLine(path).flatMapTo('key, 'value) { line: String =>
     try {
       val attrs = line.toString.split("\t")
 
@@ -165,10 +165,10 @@ class SFTIngest(args: Args) extends Job(args) {
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
 
       val entry = new AccumuloFeature(id, geom, dtg, propMap, typeInitializer)
-      idx.encode(entry).flatMap { case (k, v) => List(k, v) }.toList
+      idx.encode(entry).toList
     } catch {
       case t: Throwable => List()
     }
-  }.groupBy('entry) { _.pass.reducers(64) }.write(out)
+  }.groupBy('key) { _.sortBy('value).reducers(64) }.write(out)
 
 }
