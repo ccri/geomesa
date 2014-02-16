@@ -165,9 +165,9 @@ class SFTIngest(args: Args) extends Job(args) {
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
 
       val entry = new AccumuloFeature(id, geom, dtg, propMap, typeInitializer)
-      idx.encode(entry).toList
+      Some(idx.encode(entry).head)
     } catch {
-      case t: Throwable => List()
+      case t: Throwable => None
     }
   }.groupBy('key) { _.sortBy('value).reducers(64) }.write(out)
 
