@@ -25,7 +25,6 @@ import org.joda.time.DateTime
 import org.opengis.feature.`type`.GeometryDescriptor
 import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
 import scala.collection.JavaConversions._
-import org.joda.time.format.ISODateTimeFormat
 
 trait IndexEntry extends SimpleFeature {
   def getGeometry : Geometry = {
@@ -75,19 +74,21 @@ object IndexEntryType extends TypeInitializer {
       mixinType.getDescriptor(SF_PROPERTY_END_TIME) != null) match {
 
       case true => mixinType
-      case false => {
+      case false =>
         // initialize the builder to the mixin
         val builder = new SimpleFeatureTypeBuilder
         builder.setName(mixinType.getTypeName)
         builder.init(mixinType)
 
         // remove the default geometry, if any, exists for this base type
-        quietlyRemoveAttributeByName(builder, mixinType.getGeometryDescriptor.getLocalName)
-        builder.setDefaultGeometry(null)
+        if(mixinType.getGeometryDescriptor != null) {
+          quietlyRemoveAttributeByName(builder, mixinType.getGeometryDescriptor.getLocalName)
+          builder.setDefaultGeometry(null)
+        }
 
         // write the base-type attributes over those provided by the mixin
         val baseType = DataUtilities.createType(mixinType.getTypeName, getTypeSpec)
-        baseType.getAttributeDescriptors.foreach { attributeDescriptor => {
+        baseType.getAttributeDescriptors.foreach { attributeDescriptor =>
           // get rid of the old feature that may have this name
           quietlyRemoveAttributeByName(builder, attributeDescriptor.getLocalName)
 
@@ -97,11 +98,10 @@ object IndexEntryType extends TypeInitializer {
           // if this is a geometry feature, set it as the default
           if (attributeDescriptor.getType.isInstanceOf[GeometryDescriptor] && builder.getDefaultGeometry==null)
             builder.setDefaultGeometry(attributeDescriptor.getLocalName)
-        }}
+        }
 
         // return the net feature type
         builder.buildFeatureType()
-      }
     }
   }
 }

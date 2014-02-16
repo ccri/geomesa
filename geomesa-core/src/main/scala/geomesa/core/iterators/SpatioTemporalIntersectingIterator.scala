@@ -323,12 +323,12 @@ object SpatioTemporalIntersectingIterator {
         // locate the geomesa-distributed-runtime jar
         val cl = classOf[SpatioTemporalIntersectingIterator].getClassLoader.asInstanceOf[VFSClassLoader]
         val url = cl.getFileObjects.map(_.getURL).filter { _.toString.contains("geomesa-distributed-runtime") }.head
-        log.debug(s"Found geomesa-distributed-runtime at $url")
+        if(log != null) log.debug(s"Found geomesa-distributed-runtime at $url")
         val u = java.net.URLClassLoader.newInstance(Array(url), cl)
         GeoTools.addClassLoader(u)
       } catch {
         case t: Throwable =>
-          log.error("Failed to initialize GeoTools' ClassLoader ", t)
+          if(log != null) log.error("Failed to initialize GeoTools' ClassLoader ", t)
       } finally {
         initialized.set(true)
       }

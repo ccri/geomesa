@@ -22,7 +22,7 @@ import com.vividsolutions.jts.geom.Point
 import com.vividsolutions.jts.geom.{Geometry,Polygon}
 import geomesa.core.data.SimpleFeatureEncoder
 import geomesa.core.iterators._
-import geomesa.utils.geohash.{GeoHash, GeohashUtils}
+import geomesa.utils.geohash.GeohashUtils
 import geomesa.utils.text.{WKBUtils, WKTUtils}
 import java.nio.ByteBuffer
 import java.util.Map.Entry
@@ -36,7 +36,7 @@ import org.geotools.feature.simple.SimpleFeatureImpl
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.SimpleFeatureType
-import scala.util.{Try, Random}
+import scala.util.Random
 import scala.util.parsing.combinator.RegexParsers
 
 // A secondary index consists of interleaved elements of a composite key stored in
@@ -154,34 +154,40 @@ case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SpatioTemporalIndexEnt
   // the maximum number of sub-units into which a geometry may be decomposed
   val maximumDecompositions : Int = 5
 
+  def encode(sfi: SimpleFeatureImpl): List[KeyValuePair] = {
+    val geom  = sfi.getAttribute(SF_PROPERTY_GEOMETRY).asInstanceOf[Geometry]
+    val start = sfi.getAttribute(SF_PROPERTY_START_TIME).asInstanceOf[DateTime]
+    val end   = sfi.getAttribute(SF_PROPERTY_END_TIME).asInstanceOf[DateTime]
+
+    encode(SpatioTemporalIndexEntry(sfi.getID, geom, Some(start), IndexEntryType))
+  }
+
   def encode(entryToEncode: SpatioTemporalIndexEntry): List[KeyValuePair] = {
     // decompose non-point geometries into multiple index entries
     // (a point will return a single GeoHash at the maximum allowable resolution)
-    val geohashes : List[GeoHash] = decomposeGeometry(
-      entryToEncode.geometry, maximumDecompositions, decomposableResolutions
-    )
-    val entries : List[SpatioTemporalIndexEntry] = geohashes.map(gh =>
+    val geohashes =
+      decomposeGeometry(entryToEncode.geometry, maximumDecompositions, decomposableResolutions)
+
+    val entries = geohashes.map { gh =>
       SpatioTemporalIndexEntry(
         entryToEncode.sid,
         getGeohashGeom(gh),
         entryToEncode.dt,
-        entryToEncode.typeInitializer
-      )
-    )
+        entryToEncode.typeInitializer)
+    }
 
     // remember the resulting index-entries
-    val keys = entries.map(entry => {
-        val Array(r,cf,cq) = formats.map { _.format(entry) }
-        new Key(r,cf,cq, entry.dt.map(_.getMillis).getOrElse(DateTime.now().getMillis))
-      })
+    val keys = entries.map { entry =>
+      val Array(r,cf,cq) = formats.map { _.format(entry) }
+      new Key(r,cf,cq, entry.dt.map(_.getMillis).getOrElse(DateTime.now().getMillis))
+    }
     val rowIDs = keys.map(_.getRow)
     val id = new Text(entryToEncode.sid)
 
     val indexValue = SpatioTemporalIndexSchema.encodeIndexValue(entryToEncode)
 
     // the index entries are (key, FID) pairs
-    val indexEntries : Seq[KeyValuePair] = keys.map(key =>
-      (key, new Value(indexValue)))
+    val indexEntries = keys.map(_ -> new Value(indexValue))
 
     // the (single) data value is the encoded (serialized-to-string) SimpleFeature
     val dataValue = SimpleFeatureEncoder.encode(entryToEncode)
@@ -189,16 +195,13 @@ case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SpatioTemporalIndexEnt
     // data entries are stored separately (and independently) from the index entries;
     // each attribute gets its own data row (though currently, we use only one attribute
     // that represents the entire, encoded feature)
-    val dataEntries : Seq[(Key,Value)] = rowIDs.map(
-      rowID =>  {
-        val key = new Key(rowID, id, AttributeAggregator.SIMPLE_FEATURE_ATTRIBUTE_NAME_TEXT)
-        (key, new Value(dataValue))
-      }
-    )
+    val dataEntries = rowIDs.map { rowID =>
+      val key = new Key(rowID, id, AttributeAggregator.SIMPLE_FEATURE_ATTRIBUTE_NAME_TEXT)
+      (key, new Value(dataValue))
+    }
 
     (indexEntries ++ dataEntries).toList
   }
-
 
 }
 

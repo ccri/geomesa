@@ -127,6 +127,6 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
     attributesMap.foreach { case (name,value) =>
       if (getAttribute(name) == null)
         setAttribute(name, value)
-                          }
+    }
   }
 }

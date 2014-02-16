@@ -3,6 +3,7 @@ package geomesa.core.util.shell
 import org.apache.accumulo.core.util.shell.{Shell, Command}
 import org.apache.commons.cli.{Option => Opt, Options, CommandLine}
 import org.geotools.data.{DataUtilities, DataStoreFinder}
+import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 
 class InitializeFeatureCommand extends Command {
   var schemaOpt: Opt = null
@@ -13,8 +14,10 @@ class InitializeFeatureCommand extends Command {
 
   import collection.JavaConversions._
   override def execute(fullCommand: String, cl: CommandLine, shellState: Shell): Int = {
+    SpatioTemporalIntersectingIterator.initClassLoader(null)
+
     val conn = shellState.getConnector
-    val auths = conn.securityOperations().getUserAuthorizations(conn.whoami())
+    val auths = conn.securityOperations().getUserAuthorizations(conn.whoami()).toString
     val args = cl.getArgs
     val tableName = args(0)
     val featureName = args(1)
