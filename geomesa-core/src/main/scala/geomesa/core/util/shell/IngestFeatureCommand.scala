@@ -20,7 +20,7 @@ import org.apache.hadoop.mapred.JobConf
 import geomesa.core.data.AccumuloDataStore
 import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 import org.apache.commons.vfs2.impl.VFSClassLoader
-import java.net.{URLEncoder, URLDecoder}
+import java.net.{URLClassLoader, URLEncoder, URLDecoder}
 import java.io.File
 
 class IngestFeatureCommand extends Command {
@@ -61,9 +61,9 @@ class IngestFeatureCommand extends Command {
     val ingestPath = new Path(s"/tmp/geomesa/ingest/${conn.whoami()}/${shellState.getTableName}/${UUID.randomUUID().toString.take(5)}")
     fs.mkdirs(ingestPath.getParent)
 
-    val libJars = classOf[Command].getClassLoader.asInstanceOf[VFSClassLoader]
-      .getFileObjects
-      .map(_.getURL.getFile)
+    val libJars = classOf[Command].getClassLoader.asInstanceOf[URLClassLoader]
+      .getURLs
+      .map(_.getFile)
       .map { f => URLDecoder.decode(f, "UTF-8").replace("file:", "").replace("!", "") }
       .map { f => new File(f).getAbsolutePath }
       .mkString(",")
