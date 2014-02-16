@@ -6,7 +6,7 @@ import org.geotools.data.{DataUtilities, DataStoreFinder}
 import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 
 class InitializeFeatureCommand extends Command {
-  var schemaOpt: Opt = null
+  val schemaOpt = new Opt("is", "indexschema", true, "Custom index schema")
 
   override def numArgs() = 3
 
@@ -23,10 +23,13 @@ class InitializeFeatureCommand extends Command {
     val featureName = args(1)
     val sftSpec = args(2)
 
-    val sft = DataUtilities.createType(featureName, sftSpec)
-
     val params = Map("connector" -> conn, "tableName" -> tableName, "auths" -> auths)
-    val ds = DataStoreFinder.getDataStore(params)
+    val finalParams =
+      if(cl.hasOption(schemaOpt.getOpt)) params + ("indexSchemaFormat" -> cl.getOptionValue(schemaOpt.getOpt))
+      else params
+
+    val sft = DataUtilities.createType(featureName, sftSpec)
+    val ds = DataStoreFinder.getDataStore(finalParams)
     ds.createSchema(sft)
 
     0
@@ -34,7 +37,6 @@ class InitializeFeatureCommand extends Command {
 
   override def getOptions: Options = {
     val options = super.getOptions
-    schemaOpt = new Opt("is", "indexschema", true, "Custom index schema")
     options.addOption(schemaOpt)
     options
   }

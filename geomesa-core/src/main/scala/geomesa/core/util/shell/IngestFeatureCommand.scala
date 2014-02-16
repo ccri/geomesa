@@ -76,7 +76,7 @@ class IngestFeatureCommand extends Command {
       .map { f => new File(f).getAbsolutePath }
 
     val libJars = (accumuloJars ++ geomesaJars).mkString(",")
-    
+
     println(libJars)
 
     val jobConf = new JobConf
@@ -179,9 +179,9 @@ class SFTIngest(args: Args) extends Job(args) {
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
 
       val entry = new AccumuloFeature(id, geom, dtg, propMap, typeInitializer)
-      Some(idx.encode(entry).head)
+      idx.encode(entry).toList
     } catch {
-      case t: Throwable => None
+      case t: Throwable => List()
     }
   }.project('key,'value).groupBy('key) { _.sortBy('value).reducers(64) }.write(out)
 

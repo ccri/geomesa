@@ -15,7 +15,7 @@ class ListFeaturesCommand extends Command {
     val tables = shellState.getConnector.tableOperations().list()
     val features = tables.flatMap { table =>
       val ds = new AccumuloDataStore(shellState.getConnector, table, auths, "")
-      ds.getTypeNames.map { t => s"${table}:$t" }
+      ds.getTypeNames.map { t => "%s\t%s".format(table, t) }
     }
     shellState.printLines(features.iterator, true)
     0
