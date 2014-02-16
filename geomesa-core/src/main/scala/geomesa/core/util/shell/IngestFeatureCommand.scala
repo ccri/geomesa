@@ -61,7 +61,7 @@ class IngestFeatureCommand extends Command {
     val ingestPath = new Path(s"/tmp/geomesa/ingest/${conn.whoami()}/${shellState.getTableName}/${UUID.randomUUID().toString.take(5)}")
     fs.mkdirs(ingestPath.getParent)
 
-    val libJars = classOf[SpatioTemporalIntersectingIterator].getClassLoader.asInstanceOf[VFSClassLoader]
+    val libJars = classOf[Command].getClassLoader.asInstanceOf[VFSClassLoader]
       .getFileObjects
       .map(_.getURL.getFile)
       .map { f => URLDecoder.decode(f, "UTF-8").replace("file:", "").replace("!", "") }
@@ -69,7 +69,7 @@ class IngestFeatureCommand extends Command {
       .mkString(",")
 
     println(libJars)
-    
+
     val jobConf = new JobConf
 
     ToolRunner.run(jobConf, new Tool,
