@@ -68,6 +68,8 @@ class IngestFeatureCommand extends Command {
       .map { f => new File(f).getAbsolutePath }
       .mkString(",")
 
+    println(libJars)
+    
     val jobConf = new JobConf
 
     ToolRunner.run(jobConf, new Tool,
