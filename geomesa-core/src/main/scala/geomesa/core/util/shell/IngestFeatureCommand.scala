@@ -169,6 +169,6 @@ class SFTIngest(args: Args) extends Job(args) {
     } catch {
       case t: Throwable => List()
     }
-  }.groupBy('entry) { _.sortBy('entry).reducers(32) }.write(out)
+  }.groupBy('entry) { _.reducers(32) }.write(out)
 
 }
