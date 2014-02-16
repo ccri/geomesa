@@ -149,7 +149,7 @@ class SFTIngest(args: Args) extends Job(args) {
 
   lazy val strippedAttributes = sft.getAttributeDescriptors.reverse.drop(3).reverse
 
-  TextLine(path).flatMapTo('line -> 'entry) { line: String =>
+  TextLine(path).flatMapTo(('line) -> ('entry)) { line: String =>
     try {
       val attrs = line.toString.split("\t")
 
