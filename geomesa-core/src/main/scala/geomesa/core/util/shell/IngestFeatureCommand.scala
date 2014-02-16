@@ -61,15 +61,18 @@ class IngestFeatureCommand extends Command {
     val ingestPath = new Path(s"/tmp/geomesa/ingest/${conn.whoami()}/${shellState.getTableName}/${UUID.randomUUID().toString.take(5)}")
     fs.mkdirs(ingestPath.getParent)
 
-    val classloader = classOf[SpatioTemporalIntersectingIterator].getClassLoader.asInstanceOf[VFSClassLoader]
-    val url = classloader.getFileObjects.map(_.getURL).filter { _.toString.contains("geomesa-distributed-runtime") }.head
-    val geomesaJar = new File(URLDecoder.decode(url.getFile, "UTF-8").replace("file:","").replace("!","")).getAbsolutePath
+    val libJars = classOf[SpatioTemporalIntersectingIterator].getClassLoader.asInstanceOf[VFSClassLoader]
+      .getFileObjects
+      .map(_.getURL.getFile)
+      .map { f => URLDecoder.decode(f, "UTF-8").replace("file:", "").replace("!", "") }
+      .map { f => new File(f).getAbsolutePath }
+      .mkString(",")
 
     val jobConf = new JobConf
 
     ToolRunner.run(jobConf, new Tool,
       Array(
-        "-libjars",                    geomesaJar,
+        "-libjars",                    libJars,
         classOf[SFTIngest].getCanonicalName,
         "--hdfs",
         "--geomesa.ingest.path",       path,
