@@ -59,11 +59,13 @@ class IngestFeatureCommand extends Command {
     val lonField = cl.getOptionValue(lonOpt.getOpt)
     val dtgField = cl.getOptionValue(dtgOpt.getOpt)
     val dtgFmt   = cl.getOptionValue(dtgFmtOpt.getOpt)
-    val idFields = cl.getOptionValue(idOpt.getOpt)
+    val idFields = 
+      if(cl.hasOption(idOpt.getOpt)) cl.getOptionValue(idOpt.getOpt)
+      else "HASH"
     val delim    =
-      if(cl.hasOption(csvOpt.getOpt)) ","
-      else if(cl.hasOption(tsvOpt.getOpt)) "\t"
-      else "\t"
+      if(cl.hasOption(csvOpt.getOpt)) "CSV"
+      else if(cl.hasOption(tsvOpt.getOpt)) "TSV"
+      else "TSV"
 
     val fs = FileSystem.newInstance(new Configuration())
     val ingestPath = new Path(s"/tmp/geomesa/ingest/${conn.whoami()}/${shellState.getTableName}/${UUID.randomUUID().toString.take(5)}")
@@ -71,8 +73,12 @@ class IngestFeatureCommand extends Command {
 
     val libJars = buildLibJars
 
+    try {
     runInjestJob(libJars, path, typeName, schema, idFields, spec, latField, lonField, dtgField,
       dtgFmt, ingestPath, shellState, conn, delim)
+    } catch {
+      case t: Throwable => t.printStackTrace
+    }
 
     bulkIngest(ingestPath, fs, conn, shellState)
 
@@ -168,7 +174,10 @@ class SFTIngest(args: Args) extends Job(args) {
   lazy val lonField = args("geomesa.ingest.lonfield")
   lazy val dtgField = args("geomesa.ingest.dtgfield")
   lazy val dtgFmt   = args("geomesa.ingest.dtgfmt")
-  lazy val delim    = args("geomesa.ingest.delim")
+  lazy val delim    = args("geomesa.ingest.delim") match {
+      case "TSV" => "\t"
+      case "CSV" => ","
+  }
   lazy val sft = DataUtilities.createType(typeName, sftSpec)
   lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
   lazy val builder = new SimpleFeatureBuilder(sft)
@@ -194,8 +203,8 @@ class SFTIngest(args: Args) extends Job(args) {
     }.getOrElse(throw new RuntimeException("Cannot parse date"))
 
   lazy val idBuilder = idFields match {
-    case null =>
-      val hashFn = Hashing.goodFastHash(64)
+    case s if "HASH".equals(s) =>
+      val hashFn = Hashing.md5()
       (props: Map[String, AnyRef]) => {
         val hash = hashFn.newHasher()
         props.values.foreach {
@@ -206,7 +215,7 @@ class SFTIngest(args: Args) extends Job(args) {
           case s: java.lang.String  => hash.putString(s)
           case _                    => // leave out
         }
-        new String(hash.hash().asBytes())
+        hash.hash().toString
       }
 
     case s: String =>
@@ -224,8 +233,8 @@ class SFTIngest(args: Args) extends Job(args) {
       }.toMap
 
       val id = idBuilder(propMap)
-      val lat = propMap(latField).asInstanceOf[Double]
-      val lon = propMap(lonField).asInstanceOf[Double]
+      val lat = propMap(latField).asInstanceOf[String].toDouble
+      val lon = propMap(lonField).asInstanceOf[String].toDouble
       val dtg = dtBuilder(propMap(dtgField))
 
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
@@ -234,7 +243,10 @@ class SFTIngest(args: Args) extends Job(args) {
       entry.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
       idx.encode(entry).toList
     } catch {
-      case t: Throwable => List()
+      case t: Throwable => 
+          t.printStackTrace()
+          sys.error(t.getMessage)
+          List()
     }
   }
 
