@@ -1,28 +1,30 @@
 package geomesa.core.util.shell
 
+import cascading.accumulo.AccumuloSource
+import com.google.common.hash.Hashing
+import com.twitter.scalding.{Tool, Args, Job, TextLine}
+import com.vividsolutions.jts.geom.{Geometry, Coordinate}
+import geomesa.core.data.AccumuloDataStore
+import geomesa.core.index.{SpatioTemporalIndexEntry, TypeInitializer, SpatioTemporalIndexSchema}
+import geomesa.core.iterators.SpatioTemporalIntersectingIterator
+import java.io.File
+import java.net.{URLClassLoader, URLEncoder, URLDecoder}
+import java.util.UUID
+import org.apache.accumulo.core.client.Connector
 import org.apache.accumulo.core.util.shell.{Shell, Command}
 import org.apache.commons.cli.{Option => Opt, Options, CommandLine}
-import org.apache.hadoop.fs.{Path, FileSystem}
-import org.apache.hadoop.conf.Configuration
-import org.geotools.data.{DataStoreFinder, DataUtilities}
-import org.geotools.feature.`type`.AttributeTypeImpl
-import com.twitter.scalding.{Tool, Args, Job, TextLine}
-import org.geotools.geometry.jts.JTSFactoryFinder
-import org.geotools.feature.simple.SimpleFeatureBuilder
-import com.vividsolutions.jts.geom.{Geometry, Coordinate}
-import org.joda.time.format.DateTimeFormat
-import geomesa.core.index.{SpatioTemporalIndexEntry, TypeInitializer, SpatioTemporalIndexSchema}
-import org.joda.time.DateTime
-import cascading.accumulo.AccumuloSource
-import java.util.UUID
-import org.apache.hadoop.util.ToolRunner
-import org.apache.hadoop.mapred.JobConf
-import geomesa.core.data.AccumuloDataStore
-import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 import org.apache.commons.vfs2.impl.VFSClassLoader
-import java.net.{URLClassLoader, URLEncoder, URLDecoder}
-import java.io.File
-import org.apache.accumulo.core.client.Connector
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{Path, FileSystem}
+import org.apache.hadoop.mapred.JobConf
+import org.apache.hadoop.util.ToolRunner
+import org.geotools.data.{DataStoreFinder, DataUtilities}
+import org.geotools.factory.Hints
+import org.geotools.feature.`type`.AttributeTypeImpl
+import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.geotools.geometry.jts.JTSFactoryFinder
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
 class IngestFeatureCommand extends Command {
 
@@ -42,6 +44,7 @@ class IngestFeatureCommand extends Command {
   override def description() = "Ingest a feature from a TSV file stored in HDFS"
 
   import collection.JavaConversions._
+
   override def execute(fullCommand: String, cl: CommandLine, shellState: Shell): Int = {
     val conn = shellState.getConnector
     val auths = conn.securityOperations().getUserAuthorizations(conn.whoami()).toString
@@ -91,19 +94,19 @@ class IngestFeatureCommand extends Command {
         "-libjars", libJars,
         classOf[SFTIngest].getCanonicalName,
         "--hdfs",
-        "--geomesa.ingest.path", path,
-        "--geomesa.ingest.typename", typeName,
-        "--geomesa.ingest.schema", URLEncoder.encode(schema, "UTF-8"),
+        "--geomesa.ingest.path",       path,
+        "--geomesa.ingest.typename",   typeName,
+        "--geomesa.ingest.schema",     URLEncoder.encode(schema, "UTF-8"),
         "--geomesa.ingest.idfeatures", idFields,
-        "--geomesa.ingest.sftspec", URLEncoder.encode(spec, "UTF-8"),
-        "--geomesa.ingest.latfield", latField,
-        "--geomesa.ingest.lonfield", lonField,
-        "--geomesa.ingest.dtgfield", dtgField,
-        "--geomesa.ingest.dtgfmt", dtgFmt,
-        "--geomesa.ingest.outpath", ingestPath.toString,
-        "--geomesa.ingest.table", shellState.getTableName,
-        "--geomesa.ingest.instance", conn.getInstance().getInstanceName,
-        "--geomesa.ingest.delim", delim)
+        "--geomesa.ingest.sftspec",    URLEncoder.encode(spec, "UTF-8"),
+        "--geomesa.ingest.latfield",   latField,
+        "--geomesa.ingest.lonfield",   lonField,
+        "--geomesa.ingest.dtgfield",   dtgField,
+        "--geomesa.ingest.dtgfmt",     dtgFmt,
+        "--geomesa.ingest.outpath",    ingestPath.toString,
+        "--geomesa.ingest.table",      shellState.getTableName,
+        "--geomesa.ingest.instance",   conn.getInstance().getInstanceName,
+        "--geomesa.ingest.delim",      delim)
     )
   }
 
@@ -159,7 +162,7 @@ class SFTIngest(args: Args) extends Job(args) {
   lazy val path     = args("geomesa.ingest.path")
   lazy val typeName = args("geomesa.ingest.typename")
   lazy val schema   = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
-  lazy val idFields = args("geomesa.ingest.idfeatures").split(",")
+  lazy val idFields = args("geomesa.ingest.idfeatures")
   lazy val sftSpec  = URLDecoder.decode(args("geomesa.ingest.sftspec"), "UTF-8")
   lazy val latField = args("geomesa.ingest.latfield")
   lazy val lonField = args("geomesa.ingest.lonfield")
@@ -181,29 +184,64 @@ class SFTIngest(args: Args) extends Job(args) {
   import collection.JavaConversions._
 
   lazy val strippedAttributes = sft.getAttributeDescriptors.reverse.drop(3).reverse
+  lazy val dtBuilder =
+    strippedAttributes.find(_.getLocalName.equals(dtgField)).map {
+      case attr if attr.getType.getBinding.equals(classOf[java.lang.Long]) =>
+        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.lang.Long])
 
-  TextLine(path).flatMap('line -> List('key, 'value)) { line: String =>
+      case attr if attr.getType.getBinding.equals(classOf[java.lang.String]) =>
+        (obj: AnyRef) => dtFormat.parseDateTime(obj.asInstanceOf[String])
+    }.getOrElse(throw new RuntimeException("Cannot parse date"))
+
+  lazy val idBuilder = idFields match {
+    case null =>
+      val hashFn = Hashing.goodFastHash(64)
+      (props: Map[String, AnyRef]) => {
+        val hash = hashFn.newHasher()
+        props.values.foreach {
+          case l: java.lang.Long    => hash.putLong(l)
+          case i: java.lang.Integer => hash.putInt(i)
+          case d: java.lang.Double  => hash.putDouble(d)
+          case dt: java.util.Date   => hash.putLong(dt.getTime)
+          case s: java.lang.String  => hash.putString(s)
+          case _                    => // leave out
+        }
+        new String(hash.hash().asBytes())
+      }
+
+    case s: String =>
+      val idSplit = idFields.split(",")
+      (props: Map[String, AnyRef]) => idSplit.map { f => props(f) }.mkString("_")
+  }
+
+  def parseFeature(line: String): List[geomesa.core.index.KeyValuePair] = {
     try {
       val attrs = line.toString.split(delim)
 
-      val propMap = strippedAttributes.zip(attrs).map { case (descriptor, s) =>
-        descriptor.getLocalName -> descriptor.getType.asInstanceOf[AttributeTypeImpl].parse(s)
+      val propMap = strippedAttributes.zip(attrs).map {
+        case (descriptor, s) =>
+          descriptor.getLocalName -> descriptor.getType.asInstanceOf[AttributeTypeImpl].parse(s)
       }.toMap
 
-      val id = idFields.map { f => propMap(f) }.mkString("_")
-      val lat = propMap(latField).asInstanceOf[String].toDouble
-      val lon = propMap(lonField).asInstanceOf[String].toDouble
-      val dtg =
-        if(propMap(dtgField).isInstanceOf[Long]) new DateTime(propMap(dtgField).asInstanceOf[Long])
-        else dtFormat.parseDateTime(propMap(dtgField).asInstanceOf[String])
+      val id = idBuilder(propMap)
+      val lat = propMap(latField).asInstanceOf[Double]
+      val lon = propMap(lonField).asInstanceOf[Double]
+      val dtg = dtBuilder(propMap(dtgField))
 
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
 
       val entry = new AccumuloFeature(id, geom, dtg, propMap, typeInitializer)
+      entry.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
       idx.encode(entry).toList
     } catch {
       case t: Throwable => List()
     }
-  }.project('key,'value).groupBy('key) { _.sortBy('value).reducers(64) }.write(out)
+  }
+
+  TextLine(path)
+    .flatMap('line -> List('key, 'value)) { line: String => parseFeature(line) }
+    .project('key,'value)
+    .groupBy('key) { _.sortBy('value).reducers(64) }
+    .write(out)
 
 }
