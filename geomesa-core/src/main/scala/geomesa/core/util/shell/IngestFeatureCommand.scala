@@ -22,6 +22,7 @@ import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 import org.apache.commons.vfs2.impl.VFSClassLoader
 import java.net.{URLClassLoader, URLEncoder, URLDecoder}
 import java.io.File
+import org.apache.accumulo.core.client.Connector
 
 class IngestFeatureCommand extends Command {
 
@@ -33,6 +34,8 @@ class IngestFeatureCommand extends Command {
   val dtgOpt    = new Opt("dtg", true, "Name of datetime field")
   val dtgFmtOpt = new Opt("dtgfmt", true, "Format of datetime field")
   val idOpt     = new Opt("idfields", true, "Comma separated list of id fields")
+  val csvOpt    = new Opt("csv", false, "Data is in CSV")
+  val tsvOpt    = new Opt("tsv", false, "Data is in TSV")
 
   override def numArgs() = 0
 
@@ -54,68 +57,83 @@ class IngestFeatureCommand extends Command {
     val dtgField = cl.getOptionValue(dtgOpt.getOpt)
     val dtgFmt   = cl.getOptionValue(dtgFmtOpt.getOpt)
     val idFields = cl.getOptionValue(idOpt.getOpt)
-
-    println(s"Ingesting $path (lat = $latField, lon = $lonField, dtgField = $dtgField, dtgfmt = $dtgFmt")
+    val delim    =
+      if(cl.hasOption(csvOpt.getOpt)) ","
+      else if(cl.hasOption(tsvOpt.getOpt)) "\t"
+      else "\t"
 
     val fs = FileSystem.newInstance(new Configuration())
     val ingestPath = new Path(s"/tmp/geomesa/ingest/${conn.whoami()}/${shellState.getTableName}/${UUID.randomUUID().toString.take(5)}")
     fs.mkdirs(ingestPath.getParent)
 
-    val accumuloJars = classOf[Command].getClassLoader.asInstanceOf[URLClassLoader]
-      .getURLs
-      .filter { _.toString.contains("accumulo") }
-      .map(_.getFile)
-      .map { f => URLDecoder.decode(f, "UTF-8").replace("file:", "").replace("!", "") }
-      .map { f => new File(f).getAbsolutePath }
+    val libJars = buildLibJars
 
-    val geomesaJars = classOf[SpatioTemporalIndexEntry].getClassLoader.asInstanceOf[VFSClassLoader]
-      .getFileObjects
-      .map { _.getURL }
-      .map(_.getFile)
-      .map { f => URLDecoder.decode(f, "UTF-8").replace("file:", "").replace("!", "") }
-      .map { f => new File(f).getAbsolutePath }
+    runInjestJob(libJars, path, typeName, schema, idFields, spec, latField, lonField, dtgField,
+      dtgFmt, ingestPath, shellState, conn, delim)
 
-    val libJars = (accumuloJars ++ geomesaJars).mkString(",")
-
-    println(libJars)
-
-    val jobConf = new JobConf
-
-    ToolRunner.run(jobConf, new Tool,
-      Array(
-        "-libjars",                    libJars,
-        classOf[SFTIngest].getCanonicalName,
-        "--hdfs",
-        "--geomesa.ingest.path",       path,
-        "--geomesa.ingest.typename",   typeName,
-        "--geomesa.ingest.schema",     URLEncoder.encode(schema, "UTF-8"),
-        "--geomesa.ingest.idfeatures", idFields,
-        "--geomesa.ingest.sftspec",    URLEncoder.encode(spec, "UTF-8"),
-        "--geomesa.ingest.latfield",   latField,
-        "--geomesa.ingest.lonfield",   lonField,
-        "--geomesa.ingest.dtgfield",   dtgField,
-        "--geomesa.ingest.dtgfmt",     dtgFmt,
-        "--geomesa.ingest.outpath",    ingestPath.toString,
-        "--geomesa.ingest.table",      shellState.getTableName,
-        "--geomesa.ingest.instance",   conn.getInstance().getInstanceName
-      ))
-
-    val failurePath = new Path(ingestPath, "failure")
-    fs.mkdirs(failurePath)
-    conn.tableOperations().importDirectory(shellState.getTableName, ingestPath.toString, failurePath.toString, true)
+    bulkIngest(ingestPath, fs, conn, shellState)
 
     0
   }
 
+
+  def bulkIngest(ingestPath: Path, fs: FileSystem, conn: Connector, shellState: Shell) {
+    val failurePath = new Path(ingestPath, "failure")
+    fs.mkdirs(failurePath)
+    conn.tableOperations().importDirectory(shellState.getTableName, ingestPath.toString, failurePath.toString, true)
+  }
+
+  def runInjestJob(libJars: String, path: String, typeName: String, schema: String, idFields: String, spec: String, latField: String, lonField: String, dtgField: String, dtgFmt: String, ingestPath: Path, shellState: Shell, conn: Connector, delim: String) {
+    val jobConf = new JobConf
+
+    ToolRunner.run(jobConf, new Tool,
+      Array(
+        "-libjars", libJars,
+        classOf[SFTIngest].getCanonicalName,
+        "--hdfs",
+        "--geomesa.ingest.path", path,
+        "--geomesa.ingest.typename", typeName,
+        "--geomesa.ingest.schema", URLEncoder.encode(schema, "UTF-8"),
+        "--geomesa.ingest.idfeatures", idFields,
+        "--geomesa.ingest.sftspec", URLEncoder.encode(spec, "UTF-8"),
+        "--geomesa.ingest.latfield", latField,
+        "--geomesa.ingest.lonfield", lonField,
+        "--geomesa.ingest.dtgfield", dtgField,
+        "--geomesa.ingest.dtgfmt", dtgFmt,
+        "--geomesa.ingest.outpath", ingestPath.toString,
+        "--geomesa.ingest.table", shellState.getTableName,
+        "--geomesa.ingest.instance", conn.getInstance().getInstanceName,
+        "--geomesa.ingest.delim", delim)
+    )
+  }
+
+  def buildLibJars: String = {
+    val accumuloJars = classOf[Command].getClassLoader.asInstanceOf[URLClassLoader]
+      .getURLs
+      .filter { _.toString.contains("accumulo") }
+      .map(u => classPathUrlToAbsolutePath(u.getFile))
+
+    val geomesaJars = classOf[SpatioTemporalIndexEntry].getClassLoader.asInstanceOf[VFSClassLoader]
+      .getFileObjects
+      .map(u => classPathUrlToAbsolutePath(u.getURL.getFile))
+
+    (accumuloJars ++ geomesaJars).mkString(",")
+  }
+
   override def getOptions = {
     val options = new Options
-    options.addOption(pathOpt)
-    options.addOption(latOpt)
-    options.addOption(lonOpt)
-    options.addOption(dtgOpt)
-    options.addOption(dtgFmtOpt)
-    options.addOption(idOpt)
+    List(pathOpt, latOpt, lonOpt, dtgOpt, dtgFmtOpt, idOpt, csvOpt, tsvOpt).map(options.addOption(_))
+    options
   }
+
+  def cleanClassPathURL(url: String): String =
+    URLDecoder.decode(url, "UTF-8")
+      .replace("file:", "")
+      .replace("!", "")
+
+  def classPathUrlToAbsolutePath(url: String) =
+    new File(cleanClassPathURL(url)).getAbsolutePath
+
 }
 
 class SFTTypeInitializer(typeName: String, typeSpec: String) extends TypeInitializer {
@@ -147,6 +165,7 @@ class SFTIngest(args: Args) extends Job(args) {
   lazy val lonField = args("geomesa.ingest.lonfield")
   lazy val dtgField = args("geomesa.ingest.dtgfield")
   lazy val dtgFmt   = args("geomesa.ingest.dtgfmt")
+  lazy val delim    = args("geomesa.ingest.delim")
   lazy val sft = DataUtilities.createType(typeName, sftSpec)
   lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
   lazy val builder = new SimpleFeatureBuilder(sft)
@@ -165,7 +184,7 @@ class SFTIngest(args: Args) extends Job(args) {
 
   TextLine(path).flatMap('line -> List('key, 'value)) { line: String =>
     try {
-      val attrs = line.toString.split("\t")
+      val attrs = line.toString.split(delim)
 
       val propMap = strippedAttributes.zip(attrs).map { case (descriptor, s) =>
         descriptor.getLocalName -> descriptor.getType.asInstanceOf[AttributeTypeImpl].parse(s)
