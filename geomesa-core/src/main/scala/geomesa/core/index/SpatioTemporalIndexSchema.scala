@@ -190,7 +190,7 @@ case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SimpleFeature],
 
     val iv = new Value(indexValue)
     // the index entries are (key, FID) pairs
-    val indexEntries = Iterator.fill(keys.length)(iv)
+    val indexEntries = keys.map { k => (k, iv) }
 
     // the (single) data value is the encoded (serialized-to-string) SimpleFeature
     val dataValue = SimpleFeatureEncoder.encode(entryToEncode)

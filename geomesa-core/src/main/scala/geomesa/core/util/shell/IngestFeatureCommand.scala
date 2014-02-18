@@ -225,10 +225,7 @@ class SFTIngest(args: Args) extends Job(args) {
 
       idx.encode(feature).toList
     } catch {
-      case t: Throwable => 
-          t.printStackTrace()
-          sys.error(t.getMessage)
-          List()
+      case t: Throwable => List()
     }
   }
 
