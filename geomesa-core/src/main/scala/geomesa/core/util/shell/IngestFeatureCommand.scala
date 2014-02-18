@@ -23,7 +23,6 @@ import org.geotools.factory.Hints
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.opengis.feature.simple.SimpleFeature
 
 class IngestFeatureCommand extends Command {
 
@@ -57,10 +56,15 @@ class IngestFeatureCommand extends Command {
     val latField = cl.getOptionValue(latOpt.getOpt)
     val lonField = cl.getOptionValue(lonOpt.getOpt)
     val dtgField = cl.getOptionValue(dtgOpt.getOpt)
-    val dtgFmt   = cl.getOptionValue(dtgFmtOpt.getOpt)
+
+    val dtgFmt   =
+      if(cl.hasOption(dtgFmtOpt.getOpt)) cl.getOptionValue(dtgFmtOpt.getOpt)
+      else "EPOCHMILLIS"
+
     val idFields = 
       if(cl.hasOption(idOpt.getOpt)) cl.getOptionValue(idOpt.getOpt)
       else "HASH"
+
     val delim    =
       if(cl.hasOption(csvOpt.getOpt)) "CSV"
       else if(cl.hasOption(tsvOpt.getOpt)) "TSV"
@@ -183,34 +187,24 @@ class SFTIngest(args: Args) extends Job(args) {
         (obj: AnyRef) => dtFormat.parseDateTime(obj.asInstanceOf[String])
     }.getOrElse(throw new RuntimeException("Cannot parse date"))
 
-  lazy val idBuilder = idFields match {
-    case s if "HASH".equals(s) =>
-      val hashFn = Hashing.md5()
-      (feature: SimpleFeature) => {
-        val hash = hashFn.newHasher()
-        feature.getAttributes.foreach {
-          case l: java.lang.Long    => hash.putLong(l)
-          case i: java.lang.Integer => hash.putInt(i)
-          case d: java.lang.Double  => hash.putDouble(d)
-          case dt: java.util.Date   => hash.putLong(dt.getTime)
-          case s: java.lang.String  => hash.putString(s)
-          case _                    => // leave out
-        }
-        hash.hash().toString
-      }
+  lazy val idBuilder: Array[String] => String =
+    idFields match {
+      case s if "HASH".equals(s) =>
+        val hashFn = Hashing.md5()
+        attrs => hashFn.newHasher().putString(attrs.mkString("|")).hash().toString
 
-    case s: String =>
-      val idSplit = idFields.split(",")
-      (feature: SimpleFeature) => idSplit.map { idf => feature.getAttribute(idf) }.mkString("_")
+      case s: String =>
+        val idSplit = idFields.split(",").map { f => sft.indexOf(f) }
+        attrs => idSplit.map { idx => attrs(idx) }.mkString("_")
   }
 
   def parseFeature(line: String): List[geomesa.core.index.KeyValuePair] = {
     try {
       val attrs = line.toString.split(delim)
+      val id = idBuilder(attrs)
 
-      val feature = DataUtilities.parse(sft, "temp", attrs)
+      val feature = DataUtilities.parse(sft, id, attrs)
 
-      val id = idBuilder(feature)
       val lat = feature.getAttribute(latField).asInstanceOf[Double]
       val lon = feature.getAttribute(lonField).asInstanceOf[Double]
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
