@@ -3,9 +3,9 @@ package geomesa.core.util.shell
 import cascading.accumulo.AccumuloSource
 import com.google.common.hash.Hashing
 import com.twitter.scalding.{Tool, Args, Job, TextLine}
-import com.vividsolutions.jts.geom.{Geometry, Coordinate}
+import com.vividsolutions.jts.geom.Coordinate
 import geomesa.core.data.AccumuloDataStore
-import geomesa.core.index.{SpatioTemporalIndexEntry, TypeInitializer, SpatioTemporalIndexSchema}
+import geomesa.core.index.{Constants, SpatioTemporalIndexSchema}
 import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 import java.io.File
 import java.net.{URLClassLoader, URLEncoder, URLDecoder}
@@ -20,11 +20,10 @@ import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.util.ToolRunner
 import org.geotools.data.{DataStoreFinder, DataUtilities}
 import org.geotools.factory.Hints
-import org.geotools.feature.`type`.AttributeTypeImpl
-import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.opengis.feature.simple.SimpleFeature
 
 class IngestFeatureCommand extends Command {
 
@@ -122,7 +121,7 @@ class IngestFeatureCommand extends Command {
       .filter { _.toString.contains("accumulo") }
       .map(u => classPathUrlToAbsolutePath(u.getFile))
 
-    val geomesaJars = classOf[SpatioTemporalIndexEntry].getClassLoader.asInstanceOf[VFSClassLoader]
+    val geomesaJars = classOf[SpatioTemporalIndexSchema].getClassLoader.asInstanceOf[VFSClassLoader]
       .getFileObjects
       .map(u => classPathUrlToAbsolutePath(u.getURL.getFile))
 
@@ -145,42 +144,22 @@ class IngestFeatureCommand extends Command {
 
 }
 
-class SFTTypeInitializer(typeName: String, typeSpec: String) extends TypeInitializer {
-  override def getTypeName = typeName
-  override def getTypeSpec = typeSpec
-}
-
-class AccumuloFeature(sid: String,
-                      geom: Geometry,
-                      dt: DateTime,
-                      attributesMap: Map[String,Object],
-                      typeInitializer: TypeInitializer)
-  extends SpatioTemporalIndexEntry(sid, geom, Some(dt), typeInitializer) {
-
-  // use all of the attribute-value pairs passed in, but do not overwrite
-  // any existing values
-  attributesMap
-    .filter { case (name, value) => getAttribute(name) == null }
-    .foreach { case (name,value) => setAttribute(name, value) }
-}
-
 class SFTIngest(args: Args) extends Job(args) {
   lazy val path     = args("geomesa.ingest.path")
   lazy val typeName = args("geomesa.ingest.typename")
   lazy val schema   = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
-  lazy val idFields = args("geomesa.ingest.idfeatures")
+  lazy val idFields = args.getOrElse("geomesa.ingest.idfeatures", "HASH")
   lazy val sftSpec  = URLDecoder.decode(args("geomesa.ingest.sftspec"), "UTF-8")
   lazy val latField = args("geomesa.ingest.latfield")
   lazy val lonField = args("geomesa.ingest.lonfield")
   lazy val dtgField = args("geomesa.ingest.dtgfield")
-  lazy val dtgFmt   = args("geomesa.ingest.dtgfmt")
+  lazy val dtgFmt   = args.getOrElse("geomesa.ingest.dtgfmt", "MILLISEPOCH")
   lazy val delim    = args("geomesa.ingest.delim") match {
       case "TSV" => "\t"
       case "CSV" => ","
   }
   lazy val sft = DataUtilities.createType(typeName, sftSpec)
   lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
-  lazy val builder = new SimpleFeatureBuilder(sft)
   lazy val dtFormat = DateTimeFormat.forPattern(dtgFmt)
   lazy val idx = SpatioTemporalIndexSchema(schema, sft)
   lazy val out =
@@ -188,7 +167,6 @@ class SFTIngest(args: Args) extends Job(args) {
       args("geomesa.ingest.instance"),
       args("geomesa.ingest.table"),
       args("geomesa.ingest.outpath"))
-  lazy val typeInitializer = new SFTTypeInitializer(typeName, sftSpec)
 
   import collection.JavaConversions._
 
@@ -198,6 +176,9 @@ class SFTIngest(args: Args) extends Job(args) {
       case attr if attr.getType.getBinding.equals(classOf[java.lang.Long]) =>
         (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.lang.Long])
 
+      case attr if attr.getType.getBinding.equals(classOf[java.util.Date]) =>
+        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.util.Date])
+
       case attr if attr.getType.getBinding.equals(classOf[java.lang.String]) =>
         (obj: AnyRef) => dtFormat.parseDateTime(obj.asInstanceOf[String])
     }.getOrElse(throw new RuntimeException("Cannot parse date"))
@@ -205,9 +186,9 @@ class SFTIngest(args: Args) extends Job(args) {
   lazy val idBuilder = idFields match {
     case s if "HASH".equals(s) =>
       val hashFn = Hashing.md5()
-      (props: Map[String, AnyRef]) => {
+      (feature: SimpleFeature) => {
         val hash = hashFn.newHasher()
-        props.values.foreach {
+        feature.getAttributes.foreach {
           case l: java.lang.Long    => hash.putLong(l)
           case i: java.lang.Integer => hash.putInt(i)
           case d: java.lang.Double  => hash.putDouble(d)
@@ -220,28 +201,29 @@ class SFTIngest(args: Args) extends Job(args) {
 
     case s: String =>
       val idSplit = idFields.split(",")
-      (props: Map[String, AnyRef]) => idSplit.map { f => props(f) }.mkString("_")
+      (feature: SimpleFeature) => idSplit.map { idf => feature.getAttribute(idf) }.mkString("_")
   }
 
   def parseFeature(line: String): List[geomesa.core.index.KeyValuePair] = {
     try {
       val attrs = line.toString.split(delim)
 
-      val propMap = strippedAttributes.zip(attrs).map {
-        case (descriptor, s) =>
-          descriptor.getLocalName -> descriptor.getType.asInstanceOf[AttributeTypeImpl].parse(s)
-      }.toMap
+      val feature = DataUtilities.parse(sft, "temp", attrs)
 
-      val id = idBuilder(propMap)
-      val lat = propMap(latField).asInstanceOf[String].toDouble
-      val lon = propMap(lonField).asInstanceOf[String].toDouble
-      val dtg = dtBuilder(propMap(dtgField))
-
+      val id = idBuilder(feature)
+      val lat = feature.getAttribute(latField).asInstanceOf[Double]
+      val lon = feature.getAttribute(lonField).asInstanceOf[Double]
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
+      val dtg = dtBuilder(feature.getAttribute(dtgField))
 
-      val entry = new AccumuloFeature(id, geom, dtg, propMap, typeInitializer)
-      entry.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
-      idx.encode(entry).toList
+      feature.getUserData.put(Hints.PROVIDED_FID, id)
+      feature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+      feature.setAttribute(Constants.SF_PROPERTY_GEOMETRY, geom)
+      feature.setDefaultGeometry(geom)
+      feature.setAttribute(Constants.SF_PROPERTY_START_TIME, dtg.toDate)
+      feature.setAttribute(Constants.SF_PROPERTY_START_TIME, dtg.toDate)
+
+      idx.encode(feature).toList
     } catch {
       case t: Throwable => 
           t.printStackTrace()

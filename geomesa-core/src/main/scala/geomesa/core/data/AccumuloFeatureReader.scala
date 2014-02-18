@@ -29,12 +29,12 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 
 class AccumuloFeatureReader(dataStore: AccumuloDataStore,
-                             featureName: String,
-                             query: Query,
-                             indexSchemaFmt: String,
-                             attributes: String,
-                             sft: SimpleFeatureType)
-    extends FeatureReader[SimpleFeatureType, SimpleFeature] {
+                            featureName: String,
+                            query: Query,
+                            indexSchemaFmt: String,
+                            attributes: String,
+                            sft: SimpleFeatureType)
+  extends FeatureReader[SimpleFeatureType, SimpleFeature] {
 
   import AccumuloFeatureReader._
 
@@ -110,7 +110,7 @@ class AccumuloFeatureReader(dataStore: AccumuloDataStore,
       val bs = dataStore.createBatchScanner
 
       val iter =  if(isDisjoint) emptyValueIterator
-                  else           indexSchema.query(bs, polygon, interval, attributes, ecql)
+      else           indexSchema.query(bs, polygon, interval, attributes, ecql)
 
       ( iter, Some(bs) )
     } catch {

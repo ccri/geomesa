@@ -44,16 +44,7 @@ trait IndexEntry extends SimpleFeature {
   def setEndTime(time: DateTime): Unit = setTime(SF_PROPERTY_END_TIME, time)
 }
 
-abstract class TypeInitializer {
-  def getTypeName = this.getClass.getCanonicalName
-  def getTypeSpec : String
-  lazy val expectedNumberOfProperties = getTypeSpec.split(",").length
-  lazy val defaultSimpleFeatureType = DataUtilities.createType(getTypeName, getTypeSpec)
-  lazy val emptyPropertiesList = List.fill(expectedNumberOfProperties)(null.asInstanceOf[Object])
-  lazy val encodedSimpleFeatureType = DataUtilities.encodeType(defaultSimpleFeatureType)
-}
-
-object IndexEntryType extends TypeInitializer {
+object IndexEntryType {
   def getTypeSpec : String =
     SF_PROPERTY_GEOMETRY + ":Geometry:srid=4326," +
     SF_PROPERTY_START_TIME + ":Date," +
@@ -106,20 +97,20 @@ object IndexEntryType extends TypeInitializer {
   }
 }
 
-trait IndexEntryEncoder[E <: IndexEntry] {
+trait IndexEntryEncoder[E] {
   def encode(entry: E): Seq[KeyValuePair]
 }
-trait IndexEntryDecoder[E <: IndexEntry] {
+trait IndexEntryDecoder[E] {
   def decode(key: Key): E
 }
 
 trait Filter
 
-trait QueryPlanner[E <: IndexEntry] {
+trait QueryPlanner[E] {
   def planQuery(bs: BatchScanner, filter: Filter): BatchScanner
 }
 
-trait IndexSchema[E <: IndexEntry] {
+trait IndexSchema[E] {
   val encoder: IndexEntryEncoder[E]
   val decoder: IndexEntryDecoder[E]
   val planner: QueryPlanner[E]

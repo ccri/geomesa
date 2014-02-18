@@ -114,14 +114,13 @@ class AccumuloDataStoreTest extends Specification {
       // create the data store
       val ds = createStore
       val sftName = "testType"
-      val sft = DataUtilities.createType(sftName,
-        s"NAME:String,$geotimeAttributes")
+      val sft = DataUtilities.createType(sftName, s"NAME:String,$geotimeAttributes")
       ds.createSchema(sft)
       val fs = ds.getFeatureSource(sftName).asInstanceOf[AccumuloFeatureStore]
 
       // create a feature
-      val liveFeature = SimpleFeatureBuilder.build(sft, List(), "fid-1")
       val geom = WKTUtils.read("POINT(45.0 49.0)")
+      val liveFeature = SimpleFeatureBuilder.build(sft, List("testType", geom, null), "fid-1")
       liveFeature.setDefaultGeometry(geom)
 
       // make sure we ask the system to re-use the provided feature-ID

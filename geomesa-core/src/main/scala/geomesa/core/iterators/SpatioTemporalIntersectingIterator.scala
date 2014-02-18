@@ -32,7 +32,7 @@ import org.apache.log4j.Logger
 import org.geotools.data.DataUtilities
 import org.geotools.factory.GeoTools
 import org.joda.time.{DateTimeZone, DateTime, Interval}
-import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import java.util
 
 case class Attribute(name: Text, value: Text)
@@ -189,12 +189,14 @@ class SpatioTemporalIntersectingIterator() extends SortedKeyValueIterator[Key, V
    * Attempt to decode the given key.  This should only succeed in the cases
    * where the key corresponds to an index-entry (not a data-entry).
    */
-  def decodeKey(key:Key): Option[SpatioTemporalIndexEntry] = try {
-    Some(schema.decode(key))
-  } catch {
-    case t:Throwable => None
-  }
+  def decodeKey(key:Key): Option[SimpleFeature] =
+    try {
+      Some(schema.decode(key))
+    } catch {
+      case t:Throwable => None
+    }
 
+  import SpatioTemporalIndexEntry._
   /**
    * Advances the index-iterator to the next qualifying entry, and then
    * updates the data-iterator to match what ID the index-iterator found
