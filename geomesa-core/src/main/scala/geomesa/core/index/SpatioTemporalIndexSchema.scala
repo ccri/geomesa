@@ -26,19 +26,18 @@ import geomesa.utils.geohash.GeohashUtils
 import geomesa.utils.text.{WKBUtils, WKTUtils}
 import java.nio.ByteBuffer
 import java.util.Map.Entry
-import java.util.{Iterator => JIterator, Date}
+import java.util.{Iterator => JIterator}
 import org.apache.accumulo.core.client.{IteratorSetting, BatchScanner}
 import org.apache.accumulo.core.data.{Value, Key}
 import org.apache.accumulo.core.iterators.Combiner
 import org.apache.accumulo.core.iterators.user.RegExFilter
 import org.apache.hadoop.io.Text
-import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureImpl}
+import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.util.Random
 import scala.util.parsing.combinator.RegexParsers
-import org.geotools.data.DataUtilities
 
 // A secondary index consists of interleaved elements of a composite key stored in
 // Accumulo's key (row, column family, and column qualifier)
@@ -126,23 +125,29 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
 
 object SpatioTemporalIndexEntry {
 
+  import collection.JavaConversions._
   implicit class SpatioTemporalIndexEntrySFT(sft: SimpleFeature) {
+    lazy val userData = sft.getUserData
+    lazy val dtgStartField = userData.getOrElse(SF_PROPERTY_START_TIME, SF_PROPERTY_START_TIME).asInstanceOf[String]
+    lazy val dtgEndField = userData.getOrElse(SF_PROPERTY_END_TIME, SF_PROPERTY_END_TIME).asInstanceOf[String]
+
     lazy val sid = sft.getID
     lazy val gh = GeohashUtils.reconstructGeohashFromGeometry(geometry)
-    def geometry = sft.getAttribute(SF_PROPERTY_GEOMETRY).asInstanceOf[Geometry]
-    def setGeometry(geometry:Geometry) {
-      sft.setAttribute(SF_PROPERTY_GEOMETRY, geometry)
+    def geometry = sft.getDefaultGeometry.asInstanceOf[Geometry]
+    def setGeometry(geometry: Geometry) {
+      sft.setDefaultGeometry(geometry)
     }
 
     private def getTime(attr: String) = sft.getAttribute(attr).asInstanceOf[java.util.Date]
-    def startTime = getTime(SF_PROPERTY_START_TIME)
-    def endTime   = getTime(SF_PROPERTY_END_TIME)
+    def startTime = getTime(dtgStartField)
+    def endTime   = getTime(dtgEndField)
     lazy val dt   = Option(startTime).map { d => new DateTime(d) }
 
-    private def setTime(attr: String, time: DateTime): Unit =
-      sft.setAttribute(attr, if (time==null) null else time.toDate)
-    def setStartTime(time: DateTime): Unit = setTime(SF_PROPERTY_START_TIME, time)
-    def setEndTime(time: DateTime): Unit = setTime(SF_PROPERTY_END_TIME, time)
+    private def setTime(attr: String, time: DateTime) =
+      sft.setAttribute(attr, if (time == null) null else time.toDate)
+
+    def setStartTime(time: DateTime) = setTime(dtgStartField, time)
+    def setEndTime(time: DateTime)   = setTime(dtgEndField, time)
   }
 
 }
@@ -174,7 +179,6 @@ case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SimpleFeature],
       val copy = SimpleFeatureBuilder.copy(entryToEncode)
       val geom = getGeohashGeom(gh)
       copy.setDefaultGeometry(geom)
-      copy.setAttribute(SF_PROPERTY_GEOMETRY, geom)
       copy
     }
 
@@ -212,13 +216,12 @@ case class SpatioTemporalIndexEntryDecoder(ghDecoder: GeohashDecoder,
                                            dtDecoder: Option[DateDecoder])
   extends IndexEntryDecoder[SimpleFeature] {
 
-  val sft = DataUtilities.createType("geomesa-idx", IndexEntryType.getTypeSpec)
   import GeohashUtils._
 
   def decode(key: Key) = {
     val gh = getGeohashGeom(ghDecoder.decode(key))
     val dt = dtDecoder.map(_.decode(key))
-    SimpleFeatureBuilder.build(sft, List(gh, dt), "")
+    SimpleFeatureBuilder.build(indexSFT, List(gh, dt), "")
   }
 
 }
@@ -240,7 +243,7 @@ case class SpatioTemporalIndexQueryPlanner(keyPlanner: KeyPlanner, cfPlanner: Co
    * @param rawNumItems the number of points to allocate
    * @return the points uniformly spaced over this range
    */
-  def apportionRange(minValue:Int=0, maxValue:Int=100, rawNumItems:Int=3) : Seq[Int] = {
+  def apportionRange(minValue: Int = 0, maxValue: Int = 100, rawNumItems: Int = 3) : Seq[Int] = {
     val numItems = scala.math.max(rawNumItems, 1)
     if (minValue==maxValue) List.fill(numItems)(minValue)
     else {
@@ -613,21 +616,19 @@ object SpatioTemporalIndexSchema extends RegexParsers {
   // they do not contain duplicates
   def mayContainDuplicates(featureType: SimpleFeatureType): Boolean =
     if (featureType == null) true
-    else featureType.getType(SF_PROPERTY_GEOMETRY).getBinding != classOf[Point]
+    else featureType.getGeometryDescriptor.getType.getBinding != classOf[Point]
 
   // builds a SpatioTemporalIndexSchema (requiring a feature type)
-  def apply(s: String, featureType: SimpleFeatureType): SpatioTemporalIndexSchema =
-    SpatioTemporalIndexSchema(
-      buildKeyEncoder(s),
-      SpatioTemporalIndexEntryDecoder(
-        buildGeohashDecoder(s),
-        buildDateDecoder(s)),
-      SpatioTemporalIndexQueryPlanner(
-        buildKeyPlanner(s),
-        buildColumnFamilyPlanner(s),
-        s,
-        featureType),
-      featureType)
+  def apply(s: String, featureType: SimpleFeatureType): SpatioTemporalIndexSchema = {
+    val keyEncoder        = buildKeyEncoder(s)
+    val geohashDecoder    = buildGeohashDecoder(s)
+    val dateDecoder       = buildDateDecoder(s)
+    val keyPlanner        = buildKeyPlanner(s)
+    val cfPlanner         = buildColumnFamilyPlanner(s)
+    val indexEntryDecoder = SpatioTemporalIndexEntryDecoder(geohashDecoder, dateDecoder)
+    val queryPlanner      = SpatioTemporalIndexQueryPlanner(keyPlanner, cfPlanner, s, featureType)
+    SpatioTemporalIndexSchema(keyEncoder, indexEntryDecoder, queryPlanner, featureType)
+  }
 
   // the index value consists of the feature's:
   // 1.  ID

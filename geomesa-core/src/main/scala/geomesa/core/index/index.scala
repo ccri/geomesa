@@ -20,6 +20,7 @@ import org.apache.accumulo.core.data.{Value, Key}
 import org.geotools.filter.identity.FeatureIdImpl
 import org.joda.time.DateTime
 import org.opengis.filter.identity.FeatureId
+import org.geotools.data.DataUtilities
 
 /**
  * These are package-wide constants.
@@ -27,6 +28,13 @@ import org.opengis.filter.identity.FeatureId
 package object index {
   val MIN_DATE = new DateTime(Long.MinValue)
   val MAX_DATE = new DateTime(Long.MaxValue)
+
+  val SF_PROPERTY_GEOMETRY = "geomesa_index_geometry"
+  val SF_PROPERTY_START_TIME = "geomesa_index_start_time"
+  val SF_PROPERTY_END_TIME   = "geomesa_index_end_time"
+
+  val spec = "geomesa_index_geometry:Geometry:srid=4326,geomesa_index_start_time:Date,geomesa_index_end_time:Date"
+  val indexSFT = DataUtilities.createType("geomesa-idx", spec)
 
   implicit def string2id(s: String): FeatureId = new FeatureIdImpl(s)
 

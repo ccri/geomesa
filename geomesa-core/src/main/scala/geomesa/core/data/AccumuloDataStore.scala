@@ -39,6 +39,8 @@ import org.opengis.filter.Filter
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import geomesa.core.index
+import geomesa.core
 
 /**
  *
@@ -93,12 +95,18 @@ class AccumuloDataStore(val connector: Connector,
     writeMetadata(featureType)
   }
 
+
   def writeMetadata(sft: SimpleFeatureType) {
     val featureName = sft.getName.getLocalPart
     val attributesValue = new Value(DataUtilities.encodeType(sft).getBytes)
     writeMetadataItem(featureName, ATTRIBUTES_CF, attributesValue)
     val schemaValue = new Value(indexSchemaFormat.getBytes)
     writeMetadataItem(featureName, SCHEMA_CF, schemaValue)
+    val userData = sft.getUserData
+    if(userData.containsKey(core.index.SF_PROPERTY_START_TIME)) {
+      val dtgField = userData.get(core.index.SF_PROPERTY_START_TIME)
+      writeMetadataItem(featureName, DTGFIELD_CF, new Value(dtgField.asInstanceOf[String].getBytes))
+    }
   }
 
   def getMetadataRowID(featureName: String) = new Text(METADATA_TAG + "_" + featureName)
@@ -186,7 +194,8 @@ class AccumuloDataStore(val connector: Connector,
 
   // NB:  By default, AbstractDataStore is "isWriteable".  This means that createFeatureSource returns
   // a featureStore
-  def createFeatureSource(featureName: String) = new AccumuloFeatureStore(this, featureName)
+  def createFeatureSource(featureName: String): SimpleFeatureSource =
+    new AccumuloFeatureStore(this, featureName)
 
   override def getFeatureSource(featureName: String): SimpleFeatureSource =
     createFeatureSource(featureName)
@@ -238,7 +247,13 @@ class AccumuloDataStore(val connector: Connector,
   }
 
   // Implementation of Abstract method
-  def getSchema(featureName: String) = DataUtilities.createType(featureName, getAttributes(featureName))
+  def getSchema(featureName: String) = {
+    val sft = DataUtilities.createType(featureName, getAttributes(featureName))
+    val dtgField = readMetadataItem(featureName, DTGFIELD_CF).getOrElse("")
+    sft.getUserData.put(core.index.SF_PROPERTY_START_TIME, dtgField)
+    sft.getUserData.put(core.index.SF_PROPERTY_END_TIME,   dtgField)
+    sft
+  }
 
   // Implementation of Abstract method
   def getFeatureReader(featureName: String): AccumuloFeatureReader = getFeatureReader(featureName, Query.ALL)
@@ -289,7 +304,7 @@ class MapReduceAccumuloDataStore(connector: Connector,
                                  tableName: String,
                                  authorizations: Authorizations,
                                  val params: JMap[String, Serializable],
-                                 indexSchemaFormat: String)
+                                 indexSchemaFormat: String = "%~#s%99#r%0,3#gh%yyyyMMdd#d::%~#s%3,2#gh::%~#s%#id")
   extends AccumuloDataStore(connector, tableName, authorizations, indexSchemaFormat) {
 
   override def createFeatureSource(featureName: String): SimpleFeatureSource =

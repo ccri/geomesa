@@ -45,25 +45,23 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
       else
         new Authorizations(authsStr.split(","): _*)
 
-    // allow the user to specify an index-schema format in the parameters
-    val indexSchemaFormat : String = idxSchemaParam.lookUp(params) match {
-      case null => null
-      case s:String => {
-        val trimmed = s.trim
-        if (trimmed.length == 0) null else trimmed
-      }
-      case _ => throw new Exception("Invalid index-schema format parameter")
-    }
-
     val tableName = tableNameParam.lookUp(params).asInstanceOf[String]
     val connector =
       if(params.containsKey(connParam.key)) connParam.lookUp(params).asInstanceOf[Connector]
       else buildAccumuloConnector(params)
 
     if (mapreduceParam.lookUp(params) != null && mapreduceParam.lookUp(params).asInstanceOf[String] == "true")
-      new MapReduceAccumuloDataStore(connector, tableName, authorizations, params, indexSchemaFormat)
-    else
-      new AccumuloDataStore(connector, tableName, authorizations, indexSchemaFormat)
+      if(idxSchemaParam.lookUp(params) != null)
+        new MapReduceAccumuloDataStore(connector, tableName, authorizations, params, idxSchemaParam.lookUp(params).asInstanceOf[String])
+      else
+        new MapReduceAccumuloDataStore(connector, tableName, authorizations, params)
+    else {
+      if(idxSchemaParam.lookUp(params) != null)
+        new AccumuloDataStore(connector, tableName, authorizations, idxSchemaParam.lookUp(params).asInstanceOf[String])
+      else
+        new AccumuloDataStore(connector, tableName, authorizations)
+    }
+
   }
 
   def buildAccumuloConnector(params: JMap[String,Serializable]): Connector = {

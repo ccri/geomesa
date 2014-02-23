@@ -5,7 +5,7 @@ import com.google.common.hash.Hashing
 import com.twitter.scalding.{Tool, Args, Job, TextLine}
 import com.vividsolutions.jts.geom.Coordinate
 import geomesa.core.data.AccumuloDataStore
-import geomesa.core.index.{Constants, SpatioTemporalIndexSchema}
+import geomesa.core.index.SpatioTemporalIndexSchema
 import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 import java.io.File
 import java.net.{URLClassLoader, URLEncoder, URLDecoder}
@@ -23,6 +23,8 @@ import org.geotools.factory.Hints
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.opengis.feature.simple.SimpleFeatureType
+import geomesa.core.index
 
 class IngestFeatureCommand extends Command {
 
@@ -49,7 +51,9 @@ class IngestFeatureCommand extends Command {
     val params = Map("connector" -> conn, "tableName" -> shellState.getTableName, "auths" -> auths)
     val ds = DataStoreFinder.getDataStore(params).asInstanceOf[AccumuloDataStore]
     val typeName = ds.getTypeNames.head
-    val spec = DataUtilities.encodeType(ds.getSchema(typeName))
+    val sft = ds.getSchema(typeName)
+    val sftDtgField = sft.getUserData.get(index.SF_PROPERTY_START_TIME).asInstanceOf[String]
+    val spec = DataUtilities.encodeType(sft)
     val schema = ds.getIndexSchemaFmt(typeName)
 
     val path     = cl.getOptionValue(pathOpt.getOpt)
@@ -77,8 +81,11 @@ class IngestFeatureCommand extends Command {
     val libJars = buildLibJars
 
     try {
-    runInjestJob(libJars, path, typeName, schema, idFields, spec, latField, lonField, dtgField,
-      dtgFmt, ingestPath, shellState, conn, delim)
+      runInjestJob(
+        libJars, path, typeName, schema, idFields, spec,
+        latField, lonField, dtgField, dtgFmt, sftDtgField,
+        ingestPath,
+        shellState, conn, delim)
     } catch {
       case t: Throwable => t.printStackTrace
     }
@@ -95,7 +102,21 @@ class IngestFeatureCommand extends Command {
     conn.tableOperations().importDirectory(shellState.getTableName, ingestPath.toString, failurePath.toString, true)
   }
 
-  def runInjestJob(libJars: String, path: String, typeName: String, schema: String, idFields: String, spec: String, latField: String, lonField: String, dtgField: String, dtgFmt: String, ingestPath: Path, shellState: Shell, conn: Connector, delim: String) {
+  def runInjestJob(libJars: String,
+                   path: String,
+                   typeName: String,
+                   schema: String,
+                   idFields: String,
+                   spec: String,
+                   latField: String,
+                   lonField: String,
+                   dtgField: String,
+                   dtgFmt: String,
+                   sftDtgField: String,
+                   ingestPath: Path,
+                   shellState: Shell,
+                   conn: Connector,
+                   delim: String) {
     val jobConf = new JobConf
 
     ToolRunner.run(jobConf, new Tool,
@@ -103,19 +124,20 @@ class IngestFeatureCommand extends Command {
         "-libjars", libJars,
         classOf[SFTIngest].getCanonicalName,
         "--hdfs",
-        "--geomesa.ingest.path",       path,
-        "--geomesa.ingest.typename",   typeName,
-        "--geomesa.ingest.schema",     URLEncoder.encode(schema, "UTF-8"),
-        "--geomesa.ingest.idfeatures", idFields,
-        "--geomesa.ingest.sftspec",    URLEncoder.encode(spec, "UTF-8"),
-        "--geomesa.ingest.latfield",   latField,
-        "--geomesa.ingest.lonfield",   lonField,
-        "--geomesa.ingest.dtgfield",   dtgField,
-        "--geomesa.ingest.dtgfmt",     dtgFmt,
-        "--geomesa.ingest.outpath",    ingestPath.toString,
-        "--geomesa.ingest.table",      shellState.getTableName,
-        "--geomesa.ingest.instance",   conn.getInstance().getInstanceName,
-        "--geomesa.ingest.delim",      delim)
+        "--geomesa.ingest.path",          path,
+        "--geomesa.ingest.typename",      typeName,
+        "--geomesa.ingest.schema",        URLEncoder.encode(schema, "UTF-8"),
+        "--geomesa.ingest.idfeatures",    idFields,
+        "--geomesa.ingest.sftspec",       URLEncoder.encode(spec, "UTF-8"),
+        "--geomesa.ingest.latfield",      latField,
+        "--geomesa.ingest.lonfield",      lonField,
+        "--geomesa.ingest.dtgfield",      dtgField,
+        "--geomesa.ingest.dtgfmt",        dtgFmt,
+        "--geomesa.ingest.sft.dtgfield",  sftDtgField,
+        "--geomesa.ingest.outpath",       ingestPath.toString,
+        "--geomesa.ingest.table",         shellState.getTableName,
+        "--geomesa.ingest.instance",      conn.getInstance().getInstanceName,
+        "--geomesa.ingest.delim",         delim)
     )
   }
 
@@ -152,27 +174,28 @@ class SFTIngest(args: Args) extends Job(args) {
 
   import collection.JavaConversions._
 
-  lazy val path     = args("geomesa.ingest.path")
-  lazy val typeName = args("geomesa.ingest.typename")
-  lazy val schema   = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
-  lazy val idFields = args.getOrElse("geomesa.ingest.idfeatures", "HASH")
-  lazy val sftSpec  = URLDecoder.decode(args("geomesa.ingest.sftspec"), "UTF-8")
-  lazy val latField = args("geomesa.ingest.latfield")
-  lazy val lonField = args("geomesa.ingest.lonfield")
-  lazy val dtgField = args("geomesa.ingest.dtgfield")
-  lazy val dtgFmt   = args.getOrElse("geomesa.ingest.dtgfmt", "MILLISEPOCH")
-  lazy val delim    = args("geomesa.ingest.delim") match {
+  lazy val path        = args("geomesa.ingest.path")
+  lazy val typeName    = args("geomesa.ingest.typename")
+  lazy val schema      = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
+  lazy val idFields    = args.getOrElse("geomesa.ingest.idfeatures", "HASH")
+  lazy val sftSpec     = URLDecoder.decode(args("geomesa.ingest.sftspec"), "UTF-8")
+  lazy val latField    = args("geomesa.ingest.latfield")
+  lazy val lonField    = args("geomesa.ingest.lonfield")
+  lazy val dtgField    = args("geomesa.ingest.dtgfield")
+  lazy val sftDtgField = args("geomesa.ingest.sft.dtgfield")
+  lazy val dtgFmt      = args.getOrElse("geomesa.ingest.dtgfmt", "MILLISEPOCH")
+  lazy val delim       = args("geomesa.ingest.delim") match {
       case "TSV" => "\t"
       case "CSV" => ","
   }
-  lazy val sft = DataUtilities.createType(typeName, sftSpec)
+  lazy val sft         = DataUtilities.createType(typeName, sftSpec)
   lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
-  lazy val dtFormat = DateTimeFormat.forPattern(dtgFmt)
-  lazy val idx = SpatioTemporalIndexSchema(schema, sft)
+  lazy val dtFormat    = DateTimeFormat.forPattern(dtgFmt)
+  lazy val idx         = SpatioTemporalIndexSchema(schema, sft)
 
-  private val instance = args("geomesa.ingest.instance")
-  private val table    = args("geomesa.ingest.table")
-  private val output   = args("geomesa.ingest.outpath")
+  private val instance  = args("geomesa.ingest.instance")
+  private val table     = args("geomesa.ingest.table")
+  private val output    = args("geomesa.ingest.outpath")
   lazy val accumuloSink = new AccumuloSource(instance, table, output)
 
   lazy val strippedAttributes = sft.getAttributeDescriptors.reverse.drop(3).reverse
@@ -198,10 +221,9 @@ class SFTIngest(args: Args) extends Job(args) {
       val dtg = dtBuilder(feature.getAttribute(dtgField))
 
       feature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
-      feature.setAttribute(Constants.SF_PROPERTY_GEOMETRY, geom)
       feature.setDefaultGeometry(geom)
-      feature.setAttribute(Constants.SF_PROPERTY_START_TIME, dtg.toDate)
-      feature.setAttribute(Constants.SF_PROPERTY_START_TIME, dtg.toDate)
+      feature.setAttribute(sftDtgField, dtg.toDate)
+      feature.setAttribute(sftDtgField, dtg.toDate)
 
       idx.encode(feature).toList
     } catch {

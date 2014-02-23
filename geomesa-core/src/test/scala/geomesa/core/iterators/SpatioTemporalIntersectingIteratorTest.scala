@@ -56,8 +56,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification {
   val emptyBytes = new Value(Array[Byte]())
 
   object UnitTestEntryType  {
-    def getTypeSpec =
-      "POINT:String," + "LINESTRING:String," + "POLYGON:String," + "attr2:String," + IndexEntryType.getTypeSpec
+    def getTypeSpec = "POINT:String," + "LINESTRING:String," + "POLYGON:String," + "attr2:String," + spec
   }
 
   object TestData {
