@@ -149,6 +149,9 @@ class IngestFeatureCommand extends Command {
 }
 
 class SFTIngest(args: Args) extends Job(args) {
+
+  import collection.JavaConversions._
+
   lazy val path     = args("geomesa.ingest.path")
   lazy val typeName = args("geomesa.ingest.typename")
   lazy val schema   = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
@@ -166,37 +169,21 @@ class SFTIngest(args: Args) extends Job(args) {
   lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
   lazy val dtFormat = DateTimeFormat.forPattern(dtgFmt)
   lazy val idx = SpatioTemporalIndexSchema(schema, sft)
-  lazy val out =
-    new AccumuloSource(
-      args("geomesa.ingest.instance"),
-      args("geomesa.ingest.table"),
-      args("geomesa.ingest.outpath"))
 
-  import collection.JavaConversions._
+  private val instance = args("geomesa.ingest.instance")
+  private val table    = args("geomesa.ingest.table")
+  private val output   = args("geomesa.ingest.outpath")
+  lazy val accumuloSink = new AccumuloSource(instance, table, output)
 
   lazy val strippedAttributes = sft.getAttributeDescriptors.reverse.drop(3).reverse
-  lazy val dtBuilder =
-    strippedAttributes.find(_.getLocalName.equals(dtgField)).map {
-      case attr if attr.getType.getBinding.equals(classOf[java.lang.Long]) =>
-        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.lang.Long])
-
-      case attr if attr.getType.getBinding.equals(classOf[java.util.Date]) =>
-        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.util.Date])
-
-      case attr if attr.getType.getBinding.equals(classOf[java.lang.String]) =>
-        (obj: AnyRef) => dtFormat.parseDateTime(obj.asInstanceOf[String])
-    }.getOrElse(throw new RuntimeException("Cannot parse date"))
-
-  lazy val idBuilder: Array[String] => String =
-    idFields match {
-      case s if "HASH".equals(s) =>
-        val hashFn = Hashing.md5()
-        attrs => hashFn.newHasher().putString(attrs.mkString("|")).hash().toString
-
-      case s: String =>
-        val idSplit = idFields.split(",").map { f => sft.indexOf(f) }
-        attrs => idSplit.map { idx => attrs(idx) }.mkString("_")
-  }
+  lazy val dtBuilder = buildDtBuilder
+  lazy val idBuilder = buildIDBuilder
+  
+  TextLine(path)
+    .flatMap('line -> List('key, 'value)) { line: String => parseFeature(line) }
+    .project('key,'value)
+    .groupBy('key) { _.sortBy('value).reducers(64) }
+    .write(accumuloSink)
 
   def parseFeature(line: String): List[geomesa.core.index.KeyValuePair] = {
     try {
@@ -210,7 +197,6 @@ class SFTIngest(args: Args) extends Job(args) {
       val geom = geomFactory.createPoint(new Coordinate(lon, lat))
       val dtg = dtBuilder(feature.getAttribute(dtgField))
 
-      feature.getUserData.put(Hints.PROVIDED_FID, id)
       feature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
       feature.setAttribute(Constants.SF_PROPERTY_GEOMETRY, geom)
       feature.setDefaultGeometry(geom)
@@ -223,10 +209,32 @@ class SFTIngest(args: Args) extends Job(args) {
     }
   }
 
-  TextLine(path)
-    .flatMap('line -> List('key, 'value)) { line: String => parseFeature(line) }
-    .project('key,'value)
-    .groupBy('key) { _.sortBy('value).reducers(64) }
-    .write(out)
+  def buildIDBuilder: (Array[String]) => String = {
+    idFields match {
+      case s if "HASH".equals(s) =>
+        val hashFn = Hashing.md5()
+        attrs => hashFn.newHasher().putString(attrs.mkString("|")).hash().toString
 
+      case s: String =>
+        val idSplit = idFields.split(",").map {
+          f => sft.indexOf(f)
+        }
+        attrs => idSplit.map {
+          idx => attrs(idx)
+        }.mkString("_")
+    }
+  }
+  
+  def buildDtBuilder: (AnyRef) => DateTime =
+    strippedAttributes.find(_.getLocalName.equals(dtgField)).map {
+      case attr if attr.getType.getBinding.equals(classOf[java.lang.Long]) =>
+        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.lang.Long])
+
+      case attr if attr.getType.getBinding.equals(classOf[java.util.Date]) =>
+        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.util.Date])
+
+      case attr if attr.getType.getBinding.equals(classOf[java.lang.String]) =>
+        (obj: AnyRef) => dtFormat.parseDateTime(obj.asInstanceOf[String])
+    }.getOrElse(throw new RuntimeException("Cannot parse date"))
+  
 }

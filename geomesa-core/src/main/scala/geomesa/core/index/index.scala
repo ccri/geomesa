@@ -25,14 +25,10 @@ import org.opengis.filter.identity.FeatureId
  * These are package-wide constants.
  */
 package object index {
-  val SF_PROPERTY_GEOMETRY = "geomesa_index_geometry"
-  val SF_PROPERTY_START_TIME = "geomesa_index_start_time"
-  val SF_PROPERTY_END_TIME = "geomesa_index_end_time"
-
   val MIN_DATE = new DateTime(Long.MinValue)
   val MAX_DATE = new DateTime(Long.MaxValue)
 
-  implicit def string2id(s:String) : FeatureId = new FeatureIdImpl(s)
+  implicit def string2id(s: String): FeatureId = new FeatureIdImpl(s)
 
   type KeyValuePair = (Key, Value)
 }

@@ -46,7 +46,7 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
         new Authorizations(authsStr.split(","): _*)
 
     // allow the user to specify an index-schema format in the parameters
-    val indexSchemaFormat : String = indexSchemaFormatParam.lookUp(params) match {
+    val indexSchemaFormat : String = idxSchemaParam.lookUp(params) match {
       case null => null
       case s:String => {
         val trimmed = s.trim
@@ -85,7 +85,7 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
 
   override def getParametersInfo =
     Array(instanceIdParam, zookeepersParam, userParam, passwordParam,
-          authsParam, tableNameParam, indexSchemaFormatParam)
+          authsParam, tableNameParam, idxSchemaParam)
 
   def canProcess(params: JMap[String,Serializable]) =
     params.containsKey(instanceIdParam.key) || params.containsKey(connParam.key)
@@ -97,16 +97,16 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
 
 object AccumuloDataStoreFactory {
   object params {
-    val connParam = new Param("connector", classOf[Connector], "The Accumulo connector", false)
-    val instanceIdParam = new Param("instanceId", classOf[String], "The Accumulo Instance ID", true)
-    val zookeepersParam = new Param("zookeepers", classOf[String], "Zookeepers", true)
-    val userParam = new Param("user", classOf[String], "Accumulo user", true)
-    val passwordParam = new Param("password", classOf[String], "Password", true)
-    val authsParam = new Param("auths", classOf[String], "Accumulo authorizations", true)
-    val tableNameParam = new Param("tableName", classOf[String], "The Accumulo Table Name", true)
-    val indexSchemaFormatParam = new Param("indexSchemaFormat", classOf[String], "The feature-specific index-schema format", false)
-    val mockParam = new Param("useMock", classOf[String], "Use a mock connection (for testing)", false)
-    val mapreduceParam = new Param("useMapReduce", classOf[String], "Use MapReduce ingest", false)
+    val connParam         = new Param("connector", classOf[Connector], "The Accumulo connector", false)
+    val instanceIdParam   = new Param("instanceId", classOf[String], "The Accumulo Instance ID", true)
+    val zookeepersParam   = new Param("zookeepers", classOf[String], "Zookeepers", true)
+    val userParam         = new Param("user", classOf[String], "Accumulo user", true)
+    val passwordParam     = new Param("password", classOf[String], "Password", true)
+    val authsParam        = new Param("auths", classOf[String], "Accumulo authorizations", true)
+    val tableNameParam    = new Param("tableName", classOf[String], "The Accumulo Table Name", true)
+    val idxSchemaParam    = new Param("indexSchemaFormat", classOf[String], "The feature-specific index-schema format", false)
+    val mockParam         = new Param("useMock", classOf[String], "Use a mock connection (for testing)", false)
+    val mapreduceParam    = new Param("useMapReduce", classOf[String], "Use MapReduce ingest", false)
   }
 
   import params._
@@ -124,11 +124,11 @@ object AccumuloDataStoreFactory {
 
   def getMRAccumuloConnectionParams(conf: Configuration): JMap[String,AnyRef] =
     Map(
-         zookeepersParam.key -> conf.get(ZOOKEEPERS),
-         instanceIdParam.key -> conf.get(INSTANCE_ID),
-         userParam.key -> conf.get(ACCUMULO_USER),
-         passwordParam.key -> conf.get(ACCUMULO_PASS),
-         tableNameParam.key -> conf.get(TABLE),
-         authsParam.key -> conf.get(AUTHS),
-         "useMapReduce" -> "true")
+      zookeepersParam.key -> conf.get(ZOOKEEPERS),
+      instanceIdParam.key -> conf.get(INSTANCE_ID),
+      userParam.key -> conf.get(ACCUMULO_USER),
+      passwordParam.key -> conf.get(ACCUMULO_PASS),
+      tableNameParam.key -> conf.get(TABLE),
+      authsParam.key -> conf.get(AUTHS),
+      "useMapReduce" -> "true")
 }

@@ -16,8 +16,11 @@
 
 package geomesa.core
 
-import org.apache.accumulo.core.data.Value
+import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.hadoop.io.Text
+import org.apache.hadoop.mapreduce.TaskInputOutputContext
+import org.geotools.data.FeatureWriter
+import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
 
 package object data {
   val INSTANCE_ID = "geomesa.instance.id"
@@ -35,6 +38,7 @@ package object data {
   val EMPTY_VALUE = new Value(Array[Byte]())
   val EMPTY_COLQ = new Text(EMPTY_STRING)
   val WHOLE_WORLD_BOUNDS = "-180.0:180.0:-90.0:90.0"
-  val UNLIKELY_FIRST_ROWID = "\u0000"
-  val UNLIKELY_LAST_ROWID = "~"*50
+
+  type TASKIOCTX = TaskInputOutputContext[_, _, Key, Value]
+  type SFFeatureWriter = FeatureWriter[SimpleFeatureType, SimpleFeature]
 }
