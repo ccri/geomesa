@@ -38,6 +38,7 @@ package object data {
   val SCHEMA_CF          = new Text("schema")
   val DTGFIELD_CF        = new Text("dtgfield")
   val METADATA_TAG       = "~METADATA"
+  val METADATA_TAG_END   = s"$METADATA_TAG~~"
   val EMPTY_STRING       = ""
   val EMPTY_VALUE        = new Value(Array[Byte]())
   val EMPTY_COLQ         = new Text(EMPTY_STRING)

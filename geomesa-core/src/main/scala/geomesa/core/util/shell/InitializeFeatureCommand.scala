@@ -4,9 +4,11 @@ import org.apache.accumulo.core.util.shell.{Shell, Command}
 import org.apache.commons.cli.{Option => Opt, Options, CommandLine}
 import org.geotools.data.{DataUtilities, DataStoreFinder}
 import geomesa.core.iterators.SpatioTemporalIntersectingIterator
+import geomesa.core.index.Constants
 
 class InitializeFeatureCommand extends Command {
   val schemaOpt = new Opt("is", "indexschema", true, "Custom index schema")
+  val dtgOpt    = new Opt("dtg", "datetimefield", true, "Field to use for datetime index")
 
   override def numArgs() = 3
 
@@ -24,12 +26,15 @@ class InitializeFeatureCommand extends Command {
     val sftSpec = args(2)
 
     val params = Map("connector" -> conn, "tableName" -> tableName, "auths" -> auths)
-    val finalParams =
-      if(cl.hasOption(schemaOpt.getOpt)) params + ("indexSchemaFormat" -> cl.getOptionValue(schemaOpt.getOpt))
-      else params
+    val finalParams = cl.getOpt(schemaOpt).map { isf => params + ("indexSchemaFormat" -> isf) }.getOrElse(params)
+
+    val ds = DataStoreFinder.getDataStore(finalParams)
 
     val sft = DataUtilities.createType(featureName, sftSpec)
-    val ds = DataStoreFinder.getDataStore(finalParams)
+    cl.getOpt(dtgOpt).foreach { arg =>
+      sft.getUserData.put(Constants.SF_PROPERTY_START_TIME, arg)
+      sft.getUserData.put(Constants.SF_PROPERTY_END_TIME,   arg)
+    }
     ds.createSchema(sft)
 
     0
@@ -38,6 +43,7 @@ class InitializeFeatureCommand extends Command {
   override def getOptions: Options = {
     val options = super.getOptions
     options.addOption(schemaOpt)
+    options.addOption(dtgOpt)
     options
   }
 }

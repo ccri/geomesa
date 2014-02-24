@@ -5,12 +5,13 @@ import com.google.common.hash.Hashing
 import com.twitter.scalding.{Tool, Args, Job, TextLine}
 import com.vividsolutions.jts.geom.Coordinate
 import geomesa.core.data.AccumuloDataStore
-import geomesa.core.index.SpatioTemporalIndexSchema
+import geomesa.core.index.{CompositeTextFormatter, Constants, SpatioTemporalIndexSchema}
 import geomesa.core.iterators.SpatioTemporalIntersectingIterator
 import java.io.File
 import java.net.{URLClassLoader, URLEncoder, URLDecoder}
 import java.util.UUID
 import org.apache.accumulo.core.client.Connector
+import org.apache.accumulo.core.data.Key
 import org.apache.accumulo.core.util.shell.{Shell, Command}
 import org.apache.commons.cli.{Option => Opt, Options, CommandLine}
 import org.apache.commons.vfs2.impl.VFSClassLoader
@@ -23,8 +24,6 @@ import org.geotools.factory.Hints
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import org.opengis.feature.simple.SimpleFeatureType
-import geomesa.core.index
 
 class IngestFeatureCommand extends Command {
 
@@ -52,7 +51,7 @@ class IngestFeatureCommand extends Command {
     val ds = DataStoreFinder.getDataStore(params).asInstanceOf[AccumuloDataStore]
     val typeName = ds.getTypeNames.head
     val sft = ds.getSchema(typeName)
-    val sftDtgField = sft.getUserData.get(index.SF_PROPERTY_START_TIME).asInstanceOf[String]
+    val dtgTargetField = sft.getUserData.get(Constants.SF_PROPERTY_START_TIME).asInstanceOf[String]
     val spec = DataUtilities.encodeType(sft)
     val schema = ds.getIndexSchemaFmt(typeName)
 
@@ -65,7 +64,13 @@ class IngestFeatureCommand extends Command {
       if(cl.hasOption(dtgFmtOpt.getOpt)) cl.getOptionValue(dtgFmtOpt.getOpt)
       else "EPOCHMILLIS"
 
-    val idFields = 
+    val idx = SpatioTemporalIndexSchema(schema, sft)
+    val hashSep = idx.encoder.rowf match {
+      case CompositeTextFormatter(_, sep) => sep
+      case _                              => "~"
+    }
+
+    val idFields =
       if(cl.hasOption(idOpt.getOpt)) cl.getOptionValue(idOpt.getOpt)
       else "HASH"
 
@@ -82,10 +87,18 @@ class IngestFeatureCommand extends Command {
 
     try {
       runInjestJob(
-        libJars, path, typeName, schema, idFields, spec,
-        latField, lonField, dtgField, dtgFmt, sftDtgField,
+        libJars,
+        path,
+        typeName, schema, spec,
+        idFields,
+        latField, lonField,
+        dtgField, dtgFmt, dtgTargetField,
+        hashSep,
+        idx.maxShard + 1,
         ingestPath,
-        shellState, conn, delim)
+        shellState,
+        conn,
+        delim)
     } catch {
       case t: Throwable => t.printStackTrace
     }
@@ -106,13 +119,15 @@ class IngestFeatureCommand extends Command {
                    path: String,
                    typeName: String,
                    schema: String,
-                   idFields: String,
                    spec: String,
+                   idFields: String,
                    latField: String,
                    lonField: String,
                    dtgField: String,
                    dtgFmt: String,
-                   sftDtgField: String,
+                   dtgTargetField: String,
+                   hashSep: String,
+                   numReducers: Int,
                    ingestPath: Path,
                    shellState: Shell,
                    conn: Connector,
@@ -124,20 +139,22 @@ class IngestFeatureCommand extends Command {
         "-libjars", libJars,
         classOf[SFTIngest].getCanonicalName,
         "--hdfs",
-        "--geomesa.ingest.path",          path,
-        "--geomesa.ingest.typename",      typeName,
-        "--geomesa.ingest.schema",        URLEncoder.encode(schema, "UTF-8"),
-        "--geomesa.ingest.idfeatures",    idFields,
-        "--geomesa.ingest.sftspec",       URLEncoder.encode(spec, "UTF-8"),
-        "--geomesa.ingest.latfield",      latField,
-        "--geomesa.ingest.lonfield",      lonField,
-        "--geomesa.ingest.dtgfield",      dtgField,
-        "--geomesa.ingest.dtgfmt",        dtgFmt,
-        "--geomesa.ingest.sft.dtgfield",  sftDtgField,
-        "--geomesa.ingest.outpath",       ingestPath.toString,
-        "--geomesa.ingest.table",         shellState.getTableName,
-        "--geomesa.ingest.instance",      conn.getInstance().getInstanceName,
-        "--geomesa.ingest.delim",         delim)
+        "--geomesa.ingest.path",             path,
+        "--geomesa.ingest.typename",         typeName,
+        "--geomesa.ingest.schema",           URLEncoder.encode(schema, "UTF-8"),
+        "--geomesa.ingest.idfeatures",       idFields,
+        "--geomesa.ingest.sftspec",          URLEncoder.encode(spec, "UTF-8"),
+        "--geomesa.ingest.latfield",         latField,
+        "--geomesa.ingest.lonfield",         lonField,
+        "--geomesa.ingest.dtgfield",         dtgField,
+        "--geomesa.ingest.dtgfmt",           dtgFmt,
+        "--geomesa.ingest.dtgtargetfield",   dtgTargetField,
+        "--geomesa.ingest.hashsep",          hashSep,
+        "--geomesa.ingest.numreducers",      s"$numReducers",
+        "--geomesa.ingest.outpath",          ingestPath.toString,
+        "--geomesa.ingest.table",            shellState.getTableName,
+        "--geomesa.ingest.instance",         conn.getInstance().getInstanceName,
+        "--geomesa.ingest.delim",            delim)
     )
   }
 
@@ -174,38 +191,48 @@ class SFTIngest(args: Args) extends Job(args) {
 
   import collection.JavaConversions._
 
-  lazy val path        = args("geomesa.ingest.path")
-  lazy val typeName    = args("geomesa.ingest.typename")
-  lazy val schema      = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
-  lazy val idFields    = args.getOrElse("geomesa.ingest.idfeatures", "HASH")
-  lazy val sftSpec     = URLDecoder.decode(args("geomesa.ingest.sftspec"), "UTF-8")
-  lazy val latField    = args("geomesa.ingest.latfield")
-  lazy val lonField    = args("geomesa.ingest.lonfield")
-  lazy val dtgField    = args("geomesa.ingest.dtgfield")
-  lazy val sftDtgField = args("geomesa.ingest.sft.dtgfield")
-  lazy val dtgFmt      = args.getOrElse("geomesa.ingest.dtgfmt", "MILLISEPOCH")
-  lazy val delim       = args("geomesa.ingest.delim") match {
+  lazy val path             = args("geomesa.ingest.path")
+  lazy val typeName         = args("geomesa.ingest.typename")
+  lazy val schema           = URLDecoder.decode(args("geomesa.ingest.schema"), "UTF-8")
+  lazy val idFields         = args.getOrElse("geomesa.ingest.idfeatures", "HASH")
+  lazy val sftSpec          = URLDecoder.decode(args("geomesa.ingest.sftspec"), "UTF-8")
+  lazy val latField         = args("geomesa.ingest.latfield")
+  lazy val lonField         = args("geomesa.ingest.lonfield")
+  lazy val dtgField         = args("geomesa.ingest.dtgfield")
+  lazy val dtgFmt           = args.getOrElse("geomesa.ingest.dtgfmt", "MILLISEPOCH")
+  lazy val dtgTargetField   = args.getOrElse("geomesa.ingest.dtgtargetfield", Constants.SF_PROPERTY_START_TIME)
+  lazy val hashSep          = args.getOrElse("geomesa.ingest.hashsep", "~")
+  lazy val numReducers      = args.getOrElse("geomesa.ingest.numreducers", "100").toInt
+
+  lazy val delim    = args("geomesa.ingest.delim") match {
       case "TSV" => "\t"
       case "CSV" => ","
   }
-  lazy val sft         = DataUtilities.createType(typeName, sftSpec)
-  lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
-  lazy val dtFormat    = DateTimeFormat.forPattern(dtgFmt)
-  lazy val idx         = SpatioTemporalIndexSchema(schema, sft)
 
-  private val instance  = args("geomesa.ingest.instance")
-  private val table     = args("geomesa.ingest.table")
-  private val output    = args("geomesa.ingest.outpath")
+  lazy val sft = {
+    val ret = DataUtilities.createType(typeName, sftSpec)
+    ret.getUserData.put(Constants.SF_PROPERTY_START_TIME, dtgTargetField)
+    ret
+  }
+  lazy val geomFactory = JTSFactoryFinder.getGeometryFactory
+  lazy val dtFormat = DateTimeFormat.forPattern(dtgFmt)
+  lazy val idx = SpatioTemporalIndexSchema(schema, sft)
+
+  private val instance = args("geomesa.ingest.instance")
+  private val table    = args("geomesa.ingest.table")
+  private val output   = args("geomesa.ingest.outpath")
   lazy val accumuloSink = new AccumuloSource(instance, table, output)
 
-  lazy val strippedAttributes = sft.getAttributeDescriptors.reverse.drop(3).reverse
+  lazy val attributes = sft.getAttributeDescriptors
   lazy val dtBuilder = buildDtBuilder
   lazy val idBuilder = buildIDBuilder
-  
+
+  lazy val hashFn = (k: Key) => k.getRow.toString.split(hashSep, 1).head
+
   TextLine(path)
     .flatMap('line -> List('key, 'value)) { line: String => parseFeature(line) }
-    .project('key,'value)
-    .groupBy('key) { _.sortBy('value).reducers(64) }
+    .project('key, 'value)
+    .partition('key -> 'hash) { k: Key => hashFn(k) } { _.sortBy('key).reducers(numReducers) }
     .write(accumuloSink)
 
   def parseFeature(line: String): List[geomesa.core.index.KeyValuePair] = {
@@ -222,12 +249,14 @@ class SFTIngest(args: Args) extends Job(args) {
 
       feature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
       feature.setDefaultGeometry(geom)
-      feature.setAttribute(sftDtgField, dtg.toDate)
-      feature.setAttribute(sftDtgField, dtg.toDate)
+      feature.setAttribute(dtgTargetField, dtg.toDate)
 
       idx.encode(feature).toList
     } catch {
-      case t: Throwable => List()
+      case t: Throwable => {
+        t.printStackTrace()
+        List()
+      }
     }
   }
 
@@ -248,12 +277,15 @@ class SFTIngest(args: Args) extends Job(args) {
   }
   
   def buildDtBuilder: (AnyRef) => DateTime =
-    strippedAttributes.find(_.getLocalName.equals(dtgField)).map {
+    attributes.find(_.getLocalName.equals(dtgField)).map {
       case attr if attr.getType.getBinding.equals(classOf[java.lang.Long]) =>
         (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.lang.Long])
 
       case attr if attr.getType.getBinding.equals(classOf[java.util.Date]) =>
-        (obj: AnyRef) => new DateTime(obj.asInstanceOf[java.util.Date])
+        (obj: AnyRef) => obj match {
+          case d: java.util.Date => new DateTime(d)
+          case s: String         => dtFormat.parseDateTime(s)
+        }
 
       case attr if attr.getType.getBinding.equals(classOf[java.lang.String]) =>
         (obj: AnyRef) => dtFormat.parseDateTime(obj.asInstanceOf[String])

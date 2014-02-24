@@ -84,19 +84,11 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
   import SpatioTemporalIndexSchema._
 
   // utility method to ask for the maximum allowable shard number
-  def maxShard: Int = {
-    // the RowID formatter is the only portion we care about
+  def maxShard: Int =
     encoder.rowf match {
-      case CompositeTextFormatter(seq, sep) => {
-        // we only care about partitioners in the lead position (for now...)
-        seq.head match {
-          case PartitionTextFormatter(numPartitions) => numPartitions
-          case _ => 1  // couldn't find a matching partitioner
-        }
-      }
+      case CompositeTextFormatter(Seq(PartitionTextFormatter(numPartitions), xs@_*), sep) => numPartitions
       case _ => 1  // couldn't find a matching partitioner
     }
-  }
 
   def query(bs: BatchScanner, rawPoly: Polygon, rawInterval:Interval, simpleFeatureType: String, ecql:Option[String]=None): Iterator[Value] = {
     // standardize the two key query arguments:  polygon and date-range
@@ -126,25 +118,25 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
 object SpatioTemporalIndexEntry {
 
   import collection.JavaConversions._
-  implicit class SpatioTemporalIndexEntrySFT(sft: SimpleFeature) {
-    lazy val userData = sft.getUserData
+  implicit class SpatioTemporalIndexEntrySFT(sf: SimpleFeature) {
+    lazy val userData = sf.getUserData
     lazy val dtgStartField = userData.getOrElse(SF_PROPERTY_START_TIME, SF_PROPERTY_START_TIME).asInstanceOf[String]
     lazy val dtgEndField = userData.getOrElse(SF_PROPERTY_END_TIME, SF_PROPERTY_END_TIME).asInstanceOf[String]
 
-    lazy val sid = sft.getID
+    lazy val sid = sf.getID
     lazy val gh = GeohashUtils.reconstructGeohashFromGeometry(geometry)
-    def geometry = sft.getDefaultGeometry.asInstanceOf[Geometry]
+    def geometry = sf.getDefaultGeometry.asInstanceOf[Geometry]
     def setGeometry(geometry: Geometry) {
-      sft.setDefaultGeometry(geometry)
+      sf.setDefaultGeometry(geometry)
     }
 
-    private def getTime(attr: String) = sft.getAttribute(attr).asInstanceOf[java.util.Date]
+    private def getTime(attr: String) = sf.getAttribute(attr).asInstanceOf[java.util.Date]
     def startTime = getTime(dtgStartField)
     def endTime   = getTime(dtgEndField)
     lazy val dt   = Option(startTime).map { d => new DateTime(d) }
 
     private def setTime(attr: String, time: DateTime) =
-      sft.setAttribute(attr, if (time == null) null else time.toDate)
+      sf.setAttribute(attr, if (time == null) null else time.toDate)
 
     def setStartTime(time: DateTime) = setTime(dtgStartField, time)
     def setEndTime(time: DateTime)   = setTime(dtgEndField, time)
@@ -164,10 +156,10 @@ case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SimpleFeature],
 
   // the resolutions are valid for decomposed objects are all 5-bit boundaries
   // between 5-bits and 35-bits (inclusive)
-  val decomposableResolutions : ResolutionRange = new ResolutionRange(0, 35, 5)
+  lazy val decomposableResolutions: ResolutionRange = new ResolutionRange(0, 35, 5)
 
   // the maximum number of sub-units into which a geometry may be decomposed
-  val maximumDecompositions : Int = 5
+  lazy val maximumDecompositions: Int = 5
 
   def encode(entryToEncode: SimpleFeature): List[KeyValuePair] = {
     // decompose non-point geometries into multiple index entries

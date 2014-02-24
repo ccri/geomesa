@@ -164,19 +164,18 @@ class AccumuloDataStore(val connector: Connector,
   // Returns a list of available layers.
   // This populates the list of layers which can be "published" by Geoserver.
   def createTypeNames(): java.util.List[Name] =
-    if (tableOps.exists(tableName)) List()
+    if (!tableOps.exists(tableName)) List()
     else {
-      val matchingRows = readTypeNamesMatching(METADATA_TAG)
-      matchingRows.map { row =>
+      readTypeNamesMatching.map { row =>
         val rowid = row.getKey.getRow.toString
         val attr = getFeatureNameFromMetadataRowID(rowid)
         new NameImpl(attr)
       }
     }
 
-  def readTypeNamesMatching(range: String): Seq[KVEntry] = {
+  def readTypeNamesMatching: Seq[KVEntry] = {
     val batchScanner = createBatchScanner
-    batchScanner.setRanges(List[Range](new Range(range)))
+    batchScanner.setRanges(List[Range](new Range(METADATA_TAG, METADATA_TAG_END)))
     batchScanner.fetchColumnFamily(ATTRIBUTES_CF)
     val resultItr = new Iterator[KVEntry] {
       val src = batchScanner.iterator()
