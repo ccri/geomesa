@@ -41,15 +41,8 @@ class AccumuloFeatureReader(dataStore: AccumuloDataStore,
 
   lazy val indexSchema = SpatioTemporalIndexSchema(indexSchemaFmt, sft)
   lazy val geometryPropertyName = sft.getGeometryDescriptor.getName.toString
-  lazy val dtgStartField        = extractDatePropertyName(SF_PROPERTY_START_TIME)
-  lazy val dtgEndField          = extractDatePropertyName(SF_PROPERTY_END_TIME)
-
-  def extractDatePropertyName(s: String) =
-    sft.getAttributeDescriptors
-      .filter { _.getUserData.containsKey(s) }
-      .headOption
-      .map(_.getName.toString)
-      .getOrElse(s)
+  lazy val dtgStartField        = sft.getUserData.getOrElse(SF_PROPERTY_START_TIME, SF_PROPERTY_START_TIME).asInstanceOf[String]
+  lazy val dtgEndField          = sft.getUserData.getOrElse(SF_PROPERTY_END_TIME, SF_PROPERTY_END_TIME).asInstanceOf[String]
 
   lazy val bounds = dataStore.getBounds(query) match {
     case null => null

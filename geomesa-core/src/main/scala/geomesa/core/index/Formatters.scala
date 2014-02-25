@@ -21,6 +21,7 @@ import org.apache.hadoop.io.Text
 import org.joda.time.{DateTime, DateTimeZone}
 import org.opengis.feature.simple.SimpleFeature
 import util.Random
+import scala.collection.immutable.IndexedSeq
 
 trait TextFormatter[E] {
   def format(entry: E): Text
@@ -45,7 +46,12 @@ object TextFormatter {
  */
 
 case class GeoHashTextFormatter(offset: Int, numBits: Int) extends TextFormatter[SimpleFeature] {
-  def format(entry: SimpleFeature) = new Text(entry.gh.hash.padTo(7,".").mkString.drop(offset).take(numBits))
+  def format(entry: SimpleFeature) = {
+    val hash = entry.gh.hash
+    val padded = hash.padTo(7, ".").mkString
+    val partial = padded.drop(offset).take(numBits)
+    new Text(partial)
+  }
 }
 
 // note:  this will fail if you have an entry lacking a valid date

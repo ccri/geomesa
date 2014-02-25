@@ -95,7 +95,7 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
     val poly = netPolygon(rawPoly)
     val interval = netInterval(rawInterval)
 
-    val polyHash : String = poly match {
+    val polyHash = poly match {
       case null => "NULL"
       case _ => poly.hashCode().toString
     }
@@ -105,9 +105,9 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
     val rawIter = planner.within(bs, poly, interval, simpleFeatureType, ecql, queryID)
 
     // the final iterator may need duplicates removed
-    val finalIter : Iterator[Entry[Key,Value]] =
+    val finalIter: Iterator[Entry[Key,Value]] =
       if (mayContainDuplicates(featureType))
-        new DeDuplicatingIterator(rawIter, (key:Key,value:Value) => decodeIdFromEncodedSimpleFeature(value))
+        new DeDuplicatingIterator(rawIter, (key: Key, value: Value) => decodeIdFromEncodedSimpleFeature(value))
       else rawIter
 
     // return only the attribute-maps (the values out of this iterator)
@@ -119,7 +119,7 @@ object SpatioTemporalIndexEntry {
 
   import collection.JavaConversions._
   implicit class SpatioTemporalIndexEntrySFT(sf: SimpleFeature) {
-    lazy val userData = sf.getUserData
+    lazy val userData = sf.getFeatureType.getUserData
     lazy val dtgStartField = userData.getOrElse(SF_PROPERTY_START_TIME, SF_PROPERTY_START_TIME).asInstanceOf[String]
     lazy val dtgEndField = userData.getOrElse(SF_PROPERTY_END_TIME, SF_PROPERTY_END_TIME).asInstanceOf[String]
 
@@ -322,7 +322,7 @@ case class SpatioTemporalIndexQueryPlanner(keyPlanner: KeyPlanner, cfPlanner: Co
   // 1) the GeoHash-box intersects the query polygon; this is a coarse-grained filter
   // 2) the DateTime intersects the query interval; this is a coarse-grained filter
   def configureSpatioTemporalIntersectingIterator(bs: BatchScanner, poly: Polygon,
-                                            interval: Interval) {
+                                                  interval: Interval) {
     val cfg = new IteratorSetting(iteratorPriority_SpatioTemporalIterator,
                                   "within-" + randomPrintableString(5),
                                   classOf[SpatioTemporalIntersectingIterator])
