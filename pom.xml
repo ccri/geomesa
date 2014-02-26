@@ -19,7 +19,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>geomesa</groupId>
     <artifactId>geomesa</artifactId>
-    <version>0.10.0</version>
+    <version>0.10.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>GeoMesa</name>
 
@@ -438,7 +438,7 @@
         <connection>scm:git:git@github.com:ccri/geomesa.git</connection>
         <developerConnection>scm:git:git@github.com:ccri/geomesa.git</developerConnection>
         <url>https://github.com/ccri/geomesa</url>
-        <tag>geomesa-0.10.0</tag>
+        <tag>0.10.x</tag>
     </scm>
 
 
