@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.apache.hadoop.io.Text
+import org.apache.log4j.Logger
 import org.geotools.data.DataUtilities
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.SimpleFeatureType
@@ -62,6 +63,7 @@ class SpatioTemporalIntersectingIterator() extends SortedKeyValueIterator[Key, V
   private var nextValue: Value = null
   private var curId: Text = null
   private var deduplicate: Boolean = false
+  private val log = Logger.getLogger(classOf[SpatioTemporalIntersectingIterator])
 
   // each batch-scanner thread maintains its own (imperfect!) list of the
   // unique (in-polygon) identifiers it has seen
