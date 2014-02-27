@@ -17,6 +17,7 @@
 
 package geomesa.core.data
 
+import geomesa.core
 import geomesa.core.data.AccumuloFeatureWriter.{LocalRecordWriter, MapReduceRecordWriter}
 import geomesa.core.index.SpatioTemporalIndexSchema
 import java.io.Serializable
@@ -39,8 +40,6 @@ import org.opengis.filter.Filter
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
-import geomesa.core.index
-import geomesa.core
 
 /**
  *
@@ -54,8 +53,11 @@ import geomesa.core
 class AccumuloDataStore(val connector: Connector,
                         val tableName: String,
                         val authorizations: Authorizations,
-                        val indexSchemaFormat: String = "%~#s%99#r%0,3#gh%yyyyMMdd#d::%~#s%3,2#gh::%~#s%#id")
+                        val indexSchemaFormat: String = "DEFAULT")
   extends AbstractDataStore {
+
+  private def buildDefaultSchema(name: String) =
+    s"%~#s%99#r%${name}#cstr%0,3#gh%yyyyMMdd#d::%~#s%3,2#gh::%~#s%#id"
 
   Hints.putSystemDefault(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, true)
 
@@ -68,7 +70,7 @@ class AccumuloDataStore(val connector: Connector,
       connector.tableOperations.create(tableName)
 
     if(!connector.isInstanceOf[MockConnector])
-      configureNewTable(indexSchemaFormat, featureType, tableName)
+      configureNewTable(createIndexSchema(featureType), featureType, tableName)
   }
 
   def configureNewTable(indexSchemaFormat: String, featureType: SimpleFeatureType, tableName: String) {
@@ -100,13 +102,19 @@ class AccumuloDataStore(val connector: Connector,
     val featureName = sft.getName.getLocalPart
     val attributesValue = new Value(DataUtilities.encodeType(sft).getBytes)
     writeMetadataItem(featureName, ATTRIBUTES_CF, attributesValue)
-    val schemaValue = new Value(indexSchemaFormat.getBytes)
-    writeMetadataItem(featureName, SCHEMA_CF, schemaValue)
+    val schemaValue = createIndexSchema(sft)
+    writeMetadataItem(featureName, SCHEMA_CF, new Value(schemaValue.getBytes))
     val userData = sft.getUserData
     if(userData.containsKey(core.index.SF_PROPERTY_START_TIME)) {
       val dtgField = userData.get(core.index.SF_PROPERTY_START_TIME)
       writeMetadataItem(featureName, DTGFIELD_CF, new Value(dtgField.asInstanceOf[String].getBytes))
     }
+  }
+
+
+  def createIndexSchema(sft: SimpleFeatureType) = indexSchemaFormat match {
+    case "DEFAULT" => buildDefaultSchema(sft.getTypeName)
+    case _         => indexSchemaFormat
   }
 
   def getMetadataRowID(featureName: String) = new Text(METADATA_TAG + "_" + featureName)
@@ -303,7 +311,7 @@ class MapReduceAccumuloDataStore(connector: Connector,
                                  tableName: String,
                                  authorizations: Authorizations,
                                  val params: JMap[String, Serializable],
-                                 indexSchemaFormat: String = "%~#s%99#r%0,3#gh%yyyyMMdd#d::%~#s%3,2#gh::%~#s%#id")
+                                 indexSchemaFormat: String = "DEFAULT")
   extends AccumuloDataStore(connector, tableName, authorizations, indexSchemaFormat) {
 
   override def createFeatureSource(featureName: String): SimpleFeatureSource =

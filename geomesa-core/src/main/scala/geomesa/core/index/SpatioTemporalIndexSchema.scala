@@ -147,7 +147,7 @@ object SpatioTemporalIndexEntry {
 case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SimpleFeature],
                                       cff: TextFormatter[SimpleFeature],
                                       cqf: TextFormatter[SimpleFeature])
-  extends IndexEntryEncoder[SimpleFeature] {
+extends IndexEntryEncoder[SimpleFeature] {
 
   import GeohashUtils._
   import SpatioTemporalIndexEntry._

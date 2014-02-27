@@ -474,7 +474,9 @@ object GeohashUtils extends GeomDistance {
    * @return the list of GeoHash cells into which this polygon was decomposed
    *         under the given constraints
    */
-  private def decomposeGeometry_(targetGeom:Geometry, maxSize:Int=100, resolutions:ResolutionRange=new ResolutionRange(5,40,5)) : List[GeoHash] = {
+  private def decomposeGeometry_(targetGeom: Geometry,
+                                 maxSize: Int = 100,
+                                 resolutions: ResolutionRange = new ResolutionRange(5,40,5)) : List[GeoHash] = {
     lazy val geomCatcher = catching(classOf[Exception])
     val targetArea : Double = geomCatcher.opt { targetGeom.getArea }.getOrElse(0.0)
     val targetLength : Double = geomCatcher.opt { targetGeom.getLength }.getOrElse(0.0)
@@ -587,22 +589,15 @@ object GeohashUtils extends GeomDistance {
    * @param geometry the geometric expression of a GeoHash
    * @return the most likely GeoHash that is represented by the given geometry
    */
-  def reconstructGeohashFromGeometry(geometry: Geometry) : GeoHash = {
-    if("Point".equals(geometry.getGeometryType))
-      GeoHash(geometry.asInstanceOf[Point], maxRealisticGeoHashPrecision)
-    else {
-      // you must have a rectangular geometry for this function to make any sense
-      if (geometry == null) throw new Exception("Invalid geometry")
-      if (!geometry.isRectangle) throw new Exception("Non-rectangular geometry")
-
-      // the GeoHash always builds around the centroid, so compute that up front
-      val centroid = geometry.getCentroid
-
-      // figure out the precision of this GeoHash
-      val precision = estimateGeometryGeohashPrecision(geometry)
-
-      GeoHash(centroid.getX, centroid.getY, precision.toInt)
-    }
+  def reconstructGeohashFromGeometry(geometry: Geometry): GeoHash = geometry match {
+    case null => throw new Exception("Invalid geometry")
+    case _ if "Point".equals(geometry.getGeometryType) => GeoHash(geometry.asInstanceOf[Point], maxRealisticGeoHashPrecision)
+    case _ if geometry.isRectangle => GeoHash(geometry.getCentroid, estimateGeometryGeohashPrecision(geometry))
+    case m: MultiPolygon =>
+      if(m.getNumGeometries != 1) throw new Exception("Expected simple geometry")
+      else if(!m.getGeometryN(0).isRectangle) throw new Exception("Expected rectangular geometry")
+      else GeoHash(m.getGeometryN(0).getCentroid, estimateGeometryGeohashPrecision(m.getGeometryN(0)))
+    case _ => throw new Exception("Invalid geometry")
   }
 
     /**

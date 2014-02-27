@@ -63,9 +63,6 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
                             indexer: SpatioTemporalIndexSchema,
                             recordWriter: RecordWriter[Key,Value]) extends SimpleFeatureWriter {
 
-  private val typeString = DataUtilities.encodeType(featureType)
-  private val attrNames = featureType.getAttributeDescriptors.map(_.getName.toString)
-
   var currentFeature: SimpleFeature = null
 
   def getFeatureType: SimpleFeatureType = featureType
