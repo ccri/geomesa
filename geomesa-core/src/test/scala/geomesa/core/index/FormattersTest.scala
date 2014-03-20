@@ -16,18 +16,11 @@
 
 package geomesa.core.index
 
-import com.vividsolutions.jts.geom._
-import geomesa.utils.text.WKTUtils
-import org.apache.accumulo.core.data.Key
 import org.geotools.data.DataUtilities
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import scala.util.Try
-import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.opengis.feature.simple.SimpleFeature
-import java.util.Date
 
 @RunWith(classOf[JUnitRunner])
 class FormattersTest extends Specification {
@@ -48,8 +41,5 @@ class FormattersTest extends Specification {
 
       shardNumbers.size must be equalTo 1
     }
-
-    // NB:  As desirable as it might be to have a test for features
-    // with null IDs, there was no obvious way to create one.
   }
 }

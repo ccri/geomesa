@@ -156,9 +156,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification {
       }).toList
     }
 
-    val pointWithNoID = List[Entry](
-      Entry("POINT(-78.0, 38.0)", null)
-    )
+    val pointWithNoID = List(Entry("POINT(-78.0 38.0)", null))
 
     val shortListOfPoints = List[Entry](
       Entry("POINT(47.2 25.6)", "1"), // hit
@@ -414,10 +412,10 @@ class SpatioTemporalIntersectingIteratorTest extends Specification {
   }
 
   "Feature with a null ID" should {
-    "fail to insert" in {
+    "not fail to insert" in {
       val c = Try(TestData.setupMockAccumuloTable(TestData.pointWithNoID, TestData.pointWithNoID.length))
 
-      c.isFailure must be equalTo true
+      c.isFailure must be equalTo false
     }
   }
 }

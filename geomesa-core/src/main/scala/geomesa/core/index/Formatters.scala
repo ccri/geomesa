@@ -20,10 +20,8 @@ import SpatioTemporalIndexEntry._
 import org.apache.hadoop.io.Text
 import org.joda.time.{DateTime, DateTimeZone}
 import org.opengis.feature.simple.SimpleFeature
-import scala.util.{Try, Random}
-import scala.collection.immutable.IndexedSeq
+import scala.util.Try
 import scala.util.hashing.MurmurHash3
-import org.opengis.feature.Feature
 import org.geotools.data.DataUtilities
 
 trait TextFormatter[E] {
@@ -68,9 +66,7 @@ case class DateTextFormatter(f: String) extends TextFormatter[SimpleFeature] {
 
 /**
  * Responsible for assigning a shard number (partition) to the given
- * entry.  Originally, this was a random number, but that stymies our
- * efforts to handle updates and deletes efficiently.  We are moving
- * to a scheme in which the entry ID is hashed to a shard number.
+ * entry based on a hash of the feature ID.
  *
  * MurmurHash3 was chosen, because 1) it is part of the standard
  * Scala libraries; 2) it claims to do a reasonable job spreading
@@ -95,14 +91,15 @@ case class DateTextFormatter(f: String) extends TextFormatter[SimpleFeature] {
 case class PartitionTextFormatter[E <: SimpleFeature](numPartitions: Int) extends TextFormatter[E] {
   val numBits: Int = numPartitions.toString.length
   val fmt = ("%0" + numBits + "d").format(_: Int)
-  def getIdHashPartition(entry: E): Int =
-  {
+
+  def getIdHashPartition(entry: E): Int = {
     val toHash = entry.getID match {
       case null => DataUtilities.encodeFeature(entry)
       case id   => id
     }
     Math.abs(MurmurHash3.stringHash(toHash) % (numPartitions + 1))
   }
+
   def format(entry: E): Text = new Text(fmt(getIdHashPartition(entry)))
 }
 
