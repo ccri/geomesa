@@ -30,6 +30,7 @@ import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.joda.time.{DateTimeZone, DateTime}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
+import org.geotools.factory.Hints
 
 object AccumuloFeatureWriter {
 
@@ -72,9 +73,18 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
 
   def remove() {}
 
+  val builder = new SimpleFeatureBuilder(featureType)
+
   def write() {
     // require a non-null feature with a non-null geometry
     if (currentFeature != null && currentFeature.getDefaultGeometry != null) {
+      // see if there's a suggested ID to use for this feature
+      // (relevant when this insertion is wrapped inside a Transaction)
+      if (currentFeature.getUserData.containsKey(Hints.PROVIDED_FID)) {
+        builder.init(currentFeature)
+        currentFeature = builder.buildFeature(
+          currentFeature.getUserData.get(Hints.PROVIDED_FID).toString)
+      }
 
       // the geometry is used un-typed; the indexer will complain if the type is unrecognized
       val geometry = currentFeature.getDefaultGeometry.asInstanceOf[Geometry]
