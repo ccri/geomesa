@@ -89,16 +89,17 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
       // the geometry is used un-typed; the indexer will complain if the type is unrecognized
       val geometry = currentFeature.getDefaultGeometry.asInstanceOf[Geometry]
 
-      // try to extract an end-time
-      // (for now, we only support a single date/time per entry)
-      val date = currentFeature.getAttribute(SF_PROPERTY_END_TIME).asInstanceOf[Date]
+      // try to extract an start- and end-times
+      val dateStart = currentFeature.getAttribute(SF_PROPERTY_START_TIME).asInstanceOf[Date]
+      val dateEnd = currentFeature.getAttribute(SF_PROPERTY_END_TIME).asInstanceOf[Date]
 
       // ensure that we have at least one value, even if NULL, for every attribute
       // in the new simple-feature type
       val attrMap = attrNames.map { name => (name, currentFeature.getAttribute(name)) }.toMap
 
       // the schema return all (key, value) pairs to write to Accumulo
-      val keyVals = indexer.encode(new AccumuloFeature(currentFeature.getID, geometry, date, attrMap))
+      val keyVals = indexer.encode(
+        new AccumuloFeature(currentFeature.getID, geometry, dateStart, dateEnd, attrMap))
       keyVals.foreach { case (k,v) => recordWriter.write(k,v) }
     } else {
       // complain
@@ -125,11 +126,14 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
   }
   class AccumuloFeature(sid:String,
                          geom:Geometry,
-                         dt:Date,
+                         dtStart:Date,
+                         dtEnd: Date,
                          attributesMap:Map[String,Object])
       extends SpatioTemporalIndexEntry(sid, geom,
-                                       if(dt==null) Some(new DateTime(DateTimeZone.forID("UTC")))
-                                       else Some(new DateTime(dt.getTime, DateTimeZone.forID("UTC"))),
+                                       if (dtStart == null) Some(new DateTime(DateTimeZone.forID("UTC")))
+                                       else Some(new DateTime(dtStart.getTime, DateTimeZone.forID("UTC"))),
+                                       if (dtEnd == null) Some(new DateTime(DateTimeZone.forID("UTC")))
+                                       else Some(new DateTime(dtEnd.getTime, DateTimeZone.forID("UTC"))),
                                        AccumuloFeatureType) {
 
     // use all of the attribute-value pairs passed in, but do not overwrite

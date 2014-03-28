@@ -54,7 +54,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification {
   }
 
   class UnitTestEntry(sid: String, geom: Geometry, dt: DateTime = null)
-    extends SpatioTemporalIndexEntry(sid, geom, if (dt == null) None else Some(dt), UnitTestEntryType)
+    extends SpatioTemporalIndexEntry(sid, geom, Option(dt), Option(dt), UnitTestEntryType)
 
   object TestData {
 

@@ -126,16 +126,33 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
 //@TODO change this from a case class to a regular class?
 case class SpatioTemporalIndexEntry(sid: String, geometry:Geometry,
                                     dt: Option[DateTime],
-                                    typeInitializer:TypeInitializer=IndexEntryType)
+                                    dtEnd: Option[DateTime],
+                                    typeInitializer:TypeInitializer)
   extends SimpleFeatureImpl(typeInitializer.emptyPropertiesList,
     typeInitializer.defaultSimpleFeatureType, sid) with IndexEntry {
 
   setGeometry(geometry)
   setStartTime(dt.getOrElse(null))
-  setEndTime(dt.getOrElse(null))
+  setEndTime(dtEnd.getOrElse(null))
 
   // our indexing scheme requires having a single GeoHash per entry
   lazy val gh = GeohashUtils.reconstructGeohashFromGeometry(geometry)
+}
+
+object SpatioTemporalIndexEntry {
+  def apply(sid: String, geometry:Geometry,
+           dt: Option[DateTime]): SpatioTemporalIndexEntry =
+    SpatioTemporalIndexEntry(sid, geometry, dt, dt, IndexEntryType)
+
+  def apply(sid: String, geometry:Geometry,
+           dt: Option[DateTime],
+           typeInitializer:TypeInitializer): SpatioTemporalIndexEntry =
+    SpatioTemporalIndexEntry(sid, geometry, dt, dt, typeInitializer)
+
+  def apply(sid: String, geometry:Geometry,
+           dt: Option[DateTime],
+           dtEnd: Option[DateTime]): SpatioTemporalIndexEntry =
+    SpatioTemporalIndexEntry(sid, geometry, dt, dtEnd, IndexEntryType)
 }
 
 case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SpatioTemporalIndexEntry],
