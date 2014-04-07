@@ -637,18 +637,20 @@ object GeohashUtils extends GeomDistance {
 
     val memoized = collection.mutable.HashSet.empty[String]
 
-    def consider(gh: GeoHash, charsLeft: Int): Seq[GeoHash] =
-      if (charsLeft > 0 && memoized.size < MAX_KEYS_IN_LIST) {
-        for {
-          newChar <- base32seq
-          newGH = GeoHash(gh.hash + newChar) if memoized.size <= MAX_KEYS_IN_LIST && poly.intersects(newGH.bbox.geom)
-          subHash = newGH.hash.drop(offset).take(bits)
-          dummy = memoized.add(subHash)
-          child <- consider(newGH, charsLeft - 1)
-        } yield child
-      } else {
-        Seq(gh)
-      }
+      def consider(gh: GeoHash, charsLeft: Int): Seq[GeoHash] =
+        if (charsLeft > 0 && memoized.size < MAX_KEYS_IN_LIST) {
+          for {
+            newChar <- base32seq
+            newGH = GeoHash(gh.hash + newChar) if memoized.size <= MAX_KEYS_IN_LIST && poly.intersects(newGH.bbox.geom)
+            child <- consider(newGH, charsLeft - 1)
+          } yield child
+        } else {
+          val subHash = gh.hash.drop(offset).take(bits)
+          if (!memoized.contains(subHash)) {
+            memoized.add(subHash)
+            Seq(gh)
+          } else Seq()
+        }
 
     // how many characters total are left?
     val numCharsLeft = offset + bits - covering.hash.length

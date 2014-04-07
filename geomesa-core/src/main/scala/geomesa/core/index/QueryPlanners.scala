@@ -271,13 +271,24 @@ trait ColumnFamilyPlanner {
 trait GeoHashPlanner {
   def polyToGeoHashes(poly: Polygon, offset: Int, bits: Int): Seq[String] =
     GeohashUtils.getUniqueGeohashSubstringsInPolygon(poly, offset, bits, MAX_KEYS_IN_LIST)
+
+  // takes care of the case where overflow forces a return value
+  // that is an empty list
+  def polyToPlan(poly: Polygon, offset: Int, bits: Int): KeyPlan = {
+    val subHashes = polyToGeoHashes(poly, offset, bits).sorted
+    subHashes match {
+      case subs if (subs.size == 0) => KeyAccept
+      case subs => KeyList(subs.sorted)
+    }
+  }
+
   def getKeyPlan(filter: Filter, offset: Int, bits: Int) = filter match {
     case SpatialFilter(poly) =>
-      KeyList(polyToGeoHashes(poly, offset, bits).sorted)
+      polyToPlan(poly, offset, bits)
     case SpatialDateFilter(poly,dt) =>
-      KeyList(polyToGeoHashes(poly, offset, bits).sorted)
+      polyToPlan(poly, offset, bits)
     case SpatialDateRangeFilter(poly,dtStart,dtEnd) =>
-      KeyList(polyToGeoHashes(poly, offset, bits).sorted)
+      polyToPlan(poly, offset, bits)
     case AcceptEverythingFilter => KeyAccept
     case _ => KeyInvalid // degenerate outcome
   }
