@@ -1,7 +1,7 @@
 package geomesa.core.data
 
 import collection.JavaConversions._
-import com.vividsolutions.jts.geom.{Polygon, Point, Geometry, Envelope}
+import com.vividsolutions.jts.geom._
 import geomesa.core.index
 import geomesa.utils.geotools.Conversions._
 import org.geotools.data.Query
@@ -18,6 +18,8 @@ import org.opengis.filter.expression._
 import org.opengis.filter.spatial._
 import org.opengis.filter.temporal._
 import org.opengis.temporal.Instant
+import geomesa.utils.text.WKTUtils
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequence
 
 // FilterToAccumulo2 extracts the spatial and temporal predicates from the
 // filter while rewriting the filter to optimize for scanning Accumulo
@@ -96,19 +98,48 @@ class FilterToAccumulo2(sft: SimpleFeatureType) {
     if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
       ff.and(acc, op)
     } else {
-      val geom = e2.evaluate(null, classOf[Point])
       val geoCalc = new GeodeticCalculator(DefaultGeographicCRS.WGS84)
-      geoCalc.setStartingGeographicPoint(geom.getX, geom.getY)
-      geoCalc.setDirection(-180.0, op.getDistance)
-      val farthestPoint = JTS.toGeometry(geoCalc.getDestinationPosition)
-      val degreesDistance = geom.distance(farthestPoint)
-      val buffer = geom.buffer(degreesDistance)
-      spatialPredicate = buffer.asInstanceOf[Polygon]
+      val startPoint = e2.evaluate(null, classOf[Point])
+      val distance = op.getDistance
+      geoCalc.setStartingGeographicPoint(startPoint.getX, startPoint.getY)
+
+      // Convert meters to dec degrees based on widest point in dec degrees of circle
+      geoCalc.setDirection(90, distance)
+      val right = geoCalc.getDestinationGeographicPoint
+      val distanceDegrees = startPoint.distance(
+        new Point(new CoordinateArraySequence(Array(new Coordinate(right.getX, right.getY))), new GeometryFactory()))
+
+      // Walk circle bounds for bounding box
+      geoCalc.setDirection(0, distance)
+      val top = geoCalc.getDestinationGeographicPoint
+      geoCalc.setDirection(180, distance)
+      val bottom = geoCalc.getDestinationGeographicPoint
+      geoCalc.setStartingGeographicPoint(top)
+      geoCalc.setDirection(90, distance)
+      val topRight = geoCalc.getDestinationGeographicPoint
+      geoCalc.setDirection(-90, distance)
+      val topLeft = geoCalc.getDestinationGeographicPoint
+      geoCalc.setStartingGeographicPoint(bottom)
+      geoCalc.setDirection(90, distance)
+      val bottomRight = geoCalc.getDestinationGeographicPoint
+      geoCalc.setDirection(-90, distance)
+      val bottomLeft = geoCalc.getDestinationGeographicPoint
+
+      val env = (new Envelope(startPoint.getCoordinate))
+      env.expandToInclude(topRight.getX, topRight.getY)
+      env.expandToInclude(topLeft.getX, topLeft.getY)
+      env.expandToInclude(bottomRight.getX, bottomRight.getY)
+      env.expandToInclude(bottomLeft.getX, bottomLeft.getY)
+      spatialPredicate = WKTUtils.read("POLYGON((" +
+        s"${env.getMinX} ${env.getMinY}, ${env.getMinX} ${env.getMaxY}," +
+        s"${env.getMaxX} ${env.getMaxY}, ${env.getMaxX} ${env.getMinY}," +
+        s"${env.getMinX} ${env.getMinY}))").asInstanceOf[Polygon]
+
       val rewrittenFilter =
         ff.dwithin(
           ff.property(sft.getGeometryDescriptor.getLocalName),
-          ff.literal(geom),
-          degreesDistance,
+          ff.literal(startPoint),
+          distanceDegrees,
           "meters")
       ff.and(acc, rewrittenFilter)
     }

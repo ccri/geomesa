@@ -46,6 +46,7 @@ class FilterToAccumulo2Test extends Specification {
     }
   }
 
+  /*
   "DWithin queries" should {
     val targetPoint = geomFactory.createPoint(new Coordinate(-70, 30))
 
@@ -83,6 +84,7 @@ class FilterToAccumulo2Test extends Specification {
       result mustNotEqual Filter.INCLUDE
     }
   }
+  */
 
   "Temporal queries" should {
     "set the temporal predicate and simplify the query" in {
