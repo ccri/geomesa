@@ -637,38 +637,47 @@ object GeohashUtils extends GeomDistance {
 
     val memoized = collection.mutable.HashSet.empty[String]
 
-      def consider(gh: GeoHash, charsLeft: Int): Seq[GeoHash] =
-        if (charsLeft > 0 && memoized.size < MAX_KEYS_IN_LIST) {
+    val maxKeys = Math.min(1 << (bits * 5), MAX_KEYS_IN_LIST)
+
+    case class GH(gh: GeoHash) {
+      def hash = gh.hash
+      def bbox = gh.bbox
+      lazy val subHash: Option[String] = {
+        if (gh.hash.length >= (offset+bits))
+          Option(gh.hash.drop(offset).take(bits))
+        else None
+      }
+      def canProceed = !subHash.isDefined ||
+        (memoized.size < maxKeys && !memoized.contains(subHash.get) && poly.intersects(bbox.geom))
+    }
+
+    def consider(gh: GH, charsLeft: Int) {
+      if (memoized.size < maxKeys) {
+        if (charsLeft > 0) {
           for {
             newChar <- base32seq
-            newGH = GeoHash(gh.hash + newChar) if memoized.size <= MAX_KEYS_IN_LIST && poly.intersects(newGH.bbox.geom)
-            child <- consider(newGH, charsLeft - 1)
-          } yield child
+            newGH = GH(GeoHash(gh.hash + newChar)) if newGH.canProceed
+          } yield consider(newGH, charsLeft - 1)
         } else {
-          val subHash = gh.hash.drop(offset).take(bits)
-          if (!memoized.contains(subHash)) {
-            memoized.add(subHash)
-            Seq(gh)
-          } else Seq()
+          memoized.add(gh.subHash.get)
         }
+      }
+    }
 
     // how many characters total are left?
     val numCharsLeft = offset + bits - covering.hash.length
-    val explicitHashes =
-      consider(covering, numCharsLeft).map(_.hash.drop(offset).take(bits)).distinct
-
-    // add dotted versions, if appropriate (to match decomposed GeoHashes that
-    // may be encoded at less than a full 35-bits precision)
-    val keepers = if (explicitHashes.size < MAX_KEYS_IN_LIST) {
-      (for {
-        hash <- explicitHashes
-        i <- (0 to bits)
-        newStr = hash.take(i) +  "".padTo(bits-i,".").mkString
-      } yield newStr).distinct
-    } else {
-      Seq()
+    consider(GH(covering), numCharsLeft)
+    memoized match {
+      case candidates if candidates.size <= maxKeys =>
+        // add dotted versions, if appropriate (to match decomposed GeoHashes that
+        // may be encoded at less than a full 35-bits precision)
+        val keepers = (for {
+          hash <- memoized.toList
+          i <- (0 to bits)
+          newStr = hash.take(i) +  "".padTo(bits-i,".").mkString
+        } yield newStr).distinct
+        if (keepers.size <= MAX_KEYS_IN_LIST) keepers else Seq()
+      case _ => Seq()
     }
-
-    if (keepers.size <= MAX_KEYS_IN_LIST) keepers else Seq()
   }
 }

@@ -19,7 +19,7 @@ package geomesa.core.index
 import KeyUtils._
 import com.vividsolutions.jts.geom.Polygon
 import geomesa.utils.CartesianProductIterable
-import geomesa.utils.geohash.GeohashUtils
+import geomesa.utils.geohash.{GeoHash, GeohashUtils}
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.{DateTime, DateTimeZone}
 
@@ -203,7 +203,7 @@ case class KeyListTiered(keys:Seq[String], parent:Option[KeyTiered]=None) extend
 }
 
 object KeyUtils {
-  val MAX_KEYS_IN_LIST = 1<<16
+  val MAX_KEYS_IN_LIST = 8192
   val MAX_KEYS_IN_REGEX = 1024
 
   // assume that strings are all of the same size
@@ -277,7 +277,15 @@ trait GeoHashPlanner {
   def polyToPlan(poly: Polygon, offset: Int, bits: Int): KeyPlan = {
     val subHashes = polyToGeoHashes(poly, offset, bits).sorted
     subHashes match {
-      case subs if (subs.size == 0) => KeyAccept
+      case subs if subs.size == 0 =>
+        // if the list is empty, then there are probably too many 35-bit GeoHashes
+        // that fall inside the given polygon; in this case, return the LL, UR
+        // GeoHash endpoints of the entire range (which could encompass many
+        // more GeoHashes than we wish)
+        val env = poly.getEnvelopeInternal
+        val ghLL = GeoHash(env.getMinX, env.getMinY)
+        val ghUR = GeoHash(env.getMaxX, env.getMaxY)
+        KeyRange(ghLL.hash, ghUR.hash)
       case subs => KeyList(subs.sorted)
     }
   }
