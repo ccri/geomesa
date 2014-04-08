@@ -4,6 +4,7 @@ import collection.JavaConversions._
 import com.vividsolutions.jts.geom._
 import geomesa.core.index
 import geomesa.utils.geotools.Conversions._
+import geomesa.utils.geotools.GeometryUtils
 import org.geotools.data.Query
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.visitor.SimplifyingFilterVisitor
@@ -101,35 +102,15 @@ class FilterToAccumulo2(sft: SimpleFeatureType) {
       val geoCalc = new GeodeticCalculator(DefaultGeographicCRS.WGS84)
       val startPoint = e2.evaluate(null, classOf[Point])
       val distance = op.getDistance
-      geoCalc.setStartingGeographicPoint(startPoint.getX, startPoint.getY)
 
       // Convert meters to dec degrees based on widest point in dec degrees of circle
+      geoCalc.setStartingGeographicPoint(startPoint.getX, startPoint.getY)
       geoCalc.setDirection(90, distance)
       val right = geoCalc.getDestinationGeographicPoint
       val distanceDegrees = startPoint.distance(geoFactory.createPoint(new Coordinate(right.getX, right.getY)))
 
       // Walk circle bounds for bounding box
-      geoCalc.setDirection(0, distance)
-      val top = geoCalc.getDestinationGeographicPoint
-      geoCalc.setDirection(180, distance)
-      val bottom = geoCalc.getDestinationGeographicPoint
-      geoCalc.setStartingGeographicPoint(top)
-      geoCalc.setDirection(90, distance)
-      val topRight = geoCalc.getDestinationGeographicPoint
-      geoCalc.setDirection(-90, distance)
-      val topLeft = geoCalc.getDestinationGeographicPoint
-      geoCalc.setStartingGeographicPoint(bottom)
-      geoCalc.setDirection(90, distance)
-      val bottomRight = geoCalc.getDestinationGeographicPoint
-      geoCalc.setDirection(-90, distance)
-      val bottomLeft = geoCalc.getDestinationGeographicPoint
-
-      val env = (new Envelope(startPoint.getCoordinate))
-      env.expandToInclude(topRight.getX, topRight.getY)
-      env.expandToInclude(topLeft.getX, topLeft.getY)
-      env.expandToInclude(bottomRight.getX, bottomRight.getY)
-      env.expandToInclude(bottomLeft.getX, bottomLeft.getY)
-      spatialPredicate = JTS.toGeometry(env)
+      spatialPredicate = GeometryUtils.bufferPoint(startPoint, distance)
 
       val rewrittenFilter =
         ff.dwithin(
