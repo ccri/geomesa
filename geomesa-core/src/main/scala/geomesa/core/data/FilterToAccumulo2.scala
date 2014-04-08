@@ -106,8 +106,7 @@ class FilterToAccumulo2(sft: SimpleFeatureType) {
       // Convert meters to dec degrees based on widest point in dec degrees of circle
       geoCalc.setDirection(90, distance)
       val right = geoCalc.getDestinationGeographicPoint
-      val distanceDegrees = startPoint.distance(
-        new Point(new CoordinateArraySequence(Array(new Coordinate(right.getX, right.getY))), new GeometryFactory()))
+      val distanceDegrees = startPoint.distance(geoFactory.createPoint(new Coordinate(right.getX, right.getY)))
 
       // Walk circle bounds for bounding box
       geoCalc.setDirection(0, distance)
@@ -130,10 +129,7 @@ class FilterToAccumulo2(sft: SimpleFeatureType) {
       env.expandToInclude(topLeft.getX, topLeft.getY)
       env.expandToInclude(bottomRight.getX, bottomRight.getY)
       env.expandToInclude(bottomLeft.getX, bottomLeft.getY)
-      spatialPredicate = WKTUtils.read("POLYGON((" +
-        s"${env.getMinX} ${env.getMinY}, ${env.getMinX} ${env.getMaxY}," +
-        s"${env.getMaxX} ${env.getMaxY}, ${env.getMaxX} ${env.getMinY}," +
-        s"${env.getMinX} ${env.getMinY}))").asInstanceOf[Polygon]
+      spatialPredicate = JTS.toGeometry(env)
 
       val rewrittenFilter =
         ff.dwithin(
