@@ -203,7 +203,7 @@ case class KeyListTiered(keys:Seq[String], parent:Option[KeyTiered]=None) extend
 }
 
 object KeyUtils {
-  val MAX_KEYS_IN_LIST = 8192
+  val MAX_KEYS_IN_LIST = 65536
   val MAX_KEYS_IN_REGEX = 1024
 
   // assume that strings are all of the same size
