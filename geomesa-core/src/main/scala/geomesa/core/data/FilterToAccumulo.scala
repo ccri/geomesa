@@ -17,12 +17,14 @@
 package geomesa.core.data
 
 import FilterToAccumulo._
-import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.geom.{Envelope, Point, Polygon}
 import geomesa.core.index.SpatioTemporalIndexSchema
 import geomesa.core.index.SpatioTemporalIndexSchema._
 import geomesa.utils.text.WKTUtils
 import java.util.Date
-import org.geotools.filter.text.ecql.ECQL
+import org.geotools.factory.CommonFactoryFinder
+import org.geotools.filter.spatial.DWithinImpl
+import org.geotools.referencing.GeodeticCalculator
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.{Interval => JodaInterval, DateTime, Duration, DateTimeZone}
 import org.opengis.filter._
@@ -42,6 +44,10 @@ object FilterToAccumulo {
   val TypeGeom = "geom"
   val TypeTime = "time"
   val TypeOther = "other"
+
+  val geoCalc = new GeodeticCalculator()
+  val everything = Extraction(SetLikePolygon.undefined, SetLikeInterval.undefined, SetLikeFilter.everything)
+  val ff = CommonFactoryFinder.getFilterFactory2(null)
 
   // core of set operations on JodaIntervals, Polygons, and Filters
   trait SetLike[T] {
@@ -82,17 +88,18 @@ object FilterToAccumulo {
 
   implicit object SetLikeInterval extends SetLike[JodaInterval] {
     val everything = Some(new JodaInterval(minDateTime, maxDateTime))
-    val nothing = Some(new JodaInterval(minDateTime, minDateTime))
+    val nothing    = Some(new JodaInterval(minDateTime, minDateTime))
+    
     def intersection(a: JodaInterval, b: JodaInterval): Option[JodaInterval] =
       if (a.overlaps(b)) Some(a.overlap(b))
       else nothing
+    
     def union(a: JodaInterval, b: JodaInterval): Option[JodaInterval] =
-      if (a.overlaps(b) || a.abuts(b)) Some(new JodaInterval(
-        math.min(a.getStartMillis, b.getStartMillis),
-        math.max(a.getEndMillis, b.getEndMillis),
-        DateTimeZone.forID("UTC")
-      ))
-      else throw new Exception("Cannot (yet) union two disjoint JodaIntervals.")
+      if (a.overlaps(b) || a.abuts(b)) {
+        val start = math.min(a.getStartMillis, b.getStartMillis)
+        val end = math.max(a.getEndMillis, b.getEndMillis)
+        Some(new JodaInterval(start, end, DateTimeZone.UTC))
+      } else throw new Exception("Cannot (yet) union two disjoint JodaIntervals.")
   }
 
   implicit object SetLikePolygon extends SetLike[Polygon] {
@@ -101,12 +108,13 @@ object FilterToAccumulo {
     val nothing = Some(WKTUtils.read(
       s"POLYGON(($tiny $tiny,$tiny $tiny,$tiny $tiny,$tiny $tiny,$tiny $tiny))")
       .asInstanceOf[Polygon])
+    
     def intersection(a: Polygon, b: Polygon): Option[Polygon] =
       if (a.intersects(b)) a.intersection(b) match {
         case p: Polygon => Some(p)
         case _ => nothing  // if the intersection isn't a polygon, we treat is as non-intersecting
-      }
-      else nothing
+      } else nothing
+    
     def union(a: Polygon, b: Polygon): Option[Polygon] =
       if (a.intersects(b)) a.union(b) match {
         case p: Polygon => Some(p)
@@ -118,28 +126,25 @@ object FilterToAccumulo {
   implicit object SetLikeFilter extends SetLike[Filter] {
     val everything = Some(Filter.INCLUDE)
     val nothing = Some(Filter.EXCLUDE)
-    def intersection(a: Filter, b: Filter): Option[Filter] = Some(
-      ECQL.toFilter(
-        "( " + ECQL.toCQL(a) + " ) AND ( " + ECQL.toCQL(b) + " )"
-      )
-    )
-    def union(a: Filter, b: Filter): Option[Filter] = Some(
-      ECQL.toFilter(
-        "( " + ECQL.toCQL(a) + " ) OR ( " + ECQL.toCQL(b) + " )"
-      )
-    )
+    
+    def intersection(a: Filter, b: Filter): Option[Filter] = Some(ff.and(a, b))
+    
+    def union(a: Filter, b: Filter): Option[Filter] = Some(ff.or(a, b))
   }
 
   implicit object SetLikeExtraction extends SetLike[Extraction] {
-    val setOpsPolygon = implicitly[SetLike[Polygon]]
+    val setOpsPolygon  = implicitly[SetLike[Polygon]]
     val setOpsInterval = implicitly[SetLike[JodaInterval]]
-    val setOpsFilter = implicitly[SetLike[Filter]]
+    val setOpsFilter   = implicitly[SetLike[Filter]]
+    
     val everything: Option[Extraction] = Some(Extraction(
       setOpsPolygon.everything, setOpsInterval.everything, setOpsFilter.everything
     ))
+    
     val nothing = Some(Extraction(
       setOpsPolygon.nothing, setOpsInterval.nothing, setOpsFilter.nothing
     ))
+    
     def intersection(a: Extraction, b: Extraction): Option[Extraction] = Some(Extraction(
       setOpsPolygon.intersection(a.polygon, b.polygon),
       setOpsInterval.intersection(a.interval, b.interval),
@@ -179,7 +184,15 @@ case class FilterExtractor(geometryPropertyName: String, temporalPropertyNames: 
     bbox.getMinX + " " + bbox.getMaxY + "," +
     bbox.getMaxX + " " + bbox.getMaxY + "," +
     bbox.getMaxX + " " + bbox.getMinY + "," +
+    bbox.getMinX + " " + bbox.getMinY +
+    "))").asInstanceOf[Polygon]
+
+  implicit def env2poly(bbox: Envelope): Polygon = WKTUtils.read("POLYGON((" +
     bbox.getMinX + " " + bbox.getMinY + "," +
+    bbox.getMinX + " " + bbox.getMaxY + "," +
+    bbox.getMaxX + " " + bbox.getMaxY + "," +
+    bbox.getMaxX + " " + bbox.getMinY + "," +
+    bbox.getMinX + " " + bbox.getMinY +
     "))").asInstanceOf[Polygon]
 
   def getGeometry(expression: Expression): Option[Polygon] = expression.evaluate(null) match {
@@ -188,49 +201,88 @@ case class FilterExtractor(geometryPropertyName: String, temporalPropertyNames: 
     case _                 => SetLikePolygon.nothing
   }
 
-  def getInterval(expression: Expression, boundSpecifier: Int): Option[JodaInterval] = {
-    val eval = expression.evaluate(null)
+  implicit def bufferedPoint2Poly(point: Point, distance: Double): Polygon = {
 
-    eval match {
-      case p: Period => Some(new JodaInterval(
-        p.getBeginning.getPosition.getDate.getTime,
-        p.getEnding.getPosition.getDate.getTime,
-        DateTimeZone.forID("UTC")
-      ))
+    // Distance must be in meters
+    geoCalc.setStartingGeographicPoint(point.getX, point.getY)
+    geoCalc.setDirection(0, distance)
+    val top = geoCalc.getDestinationGeographicPoint
+    geoCalc.setDirection(180, distance)
+    val bottom = geoCalc.getDestinationGeographicPoint
+
+    geoCalc.setStartingGeographicPoint(top)
+    geoCalc.setDirection(90, distance)
+    val topRight = geoCalc.getDestinationGeographicPoint
+    geoCalc.setDirection(-90, distance)
+    val topLeft = geoCalc.getDestinationGeographicPoint
+
+    geoCalc.setStartingGeographicPoint(bottom)
+    geoCalc.setDirection(90, distance)
+    val bottomRight = geoCalc.getDestinationGeographicPoint
+    geoCalc.setDirection(-90, distance)
+    val bottomLeft = geoCalc.getDestinationGeographicPoint
+
+    val env = (new Envelope(point.getCoordinate))
+    env.expandToInclude(topRight.getX, topRight.getY)
+    env.expandToInclude(topLeft.getX, topLeft.getY)
+    env.expandToInclude(bottomRight.getX, bottomRight.getY)
+    env.expandToInclude(bottomLeft.getX, bottomLeft.getY)
+    env2poly(env)
+  }
+
+  def getBufferedGeometry(expression: Expression, distance: Double, units: String): Option[Polygon] = 
+    expression.evaluate(null) match {
+      case point: Point      => Some(bufferedPoint2Poly(point, distance))
+      case _                 => SetLikePolygon.nothing
+    }
+
+  def getInterval(expression: Expression, boundSpecifier: Int): JodaInterval = {
+    expression.evaluate(null) match {
+      case p: Period => 
+        val start = p.getBeginning.getPosition.getDate.getTime
+        val end   = p.getEnding.getPosition.getDate.getTime
+        new JodaInterval(start, end, DateTimeZone.UTC)
+        
       case d: Date => boundSpecifier match {
-        case LowerBound => Some(new JodaInterval(
-          d.getTime,
-          SpatioTemporalIndexSchema.maxDateTime.getMillis,
-          DateTimeZone.forID("UTC")
-        ))
-        case UpperBound => Some(new JodaInterval(
-          SpatioTemporalIndexSchema.minDateTime.getMillis,
-          d.getTime,
-          DateTimeZone.forID("UTC")
-        ))
-        case _ => throw new Exception(
-          s"Invalid bounds specification ($boundSpecifier) for Date")
+        case LowerBound => 
+          val end = SpatioTemporalIndexSchema.maxDateTime.getMillis
+          new JodaInterval(d.getTime, end, DateTimeZone.UTC)
+          
+        case UpperBound =>
+          val start = SpatioTemporalIndexSchema.minDateTime.getMillis
+          new JodaInterval(start, d.getTime, DateTimeZone.UTC)
       }
-      case other => throw new Exception(
-        s"Invalid interval type ${other.getClass.getCanonicalName}")
     }
   }
 
-  def processBinaryGeometryPredicate(filter: BinarySpatialOperator): Option[Extraction] = {
-    getPropertyName(filter.getExpression1) match {
-      case Some(property) if (property == geometryPropertyName || property.isEmpty) =>
-        Some(Extraction(getGeometry(filter.getExpression2), SetLikeInterval.undefined, SetLikeFilter.everything))
-      case _ => Some(Extraction(SetLikePolygon.undefined, SetLikeInterval.undefined, SetLikeFilter.everything))
-    }
-  }
+  def processBinaryGeometryPredicate(filter: BinarySpatialOperator): Extraction = 
+    getPropertyName(filter.getExpression1)
+      .filter { property => property == geometryPropertyName || property.isEmpty }
+      .map    { property =>
+      val geometry = getGeometry(filter.getExpression2)
+      Extraction(geometry, SetLikeInterval.undefined, SetLikeFilter.everything)
+    }.getOrElse(everything)
+    
+  def processBinaryTemporalPredicate(filter: BinaryTemporalOperator, bound: Int): Extraction =
+    getPropertyName(filter.getExpression1)
+      .filter { property =>  temporalPropertyNames.contains(property) }
+      .map    { property =>
+      val interval = getInterval(filter.getExpression2, bound)
+      Extraction(SetLikePolygon.undefined, Some(interval), SetLikeFilter.everything)
+    }.getOrElse(everything)
 
-  def processBinaryTemporalPredicate(filter: BinaryTemporalOperator, bound: Int): Option[Extraction] = {
-    getPropertyName(filter.getExpression1) match {
-      case Some(property) if temporalPropertyNames.contains(property) =>
-        Some(Extraction(SetLikePolygon.undefined, getInterval(filter.getExpression2, bound), SetLikeFilter.everything))
-      case _ => Some(Extraction(SetLikePolygon.undefined, SetLikeInterval.undefined, SetLikeFilter.everything))
-    }
-  }
+
+  def processDWithin(filter: BinarySpatialOperator): Extraction =
+      getPropertyName(filter.getExpression1)
+        .filter { property => property == geometryPropertyName || property.isEmpty }
+        .map { property =>
+        val dwithin = filter.asInstanceOf[DWithinImpl]
+        val e1 = dwithin.getExpression1
+        val e2 = dwithin.getExpression2
+        val exp = ff.dwithin(e1, e2, dwithin.getDistance / 111120.0, "")
+        val geom = getBufferedGeometry(e2, dwithin.getDistance, dwithin.getDistanceUnits)
+        Extraction(geom, SetLikeInterval.undefined, Some(exp))
+      }.getOrElse(everything)
 
   val fmt = ISODateTimeFormat.dateTime()
   def extractDate(v: Any): Try[Date] = v match {
@@ -254,7 +306,7 @@ case class FilterExtractor(geometryPropertyName: String, temporalPropertyNames: 
             Some(new JodaInterval(
               childLeft.asInstanceOf[Date].getTime,
               childRight.asInstanceOf[Date].getTime,
-              DateTimeZone.forID("UTC")
+              DateTimeZone.UTC
             )),
             SetLikeFilter.everything
           ))
@@ -277,7 +329,7 @@ case class FilterExtractor(geometryPropertyName: String, temporalPropertyNames: 
       case Some(property) if temporalPropertyNames.contains(property) =>
         // Specify an interval of one minute around requested time
         val child = filter.getExpression2.evaluate(null).asInstanceOf[Date]
-        val start = new DateTime(child.getTime).withZone(DateTimeZone.forID("UTC"))
+        val start = new DateTime(child.getTime).withZone(DateTimeZone.UTC)
           .withSecondOfMinute(0)
         val duration = Duration.standardMinutes(1).toIntervalFrom(start)
         Some(Extraction(SetLikePolygon.undefined, Some(duration), SetLikeFilter.everything))
@@ -369,22 +421,27 @@ case class FilterExtractor(geometryPropertyName: String, temporalPropertyNames: 
 
   //@TODO flesh out the list of geo-time filters supported (and "NOT")
   def extractAndModify(filter: Filter): Option[Extraction] = filter match {
-    case null => Some(Extraction(
-      SetLikePolygon.undefined, SetLikeInterval.undefined, SetLikeFilter.everything))
+    case null => Some(everything)
+
     // geometric filters
-    case bbox: BBOX => processBinaryGeometryPredicate(bbox)
-    case intx: Intersects => processBinaryGeometryPredicate(intx)
-    case ovlp: Overlaps => processBinaryGeometryPredicate(ovlp)
+    case bbox: BBOX       => Some(processBinaryGeometryPredicate(bbox))
+    case intx: Intersects => Some(processBinaryGeometryPredicate(intx))
+    case ovlp: Overlaps   => Some(processBinaryGeometryPredicate(ovlp))
+    case dwithin: DWithin => Some(processDWithin(dwithin))
+
     // temporal filters
-    case before: Before => processBinaryTemporalPredicate(before, UpperBound)
-    case after: After => processBinaryTemporalPredicate(after, LowerBound)
-    case during: During => processBinaryTemporalPredicate(during, IntervalBound)
-    // (kinda') shared filters
+    case before: Before   => Some(processBinaryTemporalPredicate(before, UpperBound))
+    case after: After     => Some(processBinaryTemporalPredicate(after, LowerBound))
+    case during: During   => Some(processBinaryTemporalPredicate(during, IntervalBound))
+
+    //  shared filters
     case between: PropertyIsBetween => processBetween(between)
-    case equals: PropertyIsEqualTo => processIsEqualsTo(equals)
+    case equals: PropertyIsEqualTo  => processIsEqualsTo(equals)
+
     // logical filters
-    case and: And => processAnd(and.getChildren.asScala)
-    case or: Or => processOr(or.getChildren.asScala)
+    case and: And  => processAnd(and.getChildren.asScala)
+    case or: Or    => processOr(or.getChildren.asScala)
+
     // unhandled filters
     case _ => Some(Extraction(
       SetLikePolygon.undefined, SetLikeInterval.undefined, Option(filter))) // default pass-through
