@@ -668,14 +668,17 @@ object GeohashUtils extends GeomDistance {
     val numCharsLeft = offset + bits - covering.hash.length
     consider(GH(covering), numCharsLeft)
     memoized match {
-      case candidates if candidates.size <= maxKeys =>
+      case candidates if candidates.size < maxKeys =>
         // add dotted versions, if appropriate (to match decomposed GeoHashes that
         // may be encoded at less than a full 35-bits precision)
+
+        // STOP as soon as you've exceeded the maximum allowable entries
+
         val keepers = (for {
-          hash <- memoized.toList
+          hash <- memoized.toIterator
           i <- (0 to bits)
           newStr = hash.take(i) +  "".padTo(bits-i,".").mkString
-        } yield newStr).distinct
+        } yield newStr).take(MAX_KEYS_IN_LIST + 1).toList.distinct
         if (keepers.size <= MAX_KEYS_IN_LIST) keepers else Seq()
       case _ => Seq()
     }
