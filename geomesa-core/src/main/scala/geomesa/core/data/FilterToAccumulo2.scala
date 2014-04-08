@@ -64,7 +64,7 @@ class FilterToAccumulo2(sft: SimpleFeatureType) {
     case op: PropertyIsBetween      => visitPropertyIsBetween(op, acc)
 
     // Catch all
-    case f: Filter => f
+    case f: Filter => ff.and(acc, f)
   }
 
   private def visitBBOX(op: BBOX, acc: Filter): Filter = {
