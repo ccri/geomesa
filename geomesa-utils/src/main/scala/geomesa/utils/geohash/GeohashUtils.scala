@@ -20,6 +20,7 @@ import com.vividsolutions.jts.geom._
 import geomesa.utils.text.WKTUtils
 import scala.collection.BitSet
 import scala.util.control.Exception.catching
+import scala.collection.immutable.Range.Inclusive
 
 /**
  * The following bits of code are related to generating an automatic estimate
@@ -50,7 +51,7 @@ object GeohashUtils extends GeomDistance {
   case class ResolutionRange(minBitsResolution:Int=5,
                              maxBitsResolution:Int=63,
                              numBitsIncrement:Int=2)
-    extends Range(minBitsResolution, maxBitsResolution, numBitsIncrement) {
+    extends Inclusive(minBitsResolution, maxBitsResolution, numBitsIncrement) {
     // validate resolution arguments
     if (minBitsResolution >= maxBitsResolution)
       throw new IllegalArgumentException("Minimum resolution must be strictly greater than maximum resolution.")
@@ -225,26 +226,26 @@ object GeohashUtils extends GeomDistance {
    * (in bits) for as long as a GeoHash constructed for that centroid continues
    * to enclose the entire geometry.  This works, because any GeoHash that
    * encloses the entire geometry must also include the centroid (as well as
-   * any other point).  Sorry, talking myself into believing that this computes
-   * the MBR instead of just some lazy BR.
+   * any other point).
    *
    * @param geom the target geometry that is to be enclosed
    * @return the smallest GeoHash -- at an odd number of bits resolution -- that
    *         completely encloses the target geometry
    */
   def getMinimumBoundingGeohash(geom:Geometry, resolutions:ResolutionRange) : GeoHash = {
-    // save yourself some effort by computing the geometry's centroid up front
+    // save yourself some effort by computing the geometry's centroid and envelope up front
     val centroid = getCentroid(geom)
+    val env = defaultGeometryFactory.toGeometry(geom.getEnvelopeInternal)
 
     // conduct the search through the various candidate resolutions
     val (maxBits:Int, ghOpt:Option[GeoHash]) = resolutions.foldRight((resolutions.minBitsResolution, None:Option[GeoHash])){(bits:Int,res:(Int,Option[GeoHash])) =>
       val gh = GeoHash(centroid.getX, centroid.getY, bits)
-      if (getGeohashGeom(gh).covers(geom) && bits>=res._1) (bits, Some(gh)) else res
+      if (getGeohashGeom(gh).contains(env) && bits>=res._1) (bits, Some(gh)) else res
     }
 
     // validate that you found a usable result
-    val gh:GeoHash = ghOpt.getOrElse(GeoHash(centroid.getX, centroid.getY, resolutions.minBitsResolution))
-    if (!getGeohashGeom(gh).contains(geom))
+    val gh = ghOpt.getOrElse(GeoHash(centroid.getX, centroid.getY, resolutions.minBitsResolution))
+    if (!getGeohashGeom(gh).contains(env))
       throw new Exception("ERROR:  Could not find a suitable " +
         resolutions.minBitsResolution + "-bit MBR for the target geometry:  " +
         geom)
@@ -499,7 +500,7 @@ object GeohashUtils extends GeomDistance {
     // recursive routine that will do the actual decomposition
     def decomposeStep(candidates:List[DecompositionCandidate]) : (List[DecompositionCandidate]) = {
       // complain, if needed
-      if (candidates.size >= maxSize) throw new Exception("Too many candidates upon entry.")
+      if (candidates.size > maxSize) throw new Exception("Too many candidates upon entry.")
       else {
         // identify the partial to replace...
         // which of the single candidates contains the least overlap (area outside the target geometry)?
@@ -517,7 +518,7 @@ object GeohashUtils extends GeomDistance {
         val newCandidates : List[DecompositionCandidate] = (candidates.tail ++ children).sortWith(decompositionCandidateSorter)
 
         // recurse, if appropriate
-        if ((newCandidates.size < maxSize) && (childResolution <= resolutions.maxBitsResolution)) {
+        if ((newCandidates.size <= maxSize) && (childResolution <= resolutions.maxBitsResolution)) {
           decomposeStep(newCandidates)
         }
         else candidates
@@ -601,15 +602,19 @@ object GeohashUtils extends GeomDistance {
   }
 
     /**
-   * Given an index-schema format such as 5005"%1,3#gh", it becomes necessary to
+   * Given an index-schema format such as "%1,3#gh", it becomes necessary to
    * identify which unique 3-character GeoHash sub-strings intersect the
    * query polygon.  This routine performs exactly such an identification.
    *
    * The full GeoHashes from which the sub-strings are extracted are computed
    * at 35 bits.
    *
-   * In the event that there are more such unique sub-strings than the maximum
-   * allowable, return an empty list.
+   * NB:  If the query-polygon crosses one of the principal mid-points (0
+   * latitude or longitude), you may end up with a 0-bit GeoHash being the
+   * best choice for minimum-bounding GeoHash, and computing the "%3,2#gh"
+   * with that covering can be prohibitively slow.  To combat that problem,
+   * we first decompose the polygon into its four (or fewer) best covering
+   * GeoHashes, and build up the list from those patches.
    *
    * @param poly the query-polygon that must intersect candidate GeoHashes
    * @param offset how many of the left-most GeoHash characters to skip
@@ -629,11 +634,25 @@ object GeohashUtils extends GeomDistance {
     // the list of allowable GeoHash characters
     val base32seq = GeoHash.base32.toSeq
 
-    // identify the MBR for the query polygon
-    val env = poly.getEnvelopeInternal
-    val bbox = BoundingBox(Bounds(env.getMinX, env.getMaxX), Bounds(env.getMinY,
-      env.getMaxY))
-    val covering = BoundingBox.getCoveringGeoHash(bbox, 35)
+    // decompose the polygon (to avoid median-crossing polygons
+    // that can require a HUGE amount of unnecessary work)
+    val rawCoverings = decomposeGeometry(
+      poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 1))
+    // promote these (potentially) off-5-bit GeoHashes
+    val coverings = rawCoverings.flatMap(covering => {
+      if ((covering.prec % 5) == 0) Seq(covering)
+      else {
+        val increaseInPrecision = 5 - (covering.prec % 5)
+        val nextPrecision = covering.prec + increaseInPrecision
+        val ghLL = GeoHash(covering.hash, nextPrecision)  // pads with 0s
+        (0 until (1 << increaseInPrecision)).foldLeft((ghLL, List[GeoHash]()))((t, i) => t match {
+          case (prevGH, ghsSoFar) =>
+            val nextGH = prevGH.next
+            if (poly.intersects(prevGH.bbox.geom)) (nextGH, ghsSoFar ++ List(prevGH))
+            else (nextGH, ghsSoFar)
+        })._2
+      }
+    })
 
     val memoized = collection.mutable.HashSet.empty[String]
 
@@ -664,16 +683,18 @@ object GeohashUtils extends GeomDistance {
       }
     }
 
-    // how many characters total are left?
-    val numCharsLeft = offset + bits - covering.hash.length
-    consider(GH(covering), numCharsLeft)
+    // find the qualifying GeoHashes
+    coverings.foreach { coveringPatch => {
+      // how many characters total are left within this patch?
+      val numCharsLeft = offset + bits - coveringPatch.hash.length
+      consider(GH(coveringPatch), numCharsLeft)
+    }}
+
+    // add dotted versions, if appropriate (to match decomposed GeoHashes that
+    // may be encoded at less than a full 35-bits precision)
     memoized match {
       case candidates if candidates.size < maxKeys =>
-        // add dotted versions, if appropriate (to match decomposed GeoHashes that
-        // may be encoded at less than a full 35-bits precision)
-
         // STOP as soon as you've exceeded the maximum allowable entries
-
         val keepers = (for {
           hash <- memoized.toIterator
           i <- (0 to bits)
