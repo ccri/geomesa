@@ -281,7 +281,8 @@ trait GeoHashPlanner {
         // if the list is empty, then there are probably too many 35-bit GeoHashes
         // that fall inside the given polygon; in this case, return the LL, UR
         // GeoHash endpoints of the entire range (which could encompass many
-        // more GeoHashes than we wish)
+        // more GeoHashes than we wish, but can only be better than (or equal
+        // to) a full-table scan)
         val env = poly.getEnvelopeInternal
         val ghLL = GeoHash(env.getMinX, env.getMinY)
         val ghUR = GeoHash(env.getMaxX, env.getMaxY)

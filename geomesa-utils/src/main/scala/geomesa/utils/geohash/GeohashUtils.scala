@@ -41,6 +41,9 @@ object GeohashUtils extends GeomDistance {
 
   import Distance._
 
+  // the list of allowable GeoHash characters
+  val base32seq = GeoHash.base32.toSeq
+
   /**
    * Simple place-holder for a pair of resolutions, minimum and maximum, along
    * with an increment.
@@ -601,6 +604,28 @@ object GeohashUtils extends GeomDistance {
     case _ => throw new Exception("Invalid geometry")
   }
 
+  def getSimpleCoverings(poly: Polygon, offset: Int, bits: Int): Seq[GeoHash] = {
+    // simple decomposition to no more than 4 GeoHash rectangles
+    val rawCoverings = decomposeGeometry(
+      poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 1))
+
+    // promote these (potentially) off-5-bit GeoHashes
+    rawCoverings.flatMap(covering => {
+      if ((covering.prec % 5) == 0) Seq(covering)
+      else {
+        val increaseInPrecision = 5 - (covering.prec % 5)
+        val nextPrecision = covering.prec + increaseInPrecision
+        val ghLL = GeoHash(covering.hash, nextPrecision)  // pads with 0s
+        (0 until (1 << increaseInPrecision)).foldLeft((ghLL, List[GeoHash]()))((t, i) => t match {
+          case (prevGH, ghsSoFar) =>
+            val nextGH = prevGH.next
+            if (poly.intersects(prevGH.bbox.geom)) (nextGH, ghsSoFar ++ List(prevGH))
+            else (nextGH, ghsSoFar)
+        })._2
+      }
+    })
+  }
+
     /**
    * Given an index-schema format such as "%1,3#gh", it becomes necessary to
    * identify which unique 3-character GeoHash sub-strings intersect the
@@ -614,7 +639,7 @@ object GeohashUtils extends GeomDistance {
    * best choice for minimum-bounding GeoHash, and computing the "%3,2#gh"
    * with that covering can be prohibitively slow.  To combat that problem,
    * we first decompose the polygon into its four (or fewer) best covering
-   * GeoHashes, and build up the list from those patches.
+   * GeoHash rectangles, and build up the list from those patches.
    *
    * @param poly the query-polygon that must intersect candidate GeoHashes
    * @param offset how many of the left-most GeoHash characters to skip
@@ -631,30 +656,9 @@ object GeohashUtils extends GeomDistance {
                                           bits: Int,
                                           MAX_KEYS_IN_LIST: Int = Int.MaxValue): Seq[String] = {
 
-    // the list of allowable GeoHash characters
-    val base32seq = GeoHash.base32.toSeq
-
     // decompose the polygon (to avoid median-crossing polygons
     // that can require a HUGE amount of unnecessary work)
-    val rawCoverings = decomposeGeometry(
-      poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 1))
-    // promote these (potentially) off-5-bit GeoHashes
-    val coverings = rawCoverings.flatMap(covering => {
-      if ((covering.prec % 5) == 0) Seq(covering)
-      else {
-        val increaseInPrecision = 5 - (covering.prec % 5)
-        val nextPrecision = covering.prec + increaseInPrecision
-        val ghLL = GeoHash(covering.hash, nextPrecision)  // pads with 0s
-        (0 until (1 << increaseInPrecision)).foldLeft((ghLL, List[GeoHash]()))((t, i) => t match {
-          case (prevGH, ghsSoFar) =>
-            val nextGH = prevGH.next
-            if (poly.intersects(prevGH.bbox.geom)) (nextGH, ghsSoFar ++ List(prevGH))
-            else (nextGH, ghsSoFar)
-        })._2
-      }
-    })
-
-    val geoms = Seq(poly) ++ coverings.map(_.bbox.geom).toIndexedSeq
+    val coverings = getSimpleCoverings(poly, offset, bits)
 
     val memoized = collection.mutable.HashSet.empty[String]
 
