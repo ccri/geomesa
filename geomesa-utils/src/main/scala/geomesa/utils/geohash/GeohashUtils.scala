@@ -604,6 +604,15 @@ object GeohashUtils extends GeomDistance {
     case _ => throw new Exception("Invalid geometry")
   }
 
+  def getGeohashStringDottingIterator(set: Set, maxSize: Int): Iterator[String] = {
+    val len = set.headOption.map(_.length).getOrElse(0)
+    (for {
+      hash <- set.toIterator
+      i <- 0 to len
+      newStr = hash.take(i) + "".padTo(len - i, ".").mkString
+    } yield newStr).take(maxSize + 1)
+  }
+
   /**
    * Given an index-schema format such as "%1,3#gh", it becomes necessary to
    * identify which unique 3-character GeoHash sub-strings intersect the
@@ -639,10 +648,12 @@ object GeohashUtils extends GeomDistance {
     val coverings = decomposeGeometry(
       poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
 
+    // mutable!
     val memoized = collection.mutable.HashSet.empty[String]
 
     val maxKeys = Math.min(1 << (bits * 5), MAX_KEYS_IN_LIST)
 
+    // utility class only needed within this method
     case class GH(gh: GeoHash) {
       def hash = gh.hash
       def bbox = gh.bbox
@@ -677,16 +688,11 @@ object GeohashUtils extends GeomDistance {
 
     // add dotted versions, if appropriate (to match decomposed GeoHashes that
     // may be encoded at less than a full 35-bits precision)
-    memoized match {
-      case candidates if candidates.size < maxKeys =>
-        // STOP as soon as you've exceeded the maximum allowable entries
-        val keepers = (for {
-          hash <- memoized.toIterator
-          i <- (0 to bits)
-          newStr = hash.take(i) +  "".padTo(bits-i,".").mkString
-        } yield newStr).take(MAX_KEYS_IN_LIST + 1).toList.distinct
-        if (keepers.size <= MAX_KEYS_IN_LIST) keepers else Seq()
-      case _ => Seq()
-    }
+    if (memoized.size < maxKeys) {
+      // STOP as soon as you've exceeded the maximum allowable entries
+      val keepers = getGeohashStringDottingIterator(
+        memoized, MAX_KEYS_IN_LIST).toSet
+      if (keepers.size <= MAX_KEYS_IN_LIST) keepers else Seq()
+    } else Seq()
   }
 }
