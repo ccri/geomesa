@@ -654,6 +654,8 @@ object GeohashUtils extends GeomDistance {
       }
     })
 
+    val geoms = Seq(poly) ++ coverings.map(_.bbox.geom).toIndexedSeq
+
     val memoized = collection.mutable.HashSet.empty[String]
 
     val maxKeys = Math.min(1 << (bits * 5), MAX_KEYS_IN_LIST)
