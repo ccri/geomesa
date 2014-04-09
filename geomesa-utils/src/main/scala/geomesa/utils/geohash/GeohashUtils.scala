@@ -605,57 +605,6 @@ object GeohashUtils extends GeomDistance {
   }
 
   /**
-   * A special-purpose routine that computes a reasonable set of
-   * GeoHash rectangles that cover the target geometry at the specified
-   * precision (and fall on 5-bit boundaries).  This is only really
-   * useful for the enumeration of 35-bit GeoHashes within the geometry
-   * (to avoid the case where the single covering GeoHash happens to
-   * be prohibitively large).
-   *
-   * As an example, consider BBOX(100, -1, 101, 1)...  Even though this
-   * represents only two square degrees, it crosses the equator, meaning
-   * that its single best covering GeoHash is the entire world.  The
-   * impact of using that single best covering GeoHash is...
-   *
-   * 1.  there are approximately 1,000,000 35-bit GeoHashes in the
-   *     two-square-degree target polygon
-   * 2.  you must visit 30,087,688,897 35-bit GeoHashes before you
-   *     get to the upper-right corner of the target polygon
-   *
-   * @param poly the polygon for which coverings are sought
-   * @param offset how many base-32 characters to skip
-   * @param bits how many base-32 characters are desired
-   * @return a reasonable sequence of GeoHashes that cover this
-   *         target geometry such that the precision of the GeoHash
-   *         results satisfies these conditions:  1) they are all multiples
-   *         of 5 bits; 2) they do not exceed the precision implied by the
-   *         sum of the "offset" and "bits" arguments
-   *
-   */
-  def getSimpleCoverings(poly: Polygon, offset: Int, bits: Int): Seq[GeoHash] = {
-    // simple decomposition to no more than 4 GeoHash rectangles
-    val rawCoverings = decomposeGeometry(
-      poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 1))
-
-    // promote these (potentially) off-5-bit GeoHashes by enumerating
-    // their child GeoHashes that fall on 5-bit boundaries
-    rawCoverings.flatMap(covering => {
-      if ((covering.prec % 5) == 0) Seq(covering)
-      else {
-        val increaseInPrecision = 5 - (covering.prec % 5)
-        val nextPrecision = covering.prec + increaseInPrecision
-        val ghLL = GeoHash(covering.hash, nextPrecision)  // pads with 0s
-        (0 until (1 << increaseInPrecision)).foldLeft((ghLL, List[GeoHash]()))((t, i) => t match {
-          case (prevGH, ghsSoFar) =>
-            val nextGH = prevGH.next
-            if (poly.intersects(prevGH.bbox.geom)) (nextGH, ghsSoFar ++ List(prevGH))
-            else (nextGH, ghsSoFar)
-        })._2
-      }
-    })
-  }
-
-    /**
    * Given an index-schema format such as "%1,3#gh", it becomes necessary to
    * identify which unique 3-character GeoHash sub-strings intersect the
    * query polygon.  This routine performs exactly such an identification.
@@ -687,7 +636,8 @@ object GeohashUtils extends GeomDistance {
 
     // decompose the polygon (to avoid median-crossing polygons
     // that can require a HUGE amount of unnecessary work)
-    val coverings = getSimpleCoverings(poly, offset, bits)
+    val coverings = decomposeGeometry(
+      poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
 
     val memoized = collection.mutable.HashSet.empty[String]
 
@@ -718,7 +668,7 @@ object GeohashUtils extends GeomDistance {
       }
     }
 
-    // find the qualifying GeoHashes
+    // find the qualifying GeoHashes within these covering rectangles
     coverings.foreach { coveringPatch => {
       // how many characters total are left within this patch?
       val numCharsLeft = offset + bits - coveringPatch.hash.length
