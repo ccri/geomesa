@@ -19,8 +19,9 @@ package geomesa.utils.geohash
 import com.vividsolutions.jts.geom._
 import geomesa.utils.text.WKTUtils
 import scala.collection.BitSet
-import scala.util.control.Exception.catching
 import scala.collection.immutable.Range.Inclusive
+import scala.collection.mutable.{HashSet => MutableHashSet}
+import scala.util.control.Exception.catching
 
 /**
  * The following bits of code are related to generating an automatic estimate
@@ -604,7 +605,28 @@ object GeohashUtils extends GeomDistance {
     case _ => throw new Exception("Invalid geometry")
   }
 
-  def getGeohashStringDottingIterator(set: Set, maxSize: Int): Iterator[String] = {
+  /**
+   * Given a collection of GeoHash hash sub-strings, this routine
+   * will build an iterator that generates all dotted variants.
+   * "Dotted" in this context means supporting the abstracted
+   * representation (in which higher-level hash-strings use periods
+   * for the base-32 characters they don't use).  For example,
+   * if the string is "dqb", then the dotted variants include all
+   * of the following:
+   *
+   *   dqb
+   *   dq.
+   *   d..
+   *   ...
+   *
+   * @param set the collection of GeoHash hash substrings to dot
+   * @param maxSize the maximum allowable number of entries in the final
+   *                iterator
+   * @return an iterator over the dotted collection of hash substrings,
+   *         constrained to one more than the maximum allowable size
+   *         (to enable overflow-detection on the outside)
+   */
+  def getGeohashStringDottingIterator(set: MutableHashSet[String], maxSize: Int): Iterator[String] = {
     val len = set.headOption.map(_.length).getOrElse(0)
     (for {
       hash <- set.toIterator
@@ -649,7 +671,7 @@ object GeohashUtils extends GeomDistance {
       poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
 
     // mutable!
-    val memoized = collection.mutable.HashSet.empty[String]
+    val memoized = MutableHashSet.empty[String]
 
     val maxKeys = Math.min(1 << (bits * 5), MAX_KEYS_IN_LIST)
 
@@ -692,7 +714,7 @@ object GeohashUtils extends GeomDistance {
       // STOP as soon as you've exceeded the maximum allowable entries
       val keepers = getGeohashStringDottingIterator(
         memoized, MAX_KEYS_IN_LIST).toSet
-      if (keepers.size <= MAX_KEYS_IN_LIST) keepers else Seq()
+      if (keepers.size <= MAX_KEYS_IN_LIST) keepers.toSeq else Seq()
     } else Seq()
   }
 }
