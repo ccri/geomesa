@@ -605,7 +605,7 @@ object GeohashUtils extends GeomDistance {
   }
 
   /**
-   * A special-purpose routine that computes the four (or fewer) best
+   * A special-purpose routine that computes a reasonable set of
    * GeoHash rectangles that cover the target geometry at the specified
    * precision (and fall on 5-bit boundaries).  This is only really
    * useful for the enumeration of 35-bit GeoHashes within the geometry
@@ -625,14 +625,14 @@ object GeohashUtils extends GeomDistance {
    * @param poly the polygon for which coverings are sought
    * @param offset how many base-32 characters to skip
    * @param bits how many base-32 characters are desired
-   * @return the sequence of no more than four GeoHashes that cover this
+   * @return a reasonable sequence of GeoHashes that cover this
    *         target geometry such that the precision of the GeoHash
    *         results satisfies these conditions:  1) they are all multiples
    *         of 5 bits; 2) they do not exceed the precision implied by the
    *         sum of the "offset" and "bits" arguments
    *
    */
-  private def getSimpleCoverings(poly: Polygon, offset: Int, bits: Int): Seq[GeoHash] = {
+  def getSimpleCoverings(poly: Polygon, offset: Int, bits: Int): Seq[GeoHash] = {
     // simple decomposition to no more than 4 GeoHash rectangles
     val rawCoverings = decomposeGeometry(
       poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 1))
