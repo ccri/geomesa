@@ -208,14 +208,21 @@ trait Ingestible extends Configurable {
       fields.map(field => s"${field.name}:${field.gtType}").mkString(",")
   }
 
-  def getDate(properties: Map[String,_]): Option[DateTime] =
+  def getStartDate(properties: Map[String,_]): Option[DateTime] =
     properties.get(SF_PROPERTY_START_TIME) match {
       case Some(date: Date) => Some(Ingester.d2dt(date))
       case _ => None
     }
 
+  def getEndDate(properties: Map[String,_]): Option[DateTime] =
+    properties.get(SF_PROPERTY_END_TIME) match {
+      case Some(date: Date) => Some(Ingester.d2dt(date))
+      case _ => None
+    }
+
   class DataEntry(id: String, properties: Map[String,Any]) extends
-    SpatioTemporalIndexEntry(id, properties(SF_PROPERTY_GEOMETRY).asInstanceOf[Geometry], getDate(properties), DataType) {
+    SpatioTemporalIndexEntry(id, properties(SF_PROPERTY_GEOMETRY).asInstanceOf[Geometry],
+      getStartDate(properties), getEndDate(properties), DataType) {
 
     properties.foreach { case (property, value) => {
       setAttribute(property, value)

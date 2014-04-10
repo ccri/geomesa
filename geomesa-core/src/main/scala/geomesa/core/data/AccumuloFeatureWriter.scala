@@ -30,6 +30,7 @@ import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.joda.time.{DateTimeZone, DateTime}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
+import org.geotools.factory.Hints
 
 object AccumuloFeatureWriter {
 
@@ -72,23 +73,33 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
 
   def remove() {}
 
+  val builder = new SimpleFeatureBuilder(featureType)
+
   def write() {
     // require a non-null feature with a non-null geometry
     if (currentFeature != null && currentFeature.getDefaultGeometry != null) {
+      // see if there's a suggested ID to use for this feature
+      // (relevant when this insertion is wrapped inside a Transaction)
+      if (currentFeature.getUserData.containsKey(Hints.PROVIDED_FID)) {
+        builder.init(currentFeature)
+        currentFeature = builder.buildFeature(
+          currentFeature.getUserData.get(Hints.PROVIDED_FID).toString)
+      }
 
       // the geometry is used un-typed; the indexer will complain if the type is unrecognized
       val geometry = currentFeature.getDefaultGeometry.asInstanceOf[Geometry]
 
-      // try to extract an end-time
-      // (for now, we only support a single date/time per entry)
-      val date = currentFeature.getAttribute(SF_PROPERTY_END_TIME).asInstanceOf[Date]
+      // try to extract an start- and end-times
+      val dateStart = currentFeature.getAttribute(SF_PROPERTY_START_TIME).asInstanceOf[Date]
+      val dateEnd = currentFeature.getAttribute(SF_PROPERTY_END_TIME).asInstanceOf[Date]
 
       // ensure that we have at least one value, even if NULL, for every attribute
       // in the new simple-feature type
       val attrMap = attrNames.map { name => (name, currentFeature.getAttribute(name)) }.toMap
 
       // the schema return all (key, value) pairs to write to Accumulo
-      val keyVals = indexer.encode(new AccumuloFeature(currentFeature.getID, geometry, date, attrMap))
+      val keyVals = indexer.encode(
+        new AccumuloFeature(currentFeature.getID, geometry, dateStart, dateEnd, attrMap))
       keyVals.foreach { case (k,v) => recordWriter.write(k,v) }
     } else {
       // complain
@@ -115,11 +126,14 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
   }
   class AccumuloFeature(sid:String,
                          geom:Geometry,
-                         dt:Date,
+                         dtStart:Date,
+                         dtEnd: Date,
                          attributesMap:Map[String,Object])
       extends SpatioTemporalIndexEntry(sid, geom,
-                                       if(dt==null) Some(new DateTime(DateTimeZone.forID("UTC")))
-                                       else Some(new DateTime(dt.getTime, DateTimeZone.forID("UTC"))),
+                                       if (dtStart == null) Some(new DateTime(DateTimeZone.forID("UTC")))
+                                       else Some(new DateTime(dtStart.getTime, DateTimeZone.forID("UTC"))),
+                                       if (dtEnd == null) Some(new DateTime(DateTimeZone.forID("UTC")))
+                                       else Some(new DateTime(dtEnd.getTime, DateTimeZone.forID("UTC"))),
                                        AccumuloFeatureType) {
 
     // use all of the attribute-value pairs passed in, but do not overwrite
