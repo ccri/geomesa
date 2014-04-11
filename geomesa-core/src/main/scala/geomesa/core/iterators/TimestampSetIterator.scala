@@ -50,6 +50,9 @@ class TimestampSetIterator(var timestamps: SortedSet[Long])
     extends SkippingIterator {
 
   @Override
+  def this() = this(null)
+
+  @Override
   override protected def consume() {
     while (getSource.hasTop && !isValid(getSource.getTopKey)) {
       getSource.next()
