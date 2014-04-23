@@ -18,7 +18,7 @@
 package geomesa.core.data
 
 import collection.JavaConversions._
-import com.vividsolutions.jts.geom.{Polygon, Coordinate}
+import com.vividsolutions.jts.geom.{CoordinateSequence, Polygon, Coordinate}
 import geomesa.core.index.Constants
 import geomesa.utils.text.WKTUtils
 import org.geotools.data.DataUtilities
@@ -61,6 +61,52 @@ class FilterToAccumuloTest extends Specification {
       val f2a = new FilterToAccumulo(sft)
       val result = f2a.visit(q)
       result mustEqual ff.like(ff.property("prop"), "foo")
+    }
+  }
+
+  "And/Or queries" should {
+    "handle geometric conjunctions" in {
+      val spatial_a = ff.bbox("geom", -80.0, 30, -70, 38, CRS.toSRS(WGS84))
+      val spatial_b = ff.bbox("geom", -80.0, 32, -70, 40, CRS.toSRS(WGS84))
+      val pred = ff.and(List(spatial_a, spatial_b))
+      val f2a = new FilterToAccumulo(sft)
+      val result = f2a.visit(pred)
+      val polygon = WKTUtils.read("POLYGON((-80 32,-70 32,-70 38,-80 38,-80 32))")
+      f2a.spatialPredicate mustEqual polygon
+    }
+
+    "handle geometric disjunctions" in {
+      val spatial_a = ff.bbox("geom", -80.0, 30, -70, 38, CRS.toSRS(WGS84))
+      val spatial_b = ff.bbox("geom", -80.0, 32, -70, 40, CRS.toSRS(WGS84))
+      val pred = ff.or(List(spatial_a, spatial_b))
+      val f2a = new FilterToAccumulo(sft)
+      val result = f2a.visit(pred)
+      val polygon = WKTUtils.read("POLYGON((-80 30,-70 30,-70 40,-80 40,-80 30))")
+      f2a.spatialPredicate mustEqual polygon
+    }
+
+    "handle temporal conjunctions" in {
+      val temporal_a = ECQL.toFilter("dtg DURING 2011-01-01T00:00:00Z/2011-01-20T00:00:00Z")
+      val temporal_b = ECQL.toFilter("dtg DURING 2011-01-10T00:00:00Z/2011-02-01T00:00:00Z")
+      val pred = ff.and(List(temporal_a, temporal_b))
+      val f2a = new FilterToAccumulo(sft)
+      val result = f2a.visit(pred)
+      val interval = new Interval(
+        new DateTime("2011-01-10T00:00:00Z", DateTimeZone.UTC),
+        new DateTime("2011-01-20T00:00:00Z", DateTimeZone.UTC))
+      f2a.temporalPredicate mustEqual interval
+    }
+
+    "handle temporal disjunctions" in {
+      val temporal_a = ECQL.toFilter("dtg DURING 2011-01-01T00:00:00Z/2011-01-20T00:00:00Z")
+      val temporal_b = ECQL.toFilter("dtg DURING 2011-01-10T00:00:00Z/2011-02-01T00:00:00Z")
+      val pred = ff.or(List(temporal_a, temporal_b))
+      val f2a = new FilterToAccumulo(sft)
+      val result = f2a.visit(pred)
+      val interval = new Interval(
+        new DateTime("2011-01-01T00:00:00Z", DateTimeZone.UTC),
+        new DateTime("2011-02-01T00:00:00Z", DateTimeZone.UTC))
+      f2a.temporalPredicate mustEqual interval
     }
   }
 
