@@ -124,7 +124,7 @@
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin</artifactId>
+                <artifactId>geomesa-plugin-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
