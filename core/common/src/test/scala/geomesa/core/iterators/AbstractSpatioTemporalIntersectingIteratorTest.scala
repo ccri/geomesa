@@ -35,7 +35,7 @@ import org.apache.hadoop.io.Text
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import geomesa.core.VersionSpecificOperations
 
-abstract class SpatioTemporalIntersectingIteratorTest(val ops: VersionSpecificOperations) extends Specification {
+abstract class AbstractSpatioTemporalIntersectingIteratorTest(val ops: VersionSpecificOperations) extends Specification {
 
   val TEST_USER = "root"
   val TEST_TABLE = "test_table"
@@ -190,7 +190,7 @@ abstract class SpatioTemporalIntersectingIteratorTest(val ops: VersionSpecificOp
       val mockInstance = new MockInstance()
       val c = ops.getConnector(mockInstance, TEST_USER, "")
       c.tableOperations.create(TEST_TABLE)
-      val bw = ops.createBatchWriter(TEST_TABLE)
+      val bw = ops.createBatchWriter(c, TEST_TABLE)
 
       // populate the mock table
       val dataList: util.Collection[(Key, Value)] = TestData.encodeDataList(entries)
@@ -394,7 +394,7 @@ abstract class SpatioTemporalIntersectingIteratorTest(val ops: VersionSpecificOp
   "Consistency Iterator" should {
     "verify inconsistency of table" in {
       val c = TestData.setupMockAccumuloTable(TestData.shortListOfPoints, TestData.shortListOfPoints.length)
-      val bd = ops.createBatchDeleter(TEST_TABLE, TEST_AUTHORIZATIONS, 8)
+      val bd = ops.createBatchDeleter(c, TEST_TABLE, TEST_AUTHORIZATIONS, 8)
       bd.setRanges(List(new org.apache.accumulo.core.data.Range()))
       bd.fetchColumnFamily(new Text("|data|1".getBytes()))
       bd.delete()

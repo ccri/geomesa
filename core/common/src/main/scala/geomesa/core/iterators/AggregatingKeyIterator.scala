@@ -52,7 +52,7 @@ object AggregatingKeyIterator {
   }
 }
 
-abstract class AggregatingKeyIterator(val ops: VersionSpecificOperations)
+class AggregatingKeyIterator(val ops: VersionSpecificOperations)
     extends SortedKeyValueIterator[Key, Value] with OptionDescriber {
 
   def deepCopy(env:IteratorEnvironment) = null
@@ -129,7 +129,7 @@ abstract class AggregatingKeyIterator(val ops: VersionSpecificOperations)
     this.iterator = source
     try {
       val clazz = options(AggregatingKeyIterator.aggClass)
-      val aggClazz = ops.loadClass(clazz)
+      val aggClazz = AccumuloClassLoader.getClassLoader.loadClass(clazz)
       this.aggregator = aggClazz.newInstance.asInstanceOf[KeyAggregator]
     } catch {
       case e: Throwable => throw new IOException(e)

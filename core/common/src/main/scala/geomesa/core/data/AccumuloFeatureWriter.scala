@@ -17,18 +17,16 @@
 
 package geomesa.core.data
 
+import geomesa.core.VersionSpecificOperations
 import geomesa.core.index._
 import org.apache.accumulo.core.client.Connector
 import org.apache.accumulo.core.data.{Mutation, Value, Key}
 import org.apache.hadoop.mapred.{Reporter, RecordWriter}
 import org.apache.hadoop.mapreduce.TaskInputOutputContext
 import org.geotools.data.simple.SimpleFeatureWriter
-import org.geotools.feature.simple.SimpleFeatureBuilder
-import org.joda.time.DateTime
-import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import scala.collection.JavaConversions._
 import org.geotools.factory.Hints
-import geomesa.core.VersionSpecificOperations
+import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 object AccumuloFeatureWriter {
 
@@ -37,7 +35,7 @@ object AccumuloFeatureWriter {
   class LocalRecordWriter(tableName: String,
                           connector: Connector,
                           ops: VersionSpecificOperations) extends AccumuloRecordWriter {
-    private val bw = ops.createBatchWriter(tableName)
+    private val bw = ops.createBatchWriter(connector, tableName)
 
     def write(key: Key, value: Value) {
       val m = new Mutation(key.getRow)

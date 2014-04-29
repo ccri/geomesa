@@ -164,7 +164,6 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
                       accConnParams: JMap[String, Serializable]) {
     val job = Job.getInstance(new Configuration)
     AccumuloDataStoreFactory.configureJob(job, accConnParams)
-    val conf = job.getConfiguration
     job.setMapperClass(classOf[FeatureIngestMapper])
     job.setMapOutputKeyClass(classOf[Key])
     job.setMapOutputValueClass(classOf[Value])
@@ -172,7 +171,7 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
     job.setNumReduceTasks(45)
     job.setJobName("Ingesting Shapefile " + featureName + " to Accumulo.")
 
-    val fs = FileSystem.get(conf)
+    val fs = FileSystem.get(job.getConfiguration)
 
     FileInputFormat.setInputPaths(job, mapredCSVFilePath)
 

@@ -138,7 +138,7 @@ class AccumuloDataStore(val connector: Connector,
 
   // record a single piece of metadata
   private def writeMetadataItem(featureName: String, colFam: Text, metadata: Value) {
-    val writer = ops.createBatchWriter(tableName, 100000L, 10)
+    val writer = ops.createBatchWriter(connector, tableName, 100000L, 10)
     val mutation = new Mutation(getMetadataRowID(featureName))
     mutation.put(colFam, EMPTY_COLQ, System.currentTimeMillis(), metadata)
     writer.addMutation(mutation)

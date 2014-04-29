@@ -98,6 +98,12 @@
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
+                <artifactId>geomesa-core-common</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
                 <artifactId>geomesa-core-acc-1.5</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -324,6 +330,12 @@
                     </exclusion>-->
                 </exclusions>
             </dependency>
+            <!-- because we don't exclude this above, we need it regulated to the right version -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
                 <artifactId>accumulo-server</artifactId>
@@ -347,31 +359,6 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
-                <version>${hadoop.version}</version>
-                <scope>provided</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.mortbay.jetty</groupId>
-                        <artifactId>jetty</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.mortbay.jetty</groupId>
-                        <artifactId>jetty-util</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.mortbay.jetty</groupId>
-                        <artifactId>jsp-api-2.1</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.mortbay.jetty</groupId>
-                        <artifactId>jsp-2.1</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <!-- for 0.20.0-cdh3u6 -->
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-core</artifactId>
                 <version>${hadoop.version}</version>
                 <scope>provided</scope>
                 <exclusions>
@@ -490,6 +477,11 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>2.3.2</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>2.4</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -531,7 +523,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.12.4</version>
+                <version>2.17</version>
                 <configuration>
                     <forkMode>${fork.mode}</forkMode>
                     <includes>

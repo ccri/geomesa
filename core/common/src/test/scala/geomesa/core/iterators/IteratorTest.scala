@@ -45,7 +45,7 @@ trait IteratorTest {
   }
 
   def initializeTables(data: Map[Key, Value]) {
-    val writer: BatchWriter = ops.createBatchWriter(TEST_TABLE_NAME)
+    val writer: BatchWriter = ops.createBatchWriter(conn, TEST_TABLE_NAME)
     for (key <- data.keys) {
       val m1: Mutation = new Mutation(key.getRow)
       m1.put(key.getColumnFamily, key.getColumnQualifier, data(key))

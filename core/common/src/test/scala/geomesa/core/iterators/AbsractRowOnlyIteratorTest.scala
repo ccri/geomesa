@@ -27,8 +27,7 @@ import org.apache.accumulo.core.security.Authorizations
 import org.junit.Before
 import org.junit.Test
 
-
-abstract class RowOnlyIteratorTest(override val ops: VersionSpecificOperations)
+abstract class AbsractRowOnlyIteratorTest(override val ops: VersionSpecificOperations)
     extends AbstractIteratorTest(ops) {
   @Before
   def setup() {

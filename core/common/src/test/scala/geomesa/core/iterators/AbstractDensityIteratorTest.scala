@@ -34,9 +34,12 @@ import org.geotools.geometry.jts.ReferencedEnvelope
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.joda.time.{DateTimeZone, DateTime}
 import org.specs2.mutable.Specification
+import org.apache.commons.lang.NotImplementedException
+import com.typesafe.scalalogging.slf4j.Logging
 
-abstract class DensityIteratorTest(val ops: VersionSpecificOperations,
-                                   val dsf: AbstractAccumuloDataStoreFactory) extends Specification {
+abstract class AbstractDensityIteratorTest(val ops: VersionSpecificOperations,
+                                   val dsf: AbstractAccumuloDataStoreFactory)
+    extends Specification with Logging {
 
   import geomesa.utils.geotools.Conversions._
 
@@ -48,7 +51,14 @@ abstract class DensityIteratorTest(val ops: VersionSpecificOperations,
       val splits = (0 to 99).map {
         s => "%02d".format(s)
       }.map(new Text(_))
-      c.tableOperations().addSplits("test", new java.util.TreeSet[Text](splits))
+      try {
+        c.tableOperations().addSplits("test", new java.util.TreeSet[Text](splits))
+      } catch {
+        case nie: NotImplementedException =>
+          logger.warn("Could not add splits on \"test\" for this test because this version of " +
+                      "the Mock Accumulo instance does not support the addSplits operation")
+      }
+
 
       import AccumuloDataStoreFactory.params._
 

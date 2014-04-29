@@ -46,7 +46,7 @@ abstract class AbstractIteratorTest(val ops: VersionSpecificOperations) {
   }
 
   protected def initializeTables(data: Map[Key, Value]) {
-    val writer = ops.createBatchWriter(TEST_TABLE_NAME)
+    val writer = ops.createBatchWriter(conn, TEST_TABLE_NAME)
     data.foreach({case (key, value) => {
       val m1 = new Mutation(key.getRow)
       m1.put(key.getColumnFamily, key.getColumnQualifier, value)

@@ -22,7 +22,7 @@ import java.nio.ByteBuffer
 import org.apache.accumulo.core.data.{Value, Key}
 import org.specs2.mutable.Specification
 
-class SurfaceAggregatingIteratorTest(override val ops: VersionSpecificOperations)
+class AbstractSurfaceAggregatingIteratorTest(override val ops: VersionSpecificOperations)
     extends Specification with IteratorTest {
 
   def getIterator(gh1: String, gh2: String, precision: Int) = {
