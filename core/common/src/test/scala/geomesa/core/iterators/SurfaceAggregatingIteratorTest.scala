@@ -16,15 +16,14 @@
 
 package geomesa.core.iterators
 
+import geomesa.core.VersionSpecificOperations
 import geomesa.utils.geohash.GeoHash
 import java.nio.ByteBuffer
 import org.apache.accumulo.core.data.{Value, Key}
-import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
 
-@RunWith(classOf[JUnitRunner])
-class SurfaceAggregatingIteratorTest extends Specification with IteratorTest {
+class SurfaceAggregatingIteratorTest(override val ops: VersionSpecificOperations)
+    extends Specification with IteratorTest {
 
   def getIterator(gh1: String, gh2: String, precision: Int) = {
     val iter = new SurfaceAggregatingIterator()

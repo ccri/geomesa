@@ -19,10 +19,10 @@ package geomesa.core.iterators
 
 import collection.JavaConversions._
 import com.vividsolutions.jts.geom.Envelope
-import geomesa.core.data.{AccumuloFeatureReader, AccumuloDataStoreFactory}
+import geomesa.core.VersionSpecificOperations
+import geomesa.core.data.{AbstractAccumuloDataStoreFactory, AccumuloFeatureReader, AccumuloDataStoreFactory}
 import geomesa.core.index.Constants
 import org.apache.accumulo.core.client.mock.MockInstance
-import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.hadoop.io.Text
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.data.{Query, DataUtilities}
@@ -30,28 +30,25 @@ import org.geotools.factory.Hints
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.filter.visitor.ExtractBoundsFilterVisitor
-import org.joda.time.{DateTimeZone, DateTime}
-import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-import org.geotools.geometry.jts.{JTS, ReferencedEnvelope}
+import org.geotools.geometry.jts.ReferencedEnvelope
 import org.geotools.referencing.crs.DefaultGeographicCRS
+import org.joda.time.{DateTimeZone, DateTime}
+import org.specs2.mutable.Specification
 
-@RunWith(classOf[JUnitRunner])
-class DensityIteratorTest extends Specification {
+abstract class DensityIteratorTest(val ops: VersionSpecificOperations,
+                                   val dsf: AbstractAccumuloDataStoreFactory) extends Specification {
 
   import geomesa.utils.geotools.Conversions._
+
   "DensityIterator" should {
     "compute densities" in {
       val mockInstance = new MockInstance("dummy")
-      val c = mockInstance.getConnector("user", new PasswordToken("pass".getBytes))
+      val c = ops.getConnector(mockInstance, "user", "pass")
       c.tableOperations.create("test")
       val splits = (0 to 99).map {
         s => "%02d".format(s)
       }.map(new Text(_))
       c.tableOperations().addSplits("test", new java.util.TreeSet[Text](splits))
-
-      val dsf = new AccumuloDataStoreFactory
 
       import AccumuloDataStoreFactory.params._
 

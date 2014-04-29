@@ -31,7 +31,6 @@ import org.opengis.filter.Filter
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-@RunWith(classOf[JUnitRunner])
 class AccumuloDataStoreTest extends Specification {
 
   sequential

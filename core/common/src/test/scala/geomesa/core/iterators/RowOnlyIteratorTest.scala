@@ -18,6 +18,7 @@ package geomesa.core.iterators
 
 import AbstractIteratorTest._
 import collection.JavaConverters._
+import geomesa.core.VersionSpecificOperations
 import java.nio.ByteBuffer
 import org.apache.accumulo.core.data.Key
 import org.apache.accumulo.core.data.Range
@@ -27,8 +28,8 @@ import org.junit.Before
 import org.junit.Test
 
 
-class RowOnlyIteratorTest
-    extends AbstractIteratorTest {
+abstract class RowOnlyIteratorTest(override val ops: VersionSpecificOperations)
+    extends AbstractIteratorTest(ops) {
   @Before
   def setup() {
     val rows = Seq("dqb6b46", "dqb6b40", "dqb6b43")
@@ -64,7 +65,7 @@ class RowOnlyIteratorTest
     val scanner = conn.createScanner(TEST_TABLE_NAME, new Authorizations)
     scanner.setRange(new Range)
     scanner.asScala.foreach(entry => {
-      System.out.println(entry.getKey + " " + (ByteBuffer.wrap(entry.getValue.get).getDouble))
+      System.out.println(entry.getKey + " " + ByteBuffer.wrap(entry.getValue.get).getDouble)
     })
   }
 }

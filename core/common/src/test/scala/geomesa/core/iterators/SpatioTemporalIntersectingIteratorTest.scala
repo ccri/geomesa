@@ -19,27 +19,23 @@ package geomesa.core.iterators
 import collection.JavaConversions._
 import collection.JavaConverters._
 import com.vividsolutions.jts.geom.{Polygon, Geometry}
-import geomesa.core.data.{SimpleFeatureEncoderFactory, SimpleFeatureEncoder}
+import geomesa.core.data.SimpleFeatureEncoderFactory
 import geomesa.core.index._
 import geomesa.utils.text.WKTUtils
 import java.util
 import org.apache.accumulo.core.Constants
-import org.apache.accumulo.core.client.{IteratorSetting, Connector, BatchWriterConfig, BatchScanner}
+import org.apache.accumulo.core.client.{IteratorSetting, Connector}
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.data._
 import org.geotools.data.DataUtilities
 import org.joda.time.{Interval, DateTimeZone, DateTime}
-import org.junit.runner.RunWith
-import org.opengis.feature.simple.SimpleFeatureType
 import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
 import scala.util.{Try, Random}
-import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.hadoop.io.Text
 import org.geotools.feature.simple.SimpleFeatureBuilder
+import geomesa.core.VersionSpecificOperations
 
-@RunWith(classOf[JUnitRunner])
-class SpatioTemporalIntersectingIteratorTest extends Specification {
+abstract class SpatioTemporalIntersectingIteratorTest(val ops: VersionSpecificOperations) extends Specification {
 
   val TEST_USER = "root"
   val TEST_TABLE = "test_table"
@@ -192,9 +188,9 @@ class SpatioTemporalIntersectingIteratorTest extends Specification {
 
     def setupMockAccumuloTable(entries: List[Entry], numExpected: Int): Connector = {
       val mockInstance = new MockInstance()
-      val c = mockInstance.getConnector(TEST_USER, new PasswordToken(Array[Byte]()))
+      val c = ops.getConnector(mockInstance, TEST_USER, "")
       c.tableOperations.create(TEST_TABLE)
-      val bw = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig)
+      val bw = ops.createBatchWriter(TEST_TABLE)
 
       // populate the mock table
       val dataList: util.Collection[(Key, Value)] = TestData.encodeDataList(entries)
@@ -398,7 +394,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification {
   "Consistency Iterator" should {
     "verify inconsistency of table" in {
       val c = TestData.setupMockAccumuloTable(TestData.shortListOfPoints, TestData.shortListOfPoints.length)
-      val bd = c.createBatchDeleter(TEST_TABLE, TEST_AUTHORIZATIONS, 8, new BatchWriterConfig)
+      val bd = ops.createBatchDeleter(TEST_TABLE, TEST_AUTHORIZATIONS, 8)
       bd.setRanges(List(new org.apache.accumulo.core.data.Range()))
       bd.fetchColumnFamily(new Text("|data|1".getBytes()))
       bd.delete()
