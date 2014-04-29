@@ -28,6 +28,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- environment-dependent versions -->
+        <zookeeper.version>${zookeeper33.version}</zookeeper.version>
+        <accumulo.version>${accumulo15.version}</accumulo.version>
+        <hadoop.version>${hadoop2.version}</hadoop.version>
     </properties>
 
     <dependencies>

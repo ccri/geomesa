@@ -31,9 +31,45 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
  
-    <modules>
-        <module>acc-1.5</module>
-        <module>acc-1.4</module>
-    </modules>
-
+    <profiles>
+        <!-- Build everything by default -->
+        <profile>
+            <id>ALL</id>
+            <activation>
+                <property>
+                    <name>!acc</name>
+                </property>
+            </activation>
+            <modules>
+                <module>acc-1.5</module>
+                <module>acc-1.4</module>
+            </modules>
+        </profile>
+        <!-- Optional, set -Dacc=1.5 for building only 1.5 subprojects -->
+        <profile>
+            <id>ACC-1.5</id>
+            <activation>
+                <property>
+                    <name>acc</name>
+                    <value>1.5</value>
+                </property>
+            </activation>
+            <modules>
+                <module>acc-1.5</module>
+            </modules>
+        </profile>
+        <!-- Optional, set -Dacc=1.4 for building only 1.4 subprojects -->
+        <profile>
+            <id>ACC-1.4</id>
+            <activation>
+                <property>
+                    <name>acc</name>
+                    <value>1.4</value>
+                </property>
+            </activation>
+            <modules>
+                <module>acc-1.4</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>

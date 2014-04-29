@@ -23,14 +23,6 @@
     <packaging>pom</packaging>
     <name>GeoMesa</name>
 
-    <modules>
-        <module>utils</module>
-        <module>core</module>
-        <module>distributed-runtime</module>
-        <module>plugin</module>
-        <module>dist</module>
-        <module>filter</module>
-    </modules>
 
     <properties>
         <scala.version>2.10.3</scala.version>
@@ -40,9 +32,16 @@
         <ehcache.version>2.6.2</ehcache.version>
 
         <!-- environment-dependent versions -->
-        <zookeeper.version>3.3.6</zookeeper.version>
-        <accumulo.version>1.5.0</accumulo.version>
-        <hadoop.version>2.2.0</hadoop.version>
+        <zookeeper33.version>3.3.6</zookeeper33.version>
+        <accumulo14.version>1.4.3</accumulo14.version>
+        <accumulo15.version>1.5.0</accumulo15.version>
+        <hadoop1.version>0.20.2-cdh3u6</hadoop1.version>
+        <hadoop2.version>2.2.0</hadoop2.version>
+
+        <!-- default environment-dependent versions -->
+        <zookeeper.version>${zookeeper33.version}</zookeeper.version>
+        <accumulo.version>${accumulo15.version}</accumulo.version>
+        <hadoop.version>${hadoop2.version}</hadoop.version>
 
         <!-- logging properties
              we expect logging jars to be provided -->
@@ -63,7 +62,65 @@
         <fork.mode>once</fork.mode>
     </properties>
 
+    <modules>
+        <module>utils</module>
+        <module>core</module>
+        <module>distributed-runtime</module>
+        <module>plugin</module>
+        <module>dist</module>
+        <module>filter</module>
+    </modules>
+
     <profiles>
+        <!-- Build everything by default -->
+        <profile>
+            <id>ALL</id>
+            <activation>
+                <property>
+                    <name>!acc</name>
+                </property>
+            </activation>
+
+            <properties>
+                <!-- environment-dependent versions -->
+                <zookeeper.version>${zookeeper33.version}</zookeeper.version>
+                <accumulo.version>${accumulo15.version}</accumulo.version>
+                <hadoop.version>${hadoop2.version}</hadoop.version>
+            </properties>
+        </profile>
+        <!-- Optional, set -Dacc=1.5 for building only 1.5 subprojects -->
+        <profile>
+            <id>ACC-1.5</id>
+            <activation>
+                <property>
+                    <name>acc</name>
+                    <value>1.5</value>
+                </property>
+            </activation>
+            <properties>
+                <!-- environment-dependent versions -->
+                <zookeeper.version>${zookeeper33.version}</zookeeper.version>
+                <accumulo.version>${accumulo15.version}</accumulo.version>
+                <hadoop.version>${hadoop2.version}</hadoop.version>
+            </properties>
+        </profile>
+        <!-- Optional, set -Dacc=1.4 for building only 1.4 subprojects -->
+        <profile>
+            <id>ACC-1.4</id>
+            <activation>
+                <property>
+                    <name>acc</name>
+                    <value>1.4</value>
+                </property>
+            </activation>
+            <properties>
+                <!-- environment-dependent versions -->
+                <zookeeper.version>${zookeeper33.version}</zookeeper.version>
+                <accumulo.version>${accumulo14.version}</accumulo.version>
+                <hadoop.version>${hadoop1.version}</hadoop.version>
+            </properties>
+        </profile>
+
         <profile>
             <id>accumulo1.5.1</id>
             <modules>
@@ -88,6 +145,7 @@
             </dependencyManagement>
         </profile>
     </profiles>
+
     <dependencyManagement>
         <dependencies>
             <!-- geomesa dependencies -->
