@@ -159,6 +159,7 @@
                 <artifactId>geomesa-core-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>

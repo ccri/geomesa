@@ -90,10 +90,8 @@ abstract class AbstractAccumuloDataStoreFactory(val ops: VersionSpecificOperatio
     val password = passwordParam.lookUp(params).asInstanceOf[String]
     val useMock = java.lang.Boolean.valueOf(mockParam.lookUp(params).asInstanceOf[String])
 
-    if (useMock) 
-      ops.getConnector(new MockInstance(instance), user, password)
-    else 
-      ops.getConnector(new ZooKeeperInstance(instance, zookeepers), user, password)
+    if (useMock)  ops.getConnector(new MockInstance(instance), user, password)
+    else  ops.getConnector(new ZooKeeperInstance(instance, zookeepers), user, password)
   }
 
   override def getDisplayName = "Accumulo Feature Data Store"
@@ -165,7 +163,7 @@ object AccumuloDataStoreFactoryHelper {
                         tableNameParam.key -> conf.get(TABLE),
                         authsParam.key -> conf.get(AUTHS),
                         featureEncParam.key -> conf.get(FEATURE_ENCODING),
-                        "useMapReduce" -> "true").asJava
+                        mapreduceParam.key -> "true").asJava
 
 }
 
