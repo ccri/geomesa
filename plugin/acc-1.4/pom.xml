@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>geomesa</groupId>
-            <artifactId>geomesa-core-acc-1.5</artifactId>
+            <artifactId>geomesa-core-acc-1.4</artifactId>
         </dependency>
         <dependency>
             <groupId>geomesa</groupId>

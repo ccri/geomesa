@@ -18,6 +18,7 @@ package geomesa.plugin.wms
 
 import CoverageReader._
 import geomesa.core.iterators.{TimestampSetIterator, TimestampRangeIterator, SurfaceAggregatingIterator, AggregatingKeyIterator}
+import geomesa.core.util.BoundingBoxUtil
 import geomesa.utils.geohash.{GeoHash, TwoGeoHashBoundingBox, Bounds, BoundingBox}
 import java.awt.image.BufferedImage
 import java.awt.{AlphaComposite, Color, Graphics2D, Rectangle}
@@ -41,8 +42,7 @@ import org.opengis.geometry.Envelope
 import org.opengis.parameter.{InvalidParameterValueException, GeneralParameterValue}
 import scala.collection.JavaConversions._
 import util.Random
-import geomesa.core.util.BoundingBoxUtil
-import org.apache.accumulo.core.client.security.tokens.PasswordToken
+import geomesa.core.VersionSpecificOperations
 
 
 object CoverageReader {
@@ -53,7 +53,8 @@ object CoverageReader {
 }
 
 
-class CoverageReader(val url: File) extends AbstractGridCoverage2DReader {
+class CoverageReader(val url: File,
+                     val ops: VersionSpecificOperations) extends AbstractGridCoverage2DReader {
 
   val FORMAT = """accumulo:/(.*):(.*)@(.*)/(.*)/(.*)/(.*)#resolution=([0-9]*)#zookeepers=([^#]*)(?:#auths=)?(.*)$""".r
   val FORMAT(user, password, instanceId, table, columnFamily, columnQualifier, resolutionStr, zookeepers, authtokens) = url.getPath
@@ -68,7 +69,7 @@ class CoverageReader(val url: File) extends AbstractGridCoverage2DReader {
   this.coverageFactory = CoverageFactoryFinder.getGridCoverageFactory(this.hints)
 
   val zkInstance = new ZooKeeperInstance(instanceId, zookeepers)
-  val connector = zkInstance.getConnector(user, new PasswordToken(password.getBytes))
+  val connector = ops.getConnector(zkInstance, user, password)
 
   // When parsing an old-form Accumulo layer URI the authtokens field matches the empty string, requesting no authorizations
   val auths = new Authorizations(authtokens.split(","): _*)
@@ -83,7 +84,7 @@ class CoverageReader(val url: File) extends AbstractGridCoverage2DReader {
     .toMap
   }
 
-  override def getFormat = new CoverageFormat
+  override def getFormat = new CoverageFormat(ops)
 
   def toTimestampString(date: Date) = java.lang.Long.toString(date.getTime/1000)
 

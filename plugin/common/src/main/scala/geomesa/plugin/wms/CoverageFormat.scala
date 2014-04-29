@@ -22,8 +22,9 @@ import org.geotools.coverage.grid.io.AbstractGridFormat
 import org.geotools.factory.Hints
 import org.geotools.parameter.{ParameterGroup, DefaultParameterDescriptorGroup, DefaultParameterDescriptor}
 import org.opengis.parameter.GeneralParameterDescriptor
+import geomesa.core.VersionSpecificOperations
 
-class CoverageFormat extends AbstractGridFormat {
+class CoverageFormat(val ops: VersionSpecificOperations) extends AbstractGridFormat {
   mInfo = new java.util.HashMap[String, String]()
   mInfo.put("name", "Accumulo Coverage Format")
   mInfo.put("description", "Serve tile imagery from Accumulo tables with a specific format")
@@ -50,7 +51,7 @@ class CoverageFormat extends AbstractGridFormat {
 
   override def getReadParameters: ParameterGroup = coverageFormatReadParameters
   override def getReader(source: AnyRef) = getReader(source, null)
-  override def getReader(source: AnyRef, hints: Hints) = new CoverageReader(source.asInstanceOf[File])
+  override def getReader(source: AnyRef, hints: Hints) = new CoverageReader(source.asInstanceOf[File], ops)
   override def accepts(input: AnyRef) = true
   override def accepts(source: AnyRef, hints: Hints) = true
   override def getWriter(destination: AnyRef) = throw new UnsupportedOperationException("Unsupported")

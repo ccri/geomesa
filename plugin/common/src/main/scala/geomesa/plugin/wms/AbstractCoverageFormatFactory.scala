@@ -19,11 +19,12 @@ package geomesa.plugin.wms
 import java.awt.RenderingHints
 import java.util.Collections
 import org.geotools.coverage.grid.io.{AbstractGridFormat, GridFormatFactorySpi}
+import geomesa.core.VersionSpecificOperations
 
-class CoverageFormatFactory extends GridFormatFactorySpi {
+abstract class AbstractCoverageFormatFactory(val ops: VersionSpecificOperations) extends GridFormatFactorySpi {
   def isAvailable = true
 
-  def createFormat(): AbstractGridFormat = new CoverageFormat
+  def createFormat(): AbstractGridFormat = new CoverageFormat(ops)
 
   def getImplementationHints: java.util.Map[RenderingHints.Key, _] = Collections.emptyMap()
 
