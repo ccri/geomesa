@@ -83,23 +83,23 @@
             <fileMode>0777</fileMode>
         </file>
         <file>
-            <source>../geomesa-core/src/test/resources/geomesa-site.xml</source>
+            <source>../core/common/src/test/resources/geomesa-site.xml</source>
             <outputDirectory>${dist.dev}/conf</outputDirectory>
         </file>
         <file>
-            <source>../geomesa-core/src/test/resources/hdfs-site.xml</source>
+            <source>../core/common/src/test/resources/hdfs-site.xml</source>
             <outputDirectory>${dist.dev}/conf</outputDirectory>
         </file>
         <file>
-            <source>../geomesa-core/src/test/resources/core-site.xml</source>
+            <source>../core/common/src/test/resources/core-site.xml</source>
             <outputDirectory>${dist.dev}/conf</outputDirectory>
         </file>
         <file>
-            <source>../geomesa-core/src/test/resources/mapred-site.xml</source>
+            <source>../core/common/src/test/resources/mapred-site.xml</source>
             <outputDirectory>${dist.dev}/conf</outputDirectory>
         </file>
         <file>
-            <source>../geomesa-core/src/test/resources/accumulo-site.xml</source>
+            <source>../core/common/src/test/resources/accumulo-site.xml</source>
             <outputDirectory>${dist.dev}/conf</outputDirectory>
         </file>
     </files>

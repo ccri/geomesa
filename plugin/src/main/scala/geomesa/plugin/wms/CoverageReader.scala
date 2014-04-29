@@ -17,7 +17,7 @@
 package geomesa.plugin.wms
 
 import CoverageReader._
-import geomesa.core.iterators.{TimestampSetIterator, TimestampRangeIterator, SurfaceAggregatingIterator, AbstractAggregatingKeyIterator}
+import geomesa.core.iterators.{TimestampSetIterator, TimestampRangeIterator, SurfaceAggregatingIterator, AggregatingKeyIterator}
 import geomesa.utils.geohash.{GeoHash, TwoGeoHashBoundingBox, Bounds, BoundingBox}
 import java.awt.image.BufferedImage
 import java.awt.{AlphaComposite, Color, Graphics2D, Rectangle}
@@ -73,7 +73,7 @@ class CoverageReader(val url: File) extends AbstractGridCoverage2DReader {
   // When parsing an old-form Accumulo layer URI the authtokens field matches the empty string, requesting no authorizations
   val auths = new Authorizations(authtokens.split(","): _*)
 
-  val aggPrefix = AbstractAggregatingKeyIterator.aggOpt
+  val aggPrefix = AggregatingKeyIterator.aggOpt
 
   lazy val metaData: Map[String,String] = {
     val scanner: Scanner = connector.createScanner(table, auths)
@@ -158,12 +158,13 @@ class CoverageReader(val url: File) extends AbstractGridCoverage2DReader {
       }
 
     }
-    AbstractAggregatingKeyIterator.setupAggregatingKeyIterator(scanner, 1000, classOf[SurfaceAggregatingIterator],
-                                                       Map[String,String](
-                                                                           aggPrefix + "bottomLeft" -> GeoHash(bbox.ll, getGeohashPrecision).hash,
-                                                                           aggPrefix + "topRight" -> GeoHash(bbox.ur,getGeohashPrecision).hash,
-                                                                           aggPrefix + "precision" -> getGeohashPrecision.toString,
-                                                                           aggPrefix + "dims" -> (xDim +","+yDim)))
+    AggregatingKeyIterator.setupAggregatingKeyIterator(scanner,
+                                                       1000,
+                                                       classOf[SurfaceAggregatingIterator],
+                                                       Map[String,String](aggPrefix + "bottomLeft" -> GeoHash(bbox.ll, getGeohashPrecision).hash,
+                                                                          aggPrefix + "topRight" -> GeoHash(bbox.ur,getGeohashPrecision).hash,
+                                                                          aggPrefix + "precision" -> getGeohashPrecision.toString,
+                                                                          aggPrefix + "dims" -> (xDim +","+yDim)))
 
     new SelfClosingBatchScanner(scanner).iterator
   }
