@@ -129,13 +129,31 @@
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-distributed-runtime</artifactId>
+                <artifactId>geomesa-distributed-runtime-acc-1.5</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin</artifactId>
+                <artifactId>geomesa-distributed-runtime-acc-1.4</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-plugin-acc-1.5</artifactId>
                 <classifier>geoserver-plugin</classifier>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-plugin-acc-1.4</artifactId>
+                <classifier>geoserver-plugin</classifier>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-dist-common</artifactId>
+                <classifier>distribution</classifier>
+                <type>tar.gz</type>
                 <version>${project.version}</version>
             </dependency>
 
