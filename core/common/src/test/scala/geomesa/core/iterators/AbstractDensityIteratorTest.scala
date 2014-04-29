@@ -20,7 +20,7 @@ package geomesa.core.iterators
 import collection.JavaConversions._
 import com.vividsolutions.jts.geom.Envelope
 import geomesa.core.VersionSpecificOperations
-import geomesa.core.data.{AbstractAccumuloDataStoreFactory, AccumuloFeatureReader, AccumuloDataStoreFactory}
+import geomesa.core.data.{AbstractAccumuloDataStoreFactory, AccumuloFeatureReader, AccumuloDataStoreFactoryHelper}
 import geomesa.core.index.Constants
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.hadoop.io.Text
@@ -60,18 +60,15 @@ abstract class AbstractDensityIteratorTest(val ops: VersionSpecificOperations,
       }
 
 
-      import AccumuloDataStoreFactory.params._
+      import AccumuloDataStoreFactoryHelper.params._
 
-      val ds = dsf.createDataStore(
-        Map(
-          zookeepersParam.key -> "dummy",
-          instanceIdParam.key -> "dummy",
-          userParam.key -> "user",
-          passwordParam.key -> "pass",
-          authsParam.key -> "S,USA",
-          tableNameParam.key -> "test",
-          mockParam.key -> "true"
-        ))
+      val ds = dsf.createDataStore(Map(zookeepersParam.key -> "dummy",
+                                       instanceIdParam.key -> "dummy",
+                                       userParam.key -> "user",
+                                       passwordParam.key -> "pass",
+                                       authsParam.key -> "S,USA",
+                                       tableNameParam.key -> "test",
+                                       mockParam.key -> "true"))
 
 
       val spec = "id:java.lang.Integer,attr:java.lang.Double,dtg:Date,geom:Point:srid=4326"

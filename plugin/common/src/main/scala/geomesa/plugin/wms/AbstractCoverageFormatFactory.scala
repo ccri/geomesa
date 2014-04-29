@@ -22,10 +22,10 @@ import org.geotools.coverage.grid.io.{AbstractGridFormat, GridFormatFactorySpi}
 import geomesa.core.VersionSpecificOperations
 
 abstract class AbstractCoverageFormatFactory(val ops: VersionSpecificOperations) extends GridFormatFactorySpi {
+
   def isAvailable = true
 
   def createFormat(): AbstractGridFormat = new CoverageFormat(ops)
 
   def getImplementationHints: java.util.Map[RenderingHints.Key, _] = Collections.emptyMap()
-
 }

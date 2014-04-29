@@ -16,7 +16,7 @@
 
 package geomesa.core.data.mapreduce
 
-import geomesa.core.data.{AccumuloDataStoreFactory, MapReduceAccumuloDataStore}
+import geomesa.core.data.{AccumuloDataStoreFactoryHelper, MapReduceAccumuloDataStore}
 import geomesa.utils.geotools.FeatureHandler
 import geomesa.utils.text.WKBUtils
 import org.apache.accumulo.core.data.{Value, Key}
@@ -41,7 +41,7 @@ object FeatureIngestMapper {
 
       val featureName = context.getConfiguration.get(DEFAULT_FEATURE_NAME)
       val ds = DataStoreFinder.getDataStore(
-        AccumuloDataStoreFactory.getMRAccumuloConnectionParams(
+        AccumuloDataStoreFactoryHelper.getMRAccumuloConnectionParams(
           context.getConfiguration)).asInstanceOf[MapReduceAccumuloDataStore]
 
       featureType = ds.getSchema(featureName)

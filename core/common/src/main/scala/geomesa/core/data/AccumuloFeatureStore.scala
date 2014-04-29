@@ -163,7 +163,7 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
                       outputDir: String,
                       accConnParams: JMap[String, Serializable]) {
     val job = Job.getInstance(new Configuration)
-    AccumuloDataStoreFactory.configureJob(job, accConnParams)
+    AccumuloDataStoreFactoryHelper.configureJob(job, accConnParams)
     job.setMapperClass(classOf[FeatureIngestMapper])
     job.setMapOutputKeyClass(classOf[Key])
     job.setMapOutputValueClass(classOf[Value])
