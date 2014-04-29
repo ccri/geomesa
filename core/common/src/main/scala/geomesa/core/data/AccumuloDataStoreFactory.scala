@@ -18,20 +18,18 @@
 package geomesa.core.data
 
 import collection.JavaConversions._
+import geomesa.core.VersionSpecificOperations
 import java.io.Serializable
 import java.util.{Map => JMap}
 import org.apache.accumulo.core.client.mock.MockInstance
-import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.client.{Connector, ZooKeeperInstance}
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.DataStoreFactorySpi
-import util.Try
-import scala.reflect.ClassTag
 
-class AccumuloDataStoreFactory extends DataStoreFactorySpi {
+abstract class AbstractAccumuloDataStoreFactory(val ops: VersionSpecificOperations) extends DataStoreFactorySpi {
 
   import AccumuloDataStoreFactory._
   import params._
@@ -65,20 +63,22 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
         new MapReduceAccumuloDataStore(connector,
                                        tableName,
                                        authorizations,
+                                       ops,
                                        params,
                                        idxSchemaParam.lookUp(params).asInstanceOf[String],
                                        featureEncoding = featureEncoding)
       else
-        new MapReduceAccumuloDataStore(connector, tableName, authorizations, params, featureEncoding = featureEncoding)
+        new MapReduceAccumuloDataStore(connector, tableName, authorizations, ops, params, featureEncoding = featureEncoding)
     else {
       if(idxSchemaParam.lookUp(params) != null)
         new AccumuloDataStore(connector,
                               tableName,
                               authorizations,
+                              ops,
                               idxSchemaParam.lookUp(params).asInstanceOf[String],
                               featureEncoding = featureEncoding)
       else
-        new AccumuloDataStore(connector, tableName, authorizations, featureEncoding = featureEncoding)
+        new AccumuloDataStore(connector, tableName, authorizations, ops, featureEncoding = featureEncoding)
     }
 
   }
@@ -91,9 +91,9 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
     val useMock = java.lang.Boolean.valueOf(mockParam.lookUp(params).asInstanceOf[String])
 
     if (useMock) 
-      new MockInstance(instance).getConnector(user, new PasswordToken(password.getBytes))
+      ops.getConnector(new MockInstance(instance), user, password)
     else 
-      new ZooKeeperInstance(instance, zookeepers).getConnector(user, new PasswordToken(password.getBytes))
+      ops.getConnector(new ZooKeeperInstance(instance, zookeepers), user, password)
   }
 
   override def getDisplayName = "Accumulo Feature Data Store"

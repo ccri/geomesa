@@ -22,13 +22,12 @@ import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators._
 import org.apache.accumulo.start.classloader.AccumuloClassLoader
 import scala.collection.JavaConversions._
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
+import geomesa.core.VersionSpecificOperations
 
 object AggregatingKeyIterator {
   val aggClass = "aggClass"
   val aggOpt = "aggOpt"
 
-  val obj = new AggregatingKeyIterator
   def setupAggregatingKeyIterator(scanner: ScannerBase, aggregatorClass: Class[_ <: KeyAggregator]) {
     setupAggregatingKeyIterator(scanner,
                                 Integer.MAX_VALUE,
@@ -53,7 +52,8 @@ object AggregatingKeyIterator {
   }
 }
 
-class AggregatingKeyIterator extends SortedKeyValueIterator[Key, Value] with OptionDescriber {
+abstract class AggregatingKeyIterator(val ops: VersionSpecificOperations)
+    extends SortedKeyValueIterator[Key, Value] with OptionDescriber {
 
   def deepCopy(env:IteratorEnvironment) = null
   private def aggregateRowColumn(aggr: KeyAggregator) {
@@ -129,7 +129,7 @@ class AggregatingKeyIterator extends SortedKeyValueIterator[Key, Value] with Opt
     this.iterator = source
     try {
       val clazz = options(AggregatingKeyIterator.aggClass)
-      val aggClazz = AccumuloVFSClassLoader.loadClass(clazz)
+      val aggClazz = ops.loadClass(clazz)
       this.aggregator = aggClazz.newInstance.asInstanceOf[KeyAggregator]
     } catch {
       case e: Throwable => throw new IOException(e)

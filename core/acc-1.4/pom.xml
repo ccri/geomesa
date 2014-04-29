@@ -19,95 +19,34 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>geomesa</groupId>
-        <artifactId>geomesa</artifactId>
+        <artifactId>geomesa-core</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-core</artifactId>
-    <name>GeoMesa Core</name>
+    <artifactId>geomesa-core-acc-1.4</artifactId>
+    <name>GeoMesa Core for Accumulo 1.4</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- environment-dependent versions -->
+        <zookeeper.version>3.3.6</zookeeper.version>
+        <accumulo.version>1.4.3</accumulo.version>
+        <hadoop.version>0.20.2-cdh3u6</hadoop.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>geomesa</groupId>
-            <artifactId>geomesa-utils</artifactId>
+            <artifactId>geomesa-core-common</artifactId>
+            <!--<exclusions>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client</artifactId>
+                </exclusion>
+            </exclusions>-->
         </dependency>
-        <dependency>
-            <groupId>geomesa</groupId>
-            <artifactId>geomesa-filter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-main</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-data</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-opengis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-cql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-metadata</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-render</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-process-feature</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.vividsolutions</groupId>
-            <artifactId>jts</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.joda</groupId>
-            <artifactId>joda-convert</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.ehcache</groupId>
-            <artifactId>ehcache-core</artifactId>
-        </dependency>
-        <!-- jta is required so scalac can compile ehcache-core which
-             uses jta annotations -->
-        <dependency>
-            <groupId>javax.transaction</groupId>
-            <artifactId>jta</artifactId>
-        </dependency>
-
-        <!-- logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-
+        
         <!-- provided dependencies -->
         <dependency>
             <groupId>org.apache.accumulo</groupId>
@@ -117,10 +56,10 @@
             <groupId>org.apache.accumulo</groupId>
             <artifactId>accumulo-start</artifactId>
         </dependency>
-        <dependency>
+        <!--<dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-        </dependency>
+            <artifactId>hadoop-core</artifactId>
+        </dependency>-->
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
@@ -137,6 +76,7 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>findbugs</artifactId>
         </dependency>
+
         <!-- test dependencies -->
         <dependency>
             <groupId>org.specs2</groupId>

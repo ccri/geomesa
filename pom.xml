@@ -24,12 +24,12 @@
     <name>GeoMesa</name>
 
     <modules>
-        <module>geomesa-utils</module>
-        <module>geomesa-core</module>
-        <module>geomesa-distributed-runtime</module>
-        <module>geomesa-plugin</module>
-        <module>geomesa-dist</module>
-        <module>geomesa-filter</module>
+        <module>utils</module>
+        <module>core</module>
+        <module>distributed-runtime</module>
+        <module>plugin</module>
+        <module>dist</module>
+        <module>filter</module>
     </modules>
 
     <properties>
@@ -90,6 +90,50 @@
     </profiles>
     <dependencyManagement>
         <dependencies>
+            <!-- geomesa dependencies -->
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-core-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-core-acc-1.5</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-core-acc-1.4</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-utils</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-filter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-distributed-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>geomesa</groupId>
+                <artifactId>geomesa-plugin</artifactId>
+                <classifier>geoserver-plugin</classifier>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- compile dependencies -->
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
@@ -231,40 +275,14 @@
                 <version>1.9.3</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-vfs2</artifactId>
+                <version>2.0</version>
+            </dependency>
+            <dependency>
                 <groupId>javax.transaction</groupId>
                 <artifactId>jta</artifactId>
                 <version>1.1</version>
-            </dependency>
-            <dependency>
-                <groupId>geomesa</groupId>
-                <artifactId>geomesa-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>geomesa</groupId>
-                <artifactId>geomesa-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>geomesa</groupId>
-                <artifactId>geomesa-filter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>geomesa</groupId>
-                <artifactId>geomesa-distributed-runtime</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin</artifactId>
-                <classifier>geoserver-plugin</classifier>
-                <version>${project.version}</version>
             </dependency>
 
             <!-- logging -->
@@ -325,9 +343,35 @@
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <!-- for 2.2.0 -->
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
+                <version>${hadoop.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jetty-util</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jsp-api-2.1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.mortbay.jetty</groupId>
+                        <artifactId>jsp-2.1</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <!-- for 0.20.0-cdh3u6 -->
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-core</artifactId>
                 <version>${hadoop.version}</version>
                 <scope>provided</scope>
                 <exclusions>
@@ -532,6 +576,10 @@
         <repository>
             <id>opengeo</id>
             <url>http://repo.opengeo.org</url>
+        </repository>
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
         </repository>
     </repositories>
 

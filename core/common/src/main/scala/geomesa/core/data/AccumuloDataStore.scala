@@ -23,7 +23,7 @@ import geomesa.core.index.{Constants, SpatioTemporalIndexSchema}
 import java.io.Serializable
 import java.util.{Map=>JMap}
 import org.apache.accumulo.core.client.mock.MockConnector
-import org.apache.accumulo.core.client.{BatchWriterConfig, IteratorSetting, Connector}
+import org.apache.accumulo.core.client.{IteratorSetting, Connector}
 import org.apache.accumulo.core.data.{Key, Mutation, Value, Range}
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor
 import org.apache.accumulo.core.iterators.user.VersioningIterator
@@ -41,6 +41,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import geomesa.core.data.FeatureEncoding.FeatureEncoding
+import geomesa.core.VersionSpecificOperations
 
 /**
  *
@@ -54,6 +55,7 @@ import geomesa.core.data.FeatureEncoding.FeatureEncoding
 class AccumuloDataStore(val connector: Connector,
                         val tableName: String,
                         val authorizations: Authorizations,
+                        val ops: VersionSpecificOperations,
                         val indexSchemaFormat: String = "DEFAULT",
                         val featureEncoding: FeatureEncoding = FeatureEncoding.AVRO)
   extends AbstractDataStore {
@@ -134,14 +136,9 @@ class AccumuloDataStore(val connector: Connector,
 
   private val metaDataCache = scala.collection.mutable.HashMap[(String, Text), Option[String]]()
 
-  val batchWriterConfig =
-    new BatchWriterConfig()
-      .setMaxMemory(10000L)
-      .setMaxWriteThreads(10)
-
   // record a single piece of metadata
   private def writeMetadataItem(featureName: String, colFam: Text, metadata: Value) {
-    val writer = connector.createBatchWriter(tableName, batchWriterConfig)
+    val writer = ops.createBatchWriter(tableName, 100000L, 10)
     val mutation = new Mutation(getMetadataRowID(featureName))
     mutation.put(colFam, EMPTY_COLQ, System.currentTimeMillis(), metadata)
     writer.addMutation(mutation)
@@ -288,7 +285,7 @@ class AccumuloDataStore(val connector: Connector,
     val indexSchemaFmt = getIndexSchemaFmt(featureName)
     val fe = getFeatureEncoder(featureName)
     val schema = SpatioTemporalIndexSchema(indexSchemaFmt, featureType, fe)
-    val writer = new LocalRecordWriter(tableName, connector)
+    val writer = new LocalRecordWriter(tableName, connector, ops)
     new AccumuloFeatureWriter(featureType, schema, writer)
   }
 
@@ -321,10 +318,11 @@ class AccumuloDataStore(val connector: Connector,
 class MapReduceAccumuloDataStore(connector: Connector,
                                  tableName: String,
                                  authorizations: Authorizations,
+                                 ops: VersionSpecificOperations,
                                  val params: JMap[String, Serializable],
                                  indexSchemaFormat: String = "DEFAULT",
                                  featureEncoding: FeatureEncoding = FeatureEncoding.AVRO)
-  extends AccumuloDataStore(connector, tableName, authorizations, indexSchemaFormat, featureEncoding) {
+  extends AccumuloDataStore(connector, tableName, authorizations, ops, indexSchemaFormat, featureEncoding) {
 
   override def createFeatureSource(featureName: String): SimpleFeatureSource =
     new MapReduceAccumuloFeatureStore(this, featureName)

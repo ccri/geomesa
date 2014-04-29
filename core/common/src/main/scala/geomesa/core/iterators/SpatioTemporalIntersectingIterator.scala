@@ -26,7 +26,6 @@ import java.util.{HashSet => JHashSet}
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
-import org.apache.commons.vfs2.impl.VFSClassLoader
 import org.apache.hadoop.io.Text
 import org.apache.log4j.Logger
 import org.geotools.data.DataUtilities
@@ -36,6 +35,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.util.Try
 import geomesa.core.data._
 import scala.Some
+import org.apache.commons.vfs2.impl.VFSClassLoader
 
 case class Attribute(name: Text, value: Text)
 

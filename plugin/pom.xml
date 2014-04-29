@@ -33,7 +33,7 @@
     <dependencies>
         <dependency>
             <groupId>geomesa</groupId>
-            <artifactId>geomesa-core</artifactId>
+            <artifactId>geomesa-core-acc-1.5</artifactId>
         </dependency>
         <dependency>
             <groupId>geomesa</groupId>
