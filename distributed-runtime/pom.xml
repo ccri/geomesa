@@ -24,75 +24,16 @@
     </parent>
 
     <artifactId>geomesa-distributed-runtime</artifactId>
-    <name>GeoMesa Distributed Runtime</name>
+    <name>GeoMesa Distributed Runtime Parent</name>
+    <packaging>pom</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+ 
+    <modules>
+        <module>acc-1.5</module>
+        <module>acc-1.4</module>
+    </modules>
 
-    <dependencies>
-        <dependency>
-            <groupId>geomesa</groupId>
-            <artifactId>geomesa-core-acc-1.5</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-opengis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-epsg-hsql</artifactId>
-            <scope>compile</scope>
-        </dependency>
-    </dependencies>
-
-    <profiles>
-        <profile>
-            <id>accumulo1.5.1</id>
-            <dependencies>
-                <dependency>
-                    <groupId>geomesa</groupId>
-                    <artifactId>geomesa-shell</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>org.slf4j:*</exclude>
-                                </excludes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
