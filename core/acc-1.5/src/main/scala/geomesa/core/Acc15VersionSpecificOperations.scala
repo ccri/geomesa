@@ -1,5 +1,6 @@
 package geomesa.core
 
+import geomesa.core.data.mapreduce.FeatureIngestMapperWrapper
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.client.{Connector, BatchWriterConfig, Instance}
 import org.apache.accumulo.core.security.Authorizations
@@ -36,4 +37,6 @@ object Acc15VersionSpecificOperations extends VersionSpecificOperations {
                                   auths: Authorizations,
                                   numQueryThreads: Int) =
     connector.createBatchDeleter(tableName, auths, numQueryThreads, defaultBatchWriterConfig)
+
+  override def getFeatureIngestMapperClass() = classOf[FeatureIngestMapperWrapper.FeatureIngestMapper]
 }

@@ -17,8 +17,8 @@
 package geomesa.core
 
 import org.apache.accumulo.core.data.{Key, Value}
-import org.apache.hadoop.io.Text
-import org.apache.hadoop.mapreduce.TaskInputOutputContext
+import org.apache.hadoop.io.{LongWritable, Text}
+import org.apache.hadoop.mapreduce.{Mapper=>HMapper}
 import org.geotools.data.FeatureWriter
 import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
 import org.geotools.factory.Hints.ClassKey
@@ -50,7 +50,7 @@ package object data {
   val TRANSFORMS         = new ClassKey(classOf[String])
   val TRANSFORM_SCHEMA   = new ClassKey(classOf[SimpleFeatureType])
 
-  type TASKIOCTX = TaskInputOutputContext[_, _, Key, Value]
+  type HLWTKVMapper = HMapper[LongWritable,Text,Key,Value]
   type SFFeatureWriter = FeatureWriter[SimpleFeatureType, SimpleFeature]
 
   def extractDtgField(sft: SimpleFeatureType) =

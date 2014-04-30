@@ -16,27 +16,23 @@
 
 package geomesa.core.data.mapreduce
 
-import geomesa.core.data.{AccumuloDataStoreFactoryHelper, MapReduceAccumuloDataStore}
+import geomesa.core.{VersionSpecificOperations, DEFAULT_FEATURE_NAME}
+import geomesa.core.data.{HLWTKVMapper, AccumuloDataStoreFactoryHelper, MapReduceAccumuloDataStore}
 import geomesa.utils.geotools.FeatureHandler
 import geomesa.utils.text.WKBUtils
-import org.apache.accumulo.core.data.{Value, Key}
 import org.apache.hadoop.io.{Text, LongWritable}
-import org.apache.hadoop.mapreduce.{Mapper=>HMapper}
 import org.geotools.data.{Base64, DataUtilities, DataStoreFinder, FeatureWriter}
 import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
-object FeatureIngestMapper {
-  type Mapper = HMapper[LongWritable,Text,Key,Value]
+abstract class AbstractFeatureIngestMapperWrapper(ops: VersionSpecificOperations) {
 
-  import geomesa.core._
-
-  class FeatureIngestMapper extends Mapper {
+  abstract class AbstractFeatureIngestMapper extends HLWTKVMapper {
     var featureType: SimpleFeatureType = null
     var fw: FeatureWriter[SimpleFeatureType, SimpleFeature] = null
 
-    override def setup(context: Mapper#Context) {
+    override def setup(context: HLWTKVMapper#Context) {
       super.setup(context)
 
       val featureName = context.getConfiguration.get(DEFAULT_FEATURE_NAME)
@@ -48,7 +44,7 @@ object FeatureIngestMapper {
       fw = ds.createMapReduceFeatureWriter(featureName, context)
     }
 
-    override def map(key: LongWritable, value: Text, context: Mapper#Context) {
+    override def map(key: LongWritable, value: Text, context: HLWTKVMapper#Context) {
       val geom::encoded = value.toString.split(FeatureHandler.OUTPUT_FIELD_SEPARATOR_CHAR).toList
 
       try {

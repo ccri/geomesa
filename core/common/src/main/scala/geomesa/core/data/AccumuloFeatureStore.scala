@@ -19,7 +19,6 @@ package geomesa.core.data
 import com.vividsolutions.jts.geom.Geometry
 import geomesa.core._
 import geomesa.core.conf._
-import geomesa.core.data.mapreduce.FeatureIngestMapper.FeatureIngestMapper
 import geomesa.utils.geotools.FeatureHandler
 import java.io.File
 import java.io.Serializable
@@ -48,6 +47,7 @@ import scala.collection.JavaConverters._
 
 class AccumuloFeatureStore(val dataStore: AccumuloDataStore, val featureName: String)
     extends AbstractFeatureStore with AccumuloAbstractFeatureSource {
+
   override def addFeatures(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]): JList[FeatureId] = {
     writeBounds(collection.getBounds)
     super.addFeatures(collection)
@@ -62,6 +62,9 @@ class AccumuloFeatureStore(val dataStore: AccumuloDataStore, val featureName: St
 class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
                                     featureName: String)
     extends AccumuloFeatureStore(dataStore, featureName) {
+
+  val MAPRED_CLASSPATH_USER_PRECEDENCE_KEY = "mapreduce.task.classpath.user.precedence"
+
   /** Strategy:
     *    0. (Check the size of the collection if easy, use Local methods if small.)
     *    1. Reduce the collection/reader to an iterable of features.
@@ -155,7 +158,6 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
     featureIds
   }
 
-
   def runMapReduceJob(tableName: String,
                       featureName: String,
                       hdfsJarPath: String,
@@ -164,7 +166,7 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
                       accConnParams: JMap[String, Serializable]) {
     val job = Job.getInstance(new Configuration)
     AccumuloDataStoreFactoryHelper.configureJob(job, accConnParams)
-    job.setMapperClass(classOf[FeatureIngestMapper])
+    job.setMapperClass(dataStore.ops.getFeatureIngestMapperClass())
     job.setMapOutputKeyClass(classOf[Key])
     job.setMapOutputValueClass(classOf[Value])
     job.setReducerClass(classOf[Reducer[Key,Value,Key,Value]])
@@ -184,6 +186,9 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
     // both the indexing schema and the simple-feature type must go to the mapper
     job.getConfiguration.set(DEFAULT_FEATURE_NAME, featureName)
     job.getConfiguration.set(INGEST_TABLE_NAME, tableName)
+
+    // hack around hsqldb version conflicts
+    job.getConfiguration.set(MAPRED_CLASSPATH_USER_PRECEDENCE_KEY, "true")
 
     job.setOutputFormatClass(classOf[AccumuloFileOutputFormat])
     FileOutputFormat.setOutputPath(job, new Path(outputDir, "files"))

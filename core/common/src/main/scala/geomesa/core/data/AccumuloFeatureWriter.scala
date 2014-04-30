@@ -22,7 +22,6 @@ import geomesa.core.index._
 import org.apache.accumulo.core.client.Connector
 import org.apache.accumulo.core.data.{Mutation, Value, Key}
 import org.apache.hadoop.mapred.{Reporter, RecordWriter}
-import org.apache.hadoop.mapreduce.TaskInputOutputContext
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.geotools.factory.Hints
 import org.geotools.feature.simple.SimpleFeatureBuilder
@@ -49,7 +48,7 @@ object AccumuloFeatureWriter {
     }
   }
 
-  class MapReduceRecordWriter(context: TaskInputOutputContext[_,_,Key,Value]) extends AccumuloRecordWriter {
+  class MapReduceRecordWriter(context: HLWTKVMapper#Context) extends AccumuloRecordWriter {
     def write(key: Key, value: Value) {
       context.write(key, value)
     }

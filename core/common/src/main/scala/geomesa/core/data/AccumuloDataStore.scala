@@ -330,7 +330,7 @@ class MapReduceAccumuloDataStore(connector: Connector,
   override def getFeatureSource(featureName: String): SimpleFeatureSource =
     createFeatureSource(featureName)
 
-  def createMapReduceFeatureWriter(featureName: String, context: TASKIOCTX): SFFeatureWriter = {
+  def createMapReduceFeatureWriter(featureName: String, context: HLWTKVMapper#Context): SFFeatureWriter = {
     val featureType = getSchema(featureName)
     val idxFmt = getIndexSchemaFmt(featureName)
     val fe = getFeatureEncoder(featureName)

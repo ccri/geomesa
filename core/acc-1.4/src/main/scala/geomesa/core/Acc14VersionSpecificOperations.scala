@@ -5,6 +5,7 @@ import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.filecache.DistributedCache
+import geomesa.core.data.mapreduce.FeatureIngestMapperWrapper
 
 /**
  * Created by davidm on 4/29/14.
@@ -44,4 +45,5 @@ object Acc14VersionSpecificOperations extends VersionSpecificOperations {
                                  DEFAULT_BATCH_WRITER_MAX_MEMORY,
                                  DEFAULT_BATCH_WRITER_MAX_WRITE_THREADS)
 
+  override def getFeatureIngestMapperClass() = classOf[FeatureIngestMapperWrapper.FeatureIngestMapper]
 }
