@@ -19,11 +19,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>geomesa</groupId>
-        <artifactId>geomesa</artifactId>
+        <artifactId>geomesa-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>geomesa-plugin</artifactId>
+    <artifactId>geomesa-plugin-parent</artifactId>
     <name>GeoMesa Geoserver Plugin (WFS/WMS) Parent</name>
     <packaging>pom</packaging>
 
