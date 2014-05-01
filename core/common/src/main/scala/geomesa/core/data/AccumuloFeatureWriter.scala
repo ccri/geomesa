@@ -26,6 +26,8 @@ import org.geotools.data.simple.SimpleFeatureWriter
 import org.geotools.factory.Hints
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import com.typesafe.scalalogging.slf4j.Logging
+import com.vividsolutions.jts.geom.Geometry
 
 object AccumuloFeatureWriter {
 
@@ -59,7 +61,8 @@ object AccumuloFeatureWriter {
 
 class AccumuloFeatureWriter(featureType: SimpleFeatureType,
                             indexer: SpatioTemporalIndexSchema,
-                            recordWriter: RecordWriter[Key,Value]) extends SimpleFeatureWriter {
+                            recordWriter: RecordWriter[Key,Value])
+    extends SimpleFeatureWriter with Logging {
 
   var currentFeature: SimpleFeature = null
 
@@ -70,8 +73,10 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
   def remove() {}
 
   def write() {
+
     // require a non-null feature with a non-null geometry
     if (currentFeature != null && currentFeature.getDefaultGeometry != null) {
+
       // see if there's a suggested ID to use for this feature
       // (relevant when this insertion is wrapped inside a Transaction)
       if (currentFeature.getUserData.containsKey(Hints.PROVIDED_FID)) {
@@ -80,13 +85,9 @@ class AccumuloFeatureWriter(featureType: SimpleFeatureType,
           currentFeature.getUserData.get(Hints.PROVIDED_FID).toString)
       }
 
-      indexer.encode(currentFeature).foreach {
-        case (k,v) => recordWriter.write(k,v)
-      }
-    }
-    else
-      println("[WARNING] AccumuloFeatureWriter.write:  " +
-        "Invalid feature to write:  " + currentFeature)
+      indexer.encode(currentFeature).foreach{ case (k,v) => recordWriter.write(k,v) }
+
+    } else logger.warn(s"Invalid feature to write:  $currentFeature")
 
     currentFeature = null
   }

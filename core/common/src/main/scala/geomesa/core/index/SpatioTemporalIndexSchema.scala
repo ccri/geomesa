@@ -22,7 +22,7 @@ import com.vividsolutions.jts.geom.Point
 import com.vividsolutions.jts.geom.{Geometry,Polygon}
 import geomesa.core.data.SimpleFeatureEncoder
 import geomesa.core.iterators._
-import geomesa.utils.geohash.GeohashUtils
+import geomesa.utils.geohash.{GeoHash, GeohashUtils}
 import geomesa.utils.text.{WKBUtils, WKTUtils}
 import java.nio.ByteBuffer
 import java.util.Map.Entry
@@ -153,7 +153,7 @@ object SpatioTemporalIndexEntry {
     lazy val dt   = Option(startTime).map { d => new DateTime(d) }
 
     private def setTime(attr: String, time: DateTime) =
-      sf.setAttribute(attr, if (time == null) null else time.toDate)
+      sf.setAttribute(attr, Option(time).map(_.toDate).orNull)
 
     def setStartTime(time: DateTime) = setTime(dtgStartField, time)
     def setEndTime(time: DateTime)   = setTime(dtgEndField, time)

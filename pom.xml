@@ -144,6 +144,13 @@
                 </dependencies>
             </dependencyManagement>
         </profile>
+
+        <profile>
+            <id>debug-tests</id>
+            <properties>
+                <maven.test.jvmargs>-Xms1g -Xmx2g -XX:MaxPermSize=512m -XX:-UseGCOverheadLimit -Xrunjdwp:transport=dt_socket,address=5000,server=y,suspend=y</maven.test.jvmargs>
+            </properties>
+        </profile>
     </profiles>
 
     <dependencyManagement>
