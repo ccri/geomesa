@@ -17,7 +17,9 @@
 package geomesa.core.iterators
 
 import collection.JavaConverters._
+import com.typesafe.scalalogging.slf4j.{Logging, Logger}
 import com.vividsolutions.jts.geom._
+import geomesa.core.data._
 import geomesa.core.index.{SpatioTemporalIndexEntry, SpatioTemporalIndexSchema}
 import geomesa.utils.geohash.GeoHash
 import geomesa.utils.text.WKTUtils
@@ -26,16 +28,13 @@ import java.util.{HashSet => JHashSet}
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
+import org.apache.commons.vfs2.impl.VFSClassLoader
 import org.apache.hadoop.io.Text
-import org.apache.log4j.Logger
 import org.geotools.data.DataUtilities
 import org.geotools.factory.GeoTools
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.util.Try
-import geomesa.core.data._
-import scala.Some
-import org.apache.commons.vfs2.impl.VFSClassLoader
 
 case class Attribute(name: Text, value: Text)
 
@@ -53,7 +52,7 @@ case class Attribute(name: Text, value: Text)
  * The other trick to remember about iterators is that they essentially pre-fetch
  * data.  "hasNext" really means, "was there a next record that you already found".
  */
-class SpatioTemporalIntersectingIterator extends SortedKeyValueIterator[Key, Value] {
+class SpatioTemporalIntersectingIterator extends SortedKeyValueIterator[Key, Value] with Logging {
 
   import SpatioTemporalIndexEntry._
   import geomesa.core._
@@ -73,7 +72,6 @@ class SpatioTemporalIntersectingIterator extends SortedKeyValueIterator[Key, Val
   protected var curFeature: SimpleFeature = null
 
   private var deduplicate: Boolean = false
-  private val log = Logger.getLogger(classOf[SpatioTemporalIntersectingIterator])
 
   // each batch-scanner thread maintains its own (imperfect!) list of the
   // unique (in-polygon) identifiers it has seen
@@ -83,8 +81,8 @@ class SpatioTemporalIntersectingIterator extends SortedKeyValueIterator[Key, Val
   def init(source: SortedKeyValueIterator[Key, Value],
            options: java.util.Map[String, String],
            env: IteratorEnvironment) {
-    log.debug("Initializing classLoader")
-    SpatioTemporalIntersectingIterator.initClassLoader(log)
+    logger.trace("Initializing classLoader")
+    SpatioTemporalIntersectingIterator.initClassLoader(logger)
 
     val featureType = DataUtilities.createType("DummyType", options.get(DEFAULT_FEATURE_TYPE))
 
@@ -266,7 +264,7 @@ class SpatioTemporalIntersectingIterator extends SortedKeyValueIterator[Key, Val
     skipIndexEntries(dataSource)
 
     if (!dataSource.hasTop || dataSource.getTopKey == null || dataSource.getTopKey.getColumnFamily.toString != nextId)
-      log.error(s"Could not find the data key corresponding to index key $indexSourceTopKey and dataId is $nextId.")
+      logger.error(s"Could not find the data key corresponding to index key $indexSourceTopKey and dataId is $nextId.")
     else {
       val cq = dataSource.getTopKey.getColumnQualifier
       val valueText = new Text(dataSource.getTopValue.get())

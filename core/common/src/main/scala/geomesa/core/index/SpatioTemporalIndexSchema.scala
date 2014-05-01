@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.{Value, Key}
 import org.apache.accumulo.core.iterators.Combiner
 import org.apache.accumulo.core.iterators.user.RegExFilter
 import org.apache.hadoop.io.Text
-import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.geotools.feature.simple.{SimpleFeatureImpl, SimpleFeatureBuilder}
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -40,6 +40,9 @@ import scala.util.Random
 import scala.util.parsing.combinator.RegexParsers
 import java.io.ByteArrayInputStream
 import geomesa.core.avro.FeatureSpecificReader
+import com.typesafe.scalalogging.slf4j.Logging
+import org.geotools.data.DataUtilities
+import org.opengis.feature.GeometryAttribute
 
 // A secondary index consists of interleaved elements of a composite key stored in
 // Accumulo's key (row, column family, and column qualifier)
@@ -139,9 +142,9 @@ object SpatioTemporalIndexEntry {
 
     lazy val sid = sf.getID
     lazy val gh = GeohashUtils.reconstructGeohashFromGeometry(geometry)
-    def geometry = sf.getDefaultGeometry.asInstanceOf[Geometry]
-    def setGeometry(geometry: Geometry) {
-      sf.setDefaultGeometry(geometry)
+    def geometry = sf.getDefaultGeometry match {
+      case geo: Geometry => geo
+      case geo => throw new Exception(s"Non-geometry or null object for default geometry '$geo' of type '${Option(geo).map(_.getClass).orNull}'")
     }
 
     private def getTime(attr: String) = sf.getAttribute(attr).asInstanceOf[java.util.Date]
@@ -162,7 +165,7 @@ case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SimpleFeature],
                                       cff: TextFormatter[SimpleFeature],
                                       cqf: TextFormatter[SimpleFeature],
                                       featureEncoder: SimpleFeatureEncoder)
-extends IndexEntryEncoder[SimpleFeature] {
+  extends IndexEntryEncoder[SimpleFeature] with Logging {
 
   import GeohashUtils._
   import SpatioTemporalIndexEntry._
@@ -176,18 +179,31 @@ extends IndexEntryEncoder[SimpleFeature] {
   // the maximum number of sub-units into which a geometry may be decomposed
   lazy val maximumDecompositions: Int = 5
 
-  def encode(entryToEncode: SimpleFeature): List[KeyValuePair] = {
+  def encode(featureToEncode: SimpleFeature): List[KeyValuePair] = {
+
+    logger.trace(s"encoding feature: $featureToEncode")
+
     // decompose non-point geometries into multiple index entries
     // (a point will return a single GeoHash at the maximum allowable resolution)
     val geohashes =
-      decomposeGeometry(entryToEncode.geometry, maximumDecompositions, decomposableResolutions)
+      decomposeGeometry(featureToEncode.geometry, maximumDecompositions, decomposableResolutions)
+    logger.trace(s"decomposed geohashes: ${geohashes.map(_.hash).mkString(",")})}")
+
+    val origFeatureType = featureToEncode.getType
+    val origFeatureTypeSpec = DataUtilities.encodeType(origFeatureType)
+    val decompFeatureTypeSpec = origFeatureTypeSpec.replaceAll(":(Point|MultiPoint|LineString|MultiLineString|MultiPolygon)",":Geometry")
+    val decompFeatureType = DataUtilities.createType(origFeatureType.getName.toString, decompFeatureTypeSpec)
+    logger.trace(s"decomposed feature type geometry descriptor ${decompFeatureType.getGeometryDescriptor}")
+
+    def setDefaultGeometry(sf: SimpleFeature, geom: Geometry) =
+      sf.setAttribute(decompFeatureType.getGeometryDescriptor.getName, geom)
 
     val entries = geohashes.map { gh =>
-      val copy = SimpleFeatureBuilder.copy(entryToEncode)
-      val geom = getGeohashGeom(gh)
-      copy.setDefaultGeometry(geom)
+      val copy = DataUtilities.reType(decompFeatureType, featureToEncode, true)
+      setDefaultGeometry(copy, gh)
       copy
     }
+    logger.trace(s"decomposed features: ${entries.map(e => (e, e.getType.getGeometryDescriptor)).mkString(",")})}")
 
     // remember the resulting index-entries
     val keys = entries.map { entry =>
@@ -195,16 +211,16 @@ extends IndexEntryEncoder[SimpleFeature] {
       new Key(r, cf, cq, entry.dt.map(_.getMillis).getOrElse(DateTime.now().getMillis))
     }
     val rowIDs = keys.map(_.getRow)
-    val id = new Text(entryToEncode.sid)
+    val id = new Text(featureToEncode.sid)
 
-    val indexValue = SpatioTemporalIndexSchema.encodeIndexValue(entryToEncode)
+    val indexValue = SpatioTemporalIndexSchema.encodeIndexValue(featureToEncode)
 
     val iv = new Value(indexValue)
     // the index entries are (key, FID) pairs
     val indexEntries = keys.map { k => (k, iv) }
 
     // the (single) data value is the encoded (serialized-to-string) SimpleFeature
-    val dataValue = featureEncoder.encode(entryToEncode)
+    val dataValue = featureEncoder.encode(featureToEncode)
 
     // data entries are stored separately (and independently) from the index entries;
     // each attribute gets its own data row (though currently, we use only one attribute
@@ -223,12 +239,9 @@ case class SpatioTemporalIndexEntryDecoder(ghDecoder: GeohashDecoder,
                                            dtDecoder: Option[DateDecoder])
   extends IndexEntryDecoder[SimpleFeature] {
 
-  import GeohashUtils._
-
   def decode(key: Key) = {
-    val gh = getGeohashGeom(ghDecoder.decode(key))
     val dt = dtDecoder.map(_.decode(key))
-    SimpleFeatureBuilder.build(indexSFT, List(gh, dt), "")
+    SimpleFeatureBuilder.build(indexSFT, List(ghDecoder.decode(key), dt), "")
   }
 
 }
