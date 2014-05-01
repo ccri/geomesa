@@ -400,31 +400,15 @@
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
                 <exclusions>
-                    <!-- needed for shapefile ingest through scala repl in the interactive environment -->
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
-                    <!-- we should exclude this, but accumulo has source-level references
-                         to log4j so scala won't compile without it
                     <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
-                    </exclusion>-->
+                    </exclusion>
                 </exclusions>
-            </dependency>
-            <!-- only here to sit alongside of accumulo so that scala compiler will work -->
-            <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>1.2.17</version>
-                <scope>provided</scope>
-            </dependency>
-            <!-- because we don't exclude this above, we need it regulated to the right version -->
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
@@ -445,20 +429,16 @@
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
                 <exclusions>
-                    <!-- needed for shapefile ingest through scala repl in the interactive environment -->
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
-                    <!-- we should exclude this, but accumulo has source-level references
-                         to log4j so scala won't compile without it
                     <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
-                    </exclusion>-->
+                    </exclusion>
                 </exclusions>
             </dependency>
-            <!-- for 2.2.0 -->
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
@@ -485,11 +465,10 @@
                         <groupId>hsqldb</groupId>
                         <artifactId>hsqldb</artifactId>
                     </exclusion>
-                    <!-- classes won't load without this...
                     <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
-                    </exclusion>-->
+                    </exclusion>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
@@ -518,6 +497,13 @@
                         <artifactId>log4j</artifactId>
                     </exclusion>
                 </exclusions>
+                <scope>provided</scope>
+            </dependency>
+            <!-- only here to sit alongside of accumulo & hadoop so that scala compiler will work -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
