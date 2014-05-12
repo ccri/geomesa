@@ -16,11 +16,14 @@
 
 package geomesa.core.index
 
+import QueryHints._
 import annotation.tailrec
 import collection.JavaConversions._
 import com.vividsolutions.jts.geom.Point
 import com.vividsolutions.jts.geom.{Geometry,Polygon}
-import geomesa.core.data.SimpleFeatureEncoder
+import geomesa.core.data._
+import geomesa.core.iterators.DensityIterator
+import geomesa.core.iterators.FEATURE_ENCODING
 import geomesa.core.iterators._
 import geomesa.utils.geohash.GeohashUtils
 import geomesa.utils.text.{WKBUtils, WKTUtils}
@@ -28,18 +31,23 @@ import java.nio.ByteBuffer
 import java.util.Map.Entry
 import java.util.{Iterator => JIterator}
 import org.apache.accumulo.core.client.{IteratorSetting, BatchScanner}
-import org.apache.accumulo.core.data.{Value, Key}
+import org.apache.accumulo.core.data.Key
+import org.apache.accumulo.core.data.Value
 import org.apache.accumulo.core.iterators.Combiner
 import org.apache.accumulo.core.iterators.user.RegExFilter
 import org.apache.hadoop.io.Text
+import org.geotools.data.{DataUtilities, Query}
+import org.geotools.factory.CommonFactoryFinder
+import org.geotools.factory.Hints.{IntegerKey, ClassKey}
 import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.geotools.filter.text.ecql.ECQL
+import org.geotools.geometry.jts.ReferencedEnvelope
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import scala.Some
 import scala.util.Random
 import scala.util.parsing.combinator.RegexParsers
-import java.io.ByteArrayInputStream
-import geomesa.core.avro.FeatureSpecificReader
 
 // A secondary index consists of interleaved elements of a composite key stored in
 // Accumulo's key (row, column family, and column qualifier)
@@ -77,6 +85,14 @@ import geomesa.core.avro.FeatureSpecificReader
 //
 // %~#s%999#r%0,4#gh%HHmm#d::%~#s%4,2#gh::%~#s%6,1#gh%yyyyMMdd#d
 
+object QueryHints {
+  val DENSITY_KEY = new ClassKey(classOf[java.lang.Boolean])
+  val WIDTH_KEY   = new IntegerKey(256)
+  val HEIGHT_KEY  = new IntegerKey(256)
+  val BBOX_KEY    = new ClassKey(classOf[ReferencedEnvelope])
+}
+
+
 case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
                                      decoder: SpatioTemporalIndexEntryDecoder,
                                      planner: SpatioTemporalIndexQueryPlanner,
@@ -92,6 +108,58 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
       case CompositeTextFormatter(Seq(PartitionTextFormatter(numPartitions), xs@_*), sep) => numPartitions
       case _ => 1  // couldn't find a matching partitioner
     }
+
+
+  def query(gtquery: Query, getBS: => BatchScanner): (Iterator[SimpleFeature], BatchScanner) = {
+    // JNH: translation
+    val sft = featureType
+    val bs = getBS
+    
+    val ff = CommonFactoryFinder.getFilterFactory2
+    val derivedQuery =
+      if(gtquery.getHints.containsKey(BBOX_KEY)) {
+        val env = gtquery.getHints.get(BBOX_KEY).asInstanceOf[ReferencedEnvelope]
+        val q1 = new Query(sft.getTypeName, ff.bbox(ff.property(sft.getGeometryDescriptor.getLocalName), env))
+        DataUtilities.mixQueries(q1, gtquery, "geomesa.mixed.query")
+      } else gtquery
+
+    val encodedSFT           = DataUtilities.encodeType(sft)
+
+    val projectedSFT =
+      if(gtquery.getHints.containsKey(DENSITY_KEY)) DataUtilities.createType(sft.getTypeName, "encodedraster:String,geom:Point:srid=4326")
+      else sft
+
+    val filterVisitor = new FilterToAccumulo(sft)
+    val rewrittenCQL = filterVisitor.visit(derivedQuery)
+    val cqlString = ECQL.toCQL(rewrittenCQL)
+
+    val spatial = filterVisitor.spatialPredicate
+    val temporal = filterVisitor.temporalPredicate
+
+
+    lazy val iter: Iterator[SimpleFeature] = {
+      val transformOption = Option(gtquery.getHints.get(TRANSFORMS)).map(_.asInstanceOf[String])
+      val transformSchema = Option(gtquery.getHints.get(TRANSFORM_SCHEMA)).map(_.asInstanceOf[SimpleFeatureType])
+      if (gtquery.getHints.containsKey(DENSITY_KEY)) {
+        val width = gtquery.getHints.get(WIDTH_KEY).asInstanceOf[Integer]
+        val height = gtquery.getHints.get(HEIGHT_KEY).asInstanceOf[Integer]
+        val q: Iterator[Value] = query(bs, spatial, temporal, encodedSFT, Some(cqlString),
+          transformOption, transformSchema, density = true, width, height)
+        unpackDensityFeatures(q)
+      } else {
+        val q: Iterator[Value] = query(bs, spatial, temporal, encodedSFT, Some(cqlString),
+          transformOption, transformSchema, density = false)
+        val result = transformSchema.map { tschema => q.map { v => featureEncoder.decode(tschema, v) } }
+        result.getOrElse(q.map { v => featureEncoder.decode(sft, v) })
+      }
+    }
+
+    def unpackDensityFeatures(iter: Iterator[Value]) =
+      iter.flatMap { i => DensityIterator.expandFeature(featureEncoder.decode(projectedSFT, i)) }
+
+    (iter, bs)
+  }
+
 
   def query(bs: BatchScanner,
             rawPoly: Polygon,
@@ -132,6 +200,7 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
 object SpatioTemporalIndexEntry {
 
   import collection.JavaConversions._
+
   implicit class SpatioTemporalIndexEntrySFT(sf: SimpleFeature) {
     lazy val userData = sf.getFeatureType.getUserData
     lazy val dtgStartField = userData.getOrElse(SF_PROPERTY_START_TIME, SF_PROPERTY_START_TIME).asInstanceOf[String]
