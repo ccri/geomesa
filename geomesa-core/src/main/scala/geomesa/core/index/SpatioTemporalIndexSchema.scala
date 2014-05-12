@@ -85,14 +85,6 @@ import scala.util.parsing.combinator.RegexParsers
 //
 // %~#s%999#r%0,4#gh%HHmm#d::%~#s%4,2#gh::%~#s%6,1#gh%yyyyMMdd#d
 
-object QueryHints {
-  val DENSITY_KEY = new ClassKey(classOf[java.lang.Boolean])
-  val WIDTH_KEY   = new IntegerKey(256)
-  val HEIGHT_KEY  = new IntegerKey(256)
-  val BBOX_KEY    = new ClassKey(classOf[ReferencedEnvelope])
-}
-
-
 case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
                                      decoder: SpatioTemporalIndexEntryDecoder,
                                      planner: SpatioTemporalIndexQueryPlanner,

@@ -26,7 +26,7 @@ trait IndexEntryDecoder[E] {
   def decode(key: Key): E
 }
 
-trait Filter
+
 
 trait QueryPlanner[E] {
   def planQuery(bs: BatchScanner, filter: Filter): BatchScanner
