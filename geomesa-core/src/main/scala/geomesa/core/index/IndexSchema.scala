@@ -16,13 +16,11 @@
 
 package geomesa.core.index
 
-import QueryHints._
 import annotation.tailrec
 import collection.JavaConversions._
 import com.vividsolutions.jts.geom.Point
 import com.vividsolutions.jts.geom.{Geometry,Polygon}
 import geomesa.core.data._
-import geomesa.core.iterators.DensityIterator
 import geomesa.core.iterators.FEATURE_ENCODING
 import geomesa.core.iterators._
 import geomesa.utils.geohash.GeohashUtils
@@ -38,14 +36,12 @@ import org.apache.accumulo.core.iterators.user.RegExFilter
 import org.apache.hadoop.io.Text
 import org.geotools.data.{DataUtilities, Query}
 import org.geotools.factory.CommonFactoryFinder
-import org.geotools.factory.Hints.{IntegerKey, ClassKey}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import scala.Some
 import scala.util.Random
 import scala.util.parsing.combinator.RegexParsers
 
@@ -85,14 +81,16 @@ import scala.util.parsing.combinator.RegexParsers
 //
 // %~#s%999#r%0,4#gh%HHmm#d::%~#s%4,2#gh::%~#s%6,1#gh%yyyyMMdd#d
 
-case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
-                                     decoder: SpatioTemporalIndexEntryDecoder,
-                                     planner: SpatioTemporalIndexQueryPlanner,
-                                     featureType: SimpleFeatureType,
-                                     featureEncoder: SimpleFeatureEncoder)
-  extends IndexSchema[SimpleFeature] {
+case class IndexSchema(encoder: IndexEncoder,
+                       decoder: IndexEntryDecoder,
+                       planner: IndexQueryPlanner,
+                       featureType: SimpleFeatureType,
+                       featureEncoder: SimpleFeatureEncoder) {
 
-  import SpatioTemporalIndexSchema._
+  def encode(entry: SimpleFeature) = encoder.encode(entry)
+  def decode(key: Key): SimpleFeature = decoder.decode(key)
+
+  import IndexSchema._
 
   // utility method to ask for the maximum allowable shard number
   def maxShard: Int =
@@ -101,12 +99,13 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
       case _ => 1  // couldn't find a matching partitioner
     }
 
+  import geomesa.core.index.QueryHints._
 
   def query(gtquery: Query, getBS: => BatchScanner): (Iterator[SimpleFeature], BatchScanner) = {
     // JNH: translation
     val sft = featureType
     val bs = getBS
-    
+
     val ff = CommonFactoryFinder.getFilterFactory2
     val derivedQuery =
       if(gtquery.getHints.containsKey(BBOX_KEY)) {
@@ -189,11 +188,11 @@ case class SpatioTemporalIndexSchema(encoder: SpatioTemporalIndexEncoder,
 
 }
 
-object SpatioTemporalIndexEntry {
+object IndexEntry {
 
   import collection.JavaConversions._
 
-  implicit class SpatioTemporalIndexEntrySFT(sf: SimpleFeature) {
+  implicit class IndexEntrySFT(sf: SimpleFeature) {
     lazy val userData = sf.getFeatureType.getUserData
     lazy val dtgStartField = userData.getOrElse(SF_PROPERTY_START_TIME, SF_PROPERTY_START_TIME).asInstanceOf[String]
     lazy val dtgEndField = userData.getOrElse(SF_PROPERTY_END_TIME, SF_PROPERTY_END_TIME).asInstanceOf[String]
@@ -219,14 +218,13 @@ object SpatioTemporalIndexEntry {
 
 }
 
-case class SpatioTemporalIndexEncoder(rowf: TextFormatter[SimpleFeature],
+case class IndexEncoder(rowf: TextFormatter[SimpleFeature],
                                       cff: TextFormatter[SimpleFeature],
                                       cqf: TextFormatter[SimpleFeature],
-                                      featureEncoder: SimpleFeatureEncoder)
-extends IndexEntryEncoder[SimpleFeature] {
+                                      featureEncoder: SimpleFeatureEncoder) {
 
   import GeohashUtils._
-  import SpatioTemporalIndexEntry._
+  import IndexEntry._
 
   val formats = Array(rowf,cff,cqf)
 
@@ -237,6 +235,7 @@ extends IndexEntryEncoder[SimpleFeature] {
   // the maximum number of sub-units into which a geometry may be decomposed
   lazy val maximumDecompositions: Int = 5
 
+  // JNH: This is *public*
   def encode(entryToEncode: SimpleFeature): List[KeyValuePair] = {
     // decompose non-point geometries into multiple index entries
     // (a point will return a single GeoHash at the maximum allowable resolution)
@@ -258,8 +257,7 @@ extends IndexEntryEncoder[SimpleFeature] {
     val rowIDs = keys.map(_.getRow)
     val id = new Text(entryToEncode.sid)
 
-    val indexValue = SpatioTemporalIndexSchema.encodeIndexValue(entryToEncode)
-
+    val indexValue = IndexSchema.encodeIndexValue(entryToEncode)
     val iv = new Value(indexValue)
     // the index entries are (key, FID) pairs
     val indexEntries = keys.map { k => (k, iv) }
@@ -280,9 +278,8 @@ extends IndexEntryEncoder[SimpleFeature] {
 
 }
 
-case class SpatioTemporalIndexEntryDecoder(ghDecoder: GeohashDecoder,
-                                           dtDecoder: Option[DateDecoder])
-  extends IndexEntryDecoder[SimpleFeature] {
+case class IndexEntryDecoder(ghDecoder: GeohashDecoder,
+                             dtDecoder: Option[DateDecoder]) {
 
   import GeohashUtils._
 
@@ -294,12 +291,11 @@ case class SpatioTemporalIndexEntryDecoder(ghDecoder: GeohashDecoder,
 
 }
 
-case class SpatioTemporalIndexQueryPlanner(keyPlanner: KeyPlanner,
-                                           cfPlanner: ColumnFamilyPlanner,
-                                           schema:String,
-                                           featureType: SimpleFeatureType,
-                                           featureEncoder: SimpleFeatureEncoder)
-  extends QueryPlanner[SimpleFeature] {
+case class IndexQueryPlanner(keyPlanner: KeyPlanner,
+                             cfPlanner: ColumnFamilyPlanner,
+                             schema:String,
+                             featureType: SimpleFeatureType,
+                             featureEncoder: SimpleFeatureEncoder) {
 
   // these are priority values for Accumulo iterators
   val HIGHEST_ITERATOR_PRIORITY = 0
@@ -324,7 +320,7 @@ case class SpatioTemporalIndexQueryPlanner(keyPlanner: KeyPlanner,
   }
 
   def buildFilter(poly: Polygon, interval: Interval): Filter =
-    (SpatioTemporalIndexSchema.somewhere(poly), SpatioTemporalIndexSchema.somewhen(interval)) match {
+    (IndexSchema.somewhere(poly), IndexSchema.somewhen(interval)) match {
       case (None, None)       => AcceptEverythingFilter
       case (None, Some(i))    => if (i.getStart == i.getEnd) DateFilter(i.getStart)
                                  else DateRangeFilter(i.getStart, i.getEnd)
@@ -491,7 +487,7 @@ case class SpatioTemporalIndexQueryPlanner(keyPlanner: KeyPlanner,
   }
 }
 
-object SpatioTemporalIndexSchema extends RegexParsers {
+object IndexSchema extends RegexParsers {
   val minDateTime = new DateTime(0, 1, 1, 0, 0, 0, DateTimeZone.forID("UTC"))
   val maxDateTime = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeZone.forID("UTC"))
   val everywhen = new Interval(minDateTime, maxDateTime)
@@ -518,16 +514,16 @@ object SpatioTemporalIndexSchema extends RegexParsers {
 
   def netPolygon(poly: Polygon): Polygon = poly match {
     case null => null
-    case p if (p.covers(SpatioTemporalIndexSchema.everywhere)) =>
-      SpatioTemporalIndexSchema.everywhere
-    case p if (SpatioTemporalIndexSchema.everywhere.covers(p)) => p
-    case _ => poly.intersection(SpatioTemporalIndexSchema.everywhere).
+    case p if (p.covers(IndexSchema.everywhere)) =>
+      IndexSchema.everywhere
+    case p if (IndexSchema.everywhere.covers(p)) => p
+    case _ => poly.intersection(IndexSchema.everywhere).
       asInstanceOf[Polygon]
   }
 
   def netInterval(interval: Interval): Interval = interval match {
     case null => null
-    case _    => SpatioTemporalIndexSchema.everywhen.overlap(interval)
+    case _    => IndexSchema.everywhen.overlap(interval)
   }
 
   def pattern[T](p: => Parser[T], code: String): Parser[T] = "%" ~> p <~ ("#" + code)
@@ -583,9 +579,9 @@ object SpatioTemporalIndexSchema extends RegexParsers {
   }
 
   // builds the encoder from a string representation
-  def buildKeyEncoder(s: String, featureEncoder: SimpleFeatureEncoder): SpatioTemporalIndexEncoder = {
+  def buildKeyEncoder(s: String, featureEncoder: SimpleFeatureEncoder): IndexEncoder = {
     val (rowf, cff, cqf) = parse(formatter, s).get
-    SpatioTemporalIndexEncoder(rowf, cff, cqf, featureEncoder)
+    IndexEncoder(rowf, cff, cqf, featureEncoder)
   }
 
   // extracts an entire date encoder from a key part
@@ -720,18 +716,18 @@ object SpatioTemporalIndexSchema extends RegexParsers {
     if (featureType == null) true
     else featureType.getGeometryDescriptor.getType.getBinding != classOf[Point]
 
-  // builds a SpatioTemporalIndexSchema (requiring a feature type)
+  // builds a IndexSchema (requiring a feature type)
   def apply(s: String,
             featureType: SimpleFeatureType,
-            featureEncoder: SimpleFeatureEncoder): SpatioTemporalIndexSchema = {
+            featureEncoder: SimpleFeatureEncoder): IndexSchema = {
     val keyEncoder        = buildKeyEncoder(s, featureEncoder)
     val geohashDecoder    = buildGeohashDecoder(s)
     val dateDecoder       = buildDateDecoder(s)
     val keyPlanner        = buildKeyPlanner(s)
     val cfPlanner         = buildColumnFamilyPlanner(s)
-    val indexEntryDecoder = SpatioTemporalIndexEntryDecoder(geohashDecoder, dateDecoder)
-    val queryPlanner      = SpatioTemporalIndexQueryPlanner(keyPlanner, cfPlanner, s, featureType, featureEncoder)
-    SpatioTemporalIndexSchema(keyEncoder, indexEntryDecoder, queryPlanner, featureType, featureEncoder)
+    val indexEntryDecoder = IndexEntryDecoder(geohashDecoder, dateDecoder)
+    val queryPlanner      = IndexQueryPlanner(keyPlanner, cfPlanner, s, featureType, featureEncoder)
+    IndexSchema(keyEncoder, indexEntryDecoder, queryPlanner, featureType, featureEncoder)
   }
 
   // the index value consists of the feature's:
@@ -739,7 +735,7 @@ object SpatioTemporalIndexSchema extends RegexParsers {
   // 2.  WKB-encoded geometry
   // 3.  start-date/time
   def encodeIndexValue(entry: SimpleFeature): Value = {
-    import SpatioTemporalIndexEntry._
+    import IndexEntry._
     val encodedId = entry.sid.getBytes
     val encodedGeom = WKBUtils.write(entry.geometry)
     val encodedDtg = entry.dt.map(dtg => ByteBuffer.allocate(8).putLong(dtg.getMillis).array()).getOrElse(Array[Byte]())

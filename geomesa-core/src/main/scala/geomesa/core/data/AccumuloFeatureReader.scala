@@ -29,7 +29,7 @@ class AccumuloFeatureReader(dataStore: AccumuloDataStore,
                             featureEncoder: SimpleFeatureEncoder)
   extends FeatureReader[SimpleFeatureType, SimpleFeature] {
 
-  val indexSchema = SpatioTemporalIndexSchema(indexSchemaFmt, sft, featureEncoder)
+  val indexSchema = IndexSchema(indexSchemaFmt, sft, featureEncoder)
   lazy val (iter, bs) = indexSchema.query(query, dataStore.createBatchScanner)
 
   override def getFeatureType = sft
