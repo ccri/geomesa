@@ -21,11 +21,11 @@
     <parent>
         <artifactId>geomesa</artifactId>
         <groupId>geomesa</groupId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-alpha</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>geomesa-filter</artifactId>
+    <artifactId>geomesa-filter-acc1.4</artifactId>
     <name>GeoMesa Filters and Functions</name>
 
     <properties>
