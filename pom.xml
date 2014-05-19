@@ -41,7 +41,7 @@
 
         <!-- environment-dependent versions -->
         <zookeeper.version>3.3.6</zookeeper.version>
-        <accumulo.version>1.5.0</accumulo.version>
+        <accumulo.version>1.4.3</accumulo.version>
         <hadoop.version>2.2.0</hadoop.version>
 
         <!-- logging properties
@@ -65,35 +65,13 @@
 
     <profiles>
         <profile>
-            <id>accumulo1.5.1</id>
-            <modules>
-                <module>geomesa-shell</module>
-            </modules>
-            <properties>
-                <accumulo.version>1.5.1-SNAPSHOT</accumulo.version>
-            </properties>
-            <dependencyManagement>
-                <dependencies>
-                    <dependency>
-                        <groupId>geomesa</groupId>
-                        <artifactId>geomesa-shell</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>cascading.accumulo</groupId>
-                        <artifactId>accumulo-scalding</artifactId>
-                        <version>2.0-SNAPSHOT</version>
-                    </dependency>
-                </dependencies>
-            </dependencyManagement>
-        </profile>
-        <profile>
             <id>debug-tests</id>
             <properties>
                 <maven.test.jvmargs>-Xms1g -Xmx2g -XX:MaxPermSize=512m -XX:-UseGCOverheadLimit -Xrunjdwp:transport=dt_socket,address=5000,server=y,suspend=y</maven.test.jvmargs>
             </properties>
         </profile>
     </profiles>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -248,32 +226,32 @@
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-core</artifactId>
+                <artifactId>geomesa-core-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-utils</artifactId>
+                <artifactId>geomesa-utils-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-filter</artifactId>
+                <artifactId>geomesa-filter-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin</artifactId>
+                <artifactId>geomesa-plugin-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-distributed-runtime</artifactId>
+                <artifactId>geomesa-distributed-runtime-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin</artifactId>
+                <artifactId>geomesa-plugin-acc1.4</artifactId>
                 <classifier>geoserver-plugin</classifier>
                 <version>${project.version}</version>
             </dependency>

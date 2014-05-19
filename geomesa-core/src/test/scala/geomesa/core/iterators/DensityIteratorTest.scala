@@ -23,9 +23,6 @@ import com.vividsolutions.jts.geom.Envelope
 import geomesa.core.data.AccumuloDataStoreFactory
 import geomesa.core.index.{QueryHints, Constants}
 import org.apache.accumulo.core.client.mock.MockInstance
-import org.apache.accumulo.core.client.security.tokens.PasswordToken
-import org.apache.commons.lang.NotImplementedException
-import org.apache.hadoop.io.Text
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.data.{Query, DataUtilities}
 import org.geotools.factory.Hints
@@ -49,19 +46,8 @@ class DensityIteratorTest
   "DensityIterator" should {
     "compute densities" in {
       val mockInstance = new MockInstance("dummy")
-      val c = mockInstance.getConnector("user", new PasswordToken("pass".getBytes))
+      val c = mockInstance.getConnector("user", "pass".getBytes)
       c.tableOperations.create("test")
-      val splits = (0 to 99).map {
-        s => "%02d".format(s)
-      }.map(new Text(_))
-
-      try {
-        c.tableOperations().addSplits("test", new java.util.TreeSet[Text](splits))
-      } catch {
-        case nie: NotImplementedException =>
-          logger.warn("Could not add splits on \"test\" for this test because this version of " +
-                      "the Mock Accumulo instance does not support the addSplits operation")
-      }
 
       val dsf = new AccumuloDataStoreFactory
 
