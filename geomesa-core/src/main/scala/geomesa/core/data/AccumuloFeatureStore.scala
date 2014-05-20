@@ -180,7 +180,7 @@ class MapReduceAccumuloFeatureStore(dataStore: MapReduceAccumuloDataStore,
     FileInputFormat.setMaxInputSplitSize(job, 20000000)
 
     fs.listStatus(new Path(hdfsJarPath)).foreach { case f =>
-      DistributedCache.addArchiveToClassPath(f.getPath, job.getConfiguration)
+      DistributedCache.addArchiveToClassPath(new Path(f.getPath.toUri.getPath), job.getConfiguration)
     }
 
     // both the indexing schema and the simple-feature type must go to the mapper
