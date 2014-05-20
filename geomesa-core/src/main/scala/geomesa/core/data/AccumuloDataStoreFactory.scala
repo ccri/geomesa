@@ -125,7 +125,7 @@ object AccumuloDataStoreFactory {
     val tableNameParam    = new Param("tableName", classOf[String], "The Accumulo Table Name", true)
     val idxSchemaParam    = new Param("indexSchemaFormat", classOf[String], "The feature-specific index-schema format", false)
     val mockParam         = new Param("useMock", classOf[String], "Use a mock connection (for testing)", false)
-    val mapreduceParam    = new Param("useMapReduce", classOf[String], "Use MapReduce ingest", false)
+    val mapReduceParam    = new Param("useMapReduce", classOf[String], "Use MapReduce ingest", false)
     val featureEncParam   = new Param("featureEncoding", classOf[String], "The feature encoding format (text or avro). Default is Avro", false, "avro")
   }
 
