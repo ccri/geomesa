@@ -57,7 +57,7 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
         .map(FeatureEncoding.withName)
         .getOrElse(FeatureEncoding.AVRO)
 
-    if (mapreduceParam.lookUp(params) != null && mapreduceParam.lookUp(params).asInstanceOf[String] == "true")
+    if (mapReduceParam.lookUp(params) != null && mapReduceParam.lookUp(params).asInstanceOf[String] == "true")
       if(idxSchemaParam.lookUp(params) != null)
         new MapReduceAccumuloDataStore(connector,
                                        tableName,
