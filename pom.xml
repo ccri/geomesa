@@ -328,6 +328,18 @@
                         <groupId>org.mortbay.jetty</groupId>
                         <artifactId>jsp-2.1</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -346,6 +358,10 @@
                     <exclusion>
                         <groupId>com.sun.jdmk</groupId>
                         <artifactId>jmxtools</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
                     </exclusion>
                 </exclusions>
                 <scope>provided</scope>
