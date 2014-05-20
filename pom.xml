@@ -41,8 +41,7 @@
 
         <!-- environment-dependent versions -->
         <zookeeper.version>3.3.6</zookeeper.version>
-        <accumulo.major.version>1.4</accumulo.major.version>
-        <accumulo.version>${accumulo.major.version}.3</accumulo.version>
+        <accumulo.version>1.4.3</accumulo.version>
         <hadoop.version>0.20.2-cdh3u6</hadoop.version>
 
         <!-- logging properties
@@ -218,32 +217,32 @@
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-core-acc${accumulo.major.version}</artifactId>
+                <artifactId>geomesa-core-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-utils-acc${accumulo.major.version}</artifactId>
+                <artifactId>geomesa-utils-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-filter-acc${accumulo.major.version}</artifactId>
+                <artifactId>geomesa-filter-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin-acc${accumulo.major.version}</artifactId>
+                <artifactId>geomesa-plugin-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-distributed-runtime-acc${accumulo.major.version}</artifactId>
+                <artifactId>geomesa-distributed-runtime-acc1.4</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>geomesa</groupId>
-                <artifactId>geomesa-plugin-acc${accumulo.major.version}</artifactId>
+                <artifactId>geomesa-plugin-acc1.4</artifactId>
                 <classifier>geoserver-plugin</classifier>
                 <version>${project.version}</version>
             </dependency>
