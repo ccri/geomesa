@@ -211,11 +211,6 @@
                 <version>1.1</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-vfs2</artifactId>
-                <version>2.0</version>
-            </dependency>
-            <dependency>
                 <groupId>geomesa</groupId>
                 <artifactId>geomesa-core-acc1.4</artifactId>
                 <version>${project.version}</version>
@@ -245,6 +240,11 @@
                 <artifactId>geomesa-plugin-acc1.4</artifactId>
                 <classifier>geoserver-plugin</classifier>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>11.0.1</version>
             </dependency>
 
             <!-- logging -->
@@ -408,12 +408,7 @@
                 <version>4.5</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>11.0.1</version>
-                <scope>provided</scope>
-            </dependency>
+
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>findbugs</artifactId>

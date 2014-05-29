@@ -18,24 +18,24 @@ package geomesa.core.iterators
 
 import collection.JavaConverters._
 import com.vividsolutions.jts.geom._
+import geomesa.core.data._
 import geomesa.core.index.{IndexEntry, IndexSchema}
 import geomesa.utils.geohash.GeoHash
 import geomesa.utils.text.WKTUtils
 import java.io.{DataInputStream, ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream}
+import java.net.URLClassLoader
 import java.util.{HashSet => JHashSet}
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
-import org.apache.commons.vfs2.impl.VFSClassLoader
 import org.apache.hadoop.io.Text
 import org.apache.log4j.Logger
 import org.geotools.data.DataUtilities
 import org.geotools.factory.GeoTools
 import org.joda.time.{DateTimeZone, DateTime, Interval}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import scala.util.Try
-import geomesa.core.data._
 import scala.Some
+import scala.util.Try
 
 case class Attribute(name: Text, value: Text)
 
@@ -330,8 +330,8 @@ object SpatioTemporalIntersectingIterator {
     if(!initialized.get()) {
       try {
         // locate the geomesa-distributed-runtime jar
-        val cl = classOf[SpatioTemporalIntersectingIterator].getClassLoader.asInstanceOf[VFSClassLoader]
-        val url = cl.getFileObjects.map(_.getURL).filter { _.toString.contains("geomesa-distributed-runtime") }.head
+        val cl = classOf[SpatioTemporalIntersectingIterator].getClassLoader.asInstanceOf[URLClassLoader]
+        val url = cl.getURLs.filter { _.toString.contains("geomesa-distributed-runtime") }.head
         if(log != null) log.debug(s"Found geomesa-distributed-runtime at $url")
         val u = java.net.URLClassLoader.newInstance(Array(url), cl)
         GeoTools.addClassLoader(u)
