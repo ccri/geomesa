@@ -11,7 +11,7 @@ import java.util.Date
 import org.apache.log4j.Logger
 import org.geotools.data.Query
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureCollection}
-import org.geotools.data.store.EmptyFeatureCollection
+import org.geotools.data.store.{ReTypingFeatureCollection, EmptyFeatureCollection}
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.feature.visitor._
 import org.geotools.process.factory.{DescribeResult, DescribeParameter, DescribeProcess}
@@ -93,6 +93,10 @@ class TubeSelect extends VectorProcess {
 
     if(!featureCollection.isInstanceOf[AccumuloFeatureCollection]) {
       log.warn("The provided feature collection type may not support tubing: "+featureCollection.getClass.getName)
+    }
+
+    if(featureCollection.isInstanceOf[ReTypingFeatureCollection]) {
+      log.warn("WARNING: layer name in geoserver must match feature type name in geomesa")
     }
 
     featureCollection.accepts(tubeVisitor, new NullProgressListener)

@@ -6,14 +6,14 @@ import geomesa.utils.geotools.Conversions._
 import org.apache.log4j.Logger
 import org.geotools.data.Query
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureCollection}
-import org.geotools.data.store.EmptyFeatureCollection
+import org.geotools.data.store.ReTypingFeatureCollection
 import org.geotools.factory.CommonFactoryFinder
+import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.feature.visitor.{CalcResult, FeatureCalc, AbstractCalcResult}
 import org.geotools.process.factory.{DescribeParameter, DescribeResult, DescribeProcess}
 import org.geotools.process.vector.VectorProcess
 import org.geotools.util.NullProgressListener
 import org.opengis.feature.Feature
-import org.geotools.feature.DefaultFeatureCollection
 import org.opengis.feature.simple.SimpleFeature
 
 @DescribeProcess(
@@ -47,6 +47,9 @@ class GeomesaProximitySearch extends VectorProcess {
 
     if(!dataFeatures.isInstanceOf[AccumuloFeatureCollection]) {
       log.warn("The provided data feature collection type may not support geomesa proximity search: "+dataFeatures.getClass.getName)
+    }
+    if(dataFeatures.isInstanceOf[ReTypingFeatureCollection]) {
+      log.warn("WARNING: layer name in geoserver must match feature type name in geomesa")
     }
 
     val visitor = new GeomesaProximityVisitor(inputFeatures, dataFeatures, bufferDistance)

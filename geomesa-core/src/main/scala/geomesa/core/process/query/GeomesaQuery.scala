@@ -1,22 +1,18 @@
 package geomesa.core.process.query
 
-import com.vividsolutions.jts.geom.Geometry
-import geomesa.core.data.AccumuloFeatureCollection
-import geomesa.utils.geotools.Conversions._
 import org.apache.log4j.Logger
 import org.geotools.data.Query
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureCollection}
-import org.geotools.data.store.EmptyFeatureCollection
+import org.geotools.data.store.ReTypingFeatureCollection
+import org.geotools.factory.CommonFactoryFinder
+import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.feature.visitor.{FeatureCalc, CalcResult, AbstractCalcResult}
 import org.geotools.process.factory.{DescribeParameter, DescribeResult, DescribeProcess}
 import org.geotools.process.vector.VectorProcess
 import org.geotools.util.NullProgressListener
 import org.opengis.feature.Feature
-import org.opengis.filter.Filter
-import org.geotools.data.collection.ListFeatureCollection
-import org.geotools.feature.DefaultFeatureCollection
 import org.opengis.feature.simple.SimpleFeature
-import org.geotools.factory.CommonFactoryFinder
+import org.opengis.filter.Filter
 
 @DescribeProcess(
   title = "Fast Proximity Search on Feature Collections",
@@ -41,6 +37,10 @@ class GeomesaQuery extends VectorProcess {
                ): SimpleFeatureCollection = {
 
     log.info("Attempting Geomesa query on type " + features.getClass.getName)
+
+    if(features.isInstanceOf[ReTypingFeatureCollection]) {
+      log.warn("WARNING: layer name in geoserver must match feature type name in geomesa")
+    }
 
     val visitor = new GeomesaQueryVisitor(features, Option(filter).getOrElse(Filter.INCLUDE))
     features.accepts(visitor, new NullProgressListener)
