@@ -40,11 +40,9 @@ class GeomesaQuery extends VectorProcess {
                filter: Filter
                ): SimpleFeatureCollection = {
 
-    log.info("Geomesa query on type " + features.getClass.getName)
+    log.info("Attempting Geomesa query on type " + features.getClass.getName)
 
-    val visitor = new GeomesaQueryVisitor( features,
-                                           Option(filter).getOrElse(Filter.INCLUDE))
-
+    val visitor = new GeomesaQueryVisitor(features, Option(filter).getOrElse(Filter.INCLUDE))
     features.accepts(visitor, new NullProgressListener)
     visitor.getResult.asInstanceOf[GeomesaQueryResult].results
   }
@@ -68,12 +66,13 @@ class GeomesaQueryVisitor( features: SimpleFeatureCollection,
   }
 
   var resultCalc: GeomesaQueryResult = new GeomesaQueryResult(manualVisitResults)
+
   override def getResult: CalcResult = resultCalc
 
   def setValue(r: SimpleFeatureCollection) = resultCalc = GeomesaQueryResult(r)
 
   def query(source: SimpleFeatureSource, query: Query) = {
-    log.info("Geomesa query on source type "+source.getClass.getName)
+    log.info("Running Geomesa query on source type "+source.getClass.getName)
     val combinedFilter = ff.and(query.getFilter, filter)
     source.getFeatures(combinedFilter)
   }

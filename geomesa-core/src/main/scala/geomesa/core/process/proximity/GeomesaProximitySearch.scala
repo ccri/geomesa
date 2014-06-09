@@ -43,16 +43,13 @@ class GeomesaProximitySearch extends VectorProcess {
 
                ): SimpleFeatureCollection = {
 
-    log.info("Fast Proximity Search on collection type " + dataFeatures.getClass.getName)
+    log.info("Attempting Geomesa Proximity Search on collection type " + dataFeatures.getClass.getName)
 
     if(!dataFeatures.isInstanceOf[AccumuloFeatureCollection]) {
-      log.warn("The provided data feature collection type may not support fast proximity search: "+dataFeatures.getClass.getName)
+      log.warn("The provided data feature collection type may not support geomesa proximity search: "+dataFeatures.getClass.getName)
     }
 
-    val visitor = new GeomesaProximityVisitor( inputFeatures,
-                                            dataFeatures,
-                                            bufferDistance)
-
+    val visitor = new GeomesaProximityVisitor(inputFeatures, dataFeatures, bufferDistance)
     dataFeatures.accepts(visitor, new NullProgressListener)
     visitor.getResult.asInstanceOf[GeomesaProximityResult].results
   }
@@ -66,15 +63,15 @@ class GeomesaProximityVisitor( inputFeatures: SimpleFeatureCollection,
   private val log = Logger.getLogger(classOf[GeomesaProximityVisitor])
 
   val geoFac = new GeometryFactory
-  val ff  = CommonFactoryFinder.getFilterFactory2
+  val ff = CommonFactoryFinder.getFilterFactory2
+  val geomOrFilter = getGeomFilter
 
   val manualVisitResults = new DefaultFeatureCollection(null, dataFeatures.getSchema)
 
   // Called for non AccumuloFeactureCollections
   def visit(feature: Feature): Unit = {
-    val filter = getGeomFilter
     val sf = feature.asInstanceOf[SimpleFeature]
-    if(filter.evaluate(sf)) {
+    if(geomOrFilter.evaluate(sf)) {
       manualVisitResults.add(sf)
     }
   }
@@ -86,11 +83,8 @@ class GeomesaProximityVisitor( inputFeatures: SimpleFeatureCollection,
   def setValue(r: SimpleFeatureCollection) = resultCalc = GeomesaProximityResult(r)
 
   def proximitySearch(source: SimpleFeatureSource, query: Query) = {
-    log.info("Proximity searching on source type "+source.getClass.getName)
-
-    val geomOrFilter = getGeomFilter
+    log.info("Running Geomesa Proximity Search on source type "+source.getClass.getName)
     val combinedFilter = ff.and(query.getFilter, geomOrFilter)
-
     source.getFeatures(combinedFilter)
   }
 

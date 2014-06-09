@@ -20,14 +20,13 @@ import com.vividsolutions.jts.geom.{GeometryFactory, Point, Geometry, Coordinate
 import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.factory.Hints
 import org.geotools.geometry.DirectPosition2D
+import org.geotools.referencing.GeodeticCalculator
 import org.geotools.temporal.`object`.{DefaultPosition, DefaultInstant, DefaultPeriod}
 import org.geotools.util.{Converter, ConverterFactory}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.temporal.Instant
-import org.geotools.referencing.GeodeticCalculator
-import org.geotools.feature.simple.SimpleFeatureImpl
 
 object Conversions {
 
@@ -73,18 +72,6 @@ object Conversions {
   }
 
   implicit def toRichGeometry(geom: Geometry) = new RichGeometry(geom)
-
-//  class RichSimpleFeature(val sf: SimpleFeature) extends SimpleFeatureImpl(sf.getAttributes, sf.getFeatureType, sf.getIdentifier) {
-//
-//    def bufferMeters(meters: Double) = {
-//      val geom = getDefaultGeometry.asInstanceOf[Geometry]
-//      geom.bufferMeters(meters)
-//    }
-//
-//
-//  }
-//
-//  implicit def toRichSimpleFeature(sf: SimpleFeature) = new RichSimpleFeature(sf)
 }
 
 class JodaConverterFactory extends ConverterFactory {
