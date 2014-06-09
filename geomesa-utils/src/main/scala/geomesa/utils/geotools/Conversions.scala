@@ -16,7 +16,7 @@
 
 package geomesa.utils.geotools
 
-import com.vividsolutions.jts.geom.Coordinate
+import com.vividsolutions.jts.geom.{GeometryFactory, Point, Geometry, Coordinate}
 import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.factory.Hints
 import org.geotools.geometry.DirectPosition2D
@@ -26,6 +26,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.temporal.Instant
+import org.geotools.referencing.GeodeticCalculator
+import org.geotools.feature.simple.SimpleFeatureImpl
 
 object Conversions {
 
@@ -53,6 +55,36 @@ object Conversions {
   implicit class RichCoord(val c: Coordinate) extends AnyVal {
     def toPoint2D = new DirectPosition2D(c.x, c.y)
   }
+
+  class RichGeometry(val geom: Geometry) {
+    val calc = new GeodeticCalculator()
+    val geoFac = new GeometryFactory
+
+    def bufferMeters(meters: Double): Geometry = geom.buffer(metersToDegrees(meters, geom.getCentroid))
+
+    // TODO cache the metersToDegrees
+    def metersToDegrees(meters: Double, point: Point) = {
+      calc.setStartingGeographicPoint(point.getX, point.getY)
+      calc.setDirection(0, meters)
+      val dest2D = calc.getDestinationGeographicPoint
+      val destPoint = geoFac.createPoint(new Coordinate(dest2D.getX, dest2D.getY))
+      point.distance(destPoint)
+    }
+  }
+
+  implicit def toRichGeometry(geom: Geometry) = new RichGeometry(geom)
+
+//  class RichSimpleFeature(val sf: SimpleFeature) extends SimpleFeatureImpl(sf.getAttributes, sf.getFeatureType, sf.getIdentifier) {
+//
+//    def bufferMeters(meters: Double) = {
+//      val geom = getDefaultGeometry.asInstanceOf[Geometry]
+//      geom.bufferMeters(meters)
+//    }
+//
+//
+//  }
+//
+//  implicit def toRichSimpleFeature(sf: SimpleFeature) = new RichSimpleFeature(sf)
 }
 
 class JodaConverterFactory extends ConverterFactory {
