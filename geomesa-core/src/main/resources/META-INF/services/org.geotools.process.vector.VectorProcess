@@ -1,2 +1,3 @@
 geomesa.core.process.tube.TubeSelect
 geomesa.core.process.proximity.FastProximitySearch
+geomesa.core.process.query.GeomesaQuery

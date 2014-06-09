@@ -20,6 +20,7 @@ import org.joda.time.Interval
 import org.opengis.feature.simple.SimpleFeatureType
 import scala.collection.JavaConversions._
 import scala.util.Random
+import org.apache.log4j.Logger
 
 object IndexQueryPlanner {
   val iteratorPriority_RowRegex                       = 0
@@ -35,6 +36,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                              schema:String,
                              featureType: SimpleFeatureType,
                              featureEncoder: SimpleFeatureEncoder) {
+
+  private val log = Logger.getLogger(classOf[IndexQueryPlanner])
 
   def buildFilter(poly: Polygon, interval: Interval): KeyPlanningFilter =
     (IndexSchema.somewhere(poly), IndexSchema.somewhen(interval)) match {
@@ -98,6 +101,15 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
     // set up row ranges and regular expression filter
     planQuery(bs, filter)
+
+    if(log.isTraceEnabled) {
+      log.trace("Configuring batch scanner: ")
+      log.trace("Poly: "+ opoly.getOrElse("No poly"))
+      log.trace("Interval: " + oint.getOrElse("No interval"))
+      log.trace("Filter: " + Option(filter).getOrElse("No Filter"))
+      log.trace("ECQL: " + Option(ecql).getOrElse("No ecql"))
+      log.trace("Query: " + Option(query).getOrElse("no query"))
+    }
 
     // Configure STII
     configureSpatioTemporalIntersectingIterator(bs, opoly, oint)

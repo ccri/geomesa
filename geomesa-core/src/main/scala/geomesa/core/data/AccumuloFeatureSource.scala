@@ -17,6 +17,9 @@
 package geomesa.core.data
 
 import collection.JavaConversions._
+import geomesa.core.process.proximity.FastProximityVisitor
+import geomesa.core.process.query.GeomesaQueryVisitor
+import geomesa.core.process.tube.TubeVisitor
 import org.geotools.data._
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureCollection}
 import org.geotools.feature.visitor.{BoundsVisitor, MaxVisitor, MinVisitor}
@@ -26,8 +29,6 @@ import org.opengis.feature.FeatureVisitor
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.Filter
 import org.opengis.util.ProgressListener
-import geomesa.core.process.tube.TubeVisitor
-import geomesa.core.process.proximity.FastProximityVisitor
 
 trait AccumuloAbstractFeatureSource extends AbstractFeatureSource {
   val dataStore: AccumuloDataStore
@@ -102,6 +103,7 @@ class AccumuloFeatureCollection(source: SimpleFeatureSource,
     case v: BoundsVisitor        => v.reset(ds.getBounds(query))
     case v: TubeVisitor          => v.setValue(v.tubeSelect(source, query))
     case v: FastProximityVisitor => v.setValue(v.proximitySearch(source, query))
+    case v: GeomesaQueryVisitor  => v.setValue(v.query(source, query))
     case _                       => super.accepts(visitor, progress)
   }
 
