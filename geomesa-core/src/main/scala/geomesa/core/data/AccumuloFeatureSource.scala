@@ -17,7 +17,7 @@
 package geomesa.core.data
 
 import collection.JavaConversions._
-import geomesa.core.process.proximity.FastProximityVisitor
+import geomesa.core.process.proximity.GeomesaProximityVisitor
 import geomesa.core.process.query.GeomesaQueryVisitor
 import geomesa.core.process.tube.TubeVisitor
 import org.geotools.data._
@@ -98,13 +98,13 @@ class AccumuloFeatureCollection(source: SimpleFeatureSource,
 
   override def accepts(visitor: FeatureVisitor, progress: ProgressListener) = visitor match {
     // TODO: implement min/max iterators
-    case v: MinVisitor           => v.setValue(new DateTime(2000,1,1,0,0).toDate)
-    case v: MaxVisitor           => v.setValue(new DateTime().toDate)
-    case v: BoundsVisitor        => v.reset(ds.getBounds(query))
-    case v: TubeVisitor          => v.setValue(v.tubeSelect(source, query))
-    case v: FastProximityVisitor => v.setValue(v.proximitySearch(source, query))
-    case v: GeomesaQueryVisitor  => v.setValue(v.query(source, query))
-    case _                       => super.accepts(visitor, progress)
+    case v: MinVisitor              => v.setValue(new DateTime(2000,1,1,0,0).toDate)
+    case v: MaxVisitor              => v.setValue(new DateTime().toDate)
+    case v: BoundsVisitor           => v.reset(ds.getBounds(query))
+    case v: TubeVisitor             => v.setValue(v.tubeSelect(source, query))
+    case v: GeomesaProximityVisitor => v.setValue(v.proximitySearch(source, query))
+    case v: GeomesaQueryVisitor     => v.setValue(v.query(source, query))
+    case _                          => super.accepts(visitor, progress)
   }
 
 }

@@ -19,7 +19,7 @@
 
                     <!-- query features with a filter -->
                     <wps:Execute version="1.0.0" service="WPS">
-                        <ows:Identifier>vec:GeomesaQuery</ows:Identifier>
+                        <ows:Identifier>vec:Query</ows:Identifier>
                         <wps:DataInputs>
                             <wps:Input>
                                 <ows:Identifier>features</ows:Identifier>
@@ -56,13 +56,13 @@
         </wps:Input>
         <wps:Input>
             <ows:Identifier>dataFeatures</ows:Identifier>
-            <wps:Reference mimeType="text/xml; subtype=gml/3.1.1"
+             <wps:Reference mimeType="text/xml; subtype=gml/3.1.1"
                            xlink:href="http://geoserver/wps" method="POST">
                 <wps:Body>
 
                     <!-- query features with a filter -->
                     <wps:Execute version="1.0.0" service="WPS">
-                        <ows:Identifier>vec:GeomesaQuery</ows:Identifier>
+                        <ows:Identifier>vec:Query</ows:Identifier>
                         <wps:DataInputs>
                             <wps:Input>
                                 <ows:Identifier>features</ows:Identifier>
@@ -81,8 +81,8 @@
                             <wps:Input>
                                 <ows:Identifier>filter</ows:Identifier>
                                 <wps:Data>
-                                    <!-- filter based on some attribute 'type' being equal to 'b' -->
-                                    <wps:ComplexData mimeType="text/plain; subtype=cql"><![CDATA[type <>'a']]></wps:ComplexData>
+                                    <wps:ComplexData mimeType="text/plain; subtype=cql">
+                                        <![CDATA[type <>'a']]></wps:ComplexData>
                                 </wps:Data>
                             </wps:Input>
                         </wps:DataInputs>

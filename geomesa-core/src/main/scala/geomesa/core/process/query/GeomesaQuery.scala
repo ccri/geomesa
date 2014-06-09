@@ -56,9 +56,10 @@ class GeomesaQueryVisitor( features: SimpleFeatureCollection,
 
   private val log = Logger.getLogger(classOf[GeomesaQueryVisitor])
 
-  val manualVisitResults = new DefaultFeatureCollection()
+  val manualVisitResults = new DefaultFeatureCollection(null, features.getSchema)
   val ff  = CommonFactoryFinder.getFilterFactory2
 
+  // Called for non AccumuloFeactureCollections
   def visit(feature: Feature): Unit = {
     val sf = feature.asInstanceOf[SimpleFeature]
     if(filter.evaluate(sf)) {
@@ -66,7 +67,7 @@ class GeomesaQueryVisitor( features: SimpleFeatureCollection,
     }
   }
 
-  var resultCalc: GeomesaQueryResult = new GeomesaQueryResult(new EmptyFeatureCollection(features.getSchema))
+  var resultCalc: GeomesaQueryResult = new GeomesaQueryResult(manualVisitResults)
   override def getResult: CalcResult = resultCalc
 
   def setValue(r: SimpleFeatureCollection) = resultCalc = GeomesaQueryResult(r)

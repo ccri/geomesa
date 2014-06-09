@@ -1,5 +1,6 @@
 package geomesa.core.index
 
+import IndexQueryPlanner._
 import com.vividsolutions.jts.geom.Polygon
 import geomesa.core.data._
 import geomesa.core.index.QueryHints._
@@ -9,9 +10,9 @@ import java.util.Map.Entry
 import java.util.{Iterator => JIterator}
 import org.apache.accumulo.core.client.{IteratorSetting, BatchScanner}
 import org.apache.accumulo.core.data.{Value, Key}
-import org.apache.accumulo.core.iterators.Combiner
 import org.apache.accumulo.core.iterators.user.RegExFilter
 import org.apache.hadoop.io.Text
+import org.apache.log4j.Logger
 import org.geotools.data.{DataUtilities, Query}
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.text.ecql.ECQL
@@ -20,7 +21,6 @@ import org.joda.time.Interval
 import org.opengis.feature.simple.SimpleFeatureType
 import scala.collection.JavaConversions._
 import scala.util.Random
-import org.apache.log4j.Logger
 
 object IndexQueryPlanner {
   val iteratorPriority_RowRegex                       = 0
@@ -28,8 +28,6 @@ object IndexQueryPlanner {
   val iteratorPriority_SpatioTemporalIterator         = 200
   val iteratorPriority_SimpleFeatureFilteringIterator = 300
 }
-
-import IndexQueryPlanner._
 
 case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                              cfPlanner: ColumnFamilyPlanner,
