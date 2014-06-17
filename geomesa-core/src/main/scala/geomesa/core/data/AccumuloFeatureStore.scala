@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.{Reducer, Job}
-import org.apache.log4j.Logger
 import org.geotools.data._
 import org.geotools.data.store._
 import org.geotools.feature._
@@ -49,10 +48,7 @@ import scala.collection.JavaConverters._
 
 class AccumuloFeatureStore(val dataStore: AccumuloDataStore, val featureName: String)
     extends AbstractFeatureStore with AccumuloAbstractFeatureSource {
-  private val log = Logger.getLogger(classOf[AccumuloFeatureStore])
-
   override def addFeatures(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]): JList[FeatureId] = {
-    log.info("Adding features from store type " + collection.getClass + " of size " + collection.size)
     writeBounds(collection.getBounds)
     super.addFeatures(collection)
   }

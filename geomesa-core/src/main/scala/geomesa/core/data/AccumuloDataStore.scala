@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.{Key, Mutation, Value, Range}
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor
 import org.apache.accumulo.core.iterators.user.VersioningIterator
 import org.apache.hadoop.io.Text
-import org.apache.log4j.Logger
 import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureSource
 import org.geotools.factory.Hints
@@ -60,8 +59,6 @@ class AccumuloDataStore(val connector: Connector,
                         val indexSchemaFormat: String = "DEFAULT",
                         val featureEncoding: FeatureEncoding = FeatureEncoding.AVRO)
   extends AbstractDataStore(true) {
-
-  private val log = Logger.getLogger(classOf[AccumuloDataStore])
 
   private def buildDefaultSchema(name: String) =
     s"%~#s%99#r%${name}#cstr%0,3#gh%yyyyMMdd#d::%~#s%3,2#gh::%~#s%#id"
@@ -165,10 +162,8 @@ class AccumuloDataStore(val connector: Connector,
   }
 
   // Read metadata using scheme:  ~METADATA_featureName metadataFieldName: insertionTimestamp metadataValue
-  private def readMetadataItem(featureName: String, colFam: Text): Option[String] = {
-    log.info("Readmetadata: " + colFam.toString + " class " + this.asInstanceOf[AnyRef].toString)
+  private def readMetadataItem(featureName: String, colFam: Text): Option[String] =
     metaDataCache.getOrElse((featureName, colFam), {
-      log.info("failed cache...reading " + colFam.toString)
       val batchScanner = createBatchScanner
       batchScanner.setRanges(List(new org.apache.accumulo.core.data.Range(s"${METADATA_TAG}_$featureName")))
       batchScanner.fetchColumn(colFam, EMPTY_COLQ)
@@ -180,7 +175,7 @@ class AccumuloDataStore(val connector: Connector,
 
       val iter = batchScanner.iterator
       val result =
-        if (iter.hasNext) Some(iter.next.getValue.toString)
+        if(iter.hasNext) Some(iter.next.getValue.toString)
         else None
 
       batchScanner.close()
@@ -188,7 +183,6 @@ class AccumuloDataStore(val connector: Connector,
       metaDataCache.put((featureName, colFam), result)
       result
     })
-  }
 
   // Returns a list of available layers.
   // This populates the list of layers which can be "published" by Geoserver.

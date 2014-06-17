@@ -8,6 +8,6 @@ public class GeomesaProcessFactory extends SpringBeanProcessFactory {
 
     public GeomesaProcessFactory(String title, String namespace, Class markerInterface) {
         super(title, namespace, markerInterface);
-        log.info("!!!Created GeomesaProcessFactory!!!");
+        log.info("Created GeomesaProcessFactory");
     }
 }
