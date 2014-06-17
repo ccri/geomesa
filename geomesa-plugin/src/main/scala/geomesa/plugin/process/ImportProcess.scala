@@ -1,6 +1,7 @@
 package geomesa.plugin.process
 
 import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import geomesa.plugin.wps.GeomesaProcess
 import org.apache.log4j.Logger
 import org.geoserver.catalog.{Catalog, CatalogBuilder, DataStoreInfo}
 import org.geotools.data.simple.SimpleFeatureCollection
@@ -13,7 +14,7 @@ import org.geotools.process.factory.{DescribeParameter, DescribeProcess, Describ
   title = "Geomesa Bulk Import",
   description = "Bulk Import data into Geomesa from another process with no transformations of data"
 )
-class ImportProcess(val catalog: Catalog) {
+class ImportProcess(val catalog: Catalog) extends GeomesaProcess{
 
   private val log = Logger.getLogger(classOf[ImportProcess])
 
