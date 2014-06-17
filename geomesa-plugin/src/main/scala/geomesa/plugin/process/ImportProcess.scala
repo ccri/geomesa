@@ -14,7 +14,7 @@ import org.geotools.process.factory.{DescribeParameter, DescribeProcess, Describ
   title = "Geomesa Bulk Import",
   description = "Bulk Import data into Geomesa from another process with no transformations of data"
 )
-class ImportProcess(val catalog: Catalog) extends GeomesaProcess{
+class ImportProcess(val catalog: Catalog) extends GeomesaProcess {
 
   private val log = Logger.getLogger(classOf[ImportProcess])
 
@@ -37,7 +37,7 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess{
 
                @DescribeParameter(
                  name = "name",
-                 description = "Name of the new featuretype/coverage")
+                 description = "Name of the new featureType or layer name")
                name: String
               ) = {
 
@@ -80,7 +80,7 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess{
     // query the actual SFT stored by the source
     val storedSft = ds.getSchema(sft.getName)
 
-    // Verify the layer doesn't already exist
+    // verify the layer doesn't already exist
     val layerName = s"${storeInfo.getWorkspace.getName}:${storedSft.getTypeName}"
     val layer = catalog.getLayerByName(layerName)
     if(layer != null) throw new ProcessException(s"Target layer $layerName already exists in the catalog")

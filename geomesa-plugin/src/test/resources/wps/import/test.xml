@@ -47,20 +47,20 @@
             <ows:Identifier>workspace</ows:Identifier>
             <wps:Data>
                 <!-- must already exist -->
-                <wps:LiteralData>accumulo</wps:LiteralData>
+                <wps:LiteralData>WORKSPACE_NAME_HERE</wps:LiteralData>
             </wps:Data>
         </wps:Input>
         <wps:Input>
             <ows:Identifier>store</ows:Identifier>
             <wps:Data>
                 <!-- must already exist -->
-                <wps:LiteralData>result_andrew</wps:LiteralData>
+                <wps:LiteralData>STORE_NAME_HERE</wps:LiteralData>
             </wps:Data>
         </wps:Input>
         <wps:Input>
             <ows:Identifier>name</ows:Identifier>
             <wps:Data>
-                <wps:LiteralData>import_test_4</wps:LiteralData>
+                <wps:LiteralData>LAYER_NAME_HERE</wps:LiteralData>
             </wps:Data>
         </wps:Input>
     </wps:DataInputs>
