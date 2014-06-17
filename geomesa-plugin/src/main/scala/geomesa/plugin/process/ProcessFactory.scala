@@ -17,11 +17,11 @@
 
 package geomesa.plugin.process
 
-import org.geotools.process.factory.AnnotatedBeanProcessFactory
-import org.geotools.text.Text
-import geomesa.core.process.tube.TubeSelectProcess
 import geomesa.core.process.proximity.ProximitySearchProcess
 import geomesa.core.process.query.QueryProcess
+import geomesa.core.process.tube.TubeSelectProcess
+import org.geotools.process.factory.AnnotatedBeanProcessFactory
+import org.geotools.text.Text
 
 class ProcessFactory
   extends AnnotatedBeanProcessFactory(
@@ -30,5 +30,9 @@ class ProcessFactory
     classOf[DensityProcess],
     classOf[TubeSelectProcess],
     classOf[ProximitySearchProcess],
-    classOf[QueryProcess])
+    classOf[QueryProcess],
+    classOf[ImportProcess]
+  ) {
+
+}
 
