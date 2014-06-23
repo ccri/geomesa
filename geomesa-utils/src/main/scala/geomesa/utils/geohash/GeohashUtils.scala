@@ -550,6 +550,12 @@ object GeohashUtils
     case _                                                   => targetGeom.convexHull
   }
 
+  def getAntemeridianSafeDecomposition(targetGeom: Geometry): Geometry = {
+    val easternHemiCoords = List[Coordinate](new Coordinate(180, 90), new Coordinate(0, 90), new Coordinate(0, -90), new Coordinate(180, -90), new Coordinate(180, 90))
+    val westernHemiCoords = List[Coordinate](new Coordinate(0, 90), new Coordinate(-180, 90), new Coordinate(-180, -90), new Coordinate(0, -90), new Coordinate(0, 90))
+    targetGeom.intersection(defaultGeometryFactory.createPolygon(easternHemiCoords.toArray)).union(targetGeom.intersection(defaultGeometryFactory.createPolygon(westernHemiCoords.toArray)))
+  }
+
   /**
    * Quick-and-dirty sieve that ensures that we don't waste time decomposing
    * single points.
