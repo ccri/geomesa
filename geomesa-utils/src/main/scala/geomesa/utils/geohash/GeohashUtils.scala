@@ -550,10 +550,45 @@ object GeohashUtils
     case _                                                   => targetGeom.convexHull
   }
 
+  /**
+   * Translate possible antemeridian-spanning geometry east until minimum lon [180, 540]
+   * (so that when you translate it 360 to the left and difference with whole earth BBOX you are guaranteed to not have any part west of whole earth)
+   * Recursively translate left 360 and union with intersection of itself and wholeEarthBBox until no part left outside
+   */
   def getAntemeridianSafeDecomposition(targetGeom: Geometry): Geometry = {
-    val easternHemiCoords = List[Coordinate](new Coordinate(180, 90), new Coordinate(0, 90), new Coordinate(0, -90), new Coordinate(180, -90), new Coordinate(180, 90))
-    val westernHemiCoords = List[Coordinate](new Coordinate(0, 90), new Coordinate(-180, 90), new Coordinate(-180, -90), new Coordinate(0, -90), new Coordinate(0, 90))
-    targetGeom.intersection(defaultGeometryFactory.createPolygon(easternHemiCoords.toArray)).union(targetGeom.intersection(defaultGeometryFactory.createPolygon(westernHemiCoords.toArray)))
+    val wholeEarthBBox = defaultGeometryFactory.createPolygon(List[Coordinate](new Coordinate(-180, 90), new Coordinate(-180, -90), new Coordinate(180, -90), new Coordinate(180, 90), new Coordinate(-180, 90)).toArray)
+
+    def recurseRight(geometryOutsideEarth: Geometry): Geometry = {
+      val translatedLeft = translateGeometry(geometryOutsideEarth, -360)
+      val wholeEarthPart = wholeEarthBBox.intersection(translatedLeft)
+      val outsidePart = translatedLeft.difference(wholeEarthBBox)
+      outsidePart.isEmpty match {
+        case true => { wholeEarthPart }
+        case false => { wholeEarthPart.union(recurseRight(outsidePart)) }
+      }
+    }
+
+    def translateCoords(coords: Array[Coordinate], degreesLonTranslation: Int): Array[Coordinate] = coords.map(c => new Coordinate(c.x + degreesLonTranslation, c.y))
+
+    def translateGeometry(geometry: Geometry, degreesLonTranslation: Int): Geometry = {
+      geometry match {
+        case p: Polygon => defaultGeometryFactory.createPolygon(translateCoords(geometry.getCoordinates, degreesLonTranslation))
+        case l: LineString => defaultGeometryFactory.createLineString(translateCoords(geometry.getCoordinates, degreesLonTranslation))
+        case m: MultiLineString => defaultGeometryFactory.createMultiLineString(
+          (for (i <- 0 until geometry.getNumGeometries) yield {
+            translateGeometry(geometry.getGeometryN(i), degreesLonTranslation)
+          }).toArray.map(f => f.asInstanceOf[LineString])
+        )
+        case m: MultiPolygon => defaultGeometryFactory.createMultiPolygon(
+          (for (i <- 0 until geometry.getNumGeometries) yield {
+            translateGeometry(geometry.getGeometryN(i), degreesLonTranslation)
+          }).toArray.map(f => f.asInstanceOf[Polygon])
+        )
+      }
+    }
+
+    val degreesLonTranslation = (((targetGeom.getEnvelopeInternal.getMinX + 180) / 360.0).floor * -360).toInt + 360
+    recurseRight(translateGeometry(targetGeom, degreesLonTranslation))
   }
 
   /**
@@ -568,8 +603,8 @@ object GeohashUtils
     targetGeom match {
       case point: Point => List(GeoHash(point.getX, point.getY, resolutions.maxBitsResolution))
       case _ => decomposeGeometry_(
-        if (relaxFit) getDecomposableGeometry(targetGeom)
-        else targetGeom, maxSize, resolutions)
+        if (relaxFit) getDecomposableGeometry(getAntemeridianSafeDecomposition(targetGeom))
+        else getAntemeridianSafeDecomposition(targetGeom), maxSize, resolutions)
     }
 
   /**
