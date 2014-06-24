@@ -40,7 +40,13 @@ class GeohashUtilsTest extends Specification {
   )
 
   val antemeridianSafeDecompositionTestData : Map[String, (String, String, String)] = Map(
-    "[LINE] no span" -> ("LINESTRING(50 50, 60 60)", "POINT(55 55)", "POINT(30 30)")
+    "[LINE] no span" -> ("LINESTRING(50 50, 60 60)", "POINT(55 55)", "POINT(30 30)"),
+    "[LINE] span" -> ("LINESTRING(-200 50, -160 60)", "POINT(170 52.5)", "POINT(30 30)"),
+    "[POLYGON] span" -> ("POLYGON((-170 80, -190 80, -190 70, -170 70, -170 80))", "POINT(175 75)", "POINT(165 75)"),
+    "[POLYGON] span transform right" -> ("POLYGON((190 80, 170 80, 170 70, 190 70, 190 80))", "POINT(-175 75)", "POINT(165 75)"),
+    "[POLYGON] no span" -> ("POLYGON((-170 80, 170 80, 170 70, -170 70, -170 80))", "POINT(165 75)", "POINT(175 75)"),
+    "[MULTILINE] span" -> ("MULTILINESTRING((-190 40, -170 40),(40 50, 45 55))", "POINT(175 40)", "POINT(165 40)"),
+    "[MULTIPOLYGON] span" -> ("MULTIPOLYGON(((-170 80, -190 80, -190 70, -170 70, -170 80)),((30 30, 30 40, 40 40, 40 30, 30 30)))", "POINT(175 75)", "POINT(30 25)")
   )
 
   // (reasonable) odd GeoHash resolutions
@@ -92,13 +98,15 @@ class GeohashUtilsTest extends Specification {
 
   "getAntemeridianSafeDecomposition" should {
     "work" in {
-      val data = antemeridianSafeDecompositionTestData("[LINE] no span")
-      val lineString = wkt2geom(data._1).asInstanceOf[LineString]
-      val includedPoint = wkt2geom(data._2).asInstanceOf[Point]
-      val excludedPoint = wkt2geom(data._3).asInstanceOf[Point]
-      val decomposed = getAntemeridianSafeDecomposition(lineString)
-      decomposed.contains(includedPoint) must equalTo(true)
-      decomposed.contains(excludedPoint) must equalTo(false)
+      antemeridianSafeDecompositionTestData.foreach { f => {
+        val data = f._2
+        val geom = wkt2geom(data._1)
+        val includedPoint = wkt2geom(data._2).asInstanceOf[Point]
+        val excludedPoint = wkt2geom(data._3).asInstanceOf[Point]
+        val decomposed = getAntemeridianSafeDecomposition(geom)
+        decomposed.contains(includedPoint) must equalTo(true)
+        decomposed.contains(excludedPoint) must equalTo(false)
+      }}
     }
   }
 }

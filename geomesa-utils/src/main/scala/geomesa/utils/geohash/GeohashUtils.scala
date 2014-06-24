@@ -584,6 +584,8 @@ object GeohashUtils
             translateGeometry(geometry.getGeometryN(i), degreesLonTranslation)
           }).toArray.map(f => f.asInstanceOf[Polygon])
         )
+        case m: MultiPoint => defaultGeometryFactory.createMultiPoint(translateCoords(geometry.getCoordinates, degreesLonTranslation))
+        case p: Point => defaultGeometryFactory.createPoint(translateCoords(geometry.getCoordinates, degreesLonTranslation)(0))
       }
     }
 
@@ -603,7 +605,7 @@ object GeohashUtils
     targetGeom match {
       case point: Point => List(GeoHash(point.getX, point.getY, resolutions.maxBitsResolution))
       case _ => decomposeGeometry_(
-        if (relaxFit) getDecomposableGeometry(getAntemeridianSafeDecomposition(targetGeom))
+        if (relaxFit) getDecomposableGeometry(targetGeom)
         else getAntemeridianSafeDecomposition(targetGeom), maxSize, resolutions)
     }
 
