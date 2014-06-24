@@ -267,17 +267,23 @@ class AccumuloDataStore(val connector: Connector, val tableName: String,
    * @param featureName
    * @return string with errors, or empty string
    */
-  private def checkMetadata(featureName: String) = {
-    // validate that visibilities and schema have not changed
-    val errors = List((SCHEMA_CF,         getIndexSchemaString(featureName)),
-                      (VISIBILITIES_CF,   writeVisibilities)).map {
-      case (cf, expectedValue) =>
-        val existing = readMetadataItem(featureName, cf).getOrElse("")
-        if (existing != expectedValue)
-          Some(s"$cf = '$expectedValue', should be '$existing'")
-        else
-           None
-    }.flatten.mkString(", ")
+  private def checkMetadata(featureName: String): String = {
+    val errors = new scala.collection.mutable.ArrayBuffer[String]
+
+    // validate that visibilities have not changed
+    if (readMetadataItem(featureName, VISIBILITIES_CF).getOrElse("") != writeVisibilities) {
+      val expected = readMetadataItem(featureName, VISIBILITIES_CF).getOrElse("")
+      errors.add(s"$VISIBILITIES_CF = '$writeVisibilities', should be '$expected'")
+    }
+
+    // validate the index schema
+    val indexSchema = getIndexSchemaString(featureName)
+    // if they did not specify a custom schema, just use the stored metadata
+    if (readMetadataItem(featureName, SCHEMA_CF).getOrElse("") != indexSchema
+          && indexSchemaFormat != "DEFAULT") {
+      val expected = readMetadataItem(featureName, SCHEMA_CF).getOrElse("")
+      errors.add(s"$SCHEMA_CF = '$indexSchema', should be '$expected'")
+    }
 
     // if no errors, check the feature encoding and update if needed
     if (errors.isEmpty) {
@@ -291,7 +297,7 @@ class AccumuloDataStore(val connector: Connector, val tableName: String,
       }
     }
 
-    errors
+    errors.mkString(", ")
   }
 
   /**
