@@ -249,13 +249,9 @@ class AccumuloDataStore(val connector: Connector, val tableName: String,
    */
   protected def validateMetadata(featureName: String): Unit = {
     readMetadataItem(featureName, ATTRIBUTES_CF)
-    .getOrElse(throw new RuntimeException(s"Feature '$featureName' has not been initialized. Please call 'createSchema' first."))
+      .getOrElse(throw new RuntimeException(s"Feature '$featureName' has not been initialized. Please call 'createSchema' first."))
 
-    val ok = validated.get(featureName).getOrElse({
-      val errors = checkMetadata(featureName)
-      validated.put(featureName, errors)
-      errors
-    })
+    val ok = validated.getOrElseUpdate(featureName, checkMetadata(featureName))
 
     if (!ok.isEmpty)
       throw new RuntimeException("Configuration of this DataStore does not match the schema values: " + ok)
@@ -268,36 +264,68 @@ class AccumuloDataStore(val connector: Connector, val tableName: String,
    * @return string with errors, or empty string
    */
   private def checkMetadata(featureName: String): String = {
-    val errors = new scala.collection.mutable.ArrayBuffer[String]
 
-    // validate that visibilities have not changed
-    if (readMetadataItem(featureName, VISIBILITIES_CF).getOrElse("") != writeVisibilities) {
-      val expected = readMetadataItem(featureName, VISIBILITIES_CF).getOrElse("")
-      errors.add(s"$VISIBILITIES_CF = '$writeVisibilities', should be '$expected'")
-    }
+    // check the different metadata options
+    val checks = List(checkVisibilitiesMetadata(featureName), checkSchemaMetadata(featureName))
 
-    // validate the index schema
-    val indexSchema = getIndexSchemaString(featureName)
-    // if they did not specify a custom schema, just use the stored metadata
-    if (readMetadataItem(featureName, SCHEMA_CF).getOrElse("") != indexSchema
-          && indexSchemaFormat != "DEFAULT") {
-      val expected = readMetadataItem(featureName, SCHEMA_CF).getOrElse("")
-      errors.add(s"$SCHEMA_CF = '$indexSchema', should be '$expected'")
-    }
+    val errors = checks.flatMap(e => e).mkString(", ")
 
     // if no errors, check the feature encoding and update if needed
     if (errors.isEmpty) {
-      // for feature encoding, we are more lenient - we will use whatever is stored in the table,
-      // or default to 'text' for backwards compatibility
-      if (readMetadataItem(featureName, FEATURE_ENCODING_CF).getOrElse("").isEmpty) {
-        // default to 'text' encoding for backwards compatibility
-        val mutation = getMetadataMutation(featureName)
-        putMetadata(featureName, mutation, FEATURE_ENCODING_CF, FeatureEncoding.TEXT.toString)
-        writeMutations(mutation)
-      }
+      checkFeatureEncodingMetadata(featureName)
     }
 
-    errors.mkString(", ")
+    errors
+  }
+
+  /**
+   * Checks the visibility stored in the metadata table against the configuration of this data store.
+   *
+   * @param featureName
+   * @return
+   */
+  private def checkVisibilitiesMetadata(featureName: String): Option[String] = {
+    // validate that visibilities have not changed
+    val storedVisibilities = readMetadataItem(featureName, VISIBILITIES_CF).getOrElse("")
+    if (storedVisibilities != writeVisibilities)
+      Some(s"$VISIBILITIES_CF = '$writeVisibilities', should be '$storedVisibilities'")
+    else
+      None
+  }
+
+  /**
+   * Checks the schema stored in the metadata table against the configuration of this data store.
+   *
+   * @param featureName
+   * @return
+   */
+  private def checkSchemaMetadata(featureName: String): Option[String] = {
+    // validate the index schema
+    val configuredSchema = getIndexSchemaString(featureName)
+    val storedSchema = readMetadataItem(featureName, SCHEMA_CF).getOrElse("")
+    // if they did not specify a custom schema (e.g. indexSchemaFormat == DEFAULT), just use the
+    // stored metadata
+    if (storedSchema != configuredSchema && indexSchemaFormat != "DEFAULT")
+      Some(s"$SCHEMA_CF = '$configuredSchema', should be '$storedSchema'")
+    else
+      None
+  }
+
+  /**
+   * Checks the feature encoding in the metadata against the configuration of this data store.
+   *
+   * @param featureName
+   */
+  def checkFeatureEncodingMetadata(featureName: String): Unit = {
+    // for feature encoding, we are more lenient - we will use whatever is stored in the table,
+    // or default to 'text' for backwards compatibility
+    if (readMetadataItem(featureName, FEATURE_ENCODING_CF).getOrElse("").isEmpty) {
+      // if there is nothing in the table, it means the table was created with an older version of
+      // geomesa - we'll update the data in the table to be 1.0 compliant
+      val mutation = getMetadataMutation(featureName)
+      putMetadata(featureName, mutation, FEATURE_ENCODING_CF, FeatureEncoding.TEXT.toString)
+      writeMutations(mutation)
+    }
   }
 
   /**
