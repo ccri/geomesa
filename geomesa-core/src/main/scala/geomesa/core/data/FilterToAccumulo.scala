@@ -283,17 +283,19 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
     if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
       ff.and(acc, op)
     } else {
-      val startPoint = e2.evaluate(null, classOf[Point])
-      val distance = op.getDistance
-      val distanceDegrees = GeometryUtils.distanceDegrees(startPoint, distance)
-
-      // Walk circle bounds for bounding box
-      spatialPredicate = GeometryUtils.bufferPoint(startPoint, distance)
+      // For now we are buffering by distanceDegrees which is an approximation
+      // of meters based on the bbox of the geometry. Buffering uses a JTS
+      // operation to create a buffered polygon used as the spatial predicate
+      val geometry = e2.evaluate(null, classOf[Geometry])
+      val distanceMeters = op.getDistance
+      val distanceDegrees = geometry.distanceDegrees(distanceMeters)
+      val bufferedPoly = geometry.buffer(distanceDegrees).asInstanceOf[Polygon]
+      spatialPredicate = bufferedPoly
 
       val rewrittenFilter =
         ff.dwithin(
           ff.property(sft.getGeometryDescriptor.getLocalName),
-          ff.literal(startPoint),
+          ff.literal(geometry),
           distanceDegrees,
           "meters")
       ff.and(acc, rewrittenFilter)

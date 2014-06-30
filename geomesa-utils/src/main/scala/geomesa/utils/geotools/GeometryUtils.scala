@@ -16,7 +16,7 @@
 
 package geomesa.utils.geotools
 
-import com.vividsolutions.jts.geom.{Coordinate, Envelope, Point, Polygon}
+import com.vividsolutions.jts.geom._
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}
 import org.geotools.referencing.GeodeticCalculator
 import org.geotools.referencing.crs.DefaultGeographicCRS
@@ -82,4 +82,15 @@ object GeometryUtils {
     geoFactory.createPoint(new Coordinate(dest2D.getX, dest2D.getY))
   }
 
+  def maxDegrees(geom: Geometry, meters: Double) = {
+    val env = geom.getEnvelopeInternal
+    List(
+      (env.getMinX, env.getMinY),
+      (env.getMinX, env.getMaxY),
+      (env.getMaxX, env.getMinY),
+      (env.getMaxX, env.getMaxY)
+    ).map { tup =>
+      distanceDegrees(geoFactory.createPoint(new Coordinate(tup._1, tup._2)), meters)
+    }.max
+  }
 }
