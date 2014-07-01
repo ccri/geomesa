@@ -118,6 +118,18 @@ class DwithinFilterTest extends Specification {
 
     }
 
+    "handle a more complex LineString" in {
+      val line1 = WKTUtils.read("LINESTRING(39.99999 39.999999, 39.99999 40.99999, 39.99999 41.99999," +
+        "40.99999 41.99999, 41.99999 41.99999, 42.99999 41.99999, 43.999999 41.99999)")
+
+      val results = fs.getFeatures(ff.dwithin(ff.property("geom"), ff.literal(line1), 10, "meters"))
+      results.size should equalTo(7)
+
+      import geomesa.utils.geotools.Conversions._
+      val ids = results.features.map(_.getID)
+      ids.toList must containAllOf(List("40.40", "40.41", "40.42", "41.42", "42.42", "43.42", "44.42"))
+    }
+
     "properly query Polygon geometries" in {
       val poly = WKTUtils.read("POLYGON ((47.99999999986587 47.99999999991005, 48.00000000013412 47.99999999991005, 48.00000000013412 48.000000000089955, 47.99999999986587 48.000000000089955, 47.99999999986587 47.99999999991005))").asInstanceOf[Polygon]
 
@@ -150,6 +162,8 @@ class DwithinFilterTest extends Specification {
       val results = fs.getFeatures(ff.dwithin(ff.property("geom"), ff.literal(multiPoly), 10, "meters"))
       results.features must throwA[IllegalArgumentException]
     }
+
+
   }
 
 

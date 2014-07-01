@@ -311,7 +311,7 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
           ff.property(sft.getGeometryDescriptor.getLocalName),
           ff.literal(geometry),
           distanceDegrees,
-          "meters")
+          "meters") // hack - it will actually use degrees but CQL forces another unit
       ff.and(acc, rewrittenFilter)
     }
   }
