@@ -16,28 +16,28 @@
 
 package geomesa.core.data
 
-import FilterToAccumulo._
-import collection.JavaConversions._
 import com.vividsolutions.jts.geom._
+import geomesa.core.data.FilterToAccumulo._
 import geomesa.core.index
 import geomesa.utils.filters.Filters._
 import geomesa.utils.geometry.Geometry._
 import geomesa.utils.geotools.Conversions._
-import geomesa.utils.geotools.GeometryUtils
 import geomesa.utils.time.Time._
 import org.geotools.data.Query
 import org.geotools.filter.visitor.SimplifyingFilterVisitor
-import org.geotools.geometry.jts.{JTSFactoryFinder, JTS}
-import org.geotools.temporal.`object`.{DefaultPosition, DefaultInstant}
+import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}
+import org.geotools.temporal.`object`.{DefaultInstant, DefaultPosition}
 import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.{DateTimeZone, DateTime, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter._
 import org.opengis.filter.expression._
 import org.opengis.filter.spatial._
 import org.opengis.filter.temporal._
-import org.opengis.temporal.{Period => OGCPeriod, Instant}
+import org.opengis.temporal.{Instant, Period => OGCPeriod}
+
+import scala.collection.JavaConversions._
 
 object FilterToAccumulo {
   val allTime              = new Interval(0, Long.MaxValue)
@@ -283,14 +283,28 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
     if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
       ff.and(acc, op)
     } else {
+      val geometry = e2.evaluate(null, classOf[Geometry])
+      def noop = {}
+      geometry match {
+        case _: Point => noop
+        case _: Polygon => noop
+        case _: LineString => noop
+        case other =>
+          throw new IllegalArgumentException(s"Unsupported DWITHIN geometry encountered: ${other.getClass.getName}")
+      }
+
       // For now we are buffering by distanceDegrees which is an approximation
       // of meters based on the bbox of the geometry. Buffering uses a JTS
       // operation to create a buffered polygon used as the spatial predicate
-      val geometry = e2.evaluate(null, classOf[Geometry])
       val distanceMeters = op.getDistance
       val distanceDegrees = geometry.distanceDegrees(distanceMeters)
-      val bufferedPoly = geometry.buffer(distanceDegrees).asInstanceOf[Polygon]
-      spatialPredicate = bufferedPoly
+      val bufferedGeom = geometry.buffer(distanceDegrees)
+
+      bufferedGeom match {
+        case p: Polygon => spatialPredicate = p
+        case gc: GeometryCollection =>
+          throw new IllegalStateException(s"Unsupported DWITHIN buffered geometry created: ${gc.getClass.getName}")
+      }
 
       val rewrittenFilter =
         ff.dwithin(
