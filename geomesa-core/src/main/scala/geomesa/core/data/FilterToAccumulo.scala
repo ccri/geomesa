@@ -276,6 +276,14 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
     }
   }
 
+  def validDWithinGeom(geom: Geometry) =
+    geom match {
+      case _: Point => true
+      case _: Polygon => true
+      case _: LineString => true
+      case _ => false
+    }
+
   def visitDWithin(op: DWithin, acc: Filter): Filter = {
     val e1 = op.getExpression1.asInstanceOf[PropertyName]
     val e2 = op.getExpression2.asInstanceOf[Literal]
@@ -284,14 +292,8 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
       ff.and(acc, op)
     } else {
       val geometry = e2.evaluate(null, classOf[Geometry])
-      def noop = {}
-      geometry match {
-        case _: Point => noop
-        case _: Polygon => noop
-        case _: LineString => noop
-        case other =>
-          throw new IllegalArgumentException(s"Unsupported DWITHIN geometry encountered: ${other.getClass.getName}")
-      }
+      if (!validDWithinGeom(geometry))
+        throw new IllegalArgumentException(s"Unsupported DWITHIN geometry: ${geometry.getClass.getName}")
 
       // For now we are buffering by distanceDegrees which is an approximation
       // of meters based on the bbox of the geometry. Buffering uses a JTS
@@ -302,8 +304,8 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
 
       bufferedGeom match {
         case p: Polygon => spatialPredicate = p
-        case gc: GeometryCollection =>
-          throw new IllegalStateException(s"Unsupported DWITHIN buffered geometry created: ${gc.getClass.getName}")
+        case _ =>
+          throw new IllegalStateException(s"Unsupported DWITHIN buffered geometry: ${bufferedGeom.getClass.getName}")
       }
 
       val rewrittenFilter =
