@@ -100,48 +100,66 @@ class ProximitySearchProcessTest extends Specification {
      }
    }
 
-//  "GeomesaProximityQuery" should {
-//    "work on non-accumulo feature sources" in {
-//      import geomesa.utils.geotools.Conversions._
-//      val p1 = getPoint(45, 45, 99)
-//      WKTUtils.read("POINT(45 45)").bufferMeters(99.1).intersects(p1) should be equalTo true
-//      WKTUtils.read("POINT(45 45)").bufferMeters(100).intersects(p1) should be equalTo true
-//      WKTUtils.read("POINT(45 45)").bufferMeters(98).intersects(p1) should be equalTo false
-//      val p2 = getPoint(46, 46, 99)
-//      val p3 = getPoint(47, 47, 99)
-//
-//
-//      val inputFeatures = new DefaultFeatureCollection(sftName, sft)
-//      List(1,2,3).zip(List(p1,p2,p3)).foreach  { case (i, p) =>
-//        val sf = SimpleFeatureBuilder.build(sft, List(), i.toString)
-//        sf.setDefaultGeometry(p)
-//        sf.setAttribute(geomesa.core.process.tube.DEFAULT_DTG_FIELD, new DateTime("2011-01-01T00:00:00Z", DateTimeZone.UTC).toDate)
-//        sf.setAttribute("type", "fake")
-//        sf.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
-//        inputFeatures.add(sf)
-//      }
-//
-//      val nonAccumulo = new DefaultFeatureCollection(sftName, sft)
-//
-//      List("a", "b").foreach { name =>
-//        List(1, 2, 3, 4).zip(List(45, 46, 47, 48)).foreach { case (i, lat) =>
-//          val sf = SimpleFeatureBuilder.build(sft, List(), name + i.toString)
-//          sf.setDefaultGeometry(WKTUtils.read(f"POINT($lat%d $lat%d)"))
-//          sf.setAttribute(geomesa.core.process.tube.DEFAULT_DTG_FIELD, new DateTime("2011-01-01T00:00:00Z", DateTimeZone.UTC).toDate)
-//          sf.setAttribute("type", name)
-//          sf.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
-//          nonAccumulo.add(sf)
-//        }
-//      }
-//
-//      nonAccumulo.size should be equalTo 8
-//      val prox = new ProximitySearchProcess
-//      prox.execute(inputFeatures, nonAccumulo, 30).size should be equalTo 0
-//      prox.execute(inputFeatures, nonAccumulo, 98).size should be equalTo 0
-//      prox.execute(inputFeatures, nonAccumulo, 99.0001).size should be equalTo 6
-//      prox.execute(inputFeatures, nonAccumulo, 100).size should be equalTo 6
-//      prox.execute(inputFeatures, nonAccumulo, 101).size should be equalTo 6
-//    }
-//  }
+  "GeomesaProximityQuery" should {
+    "work on non-accumulo feature sources" in {
+      import geomesa.utils.geotools.Conversions._
+      val p1 = getPoint(45, 45, 99)
+      WKTUtils.read("POINT(45 45)").bufferMeters(99.1).intersects(p1) should be equalTo true
+      WKTUtils.read("POINT(45 45)").bufferMeters(100).intersects(p1) should be equalTo true
+      WKTUtils.read("POINT(45 45)").bufferMeters(98).intersects(p1) should be equalTo false
+      val p2 = getPoint(46, 46, 99)
+      val p3 = getPoint(47, 47, 99)
+
+
+      val inputFeatures = new DefaultFeatureCollection(sftName, sft)
+      List(1,2,3).zip(List(p1,p2,p3)).foreach  { case (i, p) =>
+        val sf = SimpleFeatureBuilder.build(sft, List(), i.toString)
+        sf.setDefaultGeometry(p)
+        sf.setAttribute(geomesa.core.process.tube.DEFAULT_DTG_FIELD, new DateTime("2011-01-01T00:00:00Z", DateTimeZone.UTC).toDate)
+        sf.setAttribute("type", "fake")
+        sf.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
+        inputFeatures.add(sf)
+      }
+
+      val nonAccumulo = new DefaultFeatureCollection(sftName, sft)
+
+      List("a", "b").foreach { name =>
+        List(1, 2, 3, 4).zip(List(45, 46, 47, 48)).foreach { case (i, lat) =>
+          val sf = SimpleFeatureBuilder.build(sft, List(), name + i.toString)
+          sf.setDefaultGeometry(WKTUtils.read(f"POINT($lat%d $lat%d)"))
+          sf.setAttribute(geomesa.core.process.tube.DEFAULT_DTG_FIELD, new DateTime("2011-01-01T00:00:00Z", DateTimeZone.UTC).toDate)
+          sf.setAttribute("type", name)
+          sf.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
+          nonAccumulo.add(sf)
+        }
+      }
+
+      nonAccumulo.size should be equalTo 8
+      val prox = new ProximitySearchProcess
+      prox.execute(inputFeatures, nonAccumulo, 30).size should be equalTo 0
+      prox.execute(inputFeatures, nonAccumulo, 98).size should be equalTo 0
+      prox.execute(inputFeatures, nonAccumulo, 99.0001).size should be equalTo 6
+      prox.execute(inputFeatures, nonAccumulo, 100).size should be equalTo 6
+      prox.execute(inputFeatures, nonAccumulo, 101).size should be equalTo 6
+    }
+  }
+
+  "properly query on linestrings" in {
+    val sf = SimpleFeatureBuilder.build(sft, List(), "linestringfeature")
+    sf.setDefaultGeometry(WKTUtils.read("LINESTRING(45 45, 49 49)"))
+    sf.setAttribute(geomesa.core.process.tube.DEFAULT_DTG_FIELD, new DateTime("2011-01-01T00:00:00Z", DateTimeZone.UTC).toDate)
+    sf.setAttribute("type", "linestringType")
+    sf.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
+
+    val inputFeatures = new DefaultFeatureCollection(sftName, sft)
+    inputFeatures.add(sf)
+    inputFeatures.size should be equalTo 1
+
+    val dataFeatures = fs.getFeatures()
+
+    val prox = new ProximitySearchProcess
+    prox.execute(inputFeatures, dataFeatures, 100).size should be equalTo 8
+
+  }
 
  }
