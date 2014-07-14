@@ -43,6 +43,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                              schema:String,
                              featureType: SimpleFeatureType,
                              featureEncoder: SimpleFeatureEncoder) extends Logging {
+
   def buildFilter(poly: Polygon, interval: Interval): KeyPlanningFilter =
     (IndexSchema.somewhere(poly), IndexSchema.somewhen(interval)) match {
       case (None, None)       =>    AcceptEverythingFilter
