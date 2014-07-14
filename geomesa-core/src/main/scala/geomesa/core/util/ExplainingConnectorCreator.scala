@@ -1,10 +1,13 @@
 package geomesa.core.util
 
-import geomesa.core.data.AccumuloDataStore
+import geomesa.core.data.{AccumuloConnectorCreator, AccumuloDataStore}
+import org.apache.accumulo.core.client.mock.MockInstance
+import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.client.{Scanner, BatchScanner}
 import org.opengis.feature.simple.SimpleFeatureType
 
-class ExplainingDataStore(output: String => Unit = println) extends AccumuloDataStore(null, null, null, null) {
+
+class ExplainingConnectorCreator(output: String => Unit = println) extends AccumuloConnectorCreator {
   /**
    * Create a BatchScanner for the SpatioTemporal Index Table
    *
@@ -26,4 +29,6 @@ class ExplainingDataStore(output: String => Unit = println) extends AccumuloData
    * Create a BatchScanner to retrieve only Records (SimpleFeatures)
    */
   override def createRecordScanner(sft: SimpleFeatureType, numThreads: Int): BatchScanner = new ExplainingBatchScanner(output)
+
+  override def catalogTableFormat(sft: SimpleFeatureType): Boolean = true
 }
