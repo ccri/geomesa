@@ -298,7 +298,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     output(s"Scanning ST index table for feature type ${featureType.getTypeName}")
     val ecql = Option(ECQL.toCQL(rewrittenCQL))
 
-    val spatial = filterVisitor.spatialPredicate
+    val spatial: Polygon = filterVisitor.spatialPredicate
     val temporal = filterVisitor.temporalPredicate
 
     // TODO: Select only the geometry filters which involve the indexed geometry type.
@@ -314,7 +314,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       case _                 => Seq()
     }
 
-    val collectionToCover = geomsToCover match {
+    // NB: This is a GeometryCollection
+    val collectionToCover: Geometry = geomsToCover match {
       case Nil => IndexSchema.everywhere
       case seq: Seq[Geometry] => new GeometryCollection (geomsToCover.toArray, geomsToCover.head.getFactory)
     }
