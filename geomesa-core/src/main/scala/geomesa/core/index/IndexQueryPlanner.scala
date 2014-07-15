@@ -309,11 +309,15 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
     // standardize the two key query arguments:  polygon and date-range
     //val poly = netPolygon(spatial)
-    val geomsToCover: Seq[Geometry] = geomFilters.map { case gf: SpatialFilter =>
-        gf.geom
+    val geomsToCover: Seq[Geometry] = geomFilters.flatMap {
+      case gf: SpatialFilter => Seq(gf.geom)
+      case _                 => Seq()
     }
-    val collectionToCover = new GeometryCollection(geomsToCover.toArray, geomsToCover.head.getFactory)
 
+    val collectionToCover = geomsToCover match {
+      case Nil => IndexSchema.everywhere
+      case seq: Seq[Geometry] => new GeometryCollection (geomsToCover.toArray, geomsToCover.head.getFactory)
+    }
     // JNH: Need to construct a 'poly' bbox for the SFFI? for the DensityIterator?
     // JNH: This is kinda bad.  Try and think of some options.
     val poly = collectionToCover.getEnvelope.asInstanceOf[Polygon]

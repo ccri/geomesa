@@ -155,7 +155,7 @@ object IndexSchema extends RegexParsers {
     poly match {
       case null                 => None
       case p if p == everywhere => None
-      case g: Geometry           => Some(g)
+      case g: Geometry          => Some(g)
       case _                    => None
     }
 
