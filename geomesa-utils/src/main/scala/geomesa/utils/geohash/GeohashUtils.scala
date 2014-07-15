@@ -726,7 +726,7 @@ object GeohashUtils
    * we first decompose the polygon into its four (or fewer) best covering
    * GeoHash rectangles, and build up the list from those patches.
    *
-   * @param poly the query-polygon that must intersect candidate GeoHashes
+   * @param geom the query-polygon that must intersect candidate GeoHashes
    * @param offset how many of the left-most GeoHash characters to skip
    * @param bits how many of the (remaining) GeoHash characters to use
    * @param MAX_KEYS_IN_LIST the maximum allowable number of unique GeoHash
@@ -736,7 +736,7 @@ object GeohashUtils
    * @return the list of unique GeoHash sub-strings from 35-bits precision that
    *         intersect the target polygon; an empty list if there are too many
    */
-  def getUniqueGeohashSubstringsInPolygon(poly: Polygon,
+  def getUniqueGeohashSubstringsInPolygon(geom: Geometry,
                                           offset: Int,
                                           bits: Int,
                                           MAX_KEYS_IN_LIST: Int = Int.MaxValue): Seq[String] = {
@@ -744,7 +744,7 @@ object GeohashUtils
     // decompose the polygon (to avoid median-crossing polygons
     // that can require a HUGE amount of unnecessary work)
     val coverings = decomposeGeometry(
-      poly, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
+      geom, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
 
     // mutable!
     val memoized = MutableHashSet.empty[String]
@@ -761,7 +761,7 @@ object GeohashUtils
         else None
       }
       def canProceed = !subHash.isDefined ||
-        (memoized.size < maxKeys && !memoized.contains(subHash.get) && poly.intersects(bbox.geom))
+        (memoized.size < maxKeys && !memoized.contains(subHash.get) && geom.intersects(bbox.geom))
     }
 
     def consider(gh: GH, charsLeft: Int) {

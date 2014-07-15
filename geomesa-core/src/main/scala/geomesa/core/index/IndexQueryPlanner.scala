@@ -5,7 +5,7 @@ import java.util.Map.Entry
 
 import com.google.common.collect.Iterators
 import com.typesafe.scalalogging.slf4j.Logging
-import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.geom._
 import geomesa.core._
 import geomesa.core.data._
 import geomesa.core.filter._
@@ -43,27 +43,27 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                              schema: String,
                              featureType: SimpleFeatureType,
                              featureEncoder: SimpleFeatureEncoder) extends Logging {
-  def buildFilter(poly: Polygon, interval: Interval): KeyPlanningFilter =
-    (IndexSchema.somewhere(poly), IndexSchema.somewhen(interval)) match {
+  def buildFilter(geom: Geometry, interval: Interval): KeyPlanningFilter =
+    (IndexSchema.somewhere(geom), IndexSchema.somewhen(interval)) match {
       case (None, None)       =>    AcceptEverythingFilter
       case (None, Some(i))    =>
         if (i.getStart == i.getEnd) DateFilter(i.getStart)
         else                        DateRangeFilter(i.getStart, i.getEnd)
-      case (Some(p), None)    =>    SpatialFilter(poly)
+      case (Some(p), None)    =>    SpatialFilter(geom)
       case (Some(p), Some(i)) =>
         if (i.getStart == i.getEnd) SpatialDateFilter(p, i.getStart)
         else                        SpatialDateRangeFilter(p, i.getStart, i.getEnd)
     }
 
 
-  def netPolygon(poly: Polygon): Polygon = poly match {
-    case null => null
-    case p if p.covers(IndexSchema.everywhere) =>
-      IndexSchema.everywhere
-    case p if IndexSchema.everywhere.covers(p) => p
-    case _ => poly.intersection(IndexSchema.everywhere).
-      asInstanceOf[Polygon]
-  }
+//  def netPolygon(poly: Polygon): Polygon = poly match {
+//    case null => null
+//    case p if p.covers(IndexSchema.everywhere) =>
+//      IndexSchema.everywhere
+//    case p if IndexSchema.everywhere.covers(p) => p
+//    case _ => poly.intersection(IndexSchema.everywhere).
+//      asInstanceOf[Polygon]
+//  }
 
   def netInterval(interval: Interval): Interval = interval match {
     case null => null
@@ -308,12 +308,21 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     output(s"The geom filters are $geomFilters.")
 
     // standardize the two key query arguments:  polygon and date-range
-    val poly = netPolygon(spatial)
+    //val poly = netPolygon(spatial)
+    val geomsToCover: Seq[Geometry] = geomFilters.map { case gf: SpatialFilter =>
+        gf.geom
+    }
+    val collectionToCover = new GeometryCollection(geomsToCover.toArray, geomsToCover.head.getFactory)
+
+    // JNH: Need to construct a 'poly' bbox for the SFFI? for the DensityIterator?
+    // JNH: This is kinda bad.  Try and think of some options.
+    val poly = collectionToCover.getEnvelope.asInstanceOf[Polygon]
+
     val interval = netInterval(temporal)
 
     // figure out which of our various filters we intend to use
     // based on the arguments passed in
-    val filter = buildFilter(poly, interval)
+    val filter = buildFilter(collectionToCover, interval)
 
     val opoly: Option[Filter] = geomFilters match {
       case Nil => None

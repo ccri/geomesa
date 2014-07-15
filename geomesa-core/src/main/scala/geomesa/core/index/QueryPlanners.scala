@@ -17,7 +17,7 @@
 package geomesa.core.index
 
 import KeyUtils._
-import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.geom.{Geometry, Polygon}
 import geomesa.utils.CartesianProductIterable
 import geomesa.utils.geohash.{GeoHash, GeohashUtils}
 import org.joda.time.format.DateTimeFormatter
@@ -26,11 +26,11 @@ import org.joda.time.{DateTime, DateTimeZone}
 trait KeyPlanningFilter
 
 case object AcceptEverythingFilter extends KeyPlanningFilter
-case class SpatialFilter(poly: Polygon) extends KeyPlanningFilter
+case class SpatialFilter(geom: Geometry) extends KeyPlanningFilter
 case class DateFilter(dt:DateTime) extends KeyPlanningFilter
 case class DateRangeFilter(start:DateTime, end:DateTime) extends KeyPlanningFilter
-case class SpatialDateFilter(poly:Polygon, dt:DateTime) extends KeyPlanningFilter
-case class SpatialDateRangeFilter(poly:Polygon, start:DateTime, end:DateTime)
+case class SpatialDateFilter(geom: Geometry, dt:DateTime) extends KeyPlanningFilter
+case class SpatialDateRangeFilter(geom: Geometry, start:DateTime, end:DateTime)
   extends KeyPlanningFilter
 
 sealed trait KeyPlan {
@@ -271,13 +271,13 @@ trait ColumnFamilyPlanner {
 }
 
 trait GeoHashPlanner {
-  def polyToGeoHashes(poly: Polygon, offset: Int, bits: Int): Seq[String] =
-    GeohashUtils.getUniqueGeohashSubstringsInPolygon(poly, offset, bits, MAX_KEYS_IN_LIST)
+  def geomToGeoHashes(geom: Geometry, offset: Int, bits: Int): Seq[String] =
+    GeohashUtils.getUniqueGeohashSubstringsInPolygon(geom, offset, bits, MAX_KEYS_IN_LIST)
 
   // takes care of the case where overflow forces a return value
   // that is an empty list
-  def polyToPlan(poly: Polygon, offset: Int, bits: Int): KeyPlan = {
-    val subHashes = polyToGeoHashes(poly, offset, bits).sorted
+  def polyToPlan(geom: Geometry, offset: Int, bits: Int): KeyPlan = {
+    val subHashes = geomToGeoHashes(geom, offset, bits).sorted
     subHashes match {
       case subs if subs.size == 0 =>
         // if the list is empty, then there are probably too many 35-bit GeoHashes
@@ -285,7 +285,9 @@ trait GeoHashPlanner {
         // GeoHash endpoints of the entire range (which could encompass many
         // more GeoHashes than we wish, but can only be better than (or equal
         // to) a full-table scan)
-        val env = poly.getEnvelopeInternal
+
+        // JNH: Does this work for GeometryCollections?
+        val env = geom.getEnvelopeInternal
         val ghLL = GeoHash(env.getMinX, env.getMinY)
         val ghUR = GeoHash(env.getMaxX, env.getMaxY)
         KeyRange(ghLL.hash, ghUR.hash)
@@ -294,12 +296,12 @@ trait GeoHashPlanner {
   }
 
   def getKeyPlan(filter: KeyPlanningFilter, offset: Int, bits: Int) = filter match {
-    case SpatialFilter(poly) =>
-      polyToPlan(poly, offset, bits)
-    case SpatialDateFilter(poly,dt) =>
-      polyToPlan(poly, offset, bits)
-    case SpatialDateRangeFilter(poly,dtStart,dtEnd) =>
-      polyToPlan(poly, offset, bits)
+    case SpatialFilter(geom) =>
+      polyToPlan(geom, offset, bits)
+    case SpatialDateFilter(geom, dt) =>
+      polyToPlan(geom, offset, bits)
+    case SpatialDateRangeFilter(geom, dtStart, dtEnd) =>
+      polyToPlan(geom, offset, bits)
     case AcceptEverythingFilter => KeyAccept
     case _ => KeyInvalid // degenerate outcome
   }
