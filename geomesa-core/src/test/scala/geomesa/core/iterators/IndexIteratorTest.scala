@@ -123,6 +123,6 @@ class IndexIteratorTest extends SpatioTemporalIntersectingIteratorTest {
     //val q = new Query(TestData.featureType.getTypeName, tf)
     val q = new Query(TestData.featureType.getTypeName, tf, outputAttributes)
     val sfCollection = fs.getFeatures(q)
-    sfCollection.features().count(x => true)
+    sfCollection.features().size //.count(x => true)
   }
 }
