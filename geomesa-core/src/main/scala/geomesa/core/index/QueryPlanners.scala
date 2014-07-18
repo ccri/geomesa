@@ -273,7 +273,7 @@ trait ColumnFamilyPlanner {
 
 trait GeoHashPlanner extends Logging {
   def geomToGeoHashes(geom: Geometry, offset: Int, bits: Int): Seq[String] =
-    GeohashUtils.getUniqueGeohashSubstringsInPolygon(geom, offset, bits, MAX_KEYS_IN_LIST)
+    GeohashUtils.getUniqueGeohashSubstringsInPolygon(geom, offset, bits, MAX_KEYS_IN_LIST)._1
 
   // takes care of the case where overflow forces a return value
   // that is an empty list

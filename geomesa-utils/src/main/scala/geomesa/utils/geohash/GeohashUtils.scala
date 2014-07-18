@@ -484,7 +484,7 @@ object GeohashUtils
    * @return the list of GeoHash cells into which this polygon was decomposed
    *         under the given constraints
    */
-  private def decomposeGeometry_(targetGeom: Geometry,
+  def decomposeGeometry_(targetGeom: Geometry,
                                  maxSize: Int = 100,
                                  resolutions: ResolutionRange = new ResolutionRange(5,40,5)): List[GeoHash] = {
     lazy val geomCatcher = catching(classOf[Exception])
@@ -745,14 +745,22 @@ object GeohashUtils
   def getUniqueGeohashSubstringsInPolygon(geom: Geometry,
                                           offset: Int,
                                           bits: Int,
-                                          MAX_KEYS_IN_LIST: Int = Int.MaxValue): Seq[String] = {
+                                          MAX_KEYS_IN_LIST: Int = Int.MaxValue): (Seq[String], Seq[GeoHash]) = {
 
     logger.debug(s"In getUniqueGeohashSubstringsInPolygon $geom, $offset, $bits, $MAX_KEYS_IN_LIST")
     // decompose the polygon (to avoid median-crossing polygons
     // that can require a HUGE amount of unnecessary work)
-    val coverings = decomposeGeometry(
+    val coverings: List[GeoHash] = decomposeGeometry(
       geom, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
 
+    (getFoo(geom, offset, bits, MAX_KEYS_IN_LIST, coverings), coverings)
+  }
+
+  def getFoo(geom: Geometry,
+             offset: Int,
+             bits: Int,
+             MAX_KEYS_IN_LIST: Int = Int.MaxValue,
+             coverings: Seq[GeoHash]) = {
     // mutable!
     val memoized = MutableHashSet.empty[String]
 
