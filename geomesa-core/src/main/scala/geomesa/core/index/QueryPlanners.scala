@@ -17,6 +17,7 @@
 package geomesa.core.index
 
 import KeyUtils._
+import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Geometry, Polygon}
 import geomesa.utils.CartesianProductIterable
 import geomesa.utils.geohash.{GeoHash, GeohashUtils}
@@ -270,14 +271,16 @@ trait ColumnFamilyPlanner {
   def getColumnFamiliesToFetch(filter: KeyPlanningFilter): KeyPlan
 }
 
-trait GeoHashPlanner {
+trait GeoHashPlanner extends Logging {
   def geomToGeoHashes(geom: Geometry, offset: Int, bits: Int): Seq[String] =
     GeohashUtils.getUniqueGeohashSubstringsInPolygon(geom, offset, bits, MAX_KEYS_IN_LIST)
 
   // takes care of the case where overflow forces a return value
   // that is an empty list
   def polyToPlan(geom: Geometry, offset: Int, bits: Int): KeyPlan = {
+    logger.debug(s"Calling geomToGeoHashes $geom $offset $bits")
     val subHashes = geomToGeoHashes(geom, offset, bits).sorted
+    logger.debug(s"Geom to GeoHashes has returned: ${subHashes.size} subhashes")
     subHashes match {
       case subs if subs.size == 0 =>
         // if the list is empty, then there are probably too many 35-bit GeoHashes
@@ -310,7 +313,7 @@ trait GeoHashPlanner {
 case class GeoHashKeyPlanner(offset: Int, bits: Int) extends KeyPlanner with GeoHashPlanner {
   def getKeyPlan(filter: KeyPlanningFilter, output: String => Unit) = getKeyPlan(filter, offset, bits) match {
     case KeyList(keys) => {
-      output(s"GeoHashKeyPlanner: $keys")
+      output(s"GeoHashKeyPlanner is settings ${keys.size}: $keys")
       KeyListTiered(keys)
     }
     case KeyAccept => KeyAccept
@@ -410,10 +413,13 @@ case class DatePlanner(formatter: DateTimeFormatter) extends KeyPlanner {
 case class CompositePlanner(seq: Seq[KeyPlanner], sep: String) extends KeyPlanner {
   def getKeyPlan(filter: KeyPlanningFilter, output: String => Unit): KeyPlan = {
     val joined = seq.map(_.getKeyPlan(filter, output)).reduce(_.join(_, sep))
-    joined match {
+    output(s"Finished reducing/joining in the composite planner")
+    val ret = joined match {
       case kt:KeyTiered    => KeyRanges(kt.toRanges(sep))
       case KeyRegex(regex) => joined.join(KeyRegex(".*"), "")
       case _               => joined
     }
+    output("Leaving the Composite planner")
+    ret
   }
 }

@@ -24,6 +24,7 @@ import org.joda.time.Interval
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter._
 import org.opengis.filter.expression.{Literal, PropertyName}
+import org.opengis.filter.spatial.{BBOX, BinarySpatialOperator, SpatialOperator}
 
 import scala.collection.JavaConversions._
 import scala.util.Random
@@ -147,6 +148,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                       filterVisitor: FilterToAccumulo,
                       isDensity: Boolean,
                       output: String => Unit) = {
+    output("Running an attr id query")
 
     rewrittenFilter match {
       case isEqualTo: PropertyIsEqualTo if !isDensity =>
@@ -192,6 +194,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                        filter: PropertyIsLike,
                        filterVisitor: FilterToAccumulo) = {
 
+    println("More banananas")
+
     val expr = filter.getExpression
     val prop = expr match {
       case p: PropertyName => p.getPropertyName
@@ -220,6 +224,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                           derivedQuery: Query,
                           filter: PropertyIsEqualTo,
                           filterVisitor: FilterToAccumulo) = {
+    println("Banananas!")
 
     val one = filter.getExpression1
     val two = filter.getExpression2
@@ -296,6 +301,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                  filterVisitor: FilterToAccumulo,
                  output: String => Unit) = {
     output(s"Scanning ST index table for feature type ${featureType.getTypeName}")
+
     val ecql = Option(ECQL.toCQL(rewrittenCQL))
 
     val spatial: Polygon = filterVisitor.spatialPredicate
@@ -309,8 +315,18 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
     // standardize the two key query arguments:  polygon and date-range
     //val poly = netPolygon(spatial)
+    // JNH: I don't like this; I don't like this....
     val geomsToCover: Seq[Geometry] = geomFilters.flatMap {
-      case gf: SpatialFilter => Seq(gf.geom)
+      case bbox: BBOX => Seq(bbox.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry]))
+      case gf: BinarySpatialOperator =>
+        gf.getExpression1 match {
+          case g: Geometry => Seq(g)
+          case _           =>
+            gf.getExpression2 match {
+              case g: Geometry => Seq(g)
+              case l: Literal  => Seq(l.evaluate(null, classOf[Geometry]))
+            }
+        }
       case _                 => Seq()
     }
 
@@ -322,6 +338,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     // JNH: Need to construct a 'poly' bbox for the SFFI? for the DensityIterator?
     // JNH: This is kinda bad.  Try and think of some options.
     val poly = collectionToCover.getEnvelope.asInstanceOf[Polygon]
+
+    output(s"GeomsToCover $geomsToCover\nBounding poly: $poly")
 
     val interval = netInterval(temporal)
 
@@ -471,32 +489,40 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
   def planQuery(bs: BatchScanner, filter: KeyPlanningFilter, output: String => Unit): BatchScanner = {
     output(s"Planning query/configurating batch scanner: $bs")
     val keyPlan = keyPlanner.getKeyPlan(filter, output)
-    val columnFamilies = cfPlanner.getColumnFamiliesToFetch(filter)
 
+    output("Enumerating column families")
+    //val columnFamilies = cfPlanner.getColumnFamiliesToFetch(filter)
+
+    output(s"Starting to get ranges")
     // always try to use range(s) to remove easy false-positives
     val accRanges: Seq[org.apache.accumulo.core.data.Range] = keyPlan match {
       case KeyRanges(ranges) => ranges.map(r => new org.apache.accumulo.core.data.Range(r.start, r.end))
       case _ => Seq(new org.apache.accumulo.core.data.Range())
     }
     bs.setRanges(accRanges)
+    output(s"Set ${accRanges.size} ranges.")
 
+
+    output(s"Configuring row reg exs")
     // always try to set a RowID regular expression
     //@TODO this is broken/disabled as a result of the KeyTier
     keyPlan.toRegex match {
       case KeyRegex(regex) => configureRowRegexIterator(bs, regex)
       case _ => // do nothing
     }
+    output("sDone configuring row reg exs")
 
     // if you have a list of distinct column-family entries, fetch them
-    columnFamilies match {
-      case KeyList(keys) => {
-        output(s"Settings ${keys.size} col fams: $keys.")
-        keys.foreach { cf =>
-          bs.fetchColumnFamily(new Text(cf))
-        }
-      }
-      case _ => // do nothing
-    }
+//    columnFamilies match {
+//      case KeyList(keys) => {
+//        output(s"Settings ${keys.size} col fams: $keys.")
+//        keys.foreach { cf =>
+//          bs.fetchColumnFamily(new Text(cf))
+//        }
+//      }
+//      case _ => // do nothing
+//    }
+    output(s"Done configuring the BatchScanner")
 
     bs
   }

@@ -103,7 +103,9 @@ case class IndexSchema(encoder: IndexEncoder,
 
   // Writes out an explanation of how a query would be run.
   def explainQuery(q: Query, output: (String => Unit) = println) = {
-     planner.getIterator(new ExplainingConnectorCreator(output), featureType, q, output)
+    output(s"Explaining query: $q")
+    planner.getIterator(new ExplainingConnectorCreator(output), featureType, q, output).toList
+    output(s"Finished explaining query.")
   }
 
   // This function decodes/transforms that Iterator of Accumulo Key-Values into an Iterator of SimpleFeatures.

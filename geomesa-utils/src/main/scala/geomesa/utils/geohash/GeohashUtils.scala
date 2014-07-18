@@ -609,6 +609,9 @@ object GeohashUtils
         case m: MultiPolygon =>     translateMultiPolygon(geometry)
         case m: MultiPoint =>       translateMultiPoint(geometry)
         case p: Point =>            translatePoint(geometry)
+//        case gc: GeometryCollection =>
+//          val translatedGeoms = Array.tabulate(gc.getNumGeometries)(i => translateGeometry(gc.getGeometryN(i)))
+//          new GeometryCollection(translatedGeoms, gc.getGeometryN(0).getFactory)
       }
     }
 
@@ -633,6 +636,9 @@ object GeohashUtils
     // quick hit to avoid wasting time for single points
     targetGeom match {
       case point: Point => List(GeoHash(point.getX, point.getY, resolutions.maxBitsResolution))
+      case gc: GeometryCollection => (0 until gc.getNumGeometries).toList.flatMap { i =>
+       decomposeGeometry(gc.getGeometryN(i), maxSize, resolutions, relaxFit)
+      }
       case _ =>
         val safeGeom = getInternationalDateLineSafeGeometry(targetGeom)
         decomposeGeometry_(
@@ -741,6 +747,7 @@ object GeohashUtils
                                           bits: Int,
                                           MAX_KEYS_IN_LIST: Int = Int.MaxValue): Seq[String] = {
 
+    logger.debug(s"In getUniqueGeohashSubstringsInPolygon $geom, $offset, $bits, $MAX_KEYS_IN_LIST")
     // decompose the polygon (to avoid median-crossing polygons
     // that can require a HUGE amount of unnecessary work)
     val coverings = decomposeGeometry(

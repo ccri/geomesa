@@ -30,5 +30,5 @@ class ExplainingConnectorCreator(output: String => Unit = println) extends Accum
    */
   override def createRecordScanner(sft: SimpleFeatureType, numThreads: Int): BatchScanner = new ExplainingBatchScanner(output)
 
-  override def catalogTableFormat(sft: SimpleFeatureType): Boolean = true
+  override def catalogTableFormat(sft: SimpleFeatureType): Boolean = false
 }

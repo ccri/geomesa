@@ -15,6 +15,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.collection.immutable.IndexedSeq
 import scala.util.Random
 
 object TestData extends Logging {
@@ -39,7 +40,7 @@ object TestData extends Logging {
   val defaultDateTime = new DateTime(2011, 6, 1, 0, 0, 0, DateTimeZone.forID("UTC")).toDate
 
   // utility function that can encode multiple types of geometry
-  def createObject(id: String, wkt: String, dt: DateTime = null): List[(Key, Value)] = {
+  def createObject(id: String, wkt: String, dt: DateTime = new DateTime(defaultDateTime)): List[(Key, Value)] = {
     val geomType: String = wkt.split( """\(""").head
     val geometry: Geometry = WKTUtils.read(wkt)
     val entry =
@@ -102,6 +103,11 @@ object TestData extends Logging {
     Entry("POINT(50.2 30.6)", "118"),
     Entry("POINT(50.2 30.6)", "119")
   )
+
+  val allThePoints: IndexedSeq[Entry] = (-180 to 180).map(x => {
+    val y = x / 2.0
+    Entry(s"POINT($x 0.5)", s"id$x")
+  })
 
   // add some lines to this query, both qualifying and non-qualifying
   val lines = List(
