@@ -331,7 +331,7 @@ class FeatureWritersTest extends Specification {
         val map2013 = getMap[String,Int](getFeatures(sftName, fs, s"$attr DURING 2013-01-01T00:00:00Z/2013-12-31T00:00:00Z"),"name", "age")
         map2013.keySet.size should equalTo(0)
       }
-      /*
+
       "verify that start end times are excluded in filter" in {
         val ds = createStore
         val fs = ds.getFeatureSource(sftName).asInstanceOf[AccumuloFeatureStore]
@@ -342,7 +342,7 @@ class FeatureWritersTest extends Specification {
 
         val beforeFilter = getMap[String,Int](getFeatures(sftName, fs, s"$attr BEFORE 2014-01-02T00:00:00Z"), "name", "age")
         beforeFilter.keySet.size should equalTo(0)
-      }*/
+      }
 
       "ensure that feature IDs are not changed when spatiotemporal indexes change" in {
         val ds = createStore
