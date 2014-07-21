@@ -20,11 +20,11 @@ import collection.JavaConverters._
 import com.typesafe.scalalogging.slf4j.{Logger, Logging}
 import com.vividsolutions.jts.geom._
 import geomesa.core.data._
-import geomesa.core.index.{IndexEntry, IndexSchema, IndexEntryDecoder}
+import geomesa.core.index.{TemporalIndexCheck, IndexEntry, IndexSchema, IndexEntryDecoder}
 import geomesa.utils.geohash.GeoHash
 import geomesa.utils.text.WKTUtils
 import java.io.{DataInputStream, ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream}
-import java.util.{HashSet => JHashSet}
+import java.util.{HashSet => JHashSet, Date}
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data.{ArrayByteSequence, ByteSequence, Key, Range, Value}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
@@ -64,8 +64,6 @@ class SpatioTemporalIntersectingIterator
 
   protected var indexSource: SortedKeyValueIterator[Key, Value] = null
   protected var dataSource: SortedKeyValueIterator[Key, Value] = null
-  protected var interval: Interval = null
-  protected var filter: Filter = null
   protected var decoder: IndexEntryDecoder = null
   protected var topKey: Key = null
   protected var topValue: Value = null
@@ -73,7 +71,9 @@ class SpatioTemporalIntersectingIterator
   protected var nextValue: Value = null
   protected var curId: Text = null
 
-  protected var geomTestSF: SimpleFeature = null
+  protected var filter: org.opengis.filter.Filter = null
+  protected var testSimpleFeature: SimpleFeature = null
+  protected var dateAttributeName: Option[String] = None
 
   // Used by aggregators that extend STII
   protected var curFeature: SimpleFeature = null
@@ -95,19 +95,20 @@ class SpatioTemporalIntersectingIterator
     val featureType = DataUtilities.createType("DummyType", options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE))
     featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
 
+    dateAttributeName = TemporalIndexCheck.extractNewDTGFieldCandidate(featureType)
+    println(s"Date attribute: $dateAttributeName")
+
     val schemaEncoding = options.get(DEFAULT_SCHEMA_NAME)
     decoder = IndexSchema.getIndexEntryDecoder(schemaEncoding)
 
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
       val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
-
+      println(s"In STII with $filter")
       val sfb = new SimpleFeatureBuilder(featureType)
-      geomTestSF = sfb.buildFeature("test")
+      testSimpleFeature = sfb.buildFeature("test")
     }
-    if (options.containsKey(DEFAULT_INTERVAL_PROPERTY_NAME))
-      interval = SpatioTemporalIntersectingIterator.decodeInterval(
-        options.get(DEFAULT_INTERVAL_PROPERTY_NAME))
+
     if (options.containsKey(DEFAULT_CACHE_SIZE_NAME))
       maxInMemoryIdCacheEntries = options.get(DEFAULT_CACHE_SIZE_NAME).toInt
     deduplicate = IndexSchema.mayContainDuplicates(featureType)
@@ -147,35 +148,54 @@ class SpatioTemporalIntersectingIterator
         inMemoryIdCache.add(id)
     } else _ => Unit
 
-  /**
-   * There may not be a time-filter, in which case we should not bother checking
-   * every time, but should establish once (when first requested) the fastest
-   * version of validating an entry's time.
-   */
-  lazy val wrappedTimeFilter =
-    // if there is effectively no date/time-search, all records automatically qualify
-    IndexSchema.somewhen(interval) match {
-      case None    => (dtOpt: Option[Long]) => true
-      case Some(i) =>
-        (dtg: Option[Long]) =>
-          dtg.map(l => l >= interval.getStart.getMillis && l <= interval.getEnd.getMillis).getOrElse(true)
-    }
 
-  /**
-   * There may not be a geometry-filter, in which case we should not bother checking
-   * every time, but should establish once (when first requested) the fastest
-   * version of validating an entry's geometry.
-   */
-  lazy val wrappedGeomFilter: Geometry => Boolean = {
-    if (filter != null && geomTestSF != null) {
-      geom => {
-        geomTestSF.setDefaultGeometry(geom)
-        filter.evaluate(geomTestSF)
+  // NB: This is duplicated code from the STII.  Consider refactoring.
+  lazy val wrappedSTFilter: (Geometry, Option[Long]) => Boolean = {
+    if (filter != null && testSimpleFeature != null) {
+      (geom: Geometry, olong: Option[Long]) => {
+        testSimpleFeature.setDefaultGeometry(geom)
+        for {
+          dateAttribute <- dateAttributeName
+          long <- olong
+        } {
+          testSimpleFeature.setAttribute(dateAttribute, new Date(long))
+        }
+        filter.evaluate(testSimpleFeature)
       }
     } else {
-      _ => true
+      (_, _) => true
     }
   }
+
+//  /**
+//   * There may not be a time-filter, in which case we should not bother checking
+//   * every time, but should establish once (when first requested) the fastest
+//   * version of validating an entry's time.
+//   */
+//  lazy val wrappedTimeFilter =
+//    // if there is effectively no date/time-search, all records automatically qualify
+//    IndexSchema.somewhen(interval) match {
+//      case None    => (dtOpt: Option[Long]) => true
+//      case Some(i) =>
+//        (dtg: Option[Long]) =>
+//          dtg.map(l => l >= interval.getStart.getMillis && l <= interval.getEnd.getMillis).getOrElse(true)
+//    }
+//
+//  /**
+//   * There may not be a geometry-filter, in which case we should not bother checking
+//   * every time, but should establish once (when first requested) the fastest
+//   * version of validating an entry's geometry.
+//   */
+//  lazy val wrappedGeomFilter: Geometry => Boolean = {
+//    if (filter != null && geomTestSF != null) {
+//      geom => {
+//        geomTestSF.setDefaultGeometry(geom)
+//        filter.evaluate(geomTestSF)
+//      }
+//    } else {
+//      _ => true
+//    }
+//  }
 
   // data rows are the only ones with "SimpleFeatureAttribute" in the ColQ
   // (if we expand on the idea of separating out attributes more, we will need
@@ -228,13 +248,12 @@ class SpatioTemporalIntersectingIterator
         curFeature = decodedKey
         // the value contains the full-resolution geometry and time; use them
         lazy val decodedValue = IndexSchema.decodeIndexValue(indexSource.getTopValue)
-        lazy val isGeomAcceptable: Boolean = wrappedGeomFilter(decodedValue.geom)
-        lazy val isDateTimeAcceptable: Boolean = wrappedTimeFilter(decodedValue.dtgMillis)
+        lazy val isSTAcceptable = wrappedSTFilter(decodedValue.geom, decodedValue.dtgMillis)
 
         // see whether this box is acceptable
         // (the tests are ordered from fastest to slowest to take advantage of
         // short-circuit evaluation)
-        if (isIdUnique(decodedValue.id) && isDateTimeAcceptable && isGeomAcceptable) {
+        if (isIdUnique(decodedValue.id) && isSTAcceptable) {
           // stash this ID
           rememberId(decodedValue.id)
 

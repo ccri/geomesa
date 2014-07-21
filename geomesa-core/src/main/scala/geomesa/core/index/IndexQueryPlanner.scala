@@ -333,6 +333,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     val filter = buildFilter(poly, interval)
 
     val ofilter: Option[Filter] = filterListAsAnd(geomFilters ++ temporalFilters)
+    println(s"Ofilter: $ofilter")
 
     val oint  = IndexSchema.somewhen(interval)
 
