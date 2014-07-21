@@ -415,10 +415,9 @@ trait IteratorHelpers  {
     Attribute(attribute, value)
   }
 
-  def setOptions(cfg: IteratorSetting, schema: String, filter: Option[Filter], interval: Option[Interval]) {
+  def setOptions(cfg: IteratorSetting, schema: String, filter: Option[Filter]) {
     cfg.addOption(DEFAULT_SCHEMA_NAME, schema)
     filter.foreach { f => cfg.addOption(DEFAULT_FILTER_PROPERTY_NAME, ECQL.toCQL(f)) }
-    interval.foreach { int => cfg.addOption(DEFAULT_INTERVAL_PROPERTY_NAME, encodeInterval(int)) }
   }
 
   protected def encodeInterval(interval: Interval): String =
