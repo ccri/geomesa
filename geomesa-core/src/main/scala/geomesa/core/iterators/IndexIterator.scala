@@ -61,7 +61,9 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
     val featureType = DataUtilities.createType(this.getClass.getCanonicalName, simpleFeatureTypeSpec)
     featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
 
-    dateAttributeName = TemporalIndexCheck.extractNewDTGFieldCandidate(featureType)
+    println(s"Index Iterator: $featureType")
+
+    dateAttributeName = getDtgFieldName(featureType)
 
     // default to text if not found for backwards compatibility
     val encodingOpt = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
@@ -75,12 +77,9 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
       val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
-
-      val featureType = DataUtilities.createType("DummyType", options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE))
-      featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
-
       val sfb = new SimpleFeatureBuilder(featureType)
       testSimpleFeature = sfb.buildFeature("test")
+      println(s"In IndexIterator: $testSimpleFeature")
     }
 
     if (options.containsKey(DEFAULT_CACHE_SIZE_NAME))

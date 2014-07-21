@@ -95,8 +95,9 @@ class SpatioTemporalIntersectingIterator
     val featureType = DataUtilities.createType("DummyType", options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE))
     featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
 
-    dateAttributeName = TemporalIndexCheck.extractNewDTGFieldCandidate(featureType)
-    println(s"Date attribute: $dateAttributeName")
+    import geomesa.core.index._
+
+    dateAttributeName = getDtgFieldName(featureType)
 
     val schemaEncoding = options.get(DEFAULT_SCHEMA_NAME)
     decoder = IndexSchema.getIndexEntryDecoder(schemaEncoding)
@@ -104,7 +105,6 @@ class SpatioTemporalIntersectingIterator
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
       val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
-      println(s"In STII with $filter")
       val sfb = new SimpleFeatureBuilder(featureType)
       testSimpleFeature = sfb.buildFeature("test")
     }

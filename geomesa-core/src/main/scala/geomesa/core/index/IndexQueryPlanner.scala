@@ -333,7 +333,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     val filter = buildFilter(poly, interval)
 
     val ofilter: Option[Filter] = filterListAsAnd(geomFilters ++ temporalFilters)
-    println(s"Ofilter: $ofilter")
+    if(ofilter.isEmpty) logger.warn(s"Querying Accumulo without ST filter.")
 
     val oint  = IndexSchema.somewhen(interval)
 

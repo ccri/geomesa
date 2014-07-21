@@ -22,7 +22,7 @@ import java.util.{Map => JMap}
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Geometry
 import geomesa.core._
-import geomesa.core.index.{TemporalIndexCheck, IndexSchema}
+import geomesa.core.index._
 import geomesa.core.index.IndexSchema.DecodedIndexValue
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.iterators.{Filter, IteratorEnvironment, SortedKeyValueIterator}
@@ -64,7 +64,7 @@ class AttributeIndexFilteringIterator extends Filter with Logging {
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME) && options.containsKey(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)) {
       val featureType = DataUtilities.createType("DummyType", options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE))
       featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
-      dateAttributeName = TemporalIndexCheck.extractNewDTGFieldCandidate(featureType)
+      dateAttributeName = getDtgFieldName(featureType)
 
       val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
