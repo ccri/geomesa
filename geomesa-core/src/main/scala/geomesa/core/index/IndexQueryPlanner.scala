@@ -253,9 +253,10 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     val attrScanner: Scanner = acc.createAttrIdxScanner(featureType)
 
     val (geomFilters, otherFilters) = partitionGeom(derivedQuery.getFilter)
+    val (temporalFilters, nonSTFilters) = partitionTemporal(derivedQuery.getFilter)
 
-    output(s"The geom filters are $geomFilters.")
-    val ofilter: Option[Filter] = filterListAsAnd(geomFilters)
+    output(s"The geom filters are $geomFilters.\nThe temporal filters are $temporalFilters.")
+    val ofilter: Option[Filter] = filterListAsAnd(geomFilters ++ temporalFilters)
 
     configureAttributeIndexIterator(attrScanner, ofilter, filterVisitor, range)
 
@@ -283,9 +284,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                                       ofilter: Option[Filter],
                                       filterVisitor: FilterToAccumulo,
                                       range: AccRange) {
-    val filterOpt = ofilter.map { f => DEFAULT_FILTER_PROPERTY_NAME -> ECQL.toCQL(f)}
-    val dtgOpt = Option(filterVisitor.temporalPredicate).map(AttributeIndexFilteringIterator.INTERVAL_KEY -> _.toString)
-    val opts = List(filterOpt, dtgOpt).flatten.toMap
+    val opts = ofilter.map { f => DEFAULT_FILTER_PROPERTY_NAME -> ECQL.toCQL(f)}.toMap
 
     if(opts.nonEmpty) {
       val cfg = new IteratorSetting(iteratorPriority_AttributeIndexFilteringIterator,
