@@ -91,6 +91,7 @@ class ProximityVisitor( inputFeatures: SimpleFeatureCollection,
   def proximitySearch(source: SimpleFeatureSource, query: Query) = {
     log.info("Running Geomesa Proximity Search on source type "+source.getClass.getName)
     val combinedFilter = ff.and(query.getFilter, dwithinFilters("meters"))
+    println(s"**** $combinedFilter ****")
     source.getFeatures(combinedFilter)
   }
 

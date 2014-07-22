@@ -18,6 +18,7 @@ package geomesa.core.iterators
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.io.WKTReader
 import geomesa.core._
 import geomesa.core.data.{AccumuloDataStore, SimpleFeatureEncoderFactory}
 import geomesa.core.index._
@@ -93,7 +94,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification with Logging 
                           ecqlFilter: Option[String] = None,
                           dtFilter: Interval = null,
                           overrideGeometry: Boolean = false,
-                          doPrint: Boolean = true): Int = {
+                          doPrint: Boolean = false): Int = {
     // create the query polygon
     val polygon: Polygon = overrideGeometry match {
       case true => IndexSchema.everywhere
@@ -118,7 +119,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification with Logging 
     val tf = ECQL.toFilter(tfString)
 
     val q = new Query(TestData.featureType.getTypeName, tf)
-    runQuery(q, ds)
+    runQuery(q, ds, doPrint)
   }
 
   def runQuery(q: Query, ds: AccumuloDataStore, doPrint: Boolean = false, label: String = "test") = {
@@ -211,7 +212,7 @@ class SpatioTemporalIntersectingIteratorTest extends Specification with Logging 
 
       // run this query on regular data
       val numHits: Int = runMockAccumuloTest("mock-huge",
-        TestData.hugeData, Some(ecqlFilter))
+        TestData.hugeData, Some(ecqlFilter), doPrint = true)
 
       // validate the total number of query-hits
       numHits must be equalTo 81
@@ -229,6 +230,35 @@ class SpatioTemporalIntersectingIteratorTest extends Specification with Logging 
       )
       val numHits: Int = runMockAccumuloTest("mock-huge-time",
         TestData.hugeData, Some(ecqlFilter), dtFilter)
+
+      val w = new WKTReader
+      val qg = w.read(TestData.wktQuery)
+
+      val geomCount = TestData.hugeData.count { e =>
+          val eg = w.read(e.wkt)
+          qg.intersects(eg)
+      }
+      println(s"GeomCount - $geomCount")
+
+
+      val aug8 = TestData.hugeData.count { e =>
+        val dt: DateTime = e.dt
+        dt.compareTo(new DateTime(2010, 8, 8, 0, 0, 0, DateTimeZone.forID("UTC"))) > 0 &&
+          dt.compareTo(new DateTime(2010, 8, 8, 23, 59, 59, DateTimeZone.forID("UTC"))) < 0
+      }
+
+      println(s"Aug8 :$aug8")
+
+      val countAug8 = TestData.hugeData.count { e =>
+        val eg = w.read(e.wkt)
+        val dt: DateTime = e.dt
+        dt.compareTo(new DateTime(2010, 8, 8, 0, 0, 0, DateTimeZone.forID("UTC"))) > 0 &&
+        dt.compareTo(new DateTime(2010, 8, 8, 23, 59, 59, DateTimeZone.forID("UTC"))) < 0 &&
+        qg.intersects(eg)
+      }
+
+      println(s"***** $countAug8 ****")
+      countAug8 must be equalTo 81
 
       // validate the total number of query-hits
       numHits must be equalTo 81

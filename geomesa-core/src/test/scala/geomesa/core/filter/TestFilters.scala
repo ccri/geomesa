@@ -153,4 +153,9 @@ object TestFilters {
     "attr2 ILIKE '2nd1%' AND WITHIN(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))"
   )
 
+  val temporalPredicates = Seq(
+  "(not dtg after 2010-08-08T23:59:59Z) and (not dtg_end_time before 2010-08-08T00:00:00Z)",
+  "(dtg between '2010-08-08T00:00:00.000Z' AND '2010-08-08T23:59:59.000Z')"
+  )
+
 }
