@@ -124,6 +124,12 @@ object TestData extends Logging {
 
   val mediumData: Seq[Entry] = generateTestData(1000)
 
+  val ghCorners =
+    for {
+      x <- -180 to 180
+      y <- -90 to 90
+    } yield Entry(s"POINT($x.0 $y.0)", s"id$x$y")
+
   def generateTestData(num: Int) = {
     val rng = new Random(0)
     val minTime = new DateTime(2010, 6, 1, 0, 0, 0, DateTimeZone.forID("UTC")).getMillis
