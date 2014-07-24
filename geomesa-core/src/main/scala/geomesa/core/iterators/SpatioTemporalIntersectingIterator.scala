@@ -89,6 +89,8 @@ class SpatioTemporalIntersectingIterator
   def init(source: SortedKeyValueIterator[Key, Value],
            options: java.util.Map[String, String],
            env: IteratorEnvironment) {
+    //println(s"Creating a new STII $source $options $env")
+
     logger.trace("Initializing classLoader")
     SpatioTemporalIntersectingIterator.initClassLoader(logger)
 
@@ -114,6 +116,8 @@ class SpatioTemporalIntersectingIterator
 
     this.indexSource = source.deepCopy(env)
     this.dataSource = source.deepCopy(env)
+
+    //println(s"Finished initializing without blowing up ${env.getConfig}")
   }
 
   def hasTop = nextKey != null || topKey != null

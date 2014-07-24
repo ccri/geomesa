@@ -58,7 +58,7 @@
         <dist.dev>dev</dist.dev>
 
         <!-- testing properties -->
-        <maven.test.jvmargs>-Xms1g -Xmx2g -XX:MaxPermSize=1024m -XX:-UseGCOverheadLimit</maven.test.jvmargs>
+        <maven.test.jvmargs>-Xms1g -Xmx4g -XX:MaxPermSize=1024m -XX:-UseGCOverheadLimit -XX:+PrintGCDetails -agentpath:/opt/devel/yourKit/yjp/bin/linux-x86-64/libyjpagent.so -XX:+PrintTenuringDistribution</maven.test.jvmargs>
         <fork.mode>once</fork.mode>
         <avro.version>1.7.5</avro.version>
     </properties>

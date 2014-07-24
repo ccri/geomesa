@@ -64,6 +64,7 @@ class AccumuloDataStoreTest extends Specification {
       "auths"      -> "A,B,C",
       "tableName"  -> ("testwrite" + id),
       "useMock"    -> "true",
+      "indexSchemaFormat"    -> "%~#s%3#r%TEST#cstr%0,3#gh%yyyyMMdd#d::%~#s%3,2#gh::%~#s%#id",
       "featureEncoding" -> "avro")).asInstanceOf[AccumuloDataStore]
   }
 

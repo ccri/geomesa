@@ -76,7 +76,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
   def getIterator(acc: AccumuloConnectorCreator,
                   sft: SimpleFeatureType,
                   query: Query,
-                  output: ExplainerOutputType = log): CloseableIterator[Entry[Key,Value]] = {
+                  output: ExplainerOutputType = ExplainPrintln): CloseableIterator[Entry[Key,Value]] = {
     val ff = CommonFactoryFinder.getFilterFactory2
     val isDensity = query.getHints.containsKey(BBOX_KEY)
     val queries: Iterator[Query] =
@@ -487,9 +487,11 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     // if you have a list of distinct column-family entries, fetch them
     columnFamilies match {
       case KeyList(keys) => {
-        output(s"Settings ${keys.size} col fams: $keys.")
-        keys.foreach { cf =>
-          bs.fetchColumnFamily(new Text(cf))
+        if(keys.size < 900 ) {
+          output(s"Settings ${keys.size} col fams: $keys.")
+          keys.foreach { cf =>
+            bs.fetchColumnFamily(new Text(cf))
+          }
         }
       }
       case _ => // do nothing

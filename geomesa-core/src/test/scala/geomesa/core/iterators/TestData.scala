@@ -128,7 +128,8 @@ object TestData extends Logging {
     for {
       x <- -180 to 180
       y <- -90 to 90
-    } yield Entry(s"POINT($x.0 $y.0)", s"id$x$y")
+
+    } yield Entry(s"POINT($x.0 $y.0)", s"id${x}_$y")
 
   def generateTestData(num: Int) = {
     val rng = new Random(0)

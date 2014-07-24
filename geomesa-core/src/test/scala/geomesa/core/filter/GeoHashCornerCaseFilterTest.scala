@@ -38,9 +38,12 @@ object GeoHashCornerCaseFilterTest extends AccumuloDataStoreTest with Logging {
     ds.createSchema(sft)
     val fs: AccumuloFeatureStore = ds.getFeatureSource(sft.getTypeName).asInstanceOf[AccumuloFeatureStore]
     val coll = new DefaultFeatureCollection(sft.getTypeName)
-    coll.addAll(ghCornersFeatures.asJavaCollection)
 
-    logger.debug("Adding SimpleFeatures to feature store.")
+    val set = ghCornersFeatures.asJavaCollection
+
+    coll.addAll(set)
+
+    logger.debug(s"Adding ${coll.size} ${set.size} SimpleFeatures to feature store.")
     fs.addFeatures(coll)
     logger.debug("Done adding SimpleFeatures to feature store.")
 
@@ -74,8 +77,10 @@ trait GeoHashCornerCaseFilterTest extends Specification with Logging {
   def runTest = filters.map {s => compareFilter(s) }
 }
 
-@RunWith(classOf[JUnitRunner])
+//@RunWith(classOf[JUnitRunner])
 class CornerCaseTest extends Specification with GeoHashCornerCaseFilterTest {
+
+  sequential
 
   val ghbase32: Seq[Char] = "0123456789bcdefghjkmnpqrstuvwxyz"
 
@@ -89,7 +94,9 @@ class CornerCaseTest extends Specification with GeoHashCornerCaseFilterTest {
       poly <- fiveBitGHPolys
     } yield s"$p(geom, $poly)"
 
-  val filters = allFilters.take(1)
+  //val filters: Seq[String] = Seq("INTERSECTS(geom, POLYGON ((45 0, 45 45, 90 45, 90 0, 45 0)))")
+  val filters: Seq[String] = Seq("INTERSECTS(geom, POLYGON ((-180 -90, -180 -45, -135 -45, -135 -90, -180 -90)))")
+  //val filters: Seq[String] = Seq("INTERSECTS(geom, POLYGON ((-180 -90, -180 -85, -175 -85, -175 -90, -180 -90)))")  //allFilters.take(1)
 
   logger.debug("Starting to run test")
 

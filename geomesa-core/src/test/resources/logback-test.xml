@@ -38,8 +38,6 @@
     <!-- un-comment the following line to enable verbose log messages
          from the index query-planner; this can be helpful in debugging
          query plans -->
-    <!--
     <logger name="geomesa.core.index.IndexQueryPlanner" level="TRACE"/>
-    -->
 </configuration>
 

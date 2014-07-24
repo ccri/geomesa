@@ -16,6 +16,7 @@
 
 package geomesa.core.index
 
+import geomesa.core.index._
 import java.nio.ByteBuffer
 import java.util.Map.Entry
 
@@ -102,7 +103,7 @@ case class IndexSchema(encoder: IndexEncoder,
   }
 
   // Writes out an explanation of how a query would be run.
-  def explainQuery(q: Query, output: ExplainerOutputType = log) = {
+  def explainQuery(q: Query, output: ExplainerOutputType = ExplainPrintln) = {
      planner.getIterator(new ExplainingConnectorCreator(output), featureType, q, output)
   }
 
