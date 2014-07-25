@@ -17,41 +17,47 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import geomesa.core.filter.FilterUtils._
 
-@RunWith(classOf[JUnitRunner])
-class AllPredicateTest extends Specification with FilterTester {
-  val filters = goodSpatialPredicates
-  runTest
-}
-
-@RunWith(classOf[JUnitRunner])
-class AndGeomsPredicateTest extends FilterTester {
-  val filters = andedSpatialPredicates
-  runTest
-}
-
-@RunWith(classOf[JUnitRunner])
-class OrGeomsPredicateTest extends FilterTester {
-  val filters = oredSpatialPredicates
-  runTest
-}
-
-@RunWith(classOf[JUnitRunner])
-class BasicTemporalPredicateTest extends FilterTester {
-  val filters = temporalPredicates
-  runTest
-}
-
-@RunWith(classOf[JUnitRunner])
-class AttributePredicateTest extends FilterTester {
-  val filters = attributePredicates
-  runTest
-}
-
-@RunWith(classOf[JUnitRunner])
-class AttributeGeoPredicateTest extends FilterTester {
-  val filters = attributeAndGeometricPredicates
-  runTest
-}
+//@RunWith(classOf[JUnitRunner])
+//class AllPredicateTest extends Specification with FilterTester {
+//  sequential
+//  val filters = goodSpatialPredicates
+//  forall(filters){f => compareFilter(f)}
+//}
+//
+//@RunWith(classOf[JUnitRunner])
+//class AndGeomsPredicateTest extends FilterTester {
+//  sequential
+//  val filters = andedSpatialPredicates
+//  forall(filters){f => compareFilter(f)}
+//}
+//
+//@RunWith(classOf[JUnitRunner])
+//class OrGeomsPredicateTest extends FilterTester {
+//  sequential
+//  val filters = oredSpatialPredicates
+//  forall(filters){f => compareFilter(f)}
+//}
+//
+//@RunWith(classOf[JUnitRunner])
+//class BasicTemporalPredicateTest extends FilterTester {
+//  sequential
+//  val filters = temporalPredicates
+//  forall(filters){f => compareFilter(f)}
+//}
+//
+//@RunWith(classOf[JUnitRunner])
+//class AttributePredicateTest extends FilterTester {
+//  sequential
+//  val filters = attributePredicates
+//  forall(filters){f => compareFilter(f)}
+//}
+//
+//@RunWith(classOf[JUnitRunner])
+//class AttributeGeoPredicateTest extends FilterTester {
+//  sequential
+//  val filters = attributeAndGeometricPredicates
+//  forall(filters){f => compareFilter(f)}
+//}
 
 object FilterTester extends AccumuloDataStoreTest with Logging {
   val mediumDataFeatures: Seq[SimpleFeature] = mediumData.map(createSF)
@@ -86,15 +92,19 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
 
 import geomesa.core.filter.FilterTester._
 
-trait FilterTester extends Specification with Logging {
+@RunWith(classOf[JUnitRunner])
+class FilterTester extends Specification with Logging {
   lazy val fs = getFeatureStore
 
-  def filters: Seq[String]
+  //def filters: Seq[String]
+
+  def filterCount(f: Filter) = mediumDataFeatures.count(f.evaluate)
+  def queryCount(f: Filter) = fs.getFeatures(f).size
 
   def compareFilter(filter: Filter): Fragments = {
     logger.debug(s"Filter: ${ECQL.toCQL(filter)}")
 
-    s"The filter $filter" should {t
+    s"The filter $filter" should {
       "return the same number of results from filtering and querying" in {
         val filterCount = mediumDataFeatures.count(filter.evaluate)
         val queryCount = fs.getFeatures(filter).size
@@ -106,5 +116,13 @@ trait FilterTester extends Specification with Logging {
     }
   }
 
-  def runTest = filters.map {s => compareFilter(s) }
+  //forall(splitFilters.distinct){f => compareFilter(f)}
+    forall(goodSpatialPredicates){ f => filterCount(f) mustEqual queryCount(f) }
+
+//    forall(andedSpatialPredicates){f => compareFilter(f)}
+//    forall(oredSpatialPredicates){f => compareFilter(f)}
+//    forall(temporalPredicates){f => compareFilter(f)}
+//    forall(attributePredicates){f => compareFilter(f)}
+//    forall(attributeAndGeometricPredicates){f => compareFilter(f)}
+
 }
