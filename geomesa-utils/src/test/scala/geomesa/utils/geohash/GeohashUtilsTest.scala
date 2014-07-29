@@ -27,6 +27,8 @@ import com.typesafe.scalalogging.slf4j.Logging
 
 @RunWith(classOf[JUnitRunner])
 class GeohashUtilsTest extends Specification with Logging {
+
+  sequential
   val NO_VALUE: Int = -1
 
   // Turn this on for debugging purposes
