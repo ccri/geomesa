@@ -15,6 +15,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.collection.immutable.IndexedSeq
 import scala.util.Random
 
 object TestData extends Logging {
