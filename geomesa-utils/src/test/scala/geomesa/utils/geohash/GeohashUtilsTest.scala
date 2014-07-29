@@ -25,7 +25,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import com.typesafe.scalalogging.slf4j.Logging
 
-@RunWith(classOf[JUnitRunner])
+//@RunWith(classOf[JUnitRunner])
 class GeohashUtilsTest extends Specification with Logging {
   val NO_VALUE: Int = -1
 

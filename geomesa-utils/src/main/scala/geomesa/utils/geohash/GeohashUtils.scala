@@ -755,7 +755,6 @@ object GeohashUtils
   def getUniqueGeohashSubstringsInPolygon(geom: Geometry,
                                           offset: Int,
                                           bits: Int,
-<<<<<<< HEAD
                                           MAX_KEYS_IN_LIST: Int = Int.MaxValue,
                                           includeDots: Boolean = true): Seq[String] = {
 
@@ -764,10 +763,10 @@ object GeohashUtils
     val usedBits = bits * 5
     val allResolutions = ResolutionRange(0, Math.min(35, maxBits), 1)
     val maxKeys = Math.min(2 << usedBits, MAX_KEYS_IN_LIST)
-    val polyCentroid = poly.getCentroid
+    val polyCentroid = geom.getCentroid
 
     // find the smallest GeoHash you can that covers the target geometry
-    val ghMBR = getMinimumBoundingGeohash(poly, allResolutions)
+    val ghMBR = getMinimumBoundingGeohash(geom, allResolutions)
 
     // this case-class closes over properties of the current search
     case class BitPrefixes(prefixes: Seq[String]) {
@@ -797,49 +796,49 @@ object GeohashUtils
       def overflowed =
         if (usesAll) {
           (1 << usedBits) > maxKeys
-=======
-                                          MAX_KEYS_IN_LIST: Int = Int.MaxValue): (Seq[String], Seq[GeoHash]) = {
-
-    logger.debug(s"In getUniqueGeohashSubstringsInPolygon $geom, $offset, $bits, $MAX_KEYS_IN_LIST")
-    // decompose the polygon (to avoid median-crossing polygons
-    // that can require a HUGE amount of unnecessary work)
-    val coverings: List[GeoHash] = decomposeGeometry(
-      geom, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
-
-    (getFoo(geom, offset, bits, MAX_KEYS_IN_LIST, coverings), coverings)
-  }
-
-  def getFoo(geom: Geometry,
-             offset: Int,
-             bits: Int,
-             MAX_KEYS_IN_LIST: Int = Int.MaxValue,
-             coverings: Seq[GeoHash]) = {
-    // mutable!
-    val memoized = MutableHashSet.empty[String]
-
-    val maxKeys = Math.min(1 << (bits * 5), MAX_KEYS_IN_LIST)
-
-    // utility class only needed within this method
-    case class GH(gh: GeoHash) {
-      def hash = gh.hash
-      def bbox = gh.bbox
-      lazy val subHash: Option[String] = {
-        if (gh.hash.length >= (offset+bits))
-          Option(gh.hash.drop(offset).take(bits))
-        else None
-      }
-      def canProceed = !subHash.isDefined ||
-        (memoized.size < maxKeys && !memoized.contains(subHash.get) && geom.intersects(bbox.geom))
-    }
-
-    def consider(gh: GH, charsLeft: Int) {
-      if (memoized.size < maxKeys) {
-        if (charsLeft > 0) {
-          for {
-            newChar <- base32seq
-            newGH = GH(GeoHash(gh.hash + newChar)) if newGH.canProceed
-          } yield consider(newGH, charsLeft - 1)
->>>>>>> wip_pullGeoms
+//=======
+//                                          MAX_KEYS_IN_LIST: Int = Int.MaxValue): (Seq[String], Seq[GeoHash]) = {
+//
+//    logger.debug(s"In getUniqueGeohashSubstringsInPolygon $geom, $offset, $bits, $MAX_KEYS_IN_LIST")
+//    // decompose the polygon (to avoid median-crossing polygons
+//    // that can require a HUGE amount of unnecessary work)
+//    val coverings: List[GeoHash] = decomposeGeometry(
+//      geom, 4, ResolutionRange(0, Math.min(35, 5 * (offset + bits)), 5))
+//
+//    (getFoo(geom, offset, bits, MAX_KEYS_IN_LIST, coverings), coverings)
+//  }
+//
+//  def getFoo(geom: Geometry,
+//             offset: Int,
+//             bits: Int,
+//             MAX_KEYS_IN_LIST: Int = Int.MaxValue,
+//             coverings: Seq[GeoHash]) = {
+//    // mutable!
+//    val memoized = MutableHashSet.empty[String]
+//
+//    val maxKeys = Math.min(1 << (bits * 5), MAX_KEYS_IN_LIST)
+//
+//    // utility class only needed within this method
+//    case class GH(gh: GeoHash) {
+//      def hash = gh.hash
+//      def bbox = gh.bbox
+//      lazy val subHash: Option[String] = {
+//        if (gh.hash.length >= (offset+bits))
+//          Option(gh.hash.drop(offset).take(bits))
+//        else None
+//      }
+//      def canProceed = !subHash.isDefined ||
+//        (memoized.size < maxKeys && !memoized.contains(subHash.get) && geom.intersects(bbox.geom))
+//    }
+//
+//    def consider(gh: GH, charsLeft: Int) {
+//      if (memoized.size < maxKeys) {
+//        if (charsLeft > 0) {
+//          for {
+//            newChar <- base32seq
+//            newGH = GH(GeoHash(gh.hash + newChar)) if newGH.canProceed
+//          } yield consider(newGH, charsLeft - 1)
+//>>>>>>> wip_pullGeoms
         } else {
           entailedSize > maxKeys
         }
@@ -892,9 +891,9 @@ object GeohashUtils
     def considerCandidate(candidate: GeoHash): Seq[String] = {
       val bitString = candidate.toBinaryString
 
-      if (!poly.intersects(candidate.geom)) return Nil
+      if (!geom.intersects(candidate.geom)) return Nil
 
-      if (poly.covers(candidate.geom) || (bitString.size == maxBits)) {
+      if (geom.covers(candidate.geom) || (bitString.size == maxBits)) {
         Seq(bitString)
       } else {
         if (bitString.size < maxBits) {
