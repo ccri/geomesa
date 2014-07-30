@@ -66,14 +66,14 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     }
 
 
-//  def netPolygon(poly: Polygon): Polygon = poly match {
-//    case null => null
-//    case p if p.covers(IndexSchema.everywhere) =>
-//      IndexSchema.everywhere
-//    case p if IndexSchema.everywhere.covers(p) => p
-//    case _ => poly.intersection(IndexSchema.everywhere).
-//      asInstanceOf[Polygon]
-//  }
+  def netPolygon(poly: Polygon): Polygon = poly match {
+    case null => null
+    case p if p.covers(IndexSchema.everywhere) =>
+      IndexSchema.everywhere
+    case p if IndexSchema.everywhere.covers(p) => p
+    case _ => poly.intersection(IndexSchema.everywhere).
+      asInstanceOf[Polygon]
+  }
 
   def netInterval(interval: Interval): Interval = interval match {
     case null => null
@@ -331,7 +331,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 //    val rewrittenCQL = query.getFilter
 //    val ecql = Option(ECQL.toCQL(rewrittenCQL))
 
-//    val spatial: Polygon = filterVisitor.spatialPredicate
+    val spatial: Polygon = filterVisitor.spatialPredicate
     val temporal = filterVisitor.temporalPredicate
 
     // TODO: Select only the geometry filters which involve the indexed geometry type.
@@ -346,17 +346,22 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
     output(s"The geom filters are $geomFilters.\nThe temporal filters are $temporalFilters.")
 
+    val tweakedGeoms = geomFilters.map(tweakFilter)
+
     // standardize the two key query arguments:  polygon and date-range
     //val poly = netPolygon(spatial)
     // JNH: I don't like this; I don't like this....
-    val geomsToCover: Seq[Geometry] = geomFilters.flatMap {
-      case bbox: BBOX => Seq(bbox.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry]))
+    val geomsToCover: Seq[Geometry] = tweakedGeoms.flatMap {
+      case bbox: BBOX =>
+        val bboxPoly = bbox.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry])
+        Seq(getInternationalDateLineSafeGeometry(bboxPoly))
+        //Seq(bbox.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry]))
       case gf: BinarySpatialOperator =>
         gf.getExpression1 match {
-          case g: Geometry => Seq(g)
+          case g: Geometry => Seq(GeohashUtils.getInternationalDateLineSafeGeometry(g))
           case _           =>
             gf.getExpression2 match {
-              case g: Geometry => Seq(g)
+              case g: Geometry => Seq(GeohashUtils.getInternationalDateLineSafeGeometry(g))
               case l: Literal  => Seq(l.evaluate(null, classOf[Geometry]))
             }
         }
@@ -371,15 +376,21 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     }
     // JNH: Need to construct a 'poly' bbox for the SFFI? for the DensityIterator?
     // JNH: This is kinda bad.  Try and think of some options.
-    val poly = collectionToCover.getEnvelope.asInstanceOf[Polygon]
 
-    output(s"GeomsToCover $geomsToCover\nBounding poly: $poly")
+    //val poly = collectionToCover.getEnvelope.asInstanceOf[Polygon]
+
+
+
 
     val interval = netInterval(temporal)
 
     // figure out which of our various filters we intend to use
     // based on the arguments passed in
-    val filter = buildFilter(collectionToCover, interval)
+
+    val poly = netPolygon(spatial)
+    val filter = buildFilter(poly, interval)
+
+    output(s"GeomsToCover $geomsToCover\nBounding poly: $poly")
 
     val ofilter = filterListAsAnd(geomFilters ++ temporalFilters)
     if(ofilter.isEmpty) logger.warn(s"Querying Accumulo without ST filter.")
@@ -424,7 +435,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
   def tweakFilter(filter: Filter) = {
     filter match {
       case dw: DWithin => rewriteDwithin(dw)
-      case op: BBOX       => visitBinarySpatialOp(op)
+      case op: BBOX       => visitBBOX(op)
       case op: Within     => visitBinarySpatialOp(op)
       case op: Intersects => visitBinarySpatialOp(op)
       case op: Overlaps   => visitBinarySpatialOp(op)
@@ -447,20 +458,20 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
    // }
   }
 
-//  private def visitBBOX(op: BBOX): Filter = {
-//    val e1 = op.getExpression1.asInstanceOf[PropertyName]
-////    val attr = e1.evaluate(sft).asInstanceOf[AttributeDescriptor]
-////    if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
-////      ff.and(acc, op)
-////    } else {
-//      val e2 = op.getExpression2.asInstanceOf[Literal]
-//      val geom = addWayPointsToBBOX( e2.evaluate(null, classOf[Geometry]) )
-//      val safeGeometry = getInternationalDateLineSafeGeometry(geom)
-//      //spatialPredicate = safeGeometry.getEnvelope.asInstanceOf[Polygon]
-//      //op.getExpression2
-//      updateToIDLSafeFilter(op, safeGeometry)
-//    //}
-//  }
+  private def visitBBOX(op: BBOX): Filter = {
+    val e1 = op.getExpression1.asInstanceOf[PropertyName]
+//    val attr = e1.evaluate(sft).asInstanceOf[AttributeDescriptor]
+//    if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
+//      ff.and(acc, op)
+//    } else {
+      val e2 = op.getExpression2.asInstanceOf[Literal]
+      val geom = addWayPointsToBBOX( e2.evaluate(null, classOf[Geometry]) )
+      val safeGeometry = getInternationalDateLineSafeGeometry(geom)
+      //spatialPredicate = safeGeometry.getEnvelope.asInstanceOf[Polygon]
+      //op.getExpression2
+      updateToIDLSafeFilter(op, safeGeometry)
+    //}
+  }
 
 
   def updateToIDLSafeFilter(op: BinarySpatialOperator, geom: Geometry): Filter = geom match {
