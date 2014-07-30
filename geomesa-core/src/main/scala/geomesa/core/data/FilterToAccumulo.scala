@@ -336,7 +336,7 @@ class FilterToAccumulo(sft: SimpleFeatureType) {
     }
   }
 
-  def updateToIDLSafeFilter(op: BinarySpatialOperator, acc: Filter, geom: Geometry) = geom match {
+  def updateToIDLSafeFilter(op: BinarySpatialOperator, acc: Filter, geom: Geometry): Filter = geom match {
     case p: Polygon =>
       if (!geom.isRectangle) ff.and(acc, op)
       else acc

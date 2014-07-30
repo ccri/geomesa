@@ -1,5 +1,9 @@
 package geomesa.core.index
 
+import geomesa.core.filter.ff
+import geomesa.utils.filters.Filters._
+import geomesa.utils.geohash.GeohashUtils
+import geomesa.utils.geohash.GeohashUtils._
 import java.nio.charset.StandardCharsets
 import java.util.Map.Entry
 
@@ -23,11 +27,11 @@ import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.joda.time.Interval
+import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter._
 import org.opengis.filter.expression.{Literal, PropertyName}
-import org.opengis.filter.spatial.DWithin
-import org.opengis.filter.spatial.{BBOX, BinarySpatialOperator, SpatialOperator}
+import org.opengis.filter.spatial._
 
 import scala.collection.JavaConversions._
 import scala.util.Random
@@ -327,7 +331,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 //    val rewrittenCQL = query.getFilter
 //    val ecql = Option(ECQL.toCQL(rewrittenCQL))
 
-    val spatial: Polygon = filterVisitor.spatialPredicate
+//    val spatial: Polygon = filterVisitor.spatialPredicate
     val temporal = filterVisitor.temporalPredicate
 
     // TODO: Select only the geometry filters which involve the indexed geometry type.
@@ -362,7 +366,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     // NB: This is a GeometryCollection
     val collectionToCover: Geometry = geomsToCover match {
       case Nil => IndexSchema.everywhere
-      case seq: Seq[Geometry] if seq.size == 1 => seq.head
+      //case seq: Seq[Geometry] if seq.size == 1 => seq.head          // Is this line magic?
       case seq: Seq[Geometry] => new GeometryCollection(geomsToCover.toArray, geomsToCover.head.getFactory)
     }
     // JNH: Need to construct a 'poly' bbox for the SFFI? for the DensityIterator?
@@ -420,9 +424,78 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
   def tweakFilter(filter: Filter) = {
     filter match {
       case dw: DWithin => rewriteDwithin(dw)
+      case op: BBOX       => visitBinarySpatialOp(op)
+      case op: Within     => visitBinarySpatialOp(op)
+      case op: Intersects => visitBinarySpatialOp(op)
+      case op: Overlaps   => visitBinarySpatialOp(op)
+
       case _ => filter
     }
   }
+
+  private def visitBinarySpatialOp(op: BinarySpatialOperator): Filter = {
+    val e1 = op.getExpression1.asInstanceOf[PropertyName]
+//    val attr = e1.evaluate(sft).asInstanceOf[AttributeDescriptor]
+//    if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
+//      ff.and(acc, op)
+//    } else {
+      val e2 = op.getExpression2.asInstanceOf[Literal]
+      val geom = e2.evaluate(null, classOf[Geometry])
+      val safeGeometry = getInternationalDateLineSafeGeometry(geom)
+      //spatialPredicate = safeGeometry.getEnvelope.asInstanceOf[Polygon]
+      updateToIDLSafeFilter(op, safeGeometry)
+   // }
+  }
+
+//  private def visitBBOX(op: BBOX): Filter = {
+//    val e1 = op.getExpression1.asInstanceOf[PropertyName]
+////    val attr = e1.evaluate(sft).asInstanceOf[AttributeDescriptor]
+////    if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
+////      ff.and(acc, op)
+////    } else {
+//      val e2 = op.getExpression2.asInstanceOf[Literal]
+//      val geom = addWayPointsToBBOX( e2.evaluate(null, classOf[Geometry]) )
+//      val safeGeometry = getInternationalDateLineSafeGeometry(geom)
+//      //spatialPredicate = safeGeometry.getEnvelope.asInstanceOf[Polygon]
+//      //op.getExpression2
+//      updateToIDLSafeFilter(op, safeGeometry)
+//    //}
+//  }
+
+
+  def updateToIDLSafeFilter(op: BinarySpatialOperator, geom: Geometry): Filter = geom match {
+    case p: Polygon =>
+      doCorrectSpatialCall(op, featureType.getGeometryDescriptor.getLocalName, p) //op
+    case mp: MultiPolygon =>
+      val polygonList = getGeometryListOf(geom)
+      val filterList = polygonList.map {
+        p => doCorrectSpatialCall(op, featureType.getGeometryDescriptor.getLocalName, p)
+      }
+      ff.or(filterList)
+  }
+
+
+  def getGeometryListOf(inMP: Geometry): Seq[Geometry] =
+    for( i <- 0 until inMP.getNumGeometries ) yield inMP.getGeometryN(i)
+
+
+  def doCorrectSpatialCall(op: BinarySpatialOperator, property: String, geom: Geometry): Filter = op match {
+    case op: Within     => ff.within( ff.property(property), ff.literal(geom) )
+    case op: Intersects => ff.intersects( ff.property(property), ff.literal(geom) )
+    case op: Overlaps   => ff.overlaps( ff.property(property), ff.literal(geom) )
+    case op: BBOX       => val envelope = geom.getEnvelopeInternal
+      ff.bbox( ff.property(property), envelope.getMinX, envelope.getMinY,
+        envelope.getMaxX, envelope.getMaxY, op.getSRS )
+  }
+
+  def addWayPointsToBBOX(g: Geometry):Geometry = {
+    val gf = g.getFactory
+    val geomArray = g.getCoordinates
+    val correctedGeom = GeometryUtils.addWayPoints(geomArray).toArray
+    gf.createPolygon(correctedGeom)
+  }
+
+
 
   // Rewrites a Dwithin (assumed to express distance in meters) in degrees.
   def rewriteDwithin(op: DWithin): Filter = {

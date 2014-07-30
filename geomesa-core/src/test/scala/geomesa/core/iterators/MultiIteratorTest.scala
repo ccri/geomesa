@@ -268,20 +268,20 @@ class MultiIteratorTest extends Specification with Logging {
       stQueriedCount mustEqual filteredCount
     }
 
-    "return an unfiltered results-set with a global request" in {
-      val dtFilter = IndexSchema.everywhen
-      val q = getQuery(None, dtFilter, overrideGeometry = true)
-      val indexOnlyQuery = getQuery(None, dtFilter, overrideGeometry = true, indexIterator = true)
-
-      val filteredCount = features.count(q.getFilter.evaluate)
-      val stQueriedCount = fs.getFeatures(q).size
-      val indexOnlyCount = fs.getFeatures(indexOnlyQuery).size
-
-      logger.debug(s"Filter: ${q.getFilter} queryCount: $stQueriedCount filteredCount: $filteredCount indexOnlyCount: $indexOnlyCount")
-
-      // validate the total number of query-hits
-      indexOnlyCount mustEqual filteredCount
-      stQueriedCount mustEqual filteredCount
-    }
+//    "return an unfiltered results-set with a global request" in {
+//      val dtFilter = IndexSchema.everywhen
+//      val q = getQuery(None, dtFilter, overrideGeometry = true)
+//      val indexOnlyQuery = getQuery(None, dtFilter, overrideGeometry = true, indexIterator = true)
+//
+//      val filteredCount = features.count(q.getFilter.evaluate)
+//      val stQueriedCount = fs.getFeatures(q).size
+//      val indexOnlyCount = fs.getFeatures(indexOnlyQuery).size
+//
+//      logger.debug(s"Filter: ${q.getFilter} queryCount: $stQueriedCount filteredCount: $filteredCount indexOnlyCount: $indexOnlyCount")
+//
+//      // validate the total number of query-hits
+//      indexOnlyCount mustEqual filteredCount
+//      stQueriedCount mustEqual filteredCount
+//    }
   }
 }
