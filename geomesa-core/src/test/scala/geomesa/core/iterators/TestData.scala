@@ -110,6 +110,10 @@ object TestData extends Logging {
     Entry("POINT(50.2 30.6)", "119")
   )
 
+  val pointsWithMillis = (995 to 1007).map(milli => {
+    Entry("POINT(0 0)", milli.toString, new DateTime(milli))
+  })
+
   val allThePoints = (-180 to 180).map(lon => {
     val x = lon.toString
     val y = (lon / 2).toString
