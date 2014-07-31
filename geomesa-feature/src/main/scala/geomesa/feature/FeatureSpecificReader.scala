@@ -108,6 +108,8 @@ import scala.collection.JavaConversions._
 
     // Followed by the data fields
     val sf = new AvroSimpleFeature(id, newType)
+
+    // AH can re-write this?    worth 704 + 540 ms
     deserializer.foreach { f => f(sf, in) }
     sf
   }

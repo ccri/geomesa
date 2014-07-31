@@ -18,7 +18,7 @@ package geomesa.feature.serde
 
 import java.nio.ByteBuffer
 
-import com.vividsolutions.jts.io.InStream
+import com.vividsolutions.jts.io.{WKBReader, InStream}
 import geomesa.feature.AvroSimpleFeature
 import geomesa.utils.text.WKBUtils
 import org.apache.avro.io.Decoder
@@ -33,7 +33,7 @@ object Version2Deserializer extends ASFDeserializer {
     val bb = in.readBytes(null)
     val bytes = new Array[Byte](bb.remaining)
     bb.get(bytes)
-    val geom = WKBUtils.read(bytes)
+    val geom = (new WKBReader).read(bytes)
     sf.setAttributeNoConvert(field, geom)
   }
 
