@@ -354,8 +354,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     planQuery(bs, filter, output)
 
     output("Configuring batch scanner for ST table: \n" +
-      s"  Filter ${query.getFilter}\n" +
-      s"  STII Filter: ${ofilter.getOrElse("No STII Filter")}\n" +
+      s"  Filter ${ECQL.toCQL(query.getFilter)}\n" +
+      s"  STII Filter: ${ofilter.map(ECQL.toCQL).getOrElse("No STII Filter")}\n" +
       s"  Interval:  ${oint.getOrElse("No interval")}\n" +
       s"  Filter: ${Option(filter).getOrElse("No Filter")}\n" +
       s"  ECQL: ${Option(ecql).getOrElse("No ecql")}\n" +
