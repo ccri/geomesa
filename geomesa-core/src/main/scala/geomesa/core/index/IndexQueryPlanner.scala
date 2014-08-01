@@ -59,9 +59,6 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
         else                        SpatialDateRangeFilter(p, i.getStart, i.getEnd)
     }
 
-
-
-
   def netPolygon(poly: Polygon): Polygon = poly match {
     case null => null
     case p if p.covers(IndexSchema.everywhere) =>
@@ -331,8 +328,6 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                  filterVisitor: FilterToAccumulo,
                  output: ExplainerOutputType) = {
     println(s"Scanning ST index table for feature type ${featureType.getTypeName}")
-//    val rewrittenCQL = query.getFilter
-//    val ecql = Option(ECQL.toCQL(rewrittenCQL))
 
     val spatial = filterVisitor.spatialPredicate
     val temporal = filterVisitor.temporalPredicate
@@ -375,23 +370,13 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       case _                 => Seq()
     }
 
-    // NB: This is a GeometryCollection
     val collectionToCover: Geometry = geomsToCover match {
       case Nil => null // IndexSchema.everywhere
       //case seq: Seq[Geometry] if seq.size == 1 => seq.head          // Is this line magic?
       case seq: Seq[Geometry] => new GeometryCollection(geomsToCover.toArray, geomsToCover.head.getFactory)
     }
-    // JNH: Need to construct a 'poly' bbox for the SFFI? for the DensityIterator?
-    // JNH: This is kinda bad.  Try and think of some options.
-
-    //val poly = collectionToCover.getEnvelope.asInstanceOf[Polygon]
 
     val interval = netInterval(temporal)
-
-    // figure out which of our various filters we intend to use
-    // based on the arguments passed in
-
-    //val poly = netPolygon(spatial)
     val poly = netGeom(collectionToCover)
     val filter = buildFilter(poly, interval)
 
@@ -451,40 +436,20 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     }
   }
 
-//  def addWayPointsToBBOX(g: Geometry):Geometry = {
-//    val gf = g.getFactory
-//    val geomArray = g.getCoordinates
-//    val correctedGeom = GeometryUtils.addWayPoints(geomArray).toArray
-//    gf.createPolygon(correctedGeom)
-//  }
-
-  private def visitBinarySpatialOp(op: BinarySpatialOperator): Filter = {
+ private def visitBinarySpatialOp(op: BinarySpatialOperator): Filter = {
     val e1 = op.getExpression1.asInstanceOf[PropertyName]
-//    val attr = e1.evaluate(sft).asInstanceOf[AttributeDescriptor]
-//    if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
-//      ff.and(acc, op)
-//    } else {
       val e2 = op.getExpression2.asInstanceOf[Literal]
       val geom = e2.evaluate(null, classOf[Geometry])
       val safeGeometry = getInternationalDateLineSafeGeometry(geom)
-      //spatialPredicate = safeGeometry.getEnvelope.asInstanceOf[Polygon]
       updateToIDLSafeFilter(op, safeGeometry)
-   // }
   }
 
   private def visitBBOX(op: BBOX): Filter = {
     val e1 = op.getExpression1.asInstanceOf[PropertyName]
-//    val attr = e1.evaluate(sft).asInstanceOf[AttributeDescriptor]
-//    if(!attr.getLocalName.equals(sft.getGeometryDescriptor.getLocalName)) {
-//      ff.and(acc, op)
-//    } else {
       val e2 = op.getExpression2.asInstanceOf[Literal]
       val geom = addWayPointsToBBOX( e2.evaluate(null, classOf[Geometry]) )
       val safeGeometry = getInternationalDateLineSafeGeometry(geom)
-      //spatialPredicate = safeGeometry.getEnvelope.asInstanceOf[Polygon]
-      //op.getExpression2
       updateToIDLSafeFilter(op, safeGeometry)
-    //}
   }
 
 
@@ -499,10 +464,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       ff.or(filterList)
   }
 
-
   def getGeometryListOf(inMP: Geometry): Seq[Geometry] =
     for( i <- 0 until inMP.getNumGeometries ) yield inMP.getGeometryN(i)
-
 
   def doCorrectSpatialCall(op: BinarySpatialOperator, property: String, geom: Geometry): Filter = op match {
     case op: Within     => ff.within( ff.property(property), ff.literal(geom) )
@@ -520,9 +483,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     gf.createPolygon(correctedGeom)
   }
 
-
-
-  // Rewrites a Dwithin (assumed to express distance in meters) in degrees.
+ // Rewrites a Dwithin (assumed to express distance in meters) in degrees.
   def rewriteDwithin(op: DWithin): Filter = {
     val e2 = op.getExpression2.asInstanceOf[Literal]
     val startPoint = e2.evaluate(null, classOf[Point])
@@ -643,7 +604,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     output(s"Got keyplan ${keyPlan.toString.take(1000)}")
 
     output("Enumerating column families")
-    //val columnFamilies = cfPlanner.getColumnFamiliesToFetch(filter)
+    val columnFamilies = cfPlanner.getColumnFamiliesToFetch(filter)
 
     output(s"Starting to get ranges")
     // always try to use range(s) to remove easy false-positives
@@ -655,26 +616,23 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
     output(s"Set ${accRanges.size} ranges.")
 
 
-    output(s"Configuring row reg exs")
     // always try to set a RowID regular expression
     //@TODO this is broken/disabled as a result of the KeyTier
     keyPlan.toRegex match {
       case KeyRegex(regex) => configureRowRegexIterator(bs, regex)
       case _ => // do nothing
     }
-    output("sDone configuring row reg exs")
 
     // if you have a list of distinct column-family entries, fetch them
-//    columnFamilies match {
-//      case KeyList(keys) => {
-//        output(s"Settings ${keys.size} col fams: $keys.")
-//        keys.foreach { cf =>
-//          bs.fetchColumnFamily(new Text(cf))
-//        }
-//      }
-//      case _ => // do nothing
-//    }
-    output(s"Done configuring the BatchScanner")
+    columnFamilies match {
+      case KeyList(keys) => {
+        output(s"Settings ${keys.size} col fams: $keys.")
+        keys.foreach { cf =>
+          bs.fetchColumnFamily(new Text(cf))
+        }
+      }
+      case _ => // do nothing
+    }
 
     bs
   }
