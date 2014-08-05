@@ -58,53 +58,53 @@ object NextJump {
         }
       }
     }
+
+    minbits = GeoHash.gridIndexForLatitude(min)
+    maxbits = GeoHash.gridIndexForLatitude(max)
+    curbits = GeoHash.gridIndexForLatitude(cur)
+
+    min_cand = -1
+    max_cand = -1
+
+    minfinished = false
+    maxfinished = false
+
+    val yprec = min.prec/2
+
+    for(p <- 0 until yprec) {
+      val curbit = curbits & (1 << (yprec-p-1))
+      val minbit = minbits & (1 << (yprec-p-1))
+      val maxbit = maxbits & (1 << (yprec-p-1))
+
+      println(s"\n*** P: $p curbit $curbit minbit: $minbit maxbit: $maxbit minfinished: $minfinished maxfinished: $maxfinished")
+
+      if(!minfinished) {
+
+        if (curbit == minbit && minbit > 0 && min_cand == -1) {
+          list.append(V("y-min-1", p))
+        } else if (curbit > 0 && minbit == 0 && min_cand == -1) {
+          min_cand = p
+        } else if (minbit > 0 && min_cand >= 0) {
+          list.append(V("y-min-2", min_cand))
+          minfinished = true
+          println("set minfinished")
+        }
+      }
+
+      if(!maxfinished) {
+        if(curbit == maxbit && maxbit == 0 && max_cand == -1) {
+          list.append(V("y-max-1", p))
+        } else if(curbit == 0 && maxbit > 0 && max_cand == -1) {
+          max_cand = p
+        } else if(maxbit == 0 && max_cand >= 0) {
+          list.append(V("y-max-2", max_cand))
+          maxfinished = true
+          println("set maxfinished")
+        }
+      }
+
+    }
+
     list.toList
   }
 }
-
-
-//    minbits = GeoHash.gridIndexForLatitude(min)
-//    maxbits = GeoHash.gridIndexForLatitude(max)
-//    curbits = GeoHash.gridIndexForLatitude(cur)
-//
-//    min_cand = -1
-//    max_cand = -1
-//
-//    minfinished = false
-//    maxfinished = false
-//
-//    val yprec = min.prec/2
-//
-//    for(p <- 0 until yprec) {
-//      val curbit = curbits ^ (1 << (yprec-p))
-//      val minbit = minbits ^ (1 << (yprec-p))
-//      val maxbit = maxbits ^ (1 << (yprec-p))
-//
-//      if(!minfinished) {
-//
-//        if(curbit == minbit && minbit >= 0 && min_cand == -1) {
-//          list.append(p)
-//        } else if(curbit > 0 && minbit == 0 && min_cand == -1) {
-//          min_cand = p
-//        } else if(minbit > 0 && min_cand >= 0) {
-//          list.append(min_cand)
-//          minfinished = true
-//        }
-//
-//        if(!maxfinished) {
-//          if(curbit == maxbit && maxbit == 0 && max_cand == -1) {
-//            list.append(p)
-//          } else if(curbit == 0 && maxbit > 0 && max_cand == -1) {
-//            max_cand = p
-//          } else if(maxbit > 0 && max_cand >= 0) {
-//            list.append(p)
-//            maxfinished = true
-//          }
-//        }
-//
-//      }
-//    }
-
-//    list.toList.sorted
-//  }
-//}
