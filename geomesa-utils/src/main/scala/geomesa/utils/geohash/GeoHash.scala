@@ -210,6 +210,18 @@ object GeoHash extends Logging {
   }
 
   /**
+   * Convenience method to return both the latitude and longitude indices within
+   * the grid of geohashes at the precision of the specified geohash
+   *
+   * @param gh the geohash
+   * @return an array containing first the longitude index and then the latitude index
+   */
+  def gridIndicesForLongLat(gh: GeoHash) = {
+    val (lonIndex, latIndex) = extractReverseBits(gh.bitset.toBitMask.head, gh.prec)
+    Array(lonIndex, latIndex)
+  }
+
+  /**
    * Gets a long value representing a latitude index within the grid of geohashes
    * at the precision of the specified geohash
    *

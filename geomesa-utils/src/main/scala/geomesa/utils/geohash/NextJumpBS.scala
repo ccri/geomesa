@@ -58,7 +58,7 @@ object NextJumpBS {
         }
       }
     }
-    list.toList
+    list.toList.reverse
   }
 
   def njo(min: GeoHash, max: GeoHash, cur: GeoHash, violations: List[V]): GeoHash = {
@@ -83,9 +83,46 @@ object NextJumpBS {
 
       vs = vs.tail
 
+
+
       if (!cur.bitset(v.pos)) {
         // Max-Violation
         println(s"Max violation at pos ${v.pos} in dim $dim: needs more work")
+
+        /// arl(0) = lon, arl(1) = lat
+        val arl = GeoHash.gridIndicesForLongLat(max)
+        println(s"Arl: ${arl.map(_.toBinaryString).mkString(" ")}")
+        val tmpDim = arl(dim) + 1 //WRONG
+        println(s"Tmpdim: ${tmpDim.toBinaryString}")
+        // set dim with max.
+
+        // set !dim with cur above v.
+
+        for(i <- 0 until min.prec) {
+
+          if (dim == i % 2) {
+            // Same dim?
+            println(s"Same dim: I: $i dim $dim")
+
+            if((tmpDim & 1 << (i/2)) > 0) {
+              println(s"Setting $i")
+              njobs.add(i)
+            }
+
+          } else {
+            println(s"Other dim $i")
+
+            if(i > v.pos && cur.bitset(i)) {
+              println(s"other dim setting: $i")
+              njobs.add(i)
+            }
+          }
+
+
+
+        }
+        println(s"Built GH/returning $njobs.")
+        return GeoHash(njobs, min.prec)
 
       } else {
         // Min-violation
