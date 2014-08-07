@@ -37,7 +37,7 @@
     <properties>
         <scala.version>2.10.4</scala.version>
         <geoserver.version>2.5</geoserver.version>
-        <gt.version>11.2</gt.version>
+        <gt.version>12-SNAPSHOT</gt.version>
         <jts.version>1.13</jts.version>
         <scopt.version>3.2.0</scopt.version>
 

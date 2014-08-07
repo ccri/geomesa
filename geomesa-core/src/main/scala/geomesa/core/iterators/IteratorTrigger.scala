@@ -6,6 +6,7 @@ import geomesa.core.data._
 import geomesa.core.index.QueryHints._
 import geomesa.core.index._
 import org.geotools.data.{DataUtilities, Query}
+import org.geotools.feature.visitor.{IdFinderFilterVisitor, IdCollectorFilterVisitor}
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.process.vector.TransformProcess
 import org.opengis.feature.simple.SimpleFeatureType
@@ -106,7 +107,13 @@ object IteratorTrigger {
   /**
    * Tests if the filter is a trivial filter that does nothing
    */
-  def passThroughFilter(ecql_text: String): Boolean = getFilterAttributes(ecql_text).isEmpty
+  def passThroughFilter(ecql_text: String): Boolean = {
+    val filter = ECQL.toFilter(ecql_text)
+    val v = new IdFinderFilterVisitor
+
+    // REQUIRES Unit test dummy
+    DataUtilities.attributeNames(filter).isEmpty && !filter.accept(v, null).asInstanceOf[Boolean]
+  }
 
   /**
    * convert the ECQL to a filter, then obtain a set of its attributes
@@ -120,3 +127,5 @@ object IteratorTrigger {
 
 
 }
+
+class IDFilterFinder extends IdCollectorFilterVisitor
