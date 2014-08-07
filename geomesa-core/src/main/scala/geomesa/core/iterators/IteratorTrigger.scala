@@ -127,5 +127,3 @@ object IteratorTrigger {
 
 
 }
-
-class IDFilterFinder extends IdCollectorFilterVisitor
