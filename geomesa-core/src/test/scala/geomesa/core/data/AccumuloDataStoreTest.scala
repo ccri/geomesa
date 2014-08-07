@@ -51,6 +51,9 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
+import org.geotools.filter.text.ecql.ECQL
+import org.joda.time.format.{ISODateTimeFormat, DateTimeFormatter, DateTimeFormat}
+import org.opengis.filter.expression.Expression
 
 @RunWith(classOf[JUnitRunner])
 class AccumuloDataStoreTest extends Specification {
@@ -365,6 +368,50 @@ class AccumuloDataStoreTest extends Specification {
         val query = new Query(sftName, binarySpatial)
         val results = fs.getFeatures(query)
         results.size() mustEqual 226
+      }
+    }
+
+    "query to the millisecond" in {
+      val ds = createStore
+      val sftName = TestData.featureName
+      val sft = TestData.featureType
+      sft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
+      ds.createSchema(sft)
+      val fs = ds.getFeatureSource(sftName).asInstanceOf[AccumuloFeatureStore]
+      val dtf = ISODateTimeFormat.dateTime
+      val featureCollection = new DefaultFeatureCollection()
+      val features = TestData.pointsWithMillis.map(TestData.createSF)
+      featureCollection.addAll(features)
+      fs.addFeatures(featureCollection)
+
+      "before" in {
+        val beforeString = dtf.print(new DateTime(998))
+        val temporal = ECQL.toFilter(s"dtg BEFORE $beforeString")
+        //verifies that the test is even valid
+        features.count(temporal.evaluate) mustEqual(3)
+        val query = new Query(sftName, temporal)
+        val results = fs.getFeatures(query)
+        results.size() mustEqual(3)
+      }
+
+      "after" in {
+        val afterString = dtf.print(new DateTime(998))
+        val temporal = ECQL.toFilter(s"dtg AFTER $afterString")
+        //verifies that the test is even valid
+        features.count(temporal.evaluate) mustEqual(9)
+        val query = new Query(sftName, temporal)
+        val results = fs.getFeatures(query)
+        results.size() mustEqual(9)
+      }
+
+      "during" in {
+        val duringString = dtf.print(new DateTime(999)) + "/" + dtf.print(new DateTime(1001))
+        val temporal = ECQL.toFilter(s"dtg DURING $duringString")
+        //verifies that the test is even valid
+        features.count(temporal.evaluate) mustEqual(1)
+        val query = new Query(sftName, temporal)
+        val results = fs.getFeatures(query)
+        results.size() mustEqual(1)
       }
     }
 
