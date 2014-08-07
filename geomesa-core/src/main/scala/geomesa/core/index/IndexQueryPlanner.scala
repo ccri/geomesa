@@ -143,7 +143,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                        sft: SimpleFeatureType,
                        derivedQuery: Query,
                        isDensity: Boolean,
-                       output: ExplainerOutputType) = {
+                       output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     val filterVisitor = new FilterToAccumulo(featureType)
     val rewrittenFilter = filterVisitor.visit(derivedQuery)
     if(acc.catalogTableFormat(sft)){
@@ -167,6 +167,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
                       output: ExplainerOutputType) = {
 
     rewrittenFilter match {
+      case id: Id => idQuery(id.getIdentifiers.toSeq)
+
       case isEqualTo: PropertyIsEqualTo if !isDensity && attrIdxQueryEligible(isEqualTo) =>
         attrIdxEqualToQuery(acc, derivedQuery, isEqualTo, filterVisitor, output)
 
@@ -179,6 +181,15 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       case cql =>
         stIdxQuery(acc, derivedQuery, filterVisitor, output)
     }
+  }
+
+  import org.opengis.filter.identity._
+
+  def idQuery(ids: Seq[Identifier]): SelfClosingIterator[Entry[Key, Value]] = {
+
+
+    // Mocked
+    SelfClosingIterator(empty)
   }
 
   def attrIdxQueryEligible(filt: Filter): Boolean = filt match {
