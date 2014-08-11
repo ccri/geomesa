@@ -52,6 +52,7 @@ object IndexQueryPlanner {
   val iteratorPriority_ColFRegex                       = 100
   val iteratorPriority_SpatioTemporalIterator          = 200
   val iteratorPriority_SimpleFeatureFilteringIterator  = 300
+  val iteratorPriority_TopIterator                     = 400
 }
 
 
@@ -397,6 +398,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
           val transformedSFType = transformedSimpleFeatureType(query).getOrElse(featureType)
           configureIndexIterator(ofilter, query, transformedSFType)
         case SpatioTemporalIterator =>
+          // This is really just a hint to see if we should deduplicate in the STII
           val isDensity = query.getHints.containsKey(DENSITY_KEY)
           configureSpatioTemporalIntersectingIterator(ofilter, featureType, isDensity)
       }
@@ -406,7 +408,21 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
         Some(configureSimpleFeatureFilteringIterator(featureType, ecql, query, poly))
       } else None
 
-    qp.copy(iterators = qp.iterators ++ List(Some(stIdxIterCfg), sffiIterCfg).flatten)
+    val topIterCfg = if(query.getHints.containsKey(DENSITY_KEY)) {
+      val clazz = classOf[DensityIterator]
+
+      val cfg = new IteratorSetting(iteratorPriority_TopIterator,
+        "topfilter-" + randomPrintableString(5),
+        clazz)
+
+      val width = query.getHints.get(WIDTH_KEY).asInstanceOf[Integer]
+      val height =  query.getHints.get(HEIGHT_KEY).asInstanceOf[Integer]
+      DensityIterator.configure(cfg, poly, width, height)
+
+      Some(cfg)
+    } else None
+
+    qp.copy(iterators = qp.iterators ++ List(Some(stIdxIterCfg), sffiIterCfg, topIterCfg).flatten)
   }
 
   def stIdxQuery(acc: AccumuloConnectorCreator,
@@ -503,12 +519,15 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
   // 2) the DateTime intersects the query interval; this is a coarse-grained filter
   def configureSpatioTemporalIntersectingIterator(filter: Option[Filter],
                                                   featureType: SimpleFeatureType,
+  // JNH: isDensity if just a dedupe hint.
                                                   isDensity: Boolean): IteratorSetting = {
     val cfg = new IteratorSetting(iteratorPriority_SpatioTemporalIterator,
       "within-" + randomPrintableString(5),
       classOf[SpatioTemporalIntersectingIterator])
     SpatioTemporalIntersectingIterator.setOptions(cfg, schema, filter)
     configureFeatureType(cfg, featureType)
+
+    // JNH: This is really a dedupe hint.
     if (isDensity) cfg.addOption(GEOMESA_ITERATORS_IS_DENSITY_TYPE, "isDensity")
     cfg
   }
@@ -522,25 +541,17 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
     val density: Boolean = query.getHints.containsKey(DENSITY_KEY)
 
-    val clazz =
-      if(density) classOf[DensityIterator]
-      else classOf[SimpleFeatureFilteringIterator]
+    //val clazz = classOf[SimpleFeatureFilteringIterator]
 
     val cfg = new IteratorSetting(iteratorPriority_SimpleFeatureFilteringIterator,
       "sffilter-" + randomPrintableString(5),
-      clazz)
+      classOf[SimpleFeatureFilteringIterator])
 
     cfg.addOption(DEFAULT_SCHEMA_NAME, schema)
     configureFeatureEncoding(cfg)
     configureTransforms(query,cfg)
     configureFeatureType(cfg, simpleFeatureType)
     ecql.foreach(SimpleFeatureFilteringIterator.setECQLFilter(cfg, _))
-
-    if(density) {
-      val width = query.getHints.get(WIDTH_KEY).asInstanceOf[Integer]
-      val height =  query.getHints.get(HEIGHT_KEY).asInstanceOf[Integer]
-      DensityIterator.configure(cfg, poly, width, height)
-    }
 
     cfg
   }

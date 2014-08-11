@@ -24,17 +24,15 @@ import com.google.common.collect._
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom._
 import geomesa.core._
-import geomesa.core.index.{IndexEntryDecoder, IndexSchema, GeohashDecoder}
+import geomesa.core.index.{IndexEntryDecoder, IndexSchema}
 import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.{SimpleFeatureTypes, GridSnap}
-import geomesa.utils.geotools.Conversions.{toRichSimpleFeatureIterator, RichSimpleFeature}
+import geomesa.utils.geotools.Conversions.{RichSimpleFeature, toRichSimpleFeatureIterator}
+import geomesa.utils.geotools.{GridSnap, SimpleFeatureTypes}
 import geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data.{ByteSequence, Key, Value, Range => ARange}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.apache.commons.codec.binary.Base64
-import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureIterator}
-import org.geotools.data.{DataUtilities, Query}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder, ReferencedEnvelope}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -61,6 +59,7 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
                     options: ju.Map[String, String],
                     env: IteratorEnvironment): Unit = {
     super.init(source, options, env)
+
     bbox = JTS.toEnvelope(WKTUtils.read(options.get(DensityIterator.BBOX_KEY)))
     val (w, h) = DensityIterator.getBounds(options)
     snap = new GridSnap(bbox, w, h)

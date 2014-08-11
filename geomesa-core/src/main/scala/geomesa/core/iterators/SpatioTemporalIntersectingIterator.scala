@@ -108,6 +108,7 @@ class SpatioTemporalIntersectingIterator
     if (options.containsKey(DEFAULT_CACHE_SIZE_NAME))
       maxInMemoryIdCacheEntries = options.get(DEFAULT_CACHE_SIZE_NAME).toInt
 
+    // JNH:  GEOMESA_ITERATORS_IS_DENSITY_TYPE is really just a dedupe hint.
     if (!options.containsKey(GEOMESA_ITERATORS_IS_DENSITY_TYPE)) {
       deduplicate = IndexSchema.mayContainDuplicates(featureType)
     }
