@@ -419,6 +419,12 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       val height =  query.getHints.get(HEIGHT_KEY).asInstanceOf[Integer]
       DensityIterator.configure(cfg, poly, width, height)
 
+      cfg.addOption(DEFAULT_SCHEMA_NAME, schema)
+      configureFeatureEncoding(cfg)
+      configureTransforms(query,cfg)
+      configureFeatureType(cfg, featureType)
+      ecql.foreach(SimpleFeatureFilteringIterator.setECQLFilter(cfg, _))
+
       Some(cfg)
     } else None
 
