@@ -17,6 +17,8 @@
 
 package geomesa.core.iterators
 
+import geomesa.core.data.{SimpleFeatureEncoderFactory, FeatureEncoding, SimpleFeatureEncoder}
+import geomesa.core.transform.TransformCreator
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.{util => ju}
 
@@ -34,13 +36,15 @@ import org.apache.accumulo.core.data.{ByteSequence, Key, Value, Range => ARange}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.apache.commons.codec.binary.Base64
 import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder, ReferencedEnvelope}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.opengis.filter.Filter
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Random, Success, Try}
 
-class DensityIterator extends SimpleFeatureFilteringIterator {
+class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends SortedKeyValueIterator[Key, Value] {
 
   import geomesa.core.iterators.DensityIterator.{DENSITY_FEATURE_STRING, SparseMatrix}
 
@@ -55,10 +59,59 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
   var topDensityValue: Option[Value] = None
   protected var decoder: IndexEntryDecoder = null
 
+
+  var simpleFeatureType: SimpleFeatureType = null
+  var source: SortedKeyValueIterator[Key,Value] = null
+  //var topKey: Key = null
+  var topValue: Value = null
+  var nextKey: Key = null
+  var nextValue: Value = null
+  var nextFeature: SimpleFeature = null
+  var featureEncoder: SimpleFeatureEncoder = null
+
+  if (other != null && env != null) {
+    source = other.source.deepCopy(env)
+    simpleFeatureType = other.simpleFeatureType
+  }
+
+  def this() = this(null, null)
+
   override def init(source: SortedKeyValueIterator[Key, Value],
                     options: ju.Map[String, String],
                     env: IteratorEnvironment): Unit = {
-    super.init(source, options, env)
+    this.source = source
+
+    // default to text if not found for backwards compatibility
+    val encodingOpt = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
+    featureEncoder = SimpleFeatureEncoderFactory.createEncoder(encodingOpt)
+
+    val simpleFeatureTypeSpec = options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
+    simpleFeatureType = SimpleFeatureTypes.createType(this.getClass.getCanonicalName, simpleFeatureTypeSpec)
+    simpleFeatureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
+
+//    val transformSchema = options.get(GEOMESA_ITERATORS_TRANSFORM_SCHEMA)
+//    targetFeatureType =
+//      if (transformSchema != null) SimpleFeatureTypes.createType(this.getClass.getCanonicalName, transformSchema)
+//      else simpleFeatureType
+//    // if the targetFeatureType comes from a transform, also insert the UserData
+//    if (transformSchema != null) targetFeatureType.decodeUserData(options, GEOMESA_ITERATORS_TRANSFORM_SCHEMA)
+//
+//    val transformString = options.get(GEOMESA_ITERATORS_TRANSFORM)
+//    transform =
+//      if(transformString != null) TransformCreator.createTransform(targetFeatureType, featureEncoder, transformString)
+//      else _ => source.getTopValue
+//
+//    // read off the filter expression, if applicable
+//    filter =
+//      Try {
+//        val expr = options.get(GEOMESA_ITERATORS_ECQL_FILTER)
+//        ECQL.toFilter(expr)
+//      }.getOrElse(Filter.INCLUDE)
+
+    //topKey = null     // JNH: Consider alternatives:
+    topValue = null
+    nextKey = null
+    nextValue = null
 
     bbox = JTS.toEnvelope(WKTUtils.read(options.get(DensityIterator.BBOX_KEY)))
     val (w, h) = DensityIterator.getBounds(options)
@@ -73,7 +126,7 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
    * Repeatedly calls the SimpleFeatureFilteringIterators 'next' method and compiles the results
    * into a single feature
    */
-  override def next() = {
+  def findTop() = {
     // reset our 'top' (current) variables
     result.clear()
     topDensityKey = None
@@ -81,11 +134,10 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
     var geometry: Geometry = null
     var featureOption: Option[SimpleFeature] = Option(nextFeature)
 
-    super.next()
-    while(super.hasTop && !curRange.afterEndKey(topKey)) {
-      topDensityKey = Some(topKey)
-      val feature = featureOption.getOrElse(featureEncoder.decode(simpleFeatureType, topValue))
-      lazy val geoHashGeom = decoder.decode(topKey).getDefaultGeometry.asInstanceOf[Geometry]
+    while(source.hasTop && !curRange.afterEndKey(source.getTopKey)) {
+      topDensityKey = Some(source.getTopKey)
+      val feature = featureOption.getOrElse(featureEncoder.decode(simpleFeatureType, source.getTopValue))
+      lazy val geoHashGeom = decoder.decode(source.getTopKey).getDefaultGeometry.asInstanceOf[Geometry]
       geometry = feature.getDefaultGeometry.asInstanceOf[Geometry]
       geometry match {
         case point: Point =>
@@ -121,7 +173,7 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
       // get the next feature that will be returned before calling super.next(), for the next loop
       // iteration, where it will the the feature corresponding to topValue
       featureOption = Option(nextFeature)
-      super.next()
+      source.next()
     }
 
     // if we found anything, set the current value
@@ -172,7 +224,10 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
                     columnFamilies: ju.Collection[ByteSequence],
                     inclusive: Boolean): Unit = {
     curRange = range
-    super.seek(range, columnFamilies, inclusive)
+    source.seek(range, columnFamilies, inclusive)
+//    println("hi")
+    //source.next()       // bah?
+    findTop()
   }
 
   override def hasTop: Boolean = topDensityKey.nonEmpty
@@ -180,6 +235,15 @@ class DensityIterator extends SimpleFeatureFilteringIterator {
   override def getTopKey: Key = topDensityKey.getOrElse(null)
 
   override def getTopValue = topDensityValue.getOrElse(null)
+
+  override def deepCopy(env: IteratorEnvironment): SortedKeyValueIterator[Key, Value] = throw new Exception("boo") //new DensityIterator(this, env)
+
+  override def next(): Unit = if(!source.hasTop) {
+    topDensityKey = None
+    topDensityValue = None
+  } else {
+    findTop()
+  }
 }
 
 object DensityIterator extends Logging {
