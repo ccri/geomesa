@@ -421,9 +421,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
       cfg.addOption(DEFAULT_SCHEMA_NAME, schema)
       configureFeatureEncoding(cfg)
-      //configureTransforms(query,cfg)
       configureFeatureType(cfg, featureType)
-      ecql.foreach(SimpleFeatureFilteringIterator.setECQLFilter(cfg, _))
 
       Some(cfg)
     } else None
