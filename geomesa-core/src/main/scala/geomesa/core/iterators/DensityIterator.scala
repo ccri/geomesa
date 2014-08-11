@@ -62,8 +62,9 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
 
   var simpleFeatureType: SimpleFeatureType = null
   var source: SortedKeyValueIterator[Key,Value] = null
-  //var topKey: Key = null
-  var topValue: Value = null
+
+  var topSourceKey: Key = null
+  var topSourceValue: Value = null
   var nextKey: Key = null
   var nextValue: Value = null
   var nextFeature: SimpleFeature = null
@@ -109,7 +110,7 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
 //      }.getOrElse(Filter.INCLUDE)
 
     //topKey = null     // JNH: Consider alternatives:
-    topValue = null
+    //topValue = null
     nextKey = null
     nextValue = null
 
@@ -129,15 +130,17 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
   def findTop() = {
     // reset our 'top' (current) variables
     result.clear()
-    topDensityKey = None
-    topDensityValue = None
+    topSourceKey = null
+    topSourceValue = null
     var geometry: Geometry = null
     var featureOption: Option[SimpleFeature] = Option(nextFeature)
 
     while(source.hasTop && !curRange.afterEndKey(source.getTopKey)) {
-      topDensityKey = Some(source.getTopKey)
-      val feature = featureOption.getOrElse(featureEncoder.decode(simpleFeatureType, source.getTopValue))
-      lazy val geoHashGeom = decoder.decode(source.getTopKey).getDefaultGeometry.asInstanceOf[Geometry]
+      topSourceKey = source.getTopKey
+      topSourceValue = source.getTopValue
+
+      val feature = featureOption.getOrElse(featureEncoder.decode(simpleFeatureType, topSourceValue))
+      lazy val geoHashGeom = decoder.decode(topSourceKey).getDefaultGeometry.asInstanceOf[Geometry]
       geometry = feature.getDefaultGeometry.asInstanceOf[Geometry]
       geometry match {
         case point: Point =>
@@ -173,19 +176,20 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
       // get the next feature that will be returned before calling super.next(), for the next loop
       // iteration, where it will the the feature corresponding to topValue
       featureOption = Option(nextFeature)
+
+      // Advance the source iterator
       source.next()
     }
 
     // if we found anything, set the current value
-    topDensityKey match {
-      case None =>
-      case Some(k) =>
-        featureBuilder.reset()
-        // encode the bins into the feature - this will be expanded by the IndexSchema
-        featureBuilder.add(DensityIterator.encodeSparseMatrix(result))
-        featureBuilder.add(geometry)
-        val feature = featureBuilder.buildFeature(Random.nextString(6))
-        topDensityValue = Some(featureEncoder.encode(feature))
+    if(topSourceKey != null) {
+      featureBuilder.reset()
+      // encode the bins into the feature - this will be expanded by the IndexSchema
+      featureBuilder.add(DensityIterator.encodeSparseMatrix(result))
+      featureBuilder.add(geometry)
+      val feature = featureBuilder.buildFeature(Random.nextString(6))
+      topDensityKey = Some(topSourceKey)
+      topDensityValue = Some(featureEncoder.encode(feature))
     }
   }
 
@@ -232,9 +236,9 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
 
   override def hasTop: Boolean = topDensityKey.nonEmpty
 
-  override def getTopKey: Key = topDensityKey.getOrElse(null)
+  override def getTopKey: Key = topDensityKey.orNull
 
-  override def getTopValue = topDensityValue.getOrElse(null)
+  override def getTopValue = topDensityValue.orNull
 
   override def deepCopy(env: IteratorEnvironment): SortedKeyValueIterator[Key, Value] = throw new Exception("boo") //new DensityIterator(this, env)
 
