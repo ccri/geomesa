@@ -65,8 +65,6 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
 
   var topSourceKey: Key = null
   var topSourceValue: Value = null
-  var nextKey: Key = null
-  var nextValue: Value = null
   var nextFeature: SimpleFeature = null
   var featureEncoder: SimpleFeatureEncoder = null
 
@@ -89,30 +87,6 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
     val simpleFeatureTypeSpec = options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
     simpleFeatureType = SimpleFeatureTypes.createType(this.getClass.getCanonicalName, simpleFeatureTypeSpec)
     simpleFeatureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
-
-//    val transformSchema = options.get(GEOMESA_ITERATORS_TRANSFORM_SCHEMA)
-//    targetFeatureType =
-//      if (transformSchema != null) SimpleFeatureTypes.createType(this.getClass.getCanonicalName, transformSchema)
-//      else simpleFeatureType
-//    // if the targetFeatureType comes from a transform, also insert the UserData
-//    if (transformSchema != null) targetFeatureType.decodeUserData(options, GEOMESA_ITERATORS_TRANSFORM_SCHEMA)
-//
-//    val transformString = options.get(GEOMESA_ITERATORS_TRANSFORM)
-//    transform =
-//      if(transformString != null) TransformCreator.createTransform(targetFeatureType, featureEncoder, transformString)
-//      else _ => source.getTopValue
-//
-//    // read off the filter expression, if applicable
-//    filter =
-//      Try {
-//        val expr = options.get(GEOMESA_ITERATORS_ECQL_FILTER)
-//        ECQL.toFilter(expr)
-//      }.getOrElse(Filter.INCLUDE)
-
-    //topKey = null     // JNH: Consider alternatives:
-    //topValue = null
-    nextKey = null
-    nextValue = null
 
     bbox = JTS.toEnvelope(WKTUtils.read(options.get(DensityIterator.BBOX_KEY)))
     val (w, h) = DensityIterator.getBounds(options)
