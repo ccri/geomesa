@@ -1,10 +1,10 @@
-package geomesa.core.process.tube
+package org.locationtech.geomesa.core.process.tube
 
 import com.vividsolutions.jts.geom.GeometryCollection
-import geomesa.core._
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.log4j.Logger
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.factory.Hints

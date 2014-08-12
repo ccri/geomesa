@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
 import com.vividsolutions.jts.geom._
-import geomesa.core._
-import geomesa.core.data.SimpleFeatureEncoderFactory
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data.SimpleFeatureEncoderFactory
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.data.Key
 import org.geotools.data.Query
 import org.geotools.filter.text.ecql.ECQL

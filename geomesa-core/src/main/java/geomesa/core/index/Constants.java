@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core.index;
+package org.locationtech.geomesa.core.index;
 
 import org.joda.time.DateTime;
 

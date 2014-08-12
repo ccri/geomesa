@@ -1,4 +1,4 @@
-package geomesa.core
+package org.locationtech.geomesa.core
 
 import org.geotools.factory.CommonFactoryFinder
 import org.opengis.filter._

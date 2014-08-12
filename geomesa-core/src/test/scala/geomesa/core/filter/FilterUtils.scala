@@ -1,4 +1,4 @@
-package geomesa.core.filter
+package org.locationtech.geomesa.core.filter
 
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.text.ecql.ECQL

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core
+package org.locationtech.geomesa.core
 
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.hadoop.io.Text
@@ -25,7 +25,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 package object data {
 
-  import geomesa.core.index._
+  import org.locationtech.geomesa.core.index._
 
 import scala.collection.JavaConversions._
 

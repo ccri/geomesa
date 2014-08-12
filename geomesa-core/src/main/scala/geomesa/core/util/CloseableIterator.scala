@@ -1,4 +1,4 @@
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
 import java.util.Map.Entry
 import org.apache.accumulo.core.client.{Scanner, BatchScanner}
@@ -34,7 +34,7 @@ object CloseableIterator {
   }
 }
 
-import geomesa.core.util.CloseableIterator.empty
+import org.locationtech.geomesa.core.util.CloseableIterator.empty
 
 trait CloseableIterator[+A] extends Iterator[A] {
   self =>

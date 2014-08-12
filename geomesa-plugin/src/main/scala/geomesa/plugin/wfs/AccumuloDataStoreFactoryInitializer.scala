@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.wfs
+package org.locationtech.geomesa.plugin.wfs
 
 import org.geoserver.data.DataStoreFactoryInitializer
 import org.geotools.data.DataAccessFactory

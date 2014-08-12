@@ -16,7 +16,7 @@
  *
  */
 
-package geomesa.tools
+package org.locationtech.geomesa.tools
 
 import java.io.{FileWriter, PrintWriter}
 import java.text.SimpleDateFormat
@@ -24,8 +24,8 @@ import java.util.Date
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Coordinate
-import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
-import geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.apache.commons.lang.StringEscapeUtils
 import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureIterator

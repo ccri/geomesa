@@ -1,4 +1,4 @@
-package geomesa.plugin.wps;
+package org.locationtech.geomesa.plugin.wps;
 
 public interface GeomesaProcess {
 }

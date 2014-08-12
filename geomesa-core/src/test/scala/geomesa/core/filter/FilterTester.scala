@@ -1,12 +1,12 @@
-package geomesa.core.filter
+package org.locationtech.geomesa.core.filter
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Coordinate
-import geomesa.core.data.{AccumuloDataStore, AccumuloDataStoreTest, AccumuloFeatureStore}
-import geomesa.core.filter.TestFilters._
-import geomesa.core.iterators.TestData._
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloDataStoreTest, AccumuloFeatureStore}
+import org.locationtech.geomesa.core.filter.TestFilters._
+import org.locationtech.geomesa.core.iterators.TestData._
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import java.util.Date
 import org.geotools.data.DataStoreFinder
 import org.geotools.data.simple.{SimpleFeatureStore, SimpleFeatureSource}
@@ -98,7 +98,7 @@ class IdQueryTest extends Specification {
   fs.addFeatures(featureCollection)
   fs.flush()
 
-  import geomesa.utils.geotools.Conversions._
+  import org.locationtech.geomesa.utils.geotools.Conversions._
 
   "Id queries" should {
 

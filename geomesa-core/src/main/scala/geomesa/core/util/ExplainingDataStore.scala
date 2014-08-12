@@ -1,7 +1,7 @@
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
-import geomesa.core.data.AccumuloDataStore
-import geomesa.core.index.ExplainerOutputType
+import org.locationtech.geomesa.core.data.AccumuloDataStore
+import org.locationtech.geomesa.core.index.ExplainerOutputType
 import org.apache.accumulo.core.client.{Scanner, BatchScanner}
 import org.opengis.feature.simple.SimpleFeatureType
 

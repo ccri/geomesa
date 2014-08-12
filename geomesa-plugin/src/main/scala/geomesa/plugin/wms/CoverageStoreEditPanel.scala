@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.wms
+package org.locationtech.geomesa.plugin.wms
 
-import geomesa.plugin.GeoMesaStoreEditPanel
+import org.locationtech.geomesa.plugin.GeoMesaStoreEditPanel
 import org.apache.wicket.markup.html.form.validation.IFormValidator
 import org.apache.wicket.markup.html.form.{Form, FormComponent}
 import org.apache.wicket.model.PropertyModel

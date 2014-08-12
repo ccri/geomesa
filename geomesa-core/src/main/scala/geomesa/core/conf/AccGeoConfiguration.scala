@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package geomesa.core.conf
+package org.locationtech.geomesa.core.conf
 
 import collection.JavaConversions._
 import org.apache.accumulo.core.conf.{DefaultConfiguration, AccumuloConfiguration}
-import geomesa.core.conf._
+import org.locationtech.geomesa.core.conf._
 import org.apache.hadoop.conf.Configuration
 
 object AccGeoConfiguration {

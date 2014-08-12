@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
-import geomesa.utils.geohash.BoundingBox
+import org.locationtech.geomesa.utils.geohash.BoundingBox
 import java.util.{Collection=>JCollection}
 import org.apache.accumulo.core.data.{Key, PartialKey, Range => AccRange}
 import org.apache.hadoop.io.Text

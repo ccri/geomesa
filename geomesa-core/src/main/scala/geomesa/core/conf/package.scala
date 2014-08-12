@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core
+package org.locationtech.geomesa.core
 
 package object conf {
   val GEO_DFS_DIR = "instance.geo.dfs.dir"

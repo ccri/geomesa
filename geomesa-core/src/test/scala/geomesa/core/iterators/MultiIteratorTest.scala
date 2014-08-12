@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Polygon
-import geomesa.core._
-import geomesa.core.data.AccumuloDataStoreFactory
-import geomesa.core.index.{IndexSchema, IndexSchemaBuilder}
-import geomesa.core.iterators.TestData._
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory
+import org.locationtech.geomesa.core.index.{IndexSchema, IndexSchemaBuilder}
+import org.locationtech.geomesa.core.iterators.TestData._
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.geotools.data.simple.SimpleFeatureStore
@@ -56,7 +56,7 @@ class MultiIteratorTest extends Specification with Logging {
 
       val dsf = new AccumuloDataStoreFactory
 
-      import geomesa.core.data.AccumuloDataStoreFactory.params._
+      import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
 
       val ds = dsf.createDataStore(Map(
         zookeepersParam.key -> "dummy",

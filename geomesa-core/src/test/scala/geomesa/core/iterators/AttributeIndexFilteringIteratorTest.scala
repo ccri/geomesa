@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.core.data._
-import geomesa.core.index.{IndexSchema, IndexSchemaBuilder}
-import geomesa.utils.geotools.Conversions._
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index.{IndexSchema, IndexSchemaBuilder}
+import org.locationtech.geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.client.admin.TimeType
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken

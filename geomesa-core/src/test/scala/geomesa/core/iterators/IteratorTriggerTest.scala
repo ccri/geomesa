@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
-import geomesa.core.data._
-import geomesa.core.index.QueryHints._
-import geomesa.core.index._
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index.QueryHints._
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.geotools.data.simple.SimpleFeatureStore
@@ -68,7 +68,7 @@ class IteratorTriggerTest extends Specification {
 
       val dsf = new AccumuloDataStoreFactory
 
-      import geomesa.core.data.AccumuloDataStoreFactory.params._
+      import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
 
       val ds = dsf.createDataStore(
         Map(

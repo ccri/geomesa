@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.feature
+package org.locationtech.geomesa.feature
 
 import java.io.{ObjectInputStream, ObjectOutputStream, IOException, OutputStream}
 import java.nio._
@@ -25,7 +25,7 @@ import java.util.{Date, UUID, Collection => JCollection, List => JList}
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.google.common.collect.Maps
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.utils.text.WKBUtils
+import org.locationtech.geomesa.utils.text.WKBUtils
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.{BinaryEncoder, EncoderFactory}
 import org.apache.avro.{Schema, SchemaBuilder}
@@ -49,7 +49,7 @@ class AvroSimpleFeature(id: FeatureId, sft: SimpleFeatureType)
   extends SimpleFeature
   with Serializable {
 
-  import geomesa.feature.AvroSimpleFeature._
+  import org.locationtech.geomesa.feature.AvroSimpleFeature._
 
   val values  = Array.ofDim[AnyRef](sft.getAttributeCount)
   @transient val userData  = collection.mutable.HashMap.empty[AnyRef, AnyRef]

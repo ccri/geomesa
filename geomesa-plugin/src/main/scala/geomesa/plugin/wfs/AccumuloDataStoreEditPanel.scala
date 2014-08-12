@@ -15,9 +15,9 @@
  */
 
 
-package geomesa.plugin.wfs
+package org.locationtech.geomesa.plugin.wfs
 
-import geomesa.plugin.GeoMesaStoreEditPanel
+import org.locationtech.geomesa.plugin.GeoMesaStoreEditPanel
 import org.apache.wicket.markup.html.form.validation.IFormValidator
 import org.apache.wicket.markup.html.form.{FormComponent, Form}
 import org.apache.wicket.model.PropertyModel

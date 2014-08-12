@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package geomesa.feature.serde
+package org.locationtech.geomesa.feature.serde
 
 import java.nio.ByteBuffer
 
 import com.vividsolutions.jts.io.InStream
-import geomesa.feature.AvroSimpleFeature
-import geomesa.utils.text.WKBUtils
+import org.locationtech.geomesa.feature.AvroSimpleFeature
+import org.locationtech.geomesa.utils.text.WKBUtils
 import org.apache.avro.io.Decoder
 
 /**

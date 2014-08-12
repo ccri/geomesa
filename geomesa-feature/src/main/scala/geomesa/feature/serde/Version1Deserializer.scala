@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package geomesa.feature.serde
+package org.locationtech.geomesa.feature.serde
 
-import geomesa.feature.AvroSimpleFeature
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.feature.AvroSimpleFeature
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.avro.io.Decoder
 
 /**

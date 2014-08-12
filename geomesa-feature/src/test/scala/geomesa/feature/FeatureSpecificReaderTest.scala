@@ -1,12 +1,12 @@
-package geomesa.feature
+package org.locationtech.geomesa.feature
 
 import java.io._
 import java.text.SimpleDateFormat
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.{LineString, Point, Polygon}
-import geomesa.utils.geohash.GeohashUtils
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geohash.GeohashUtils
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.avro.io.DecoderFactory
 import org.geotools.data.DataUtilities
 import org.geotools.filter.identity.FeatureIdImpl

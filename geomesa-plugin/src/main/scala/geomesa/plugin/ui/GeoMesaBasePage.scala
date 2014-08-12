@@ -14,10 +14,10 @@
   * limitations under the License.
   */
 
-package geomesa.plugin.ui
+package org.locationtech.geomesa.plugin.ui
 
-import geomesa.plugin.persistence.PersistenceUtil
-import geomesa.plugin.properties
+import org.locationtech.geomesa.plugin.persistence.PersistenceUtil
+import org.locationtech.geomesa.plugin.properties
 import org.apache.hadoop.conf.Configuration
 import org.apache.wicket.markup.html.internal.HtmlHeaderContainer
 import org.apache.wicket.markup.html.resources.JavascriptResourceReference

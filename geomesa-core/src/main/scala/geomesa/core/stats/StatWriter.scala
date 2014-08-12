@@ -16,7 +16,7 @@
  *
  */
 
-package geomesa.core.stats
+package org.locationtech.geomesa.core.stats
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}

@@ -15,7 +15,7 @@
  */
 
 
-package geomesa.plugin.servlet
+package org.locationtech.geomesa.plugin.servlet
 
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification

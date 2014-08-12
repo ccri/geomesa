@@ -1,4 +1,4 @@
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification

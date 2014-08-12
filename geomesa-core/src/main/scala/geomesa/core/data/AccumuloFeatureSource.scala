@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import collection.JavaConversions._
-import geomesa.core.process.proximity.ProximityVisitor
-import geomesa.core.process.query.QueryVisitor
-import geomesa.core.process.tube.TubeVisitor
+import org.locationtech.geomesa.core.process.proximity.ProximityVisitor
+import org.locationtech.geomesa.core.process.query.QueryVisitor
+import org.locationtech.geomesa.core.process.tube.TubeVisitor
 import org.geotools.data._
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureCollection}
 import org.geotools.feature.visitor.{BoundsVisitor, MaxVisitor, MinVisitor}

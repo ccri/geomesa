@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geohash
+package org.locationtech.geomesa.utils.geohash
 
 import GeoHashIterator._
 import com.vividsolutions.jts.geom.Coordinate

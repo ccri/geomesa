@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import com.vividsolutions.jts.geom._
-import geomesa.core.data._
-import geomesa.core.index._
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.geotools.feature.simple.SimpleFeatureBuilder
@@ -42,7 +42,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
  */
 class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyValueIterator[Key, Value] {
 
-  import geomesa.core._
+  import org.locationtech.geomesa.core._
 
   var featureBuilder: SimpleFeatureBuilder = null
   var featureEncoder: SimpleFeatureEncoder = null
@@ -105,7 +105,7 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
 }
 
 object IndexIterator extends IteratorHelpers {
-  import geomesa.core.iterators.IteratorTrigger.IndexAttributeNames
+  import org.locationtech.geomesa.core.iterators.IteratorTrigger.IndexAttributeNames
 
   /**
    * Converts values taken from the Index Value to a SimpleFeature, using the passed SimpleFeatureBuilder

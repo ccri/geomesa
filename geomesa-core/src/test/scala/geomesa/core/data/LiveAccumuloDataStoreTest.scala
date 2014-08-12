@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
-import geomesa.core.index.IndexSchemaBuilder
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.index.IndexSchemaBuilder
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.geotools.data._
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.SimpleFeatureIterator

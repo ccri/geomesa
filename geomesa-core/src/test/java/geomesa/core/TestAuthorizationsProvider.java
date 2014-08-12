@@ -1,6 +1,6 @@
-package geomesa.core;
+package org.locationtech.geomesa.core;
 
-import geomesa.core.security.AuthorizationsProvider;
+import org.locationtech.geomesa.core.security.AuthorizationsProvider;
 import org.apache.accumulo.core.security.Authorizations;
 
 import java.io.Serializable;

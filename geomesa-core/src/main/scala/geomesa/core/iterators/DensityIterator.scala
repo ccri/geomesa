@@ -15,7 +15,7 @@
  */
 
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.{util => ju}
@@ -23,13 +23,13 @@ import java.{util => ju}
 import com.google.common.collect._
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom._
-import geomesa.core._
-import geomesa.core.data.{FeatureEncoding, SimpleFeatureEncoder, SimpleFeatureEncoderFactory}
-import geomesa.core.index.{IndexEntryDecoder, IndexSchema}
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.Conversions.{RichSimpleFeature, toRichSimpleFeatureIterator}
-import geomesa.utils.geotools.{GridSnap, SimpleFeatureTypes}
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data.{FeatureEncoding, SimpleFeatureEncoder, SimpleFeatureEncoderFactory}
+import org.locationtech.geomesa.core.index.{IndexEntryDecoder, IndexSchema}
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.Conversions.{RichSimpleFeature, toRichSimpleFeatureIterator}
+import org.locationtech.geomesa.utils.geotools.{GridSnap, SimpleFeatureTypes}
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data.{ByteSequence, Key, Value, Range => ARange}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
@@ -43,7 +43,7 @@ import scala.util.{Failure, Random, Success, Try}
 
 class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends SortedKeyValueIterator[Key, Value] {
 
-  import geomesa.core.iterators.DensityIterator.{DENSITY_FEATURE_STRING, SparseMatrix}
+  import org.locationtech.geomesa.core.iterators.DensityIterator.{DENSITY_FEATURE_STRING, SparseMatrix}
 
   var bbox: ReferencedEnvelope = null
   var curRange: ARange = null

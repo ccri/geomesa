@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geohash
+package org.locationtech.geomesa.utils.geohash
 
 object TwoGeoHashBoundingBox {
   def apply(bbox: BoundingBox, prec: Int): TwoGeoHashBoundingBox =

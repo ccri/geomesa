@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.data.METADATA_TAG
-import geomesa.core.index._
-import geomesa.core.iterators.TestData._
+import org.locationtech.geomesa.core.data.METADATA_TAG
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.core.iterators.TestData._
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.client.{BatchWriterConfig, Connector, IteratorSetting}

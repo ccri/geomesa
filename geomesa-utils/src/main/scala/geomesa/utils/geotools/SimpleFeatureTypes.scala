@@ -1,4 +1,4 @@
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import java.lang
 import java.util.{Date, UUID}

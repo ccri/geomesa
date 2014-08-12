@@ -1,7 +1,7 @@
-package geomesa.plugin.process
+package org.locationtech.geomesa.plugin.process
 
-import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
-import geomesa.plugin.wps.GeomesaProcess
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import org.locationtech.geomesa.plugin.wps.GeomesaProcess
 import org.geoserver.catalog.{Catalog, CatalogBuilder, DataStoreInfo}
 import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder

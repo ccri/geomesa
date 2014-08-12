@@ -16,7 +16,7 @@
  *
  */
 
-package geomesa.core.stats
+package org.locationtech.geomesa.core.stats
 
 trait MethodProfiling {
 

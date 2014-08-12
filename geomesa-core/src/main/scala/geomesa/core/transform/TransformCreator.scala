@@ -1,7 +1,7 @@
-package geomesa.core.transform
+package org.locationtech.geomesa.core.transform
 
-import geomesa.core.data.{FeatureEncoding, SimpleFeatureEncoder}
-import geomesa.feature.{AvroSimpleFeature, AvroSimpleFeatureFactory}
+import org.locationtech.geomesa.core.data.{FeatureEncoding, SimpleFeatureEncoder}
+import org.locationtech.geomesa.feature.{AvroSimpleFeature, AvroSimpleFeatureFactory}
 import org.apache.accumulo.core.data.Value
 import org.geotools.process.vector.TransformProcess
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}

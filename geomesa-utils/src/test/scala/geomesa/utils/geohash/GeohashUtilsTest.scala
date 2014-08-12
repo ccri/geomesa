@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geohash
+package org.locationtech.geomesa.utils.geohash
 
 import com.vividsolutions.jts.geom._
-import geomesa.utils.geohash.GeohashUtils.GeometrySizingUtilities.RecommendedResolution
-import geomesa.utils.geohash.GeohashUtils._
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.geohash.GeohashUtils.GeometrySizingUtilities.RecommendedResolution
+import org.locationtech.geomesa.utils.geohash.GeohashUtils._
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.junit.Ignore
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification

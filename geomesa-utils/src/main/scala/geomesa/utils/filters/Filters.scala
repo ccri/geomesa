@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.filters
+package org.locationtech.geomesa.utils.filters
 
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.temporal.`object`.{DefaultInstant, DefaultPeriod, DefaultPosition}

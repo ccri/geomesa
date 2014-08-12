@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.wms
+package org.locationtech.geomesa.plugin.wms
 
-import geomesa.utils.geohash.{GeoHash, TwoGeoHashBoundingBox}
+import org.locationtech.geomesa.utils.geohash.{GeoHash, TwoGeoHashBoundingBox}
 import java.awt.Point
 import java.awt.image._
 import java.lang.Math

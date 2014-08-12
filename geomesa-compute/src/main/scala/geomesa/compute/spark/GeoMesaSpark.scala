@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.compute.spark
+package org.locationtech.geomesa.compute.spark
 
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
@@ -23,10 +23,10 @@ import java.text.SimpleDateFormat
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.google.common.cache.{CacheBuilder, CacheLoader}
-import geomesa.core.data.{AccumuloDataStore, AvroFeatureEncoder, FilterToAccumulo}
-import geomesa.core.index.IndexSchema
-import geomesa.feature.AvroSimpleFeature
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AvroFeatureEncoder, FilterToAccumulo}
+import org.locationtech.geomesa.core.index.IndexSchema
+import org.locationtech.geomesa.feature.AvroSimpleFeature
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat
 import org.apache.accumulo.core.client.mapreduce.lib.util.{ConfiguratorBase, InputConfigurator}
 import org.apache.accumulo.core.data.{Key, Value}

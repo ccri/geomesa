@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package geomesa.feature
+package org.locationtech.geomesa.feature
 
 import com.google.common.cache.{CacheLoader, CacheBuilder}
-import geomesa.utils.text.{ObjectPoolFactory, ObjectPoolUtils}
+import org.locationtech.geomesa.utils.text.{ObjectPoolFactory, ObjectPoolUtils}
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.AbstractFeatureFactoryImpl
 import org.geotools.feature.simple.SimpleFeatureBuilder

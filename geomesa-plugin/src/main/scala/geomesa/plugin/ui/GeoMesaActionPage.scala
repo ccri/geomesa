@@ -14,7 +14,7 @@
   * limitations under the License.
   */
 
-package geomesa.plugin.ui
+package org.locationtech.geomesa.plugin.ui
 
 import java.io.File
 

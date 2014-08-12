@@ -1,12 +1,12 @@
-package geomesa.core.process.tube
+package org.locationtech.geomesa.core.process.tube
 
 import collection.JavaConversions._
 import com.vividsolutions.jts.geom._
-import geomesa.core.data.AccumuloFeatureCollection
-import geomesa.core.index.Constants
-import geomesa.core.process.tube.GapFill.GapFill
-import geomesa.core.util.UniqueMultiCollection
-import geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.core.data.AccumuloFeatureCollection
+import org.locationtech.geomesa.core.index.Constants
+import org.locationtech.geomesa.core.process.tube.GapFill.GapFill
+import org.locationtech.geomesa.core.util.UniqueMultiCollection
+import org.locationtech.geomesa.utils.geotools.Conversions._
 import java.util.Date
 import org.apache.log4j.Logger
 import org.geotools.data.Query

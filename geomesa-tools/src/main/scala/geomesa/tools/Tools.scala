@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package geomesa.tools
+package org.locationtech.geomesa.tools
 
 import com.typesafe.scalalogging.slf4j.Logging
 

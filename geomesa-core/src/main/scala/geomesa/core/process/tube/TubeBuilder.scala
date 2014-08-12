@@ -1,14 +1,14 @@
-package geomesa.core.process.tube
+package org.locationtech.geomesa.core.process.tube
 
 import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequence
-import geomesa.core.index.Constants
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.index.Constants
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.log4j.Logger
 import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.referencing.GeodeticCalculator
@@ -76,7 +76,7 @@ abstract class TubeBuilder(val tubeFeatures: SimpleFeatureCollection,
   // handle date parsing from input -> TODO revisit date parsing...
   def transform(tubeFeatures: SimpleFeatureCollection,
                 dtgField: String): Iterator[SimpleFeature] = {
-    import geomesa.utils.geotools.Conversions._
+    import org.locationtech.geomesa.utils.geotools.Conversions._
     tubeFeatures.features().map { sf =>
       val date =
         if(sf.getAttribute(dtgField).isInstanceOf[String])

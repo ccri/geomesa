@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.util.{Date, Map => JMap}
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.core._
-import geomesa.core.index._
-import geomesa.core.index.IndexSchema.DecodedIndexValue
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.core.index.IndexSchema.DecodedIndexValue
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.iterators.{Filter, IteratorEnvironment, SortedKeyValueIterator}
 import org.geotools.feature.simple.SimpleFeatureBuilder

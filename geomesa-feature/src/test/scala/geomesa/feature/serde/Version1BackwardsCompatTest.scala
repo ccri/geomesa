@@ -1,13 +1,13 @@
-package geomesa.feature.serde
+package org.locationtech.geomesa.feature.serde
 
 import java.io._
 import java.text.SimpleDateFormat
 import java.util.UUID
 
 import com.vividsolutions.jts.geom.{Geometry, GeometryFactory}
-import geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader, Version1ASF}
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader, Version1ASF}
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.avro.io.{EncoderFactory, DecoderFactory}
 import org.geotools.data.DataUtilities
 import org.geotools.filter.identity.FeatureIdImpl

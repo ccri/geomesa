@@ -1,4 +1,4 @@
-package geomesa.core.process.query
+package org.locationtech.geomesa.core.process.query
 
 import org.apache.log4j.Logger
 import org.geotools.data.Query

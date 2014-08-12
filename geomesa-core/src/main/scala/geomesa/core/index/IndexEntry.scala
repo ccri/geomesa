@@ -1,12 +1,12 @@
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.core._
-import geomesa.core.data.DATA_CQ
-import geomesa.core.data.SimpleFeatureEncoder
-import geomesa.utils.geohash.{GeoHash, GeohashUtils}
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data.DATA_CQ
+import org.locationtech.geomesa.core.data.SimpleFeatureEncoder
+import org.locationtech.geomesa.utils.geohash.{GeoHash, GeohashUtils}
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.data.{Value, Key}
 import org.apache.hadoop.io.Text
 import org.geotools.data.DataUtilities

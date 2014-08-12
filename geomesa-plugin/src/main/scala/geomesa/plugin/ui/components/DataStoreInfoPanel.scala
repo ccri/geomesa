@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.ui.components
+package org.locationtech.geomesa.plugin.ui.components
 
-import geomesa.plugin.ui.FeatureData
+import org.locationtech.geomesa.plugin.ui.FeatureData
 import org.apache.wicket.markup.html.basic.Label
 import org.apache.wicket.markup.html.list.{ListItem, ListView}
 import org.apache.wicket.markup.html.panel.Panel

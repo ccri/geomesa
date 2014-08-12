@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import org.apache.accumulo.core.client._
 import org.apache.accumulo.core.client.mock.MockInstance

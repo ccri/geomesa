@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import java.io.{InputStream, ByteArrayInputStream, ByteArrayOutputStream}
 
 import com.google.common.cache.LoadingCache
-import geomesa.core.data.FeatureEncoding.FeatureEncoding
-import geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader}
-import geomesa.utils.text.ObjectPoolFactory
+import org.locationtech.geomesa.core.data.FeatureEncoding.FeatureEncoding
+import org.locationtech.geomesa.feature.{AvroSimpleFeature, FeatureSpecificReader}
+import org.locationtech.geomesa.utils.text.ObjectPoolFactory
 import org.apache.accumulo.core.data.{ Value => AValue }
 import org.apache.avro.io.DecoderFactory
 import org.geotools.data.DataUtilities

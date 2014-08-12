@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.ui.components
+package org.locationtech.geomesa.plugin.ui.components
 
 import java.text.DecimalFormat
 
-import geomesa.plugin.ui.{FeatureData, GeoMesaFeaturePage, TableMetadata}
+import org.locationtech.geomesa.plugin.ui.{FeatureData, GeoMesaFeaturePage, TableMetadata}
 import org.apache.wicket.PageParameters
 import org.apache.wicket.markup.html.basic.Label
 import org.apache.wicket.markup.html.link.BookmarkablePageLink
@@ -33,7 +33,7 @@ class FeatureInfoPanel(id: String, featureData: FeatureData) extends Panel(id) {
   add(new Label("featureName", Model.of(s"Feature: ${featureData.feature}")))
   add(new Label("bounds", Model.of(s"Bounds: ${featureData.bounds}")))
 
-  import geomesa.plugin.ui.GeoMesaFeaturePage._
+  import org.locationtech.geomesa.plugin.ui.GeoMesaFeaturePage._
 
   // link to the feature page
   private val pageParameters = new PageParameters()

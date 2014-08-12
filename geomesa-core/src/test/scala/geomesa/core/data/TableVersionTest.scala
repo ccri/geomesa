@@ -1,10 +1,10 @@
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
-import geomesa.core.index.SF_PROPERTY_START_TIME
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.Conversions._
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.index.SF_PROPERTY_START_TIME
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.client.BatchWriterConfig
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
-import geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.geohash.GeoHash
 import org.apache.accumulo.core.data.Key
 import org.joda.time.{DateTimeZone, DateTime}
 

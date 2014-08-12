@@ -15,10 +15,10 @@
  */
 
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.index.IndexSchema
+import org.locationtech.geomesa.core.index.IndexSchema
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.apache.hadoop.io.Text

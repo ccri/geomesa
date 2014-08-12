@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package geomesa.feature
+package org.locationtech.geomesa.feature
 
 import java.io.InputStream
 import java.util.{Date, UUID}
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.feature.serde.{ASFDeserializer, Version1Deserializer, Version2Deserializer}
+import org.locationtech.geomesa.feature.serde.{ASFDeserializer, Version1Deserializer, Version2Deserializer}
 import org.apache.avro.Schema
 import org.apache.avro.io.{DatumReader, Decoder, DecoderFactory}
 import org.geotools.data.DataUtilities
@@ -33,7 +33,7 @@ class FeatureSpecificReader(oldType: SimpleFeatureType, newType: SimpleFeatureTy
 
   def this(sft: SimpleFeatureType) = this(sft, sft)
 
-  import geomesa.feature.AvroSimpleFeature._
+  import org.locationtech.geomesa.feature.AvroSimpleFeature._
 
 import scala.collection.JavaConversions._
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.servlet
+package org.locationtech.geomesa.plugin.servlet
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 

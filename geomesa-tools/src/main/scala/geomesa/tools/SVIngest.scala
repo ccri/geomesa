@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package geomesa.tools
+package org.locationtech.geomesa.tools
 
 import java.net.URLDecoder
 import java.nio.charset.Charset
 
 import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.data.AccumuloDataStore
-import geomesa.core.index.Constants
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data.AccumuloDataStore
+import org.locationtech.geomesa.core.index.Constants
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.geotools.data.{DataStoreFinder, Transaction}
 import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl

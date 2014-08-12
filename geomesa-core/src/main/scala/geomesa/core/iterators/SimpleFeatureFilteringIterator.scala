@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.data._
-import geomesa.core.transform.TransformCreator
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.transform.TransformCreator
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
@@ -34,7 +34,7 @@ class SimpleFeatureFilteringIterator(other: SimpleFeatureFilteringIterator, env:
   extends SortedKeyValueIterator[Key, Value]
   with Logging {
 
-  import geomesa.core._
+  import org.locationtech.geomesa.core._
 
   SpatioTemporalIntersectingIterator.initClassLoader(logger)
 
@@ -163,7 +163,7 @@ class SimpleFeatureFilteringIterator(other: SimpleFeatureFilteringIterator, env:
 
 object SimpleFeatureFilteringIterator {
 
-  import geomesa.core._
+  import org.locationtech.geomesa.core._
 
   def setECQLFilter(cfg: IteratorSetting, ecql: String) {
     cfg.addOption(GEOMESA_ITERATORS_ECQL_FILTER, ecql)

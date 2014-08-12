@@ -1,7 +1,7 @@
-package geomesa.feature
+package org.locationtech.geomesa.feature
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.geotools.data.DataUtilities
 import org.geotools.feature.simple.SimpleFeatureImpl
 import org.geotools.feature.NameImpl

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.text
+package org.locationtech.geomesa.utils.text
 
 import com.vividsolutions.jts.geom.Geometry
 import com.vividsolutions.jts.io.{WKBWriter, WKBReader, WKTWriter, WKTReader}

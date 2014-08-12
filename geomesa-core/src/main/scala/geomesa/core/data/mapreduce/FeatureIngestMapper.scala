@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.data.mapreduce
+package org.locationtech.geomesa.core.data.mapreduce
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.data.{AccumuloDataStore, AccumuloDataStoreFactory}
-import geomesa.utils.geotools.FeatureHandler
-import geomesa.utils.text.WKBUtils
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloDataStoreFactory}
+import org.locationtech.geomesa.utils.geotools.FeatureHandler
+import org.locationtech.geomesa.utils.text.WKBUtils
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapreduce.{Mapper => HMapper}
@@ -33,7 +33,7 @@ object FeatureIngestMapper
 
   type Mapper = HMapper[LongWritable,Text,Key,Value]
 
-  import geomesa.core._
+  import org.locationtech.geomesa.core._
 
   class FeatureIngestMapper extends Mapper {
     var featureType: SimpleFeatureType = null

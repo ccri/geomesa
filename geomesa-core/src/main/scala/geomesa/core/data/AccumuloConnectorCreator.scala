@@ -1,4 +1,4 @@
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.client.{BatchScanner, Scanner}

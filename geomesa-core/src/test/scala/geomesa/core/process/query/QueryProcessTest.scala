@@ -1,11 +1,11 @@
-package geomesa.core.process.query
+package org.locationtech.geomesa.core.process.query
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
-import geomesa.core.index.{Constants, IndexSchemaBuilder}
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import org.locationtech.geomesa.core.index.{Constants, IndexSchemaBuilder}
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.geotools.data.DataStoreFinder
 import org.geotools.factory.Hints
 import org.geotools.feature.DefaultFeatureCollection

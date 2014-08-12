@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import com.vividsolutions.jts.geom._
-import geomesa.core.data.FilterToAccumulo._
-import geomesa.core.index
-import geomesa.utils.filters.Filters._
-import geomesa.utils.geohash.GeohashUtils.getInternationalDateLineSafeGeometry
-import geomesa.utils.geometry.Geometry._
-import geomesa.utils.geotools.Conversions._
-import geomesa.utils.geotools.GeometryUtils
-import geomesa.utils.time.Time._
+import org.locationtech.geomesa.core.data.FilterToAccumulo._
+import org.locationtech.geomesa.core.index
+import org.locationtech.geomesa.utils.filters.Filters._
+import org.locationtech.geomesa.utils.geohash.GeohashUtils.getInternationalDateLineSafeGeometry
+import org.locationtech.geomesa.utils.geometry.Geometry._
+import org.locationtech.geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.utils.geotools.GeometryUtils
+import org.locationtech.geomesa.utils.time.Time._
 import org.geotools.data.Query
 import org.geotools.filter.visitor.SimplifyingFilterVisitor
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}

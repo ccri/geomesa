@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import geomesa.core.data._
-import geomesa.core.index.IndexSchema
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index.IndexSchema
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.data.{Key, Value, Range => ARange}

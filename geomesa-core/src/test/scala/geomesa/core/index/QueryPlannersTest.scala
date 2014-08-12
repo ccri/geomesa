@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
 import com.vividsolutions.jts.geom.Polygon
-import geomesa.utils.geohash.GeoHash
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import org.junit.runner.RunWith

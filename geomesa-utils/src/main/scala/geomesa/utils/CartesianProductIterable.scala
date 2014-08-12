@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils
+package org.locationtech.geomesa.utils
 
 /**
  * Can create an iterator over all combinations of items from a list-of-lists.

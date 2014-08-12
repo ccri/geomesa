@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.ui
+package org.locationtech.geomesa.plugin.ui
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.data.AccumuloDataStore
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.geotools.SimpleFeatureTypes.{AttributeSpec, GeomAttributeSpec, NonGeomAttributeSpec}
+import org.locationtech.geomesa.core.data.AccumuloDataStore
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.{AttributeSpec, GeomAttributeSpec, NonGeomAttributeSpec}
 import org.apache.wicket.behavior.AttributeAppender
 import org.apache.wicket.markup.html.basic.Label
 import org.apache.wicket.markup.html.form.{CheckBox, Form}
@@ -39,7 +39,7 @@ object GeoMesaFeaturePage {
 
 class GeoMesaFeaturePage(parameters: PageParameters) extends GeoMesaBasePage with Logging {
 
-  import geomesa.plugin.ui.GeoMesaFeaturePage._
+  import org.locationtech.geomesa.plugin.ui.GeoMesaFeaturePage._
 
   val featureName = parameters.getString(FEATURE_NAME_PARAM)
   val workspaceName = parameters.getString(WORKSPACE_PARAM)

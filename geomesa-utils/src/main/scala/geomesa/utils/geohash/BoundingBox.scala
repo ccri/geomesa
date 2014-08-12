@@ -15,10 +15,10 @@
  */
 
 
-package geomesa.utils.geohash
+package org.locationtech.geomesa.utils.geohash
 
 import com.vividsolutions.jts.geom._
-import geomesa.utils.text.WKBUtils
+import org.locationtech.geomesa.utils.text.WKBUtils
 import org.apache.commons.codec.binary.Base64
 import scala.collection.BitSet
 

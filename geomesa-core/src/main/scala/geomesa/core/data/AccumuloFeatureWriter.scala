@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.index._
-import geomesa.feature.{AvroSimpleFeature, AvroSimpleFeatureFactory}
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.feature.{AvroSimpleFeature, AvroSimpleFeatureFactory}
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.client.{BatchWriter, BatchWriterConfig, Connector}
 import org.apache.accumulo.core.data.{Key, Mutation, PartialKey, Value, Range => ARange}
 import org.apache.accumulo.core.security.ColumnVisibility

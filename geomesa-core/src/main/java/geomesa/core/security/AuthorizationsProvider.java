@@ -1,4 +1,4 @@
-package geomesa.core.security;
+package org.locationtech.geomesa.core.security;
 
 import org.apache.accumulo.core.security.Authorizations;
 

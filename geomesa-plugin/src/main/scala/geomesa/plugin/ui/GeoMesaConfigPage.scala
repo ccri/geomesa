@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.ui
+package org.locationtech.geomesa.plugin.ui
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.plugin.persistence.PersistenceUtil
-import geomesa.plugin.properties
-import geomesa.plugin.ui.components.FileUploadComponent
+import org.locationtech.geomesa.plugin.persistence.PersistenceUtil
+import org.locationtech.geomesa.plugin.properties
+import org.locationtech.geomesa.plugin.ui.components.FileUploadComponent
 import org.apache.hadoop.conf.Configuration
 import org.apache.wicket.ajax.AjaxRequestTarget
 import org.apache.wicket.ajax.markup.html.AjaxLink
@@ -38,7 +38,7 @@ import scala.util.Try
 
 class GeoMesaConfigPage extends GeoMesaBasePage with Logging {
 
-  import geomesa.plugin.properties._
+  import org.locationtech.geomesa.plugin.properties._
 
   // form fields
   val props = List(

@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.core._
-import geomesa.core.conf._
-import geomesa.core.data.mapreduce.FeatureIngestMapper.FeatureIngestMapper
-import geomesa.utils.geotools.FeatureHandler
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.conf._
+import org.locationtech.geomesa.core.data.mapreduce.FeatureIngestMapper.FeatureIngestMapper
+import org.locationtech.geomesa.utils.geotools.FeatureHandler
 import java.io.File
 import java.io.Serializable
 import java.util.{List => JList, Set => JSet, Map => JMap, UUID}

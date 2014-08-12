@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.core.stats
+package org.locationtech.geomesa.core.stats
 
-import geomesa.core.index.QueryHints
+import org.locationtech.geomesa.core.index.QueryHints
 import org.apache.accumulo.core.client.BatchWriterConfig
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken

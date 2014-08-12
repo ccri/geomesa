@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
 import java.nio.charset.StandardCharsets
 import java.util.Map.Entry
 
 import com.vividsolutions.jts.geom.{Point, Polygon}
-import geomesa.core._
-import geomesa.core.data._
-import geomesa.core.filter._
-import geomesa.core.index.IndexQueryPlanner._
-import geomesa.core.index.QueryHints._
-import geomesa.core.iterators.{FEATURE_ENCODING, _}
-import geomesa.core.util.CloseableIterator._
-import geomesa.core.util.{BatchMultiScanner, CloseableIterator, SelfClosingBatchScanner, SelfClosingIterator}
-import geomesa.utils.geotools.Conversions._
-import geomesa.utils.geotools.{GeometryUtils, SimpleFeatureTypes}
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.filter._
+import org.locationtech.geomesa.core.index.IndexQueryPlanner._
+import org.locationtech.geomesa.core.index.QueryHints._
+import org.locationtech.geomesa.core.iterators.{FEATURE_ENCODING, _}
+import org.locationtech.geomesa.core.util.CloseableIterator._
+import org.locationtech.geomesa.core.util.{BatchMultiScanner, CloseableIterator, SelfClosingBatchScanner, SelfClosingIterator}
+import org.locationtech.geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.utils.geotools.{GeometryUtils, SimpleFeatureTypes}
 import org.apache.accumulo.core.client.{BatchScanner, IteratorSetting, Scanner}
 import org.apache.accumulo.core.data.{Key, Value, Range => AccRange}
 import org.apache.accumulo.core.iterators.user.RegExFilter

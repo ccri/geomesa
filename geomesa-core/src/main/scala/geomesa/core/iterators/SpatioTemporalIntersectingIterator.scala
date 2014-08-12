@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.util.{Date, HashSet => JHashSet}
 
 import com.typesafe.scalalogging.slf4j.{Logger, Logging}
 import com.vividsolutions.jts.geom._
-import geomesa.core._
-import geomesa.core.data._
-import geomesa.core.index._
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data.{ArrayByteSequence, ByteSequence, Key, Range, Value}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
@@ -317,7 +317,7 @@ object SpatioTemporalIntersectingIterator extends IteratorHelpers
  *  This trait contains many methods and values of general use to companion Iterator objects
  */
 trait IteratorHelpers  {
- import geomesa.core._
+ import org.locationtech.geomesa.core._
 
   val initialized = new ThreadLocal[Boolean] {
     override def initialValue(): Boolean = false

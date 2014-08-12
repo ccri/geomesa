@@ -16,14 +16,14 @@
  *
  */
 
-package geomesa.core.integration
+package org.locationtech.geomesa.core.integration
 
 import java.io._
 
 import com.google.common.io.Files
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
-import geomesa.core.integration.data.{DataLoader, DataType}
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import org.locationtech.geomesa.core.integration.data.{DataLoader, DataType}
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.client.{Connector, ZooKeeperInstance}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster

@@ -15,14 +15,14 @@
  */
 
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import java.io.Serializable
 import java.util.{Map => JMap}
 import javax.imageio.spi.ServiceRegistry
 
-import geomesa.core.security.{AuthorizationsProvider, DefaultAuthorizationsProvider, FilteringAuthorizationsProvider}
-import geomesa.core.stats.StatWriter
+import org.locationtech.geomesa.core.security.{AuthorizationsProvider, DefaultAuthorizationsProvider, FilteringAuthorizationsProvider}
+import org.locationtech.geomesa.core.stats.StatWriter
 import org.apache.accumulo.core.client.mock.{MockConnector, MockInstance}
 import org.apache.accumulo.core.client.security.tokens.{AuthenticationToken, PasswordToken}
 import org.apache.accumulo.core.client.{Connector, ZooKeeperInstance}
@@ -36,8 +36,8 @@ import scala.util.Try
 
 class AccumuloDataStoreFactory extends DataStoreFactorySpi {
 
-  import geomesa.core.data.AccumuloDataStoreFactory._
-  import geomesa.core.data.AccumuloDataStoreFactory.params._
+  import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory._
+  import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
 
   // this is a pass-through required of the ancestor interface
   def createNewDataStore(params: JMap[String, Serializable]) = createDataStore(params)
@@ -199,7 +199,7 @@ object AccumuloDataStoreFactory {
     val featureEncParam     = new Param("featureEncoding", classOf[String], "The feature encoding format (text or avro). Default is Avro", false, "avro")
   }
 
-  import geomesa.core.data.AccumuloDataStoreFactory.params._
+  import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
 
   def configureJob(job: Job, params: JMap[String, Serializable]): Job = {
     val conf = job.getConfiguration

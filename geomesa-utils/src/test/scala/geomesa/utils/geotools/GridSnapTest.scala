@@ -15,11 +15,11 @@
  */
 
 
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom._
-import geomesa.utils.geotools.Conversions.toRichSimpleFeatureIterator
+import org.locationtech.geomesa.utils.geotools.Conversions.toRichSimpleFeatureIterator
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

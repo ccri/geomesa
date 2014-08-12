@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core.stats
+package org.locationtech.geomesa.core.stats
 
 import java.util.Date
 

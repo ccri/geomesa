@@ -1,4 +1,4 @@
-package geomesa.core
+package org.locationtech.geomesa.core
 
 import collection.JavaConversions._
 import org.apache.accumulo.core.client.IteratorSetting

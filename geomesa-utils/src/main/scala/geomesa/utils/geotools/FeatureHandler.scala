@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.utils.text.WKBUtils
+import org.locationtech.geomesa.utils.text.WKBUtils
 import java.io.{FileWriter, BufferedWriter, File}
 import org.geotools.data.{DataUtilities, Base64}
 import org.geotools.feature.FeatureIterator

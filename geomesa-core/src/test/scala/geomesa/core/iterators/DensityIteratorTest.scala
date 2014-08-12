@@ -15,16 +15,16 @@
  */
 
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.util.Date
 
 import com.google.common.collect.HashBasedTable
 import com.vividsolutions.jts.geom.{Envelope, Point}
-import geomesa.core.data.AccumuloDataStoreFactory
-import geomesa.core.index.{Constants, IndexSchemaBuilder, QueryHints}
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory
+import org.locationtech.geomesa.core.index.{Constants, IndexSchemaBuilder, QueryHints}
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.hadoop.io.Text
@@ -49,7 +49,7 @@ class DensityIteratorTest extends Specification {
 
   sequential
 
-  import geomesa.utils.geotools.Conversions._
+  import org.locationtech.geomesa.utils.geotools.Conversions._
 
     val testData : Map[String,String] = Map(
       "[MULTIPOLYGON] test box" -> "MULTIPOLYGON(((0.0 0.0,3.0 0.0,3.0 10.0,0.0 10.0,0.0 0.0)),((8.0 0.0,10.0 0.0,10.0 10.0,8.0 10.0,8.0 0.0)))",
@@ -70,7 +70,7 @@ class DensityIteratorTest extends Specification {
 
     val dsf = new AccumuloDataStoreFactory
 
-    import geomesa.core.data.AccumuloDataStoreFactory.params._
+    import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
 
     val ds = dsf.createDataStore(Map(
       zookeepersParam.key -> "dummy",

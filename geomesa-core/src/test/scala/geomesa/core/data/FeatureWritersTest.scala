@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import geomesa.core.index.{IndexSchemaBuilder, SF_PROPERTY_START_TIME}
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.index.{IndexSchemaBuilder, SF_PROPERTY_START_TIME}
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.factory.Hints

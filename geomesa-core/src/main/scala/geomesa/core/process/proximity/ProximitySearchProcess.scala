@@ -1,8 +1,8 @@
-package geomesa.core.process.proximity
+package org.locationtech.geomesa.core.process.proximity
 
 import com.vividsolutions.jts.geom.GeometryFactory
-import geomesa.core.data.AccumuloFeatureCollection
-import geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.core.data.AccumuloFeatureCollection
+import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.apache.log4j.Logger
 import org.geotools.data.Query
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureCollection}
@@ -95,7 +95,7 @@ class ProximityVisitor( inputFeatures: SimpleFeatureCollection,
   }
 
   def dwithinFilters(requestedUnit: String) = {
-    import geomesa.utils.geotools.Conversions.RichGeometry
+    import org.locationtech.geomesa.utils.geotools.Conversions.RichGeometry
     import scala.collection.JavaConversions._
 
     val geomProperty = ff.property(dataFeatures.getSchema.getGeometryDescriptor.getName)

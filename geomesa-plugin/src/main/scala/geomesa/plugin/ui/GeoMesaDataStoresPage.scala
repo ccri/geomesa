@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.ui
+package org.locationtech.geomesa.plugin.ui
 
-import geomesa.core.data.AccumuloDataStore
-import geomesa.core.data.AccumuloDataStoreFactory.params._
-import geomesa.plugin.ui.components.DataStoreInfoPanel
+import org.locationtech.geomesa.core.data.AccumuloDataStore
+import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
+import org.locationtech.geomesa.plugin.ui.components.DataStoreInfoPanel
 import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.client.{Connector, IsolatedScanner}
 import org.apache.accumulo.core.data.KeyExtent
@@ -34,7 +34,7 @@ import scala.collection.mutable
 
 class GeoMesaDataStoresPage extends GeoMesaBasePage {
 
-  import geomesa.plugin.ui.GeoMesaDataStoresPage._
+  import org.locationtech.geomesa.plugin.ui.GeoMesaDataStoresPage._
 
   // TODO count in results chart shows total stores, not just the filtered ones
   private val storeProvider = new StoreProvider() {

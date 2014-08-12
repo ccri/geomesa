@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
 import java.nio.ByteBuffer
 import java.util.Map.Entry
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Geometry, Point, Polygon}
-import geomesa.core.data._
-import geomesa.core.index.QueryHints._
-import geomesa.core.iterators._
-import geomesa.core.util._
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.{WKBUtils, WKTUtils}
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index.QueryHints._
+import org.locationtech.geomesa.core.iterators._
+import org.locationtech.geomesa.core.util._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.apache.accumulo.core.data.{Key, Value}
 import org.geotools.data.{DataUtilities, Query}
 import org.joda.time.format.DateTimeFormat
@@ -82,7 +82,7 @@ case class IndexSchema(encoder: IndexEncoder,
   def encode(entry: SimpleFeature, visibility: String = "") = encoder.encode(entry, visibility)
   def decode(key: Key): SimpleFeature = decoder.decode(key)
 
-  import geomesa.core.index.IndexSchema._
+  import org.locationtech.geomesa.core.index.IndexSchema._
 
   // utility method to ask for the maximum allowable shard number
   def maxShard: Int =
@@ -387,7 +387,7 @@ object IndexSchema extends RegexParsers {
   // 2.  WKB-encoded geometry
   // 3.  start-date/time
   def encodeIndexValue(entry: SimpleFeature): Value = {
-    import geomesa.core.index.IndexEntry._
+    import org.locationtech.geomesa.core.index.IndexEntry._
     val encodedId = entry.sid.getBytes
     val encodedGeom = WKBUtils.write(entry.geometry)
     val encodedDtg = entry.dt.map(dtg => ByteBuffer.allocate(8).putLong(dtg.getMillis).array()).getOrElse(Array[Byte]())

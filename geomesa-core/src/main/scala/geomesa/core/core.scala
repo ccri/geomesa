@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa
+package org.locationtech.geomesa
 
 package object core {
 

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.wms
+package org.locationtech.geomesa.plugin.wms
 
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core.iterators.{TimestampSetIterator, TimestampRangeIterator, SurfaceAggregatingIterator, AggregatingKeyIterator}
-import geomesa.core.util.{SelfClosingBatchScanner, BoundingBoxUtil}
-import geomesa.utils.geohash.{GeoHash, TwoGeoHashBoundingBox, Bounds, BoundingBox}
+import org.locationtech.geomesa.core.iterators.{TimestampSetIterator, TimestampRangeIterator, SurfaceAggregatingIterator, AggregatingKeyIterator}
+import org.locationtech.geomesa.core.util.{SelfClosingBatchScanner, BoundingBoxUtil}
+import org.locationtech.geomesa.utils.geohash.{GeoHash, TwoGeoHashBoundingBox, Bounds, BoundingBox}
 import java.awt.image.BufferedImage
 import java.awt.{AlphaComposite, Color, Graphics2D, Rectangle}
 import java.util.{List => JList, Date}

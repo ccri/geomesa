@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
-import geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.geohash.GeoHash
 import java.nio.ByteBuffer
 import org.apache.accumulo.core.data.{Value, Key}
 import org.junit.runner.RunWith

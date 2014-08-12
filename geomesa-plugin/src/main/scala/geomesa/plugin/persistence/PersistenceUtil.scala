@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.persistence
+package org.locationtech.geomesa.plugin.persistence
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.util.Properties

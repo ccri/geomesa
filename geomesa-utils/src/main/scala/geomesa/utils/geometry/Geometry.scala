@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geometry
+package org.locationtech.geomesa.utils.geometry
 
 import com.vividsolutions.jts.geom.Polygon
 import org.geotools.geometry.jts.JTS

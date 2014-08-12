@@ -1,4 +1,4 @@
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
 import collection.JavaConversions._
 import org.geotools.data.DataUtilities

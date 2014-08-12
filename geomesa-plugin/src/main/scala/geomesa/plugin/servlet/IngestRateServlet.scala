@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.servlet
+package org.locationtech.geomesa.plugin.servlet
 
 import java.text.DecimalFormat
 import java.util.concurrent.{Executor, TimeUnit}
@@ -24,8 +24,8 @@ import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.google.common.util.concurrent.ListenableFuture
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.plugin.persistence.PersistenceUtil
-import geomesa.plugin.properties
+import org.locationtech.geomesa.plugin.persistence.PersistenceUtil
+import org.locationtech.geomesa.plugin.properties
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.commons.httpclient.{HttpClient, HttpStatus}
 import org.springframework.http.MediaType
@@ -44,7 +44,7 @@ import scala.xml.{Elem, XML}
  */
 class IngestRateServlet extends AbstractController {
 
-  import geomesa.plugin.servlet.IngestRateServlet._
+  import org.locationtech.geomesa.plugin.servlet.IngestRateServlet._
 
   /**
    * Main entry point for spring servlets

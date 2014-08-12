@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import java.io.{File, Serializable}
 import java.util.{Map => JMap}

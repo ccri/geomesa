@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.core.index
+package org.locationtech.geomesa.core.index
 
-import geomesa.core.index.IndexEntry._
+import org.locationtech.geomesa.core.index.IndexEntry._
 import org.apache.hadoop.io.Text
 import org.joda.time.{DateTime, DateTimeZone}
 import org.opengis.feature.simple.SimpleFeature

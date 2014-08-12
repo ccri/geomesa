@@ -15,9 +15,9 @@
  */
 
 
-package geomesa.plugin.process
+package org.locationtech.geomesa.plugin.process
 
-import geomesa.core.index.QueryHints
+import org.locationtech.geomesa.core.index.QueryHints
 import org.geotools.data.Query
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.geotools.process.factory.{DescribeParameter, DescribeProcess}

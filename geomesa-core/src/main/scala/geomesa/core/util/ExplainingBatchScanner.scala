@@ -1,9 +1,9 @@
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
 import java.util
 import java.util.Map.Entry
 import java.util.concurrent.TimeUnit
-import geomesa.core.index.ExplainerOutputType
+import org.locationtech.geomesa.core.index.ExplainerOutputType
 import org.apache.accumulo.core.client.{IteratorSetting, BatchScanner, Scanner}
 import org.apache.accumulo.core.data.{Range, Value, Key}
 import org.apache.hadoop.io.Text

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import com.vividsolutions.jts.geom._
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}

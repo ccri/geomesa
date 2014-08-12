@@ -15,7 +15,7 @@
  */
 
 
-package geomesa.filter.function
+package org.locationtech.geomesa.filter.function
 
 import com.vividsolutions.jts.geom.{Point, Geometry}
 import java.nio.{ByteOrder, ByteBuffer}

@@ -1,4 +1,4 @@
-package geomesa.plugin.ui
+package org.locationtech.geomesa.plugin.ui
 
 import org.apache.hadoop.mapred.JobClient
 import org.apache.wicket.markup.html.WebMarkupContainer

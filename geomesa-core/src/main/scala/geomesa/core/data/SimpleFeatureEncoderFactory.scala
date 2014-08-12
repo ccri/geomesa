@@ -1,6 +1,6 @@
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
-import geomesa.core.data.FeatureEncoding.FeatureEncoding
+import org.locationtech.geomesa.core.data.FeatureEncoding.FeatureEncoding
 
 object SimpleFeatureEncoderFactory {
 

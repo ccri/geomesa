@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
 import java.util.concurrent.{TimeUnit, Executors}
 import java.util.concurrent.atomic.AtomicBoolean

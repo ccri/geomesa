@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geohash
+package org.locationtech.geomesa.utils.geohash
 
 import com.vividsolutions.jts.geom.Point
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

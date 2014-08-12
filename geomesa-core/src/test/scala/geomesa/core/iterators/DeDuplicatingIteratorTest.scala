@@ -15,7 +15,7 @@
  */
 
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import org.apache.accumulo.core.data.{Key, Value}
 import org.junit.runner.RunWith

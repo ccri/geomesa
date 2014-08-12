@@ -15,7 +15,7 @@
  */
 
 
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import com.vividsolutions.jts.geom.{Coordinate, Envelope}
 import org.geotools.geometry.jts.ReferencedEnvelope

@@ -1,6 +1,6 @@
-package geomesa.core.filter
+package org.locationtech.geomesa.core.filter
 
-import geomesa.core.filter.FilterUtils._
+import org.locationtech.geomesa.core.filter.FilterUtils._
 import org.junit.runner.RunWith
 import org.opengis.filter._
 import org.specs2.mutable.Specification
@@ -12,7 +12,7 @@ object OrSplittingFilterTest {
   val date1: Filter = "(dtg between '0000-01-01T00:00:00.000Z' AND '9999-12-31T23:59:59.000Z')"
 }
 
-import geomesa.core.filter.OrSplittingFilterTest._
+import org.locationtech.geomesa.core.filter.OrSplittingFilterTest._
 
 @RunWith(classOf[JUnitRunner])
 class OrSplittingFilterTest extends Specification {

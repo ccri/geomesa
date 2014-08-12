@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.wms
+package org.locationtech.geomesa.plugin.wms
 
 import java.awt.RenderingHints
 import java.util.Collections

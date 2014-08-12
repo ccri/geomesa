@@ -15,16 +15,16 @@
  */
 
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import com.vividsolutions.jts.geom.{Coordinate, Polygon}
-import geomesa.core.index.Constants
-import geomesa.core.iterators.TestData
-import geomesa.utils.geometry.Geometry._
-import geomesa.utils.geotools.Conversions._
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
-import geomesa.utils.time.Time._
+import org.locationtech.geomesa.core.index.Constants
+import org.locationtech.geomesa.core.iterators.TestData
+import org.locationtech.geomesa.utils.geometry.Geometry._
+import org.locationtech.geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.time.Time._
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.JTSFactoryFinder

@@ -1,4 +1,4 @@
-package geomesa.core.filter
+package org.locationtech.geomesa.core.filter
 
 import org.geotools.filter.visitor.DefaultFilterVisitor
 import org.opengis.filter._

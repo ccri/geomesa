@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.time
+package org.locationtech.geomesa.utils.time
 
 import org.joda.time.Interval
 

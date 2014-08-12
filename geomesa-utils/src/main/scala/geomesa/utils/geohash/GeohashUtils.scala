@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geohash
+package org.locationtech.geomesa.utils.geohash
 
-import geomesa.utils.CartesianProductIterable
+import org.locationtech.geomesa.utils.CartesianProductIterable
 
 import collection.BitSet
 import collection.immutable.Range.Inclusive
@@ -24,7 +24,7 @@ import collection.mutable.{HashSet => MutableHashSet}
 import com.spatial4j.core.context.jts.JtsSpatialContext
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom._
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.text.WKTUtils
 import scala.collection.immutable.HashSet
 import scala.util.control.Exception.catching
 

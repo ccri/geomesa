@@ -1,10 +1,10 @@
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import collection.JavaConverters._
-import geomesa.core._
-import geomesa.core.data._
-import geomesa.core.index.QueryHints._
-import geomesa.core.index._
+import org.locationtech.geomesa.core._
+import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index.QueryHints._
+import org.locationtech.geomesa.core.index._
 import org.geotools.data.{DataUtilities, Query}
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.process.vector.TransformProcess

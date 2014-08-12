@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import AbstractIteratorTest._
 import collection.JavaConverters._

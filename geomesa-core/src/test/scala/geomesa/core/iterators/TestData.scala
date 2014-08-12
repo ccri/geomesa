@@ -1,12 +1,12 @@
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Geometry, GeometryFactory}
-import geomesa.core.data.SimpleFeatureEncoderFactory
-import geomesa.core.index._
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.data.SimpleFeatureEncoderFactory
+import org.locationtech.geomesa.core.index._
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import java.util
 import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.data.{Key, Value}

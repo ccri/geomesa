@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.feature.serde
+package org.locationtech.geomesa.feature.serde
 
 import java.util.{Date, UUID}
 
 import com.vividsolutions.jts.geom.Geometry
-import geomesa.feature.AvroSimpleFeature
+import org.locationtech.geomesa.feature.AvroSimpleFeature
 import org.apache.avro.io.Decoder
 
 /**

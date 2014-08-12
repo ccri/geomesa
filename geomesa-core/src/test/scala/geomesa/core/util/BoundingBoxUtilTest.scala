@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package geomesa.core.util
+package org.locationtech.geomesa.core.util
 
-import geomesa.utils.geohash.{GeoHash, BoundingBox}
+import org.locationtech.geomesa.utils.geohash.{GeoHash, BoundingBox}
 import org.junit.{Assert, Test}
 
 class BoundingBoxUtilTest {

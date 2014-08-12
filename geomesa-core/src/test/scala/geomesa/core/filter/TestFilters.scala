@@ -1,6 +1,6 @@
-package geomesa.core.filter
+package org.locationtech.geomesa.core.filter
 
-import geomesa.core.filter.FilterUtils._
+import org.locationtech.geomesa.core.filter.FilterUtils._
 import org.opengis.filter._
 
 object TestFilters {

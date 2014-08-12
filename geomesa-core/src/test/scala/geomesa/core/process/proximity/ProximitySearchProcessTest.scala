@@ -1,11 +1,11 @@
-package geomesa.core.process.proximity
+package org.locationtech.geomesa.core.process.proximity
 
 import com.vividsolutions.jts.geom.Coordinate
-import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
-import geomesa.core.index.{Constants, IndexSchemaBuilder}
-import geomesa.feature.AvroSimpleFeatureFactory
-import geomesa.utils.geotools.{GeometryUtils, SimpleFeatureTypes}
-import geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import org.locationtech.geomesa.core.index.{Constants, IndexSchemaBuilder}
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.{GeometryUtils, SimpleFeatureTypes}
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.geotools.data.DataStoreFinder
 import org.geotools.factory.Hints
 import org.geotools.feature.DefaultFeatureCollection
@@ -71,7 +71,7 @@ class ProximitySearchProcessTest extends Specification {
 
    "GeomesaProximityQuery" should {
      "find things close by" in {
-       import geomesa.utils.geotools.Conversions._
+       import org.locationtech.geomesa.utils.geotools.Conversions._
        val p1 = getPoint(45, 45, 99)
        WKTUtils.read("POINT(45 45)").bufferMeters(99.1).intersects(p1) must beTrue
        WKTUtils.read("POINT(45 45)").bufferMeters(100).intersects(p1) must beTrue
@@ -104,7 +104,7 @@ class ProximitySearchProcessTest extends Specification {
 
   "GeomesaProximityQuery" should {
     "work on non-accumulo feature sources" in {
-      import geomesa.utils.geotools.Conversions._
+      import org.locationtech.geomesa.utils.geotools.Conversions._
       val p1 = getPoint(45, 45, 99)
       WKTUtils.read("POINT(45 45)").bufferMeters(99.1).intersects(p1) must beTrue
       WKTUtils.read("POINT(45 45)").bufferMeters(100).intersects(p1) must beTrue

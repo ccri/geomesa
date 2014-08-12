@@ -16,11 +16,11 @@
  *
  */
 
-package geomesa.core.integration.data
+package org.locationtech.geomesa.core.integration.data
 
 import java.text.SimpleDateFormat
 
-import geomesa.core.index.Constants
+import org.locationtech.geomesa.core.index.Constants
 import org.geotools.data.DataUtilities
 import org.opengis.feature.simple.SimpleFeatureType
 import scala.collection.JavaConverters._

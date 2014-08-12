@@ -16,17 +16,17 @@
  *
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.text.DecimalFormat
 
 import com.google.common.collect.HashBasedTable
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Envelope
-import geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
-import geomesa.core.index.{IndexSchemaBuilder, QueryHints}
-import geomesa.utils.geotools.Conversions.RichSimpleFeature
-import geomesa.utils.geotools.GridSnap
+import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
+import org.locationtech.geomesa.core.index.{IndexSchemaBuilder, QueryHints}
+import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeature
+import org.locationtech.geomesa.utils.geotools.GridSnap
 import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.filter.text.ecql.ECQL

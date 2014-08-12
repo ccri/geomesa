@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core.security
+package org.locationtech.geomesa.core.security
 
 import collection.JavaConversions._
 import org.junit.runner.RunWith

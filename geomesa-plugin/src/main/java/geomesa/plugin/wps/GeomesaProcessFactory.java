@@ -1,4 +1,4 @@
-package geomesa.plugin.wps;
+package org.locationtech.geomesa.plugin.wps;
 
 import org.apache.log4j.Logger;
 import org.geoserver.wps.jts.SpringBeanProcessFactory;

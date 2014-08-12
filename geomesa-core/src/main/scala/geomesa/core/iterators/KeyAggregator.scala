@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import org.apache.accumulo.core.data.Key
 import org.apache.accumulo.core.data.Value

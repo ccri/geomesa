@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core;
+package org.locationtech.geomesa.core;
 
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-import geomesa.core.index.Constants;
-import geomesa.utils.geotools.ShapefileIngest;
+import org.locationtech.geomesa.core.index.Constants;
+import org.locationtech.geomesa.utils.geotools.ShapefileIngest;
 import org.geotools.data.*;
 import org.geotools.factory.Hints;
 import org.geotools.feature.FeatureIterator;

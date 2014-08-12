@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.ui.components
+package org.locationtech.geomesa.plugin.ui.components
 
 import org.apache.wicket.ajax.AjaxRequestTarget
 import org.apache.wicket.ajax.markup.html.form.AjaxSubmitLink

@@ -1,4 +1,4 @@
-package geomesa.plugin
+package org.locationtech.geomesa.plugin
 
 import org.apache.wicket.behavior.SimpleAttributeModifier
 import org.apache.wicket.markup.html.form.{FormComponent, Form}

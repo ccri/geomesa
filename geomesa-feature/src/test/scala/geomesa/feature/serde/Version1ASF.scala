@@ -1,4 +1,4 @@
-package geomesa.feature
+package org.locationtech.geomesa.feature
 
 import java.io.OutputStream
 import java.nio._
@@ -28,7 +28,7 @@ import scala.util.Try
 
 class Version1ASF(id: FeatureId, sft: SimpleFeatureType) extends SimpleFeature {
 
-  import geomesa.feature.Version1ASF._
+  import org.locationtech.geomesa.feature.Version1ASF._
 
   val values    = Array.ofDim[AnyRef](sft.getAttributeCount)
   val userData  = collection.mutable.HashMap.empty[AnyRef, AnyRef]

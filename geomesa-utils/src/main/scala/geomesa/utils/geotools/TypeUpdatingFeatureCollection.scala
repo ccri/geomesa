@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.utils.geotools
+package org.locationtech.geomesa.utils.geotools
 
 import java.util
 import org.geotools.data.DataUtilities

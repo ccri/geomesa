@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package geomesa.plugin.wms
+package org.locationtech.geomesa.plugin.wms
 
 import java.io.File
 import java.util.{List=>JList}

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package geomesa.core.iterators
+package org.locationtech.geomesa.core.iterators
 
 import java.util.Map.Entry
 
 import com.google.common.cache.{Cache, CacheBuilder}
-import geomesa.core.util.CloseableIterator
+import org.locationtech.geomesa.core.util.CloseableIterator
 import org.apache.accumulo.core.data.{Key, Value}
 
 class KVEntry(akey: Key, avalue: Value) extends Entry[Key, Value] {

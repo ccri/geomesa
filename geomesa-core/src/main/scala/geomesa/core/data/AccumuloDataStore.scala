@@ -15,19 +15,19 @@
  */
 
 
-package geomesa.core.data
+package org.locationtech.geomesa.core.data
 
 import java.util.{Map => JMap}
 
 import com.google.common.collect.ImmutableSortedSet
 import com.typesafe.scalalogging.slf4j.Logging
-import geomesa.core
-import geomesa.core.data.AccumuloDataStore._
-import geomesa.core.data.FeatureEncoding.FeatureEncoding
-import geomesa.core.index.{IndexSchema, IndexSchemaBuilder, TemporalIndexCheck}
-import geomesa.core.security.AuthorizationsProvider
-import geomesa.utils.geotools.SimpleFeatureTypes
-import geomesa.utils.geotools.SimpleFeatureTypes.{AttributeSpec, NonGeomAttributeSpec}
+import org.locationtech.geomesa.core
+import org.locationtech.geomesa.core.data.AccumuloDataStore._
+import org.locationtech.geomesa.core.data.FeatureEncoding.FeatureEncoding
+import org.locationtech.geomesa.core.index.{IndexSchema, IndexSchemaBuilder, TemporalIndexCheck}
+import org.locationtech.geomesa.core.security.AuthorizationsProvider
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.{AttributeSpec, NonGeomAttributeSpec}
 import org.apache.accumulo.core.client._
 import org.apache.accumulo.core.client.admin.TimeType
 import org.apache.accumulo.core.client.mock.MockConnector
