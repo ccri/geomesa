@@ -63,7 +63,7 @@ object GeoMesaSpark {
     val filterVisitor = new FilterToAccumulo(sft)
     filterVisitor.visit(query)
 
-    val qp = planner.buildSTIdxQueryPlan(query, filterVisitor, geomesa.core.index.ExplainPrintln)
+    val qp = planner.buildSTIdxQueryPlan(query, filterVisitor, org.locationtech.geomesa.core.index.ExplainPrintln)
 
     ConfiguratorBase.setConnectorInfo(classOf[AccumuloInputFormat], conf, ds.connector.whoami(), ds.authToken)
     ConfiguratorBase.setZooKeeperInstance(classOf[AccumuloInputFormat], conf, ds.connector.getInstance().getInstanceName, ds.connector.getInstance().getZooKeepers)
@@ -82,7 +82,7 @@ object GeoMesaSpark {
   }
 
   def countByDay(conf: Configuration, sccc: SparkContext, ds: AccumuloDataStore, query: Query, dateField: String = "dtg") = {
-    val d = geomesa.compute.spark.GeoMesaSpark.rdd(conf, sccc, ds, query)
+    val d = org.locationtech.geomesa.compute.spark.GeoMesaSpark.rdd(conf, sccc, ds, query)
     val dayAndFeature = d.mapPartitions { iter =>
       val df = new SimpleDateFormat("yyyyMMdd")
       val ff = CommonFactoryFinder.getFilterFactory2
