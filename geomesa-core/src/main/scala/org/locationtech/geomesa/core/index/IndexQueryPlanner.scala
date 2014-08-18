@@ -17,6 +17,7 @@
 package org.locationtech.geomesa.core.index
 
 import java.nio.charset.StandardCharsets
+import java.util.Date
 import java.util.Map.Entry
 
 import com.vividsolutions.jts.geom._
@@ -28,7 +29,7 @@ import org.geotools.data.{DataUtilities, Query}
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.ReferencedEnvelope
-import org.joda.time.Interval
+import org.joda.time.{DateTime, Interval}
 import org.locationtech.geomesa.core._
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.filter._
@@ -45,6 +46,8 @@ import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter._
 import org.opengis.filter.expression.{Literal, PropertyName}
 import org.opengis.filter.spatial._
+import org.opengis.filter.temporal.{During, Before, After, BinaryTemporalOperator}
+import org.opengis.temporal.Period
 
 import scala.collection.JavaConversions._
 import scala.util.Random
@@ -155,7 +158,7 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       runAttrIdxQuery(acc, derivedQuery, rewrittenFilter, filterVisitor, isDensity, output)
     } else {
       // datastore doesn't support attr index use spatiotemporal only
-      stIdxQuery(acc, derivedQuery, filterVisitor, output)
+      stIdxQuery(acc, derivedQuery, output)
     }
   }
 
@@ -178,13 +181,13 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
         if(attrIdxQueryEligible(like) && likeEligible(like))
           attrIdxLikeQuery(acc, derivedQuery, like, filterVisitor, output)
         else
-          stIdxQuery(acc, derivedQuery, filterVisitor, output)
+          stIdxQuery(acc, derivedQuery, output)
 
       case idFilter: Id =>
         recordIdFilter(acc, idFilter, output)
 
       case cql =>
-        stIdxQuery(acc, derivedQuery, filterVisitor, output)
+        stIdxQuery(acc, derivedQuery, output)
     }
   }
 
@@ -352,12 +355,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
   }
 
   def buildSTIdxQueryPlan(query: Query,
-                          filterVisitor: FilterToAccumulo,
                           output: ExplainerOutputType) = {
     output(s"Scanning ST index table for feature type ${featureType.getTypeName}")
-
-    val spatial = filterVisitor.spatialPredicate
-    val temporal = filterVisitor.temporalPredicate
 
     // TODO: Select only the geometry filters which involve the indexed geometry type.
     // https://geomesa.atlassian.net/browse/GEOMESA-200
@@ -389,6 +388,8 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
       case Nil => null
       case seq: Seq[Geometry] => new GeometryCollection(geomsToCover.toArray, geomsToCover.head.getFactory)
     }
+
+    val temporal: Interval = extractTemporal(temporalFilters)
 
     val interval = netInterval(temporal)
     val geometryToCover = netGeom(collectionToCover)
@@ -454,10 +455,9 @@ case class IndexQueryPlanner(keyPlanner: KeyPlanner,
 
   def stIdxQuery(acc: AccumuloConnectorCreator,
                  query: Query,
-                 filterVisitor: FilterToAccumulo,
                  output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     val bs = acc.createSTIdxScanner(featureType)
-    val qp = buildSTIdxQueryPlan(query, filterVisitor, output)
+    val qp = buildSTIdxQueryPlan(query, output)
     configureBatchScanner(bs, qp)
     // NB: Since we are (potentially) gluing multiple batch scanner iterators together,
     //  we wrap our calls in a SelfClosingBatchScanner.

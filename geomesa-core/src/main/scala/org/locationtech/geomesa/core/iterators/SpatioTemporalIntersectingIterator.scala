@@ -90,6 +90,15 @@ class SpatioTemporalIntersectingIterator
     logger.trace("Initializing classLoader")
     SpatioTemporalIntersectingIterator.initClassLoader(logger)
 
+    commonInit(options)
+
+    this.indexSource = source.deepCopy(env)
+    this.dataSource = source.deepCopy(env)
+  }
+
+  // This function represents the init code common to this class and the IndexIterator.
+  // It returns the SFT in order that the IndexIterator can constructor a feature builder and encoder.
+  def commonInit(options: java.util.Map[String, String]) = {
     val featureType = SimpleFeatureTypes.createType("DummyType", options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE))
     featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
 
@@ -99,7 +108,7 @@ class SpatioTemporalIntersectingIterator
     decoder = IndexSchema.getIndexEntryDecoder(schemaEncoding)
 
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
-      val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
+      val filterString = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
       val sfb = new SimpleFeatureBuilder(featureType)
       testSimpleFeature = sfb.buildFeature("test")
@@ -111,9 +120,7 @@ class SpatioTemporalIntersectingIterator
     if (!options.containsKey(GEOMESA_ITERATORS_IS_DENSITY_TYPE)) {
       deduplicate = IndexSchema.mayContainDuplicates(featureType)
     }
-
-    this.indexSource = source.deepCopy(env)
-    this.dataSource = source.deepCopy(env)
+    featureType
   }
 
   def hasTop = nextKey != null || topKey != null

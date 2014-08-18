@@ -63,7 +63,7 @@ object GeoMesaSpark {
     val filterVisitor = new FilterToAccumulo(sft)
     filterVisitor.visit(query)
 
-    val qp = planner.buildSTIdxQueryPlan(query, filterVisitor, org.locationtech.geomesa.core.index.ExplainPrintln)
+    val qp = planner.buildSTIdxQueryPlan(query, org.locationtech.geomesa.core.index.ExplainPrintln)
 
     ConfiguratorBase.setConnectorInfo(classOf[AccumuloInputFormat], conf, ds.connector.whoami(), ds.authToken)
     ConfiguratorBase.setZooKeeperInstance(classOf[AccumuloInputFormat], conf, ds.connector.getInstance().getInstanceName, ds.connector.getInstance().getZooKeepers)
