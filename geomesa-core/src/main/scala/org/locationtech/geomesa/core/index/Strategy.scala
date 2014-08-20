@@ -95,9 +95,4 @@ trait Strategy {
 
   def randomPrintableString(length:Int=5) : String = (1 to length).
     map(i => Random.nextPrintableChar()).mkString
-
-  def filterListAsAnd(filters: Seq[Filter]): Option[Filter] = filters match {
-    case Nil => None
-    case _ => Some(ff.and(filters))
-  }
 }

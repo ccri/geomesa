@@ -93,7 +93,8 @@ package object filter {
 
   def partitionGeom(filter: Filter) = partitionSubFilters(filter, spatialFilters)
 
-  def partitionTemporal(filters: Seq[Filter]): (Seq[Filter], Seq[Filter]) = filters.partition(temporalFilters)
+  def partitionTemporal(filters: Seq[Filter], dtgAttr: Option[String] = None): (Seq[Filter], Seq[Filter]) =
+    filters.partition(temporalFilters(_, dtgAttr))
 
   // Defines the topological predicates we like for use in the STII.
   def spatialFilters(f: Filter): Boolean = {
@@ -110,6 +111,10 @@ package object filter {
 
   // Notes: This may need to be 'smaller' as we may wish to handle the various temporal predicates more carefully.
   //  Also, this needs to cover 'BETWEEN' with the indexed date field.
-  def temporalFilters(f: Filter): Boolean = f.isInstanceOf[BinaryTemporalOperator] || f.isInstanceOf[PropertyIsBetween]
+  def temporalFilters(f: Filter, dtgAttr: Option[String]): Boolean =
+    f.isInstanceOf[BinaryTemporalOperator] || filterIsBetween(f, dtgAttr)
 
+  def filterIsBetween(f: Filter, dtgAttr: Option[String]): Boolean = {
+    f.isInstanceOf[PropertyIsBetween] && dtgAttr.exists(attr => f.asInstanceOf[PropertyIsBetween].getExpression.evaluate(null, classOf[String]) == attr)
+  }
 }

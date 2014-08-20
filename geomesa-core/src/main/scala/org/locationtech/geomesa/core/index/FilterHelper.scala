@@ -141,4 +141,9 @@ object FilterHelper {
 
     filters.map(extractInterval).fold(IndexSchema.everywhen)( _.overlap(_))
   }
+
+  def filterListAsAnd(filters: Seq[Filter]): Option[Filter] = filters match {
+    case Nil => None
+    case _ => Some(ff.and(filters))
+  }
 }

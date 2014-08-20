@@ -71,7 +71,7 @@ class STIdxStrategy extends Strategy with Logging {
     // https://geomesa.atlassian.net/browse/GEOMESA-200
     // Simiarly, we should only extract temporal filters for the index date field.
     val (geomFilters, otherFilters) = partitionGeom(query.getFilter)
-    val (temporalFilters, ecqlFilters: Seq[Filter]) = partitionTemporal(otherFilters)
+    val (temporalFilters, ecqlFilters: Seq[Filter]) = partitionTemporal(otherFilters, getDtgFieldName(featureType))
 
     val tweakedEcqlFilters = ecqlFilters.map(updateTopologicalFilters(_, featureType))
 
