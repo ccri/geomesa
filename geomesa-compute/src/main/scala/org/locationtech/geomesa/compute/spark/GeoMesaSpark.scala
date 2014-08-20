@@ -64,7 +64,7 @@ object GeoMesaSpark {
     filterVisitor.visit(query)
     val planner = new STIdxStrategy
 
-    val qp = planner.buildSTIdxQueryPlan(query, filterVisitor, indexSchema.planner, sft, org.locationtech.geomesa.core.index.ExplainPrintln)
+    val qp = planner.buildSTIdxQueryPlan(query, indexSchema.planner, sft, org.locationtech.geomesa.core.index.ExplainPrintln)
 
     ConfiguratorBase.setConnectorInfo(classOf[AccumuloInputFormat], conf, ds.connector.whoami(), ds.authToken)
     ConfiguratorBase.setZooKeeperInstance(classOf[AccumuloInputFormat], conf, ds.connector.getInstance().getInstanceName, ds.connector.getInstance().getZooKeepers)

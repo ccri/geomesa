@@ -50,7 +50,7 @@ class STIdxStrategy extends Strategy with Logging {
               filterVisitor: FilterToAccumulo,
               output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     val bs = acc.createSTIdxScanner(featureType)
-    val qp = buildSTIdxQueryPlan(query, filterVisitor, iqp, featureType, output)
+    val qp = buildSTIdxQueryPlan(query, iqp, featureType, output)
     configureBatchScanner(bs, qp)
     // NB: Since we are (potentially) gluing multiple batch scanner iterators together,
     //  we wrap our calls in a SelfClosingBatchScanner.
@@ -58,7 +58,6 @@ class STIdxStrategy extends Strategy with Logging {
   }
 
   def buildSTIdxQueryPlan(query: Query,
-                          filterVisitor: FilterToAccumulo,
                           iqp: QueryPlanner,
                           featureType: SimpleFeatureType,
                           output: ExplainerOutputType) = {
@@ -68,8 +67,6 @@ class STIdxStrategy extends Strategy with Logging {
     val cfPlanner      = IndexSchema.buildColumnFamilyPlanner(iqp.schema)
 
     output(s"Scanning ST index table for feature type ${featureType.getTypeName}")
-
-    val temporal = filterVisitor.temporalPredicate
 
     // TODO: Select only the geometry filters which involve the indexed geometry type.
     // https://geomesa.atlassian.net/browse/GEOMESA-200
@@ -102,6 +99,7 @@ class STIdxStrategy extends Strategy with Logging {
       case seq: Seq[Geometry] => new GeometryCollection(geomsToCover.toArray, geomsToCover.head.getFactory)
     }
 
+    val temporal: Interval = extractTemporal(temporalFilters)
     val interval = netInterval(temporal)
     val geometryToCover = netGeom(collectionToCover)
     val filter = buildFilter(geometryToCover, interval)
