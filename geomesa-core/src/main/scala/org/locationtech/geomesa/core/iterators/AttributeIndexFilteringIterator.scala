@@ -62,11 +62,11 @@ class AttributeIndexFilteringIterator extends Filter with Logging {
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME) && options.containsKey(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)) {
       val featureType = SimpleFeatureTypes.createType("DummyType", options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE))
       featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
+
       dateAttributeName = getDtgFieldName(featureType)
 
       val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
-      println(s"In AIFI with $filter")
       val sfb = new SimpleFeatureBuilder(featureType)
 
       testSimpleFeature = sfb.buildFeature("test")

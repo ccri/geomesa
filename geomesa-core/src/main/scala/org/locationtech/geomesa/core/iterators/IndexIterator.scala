@@ -20,12 +20,10 @@ import com.vividsolutions.jts.geom._
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.geotools.feature.simple.SimpleFeatureBuilder
-import org.geotools.filter.text.ecql.ECQL
 import org.joda.time.DateTime
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
@@ -40,9 +38,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
  * Note that this extends the SpatioTemporalIntersectingIterator, but never creates a dataSource
  * and hence never iterates through it.
  */
-class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyValueIterator[Key, Value] {
-
-  import org.locationtech.geomesa.core._
+class IndexIterator extends SpatioTemporalIntersectingIterator {
 
   var featureBuilder: SimpleFeatureBuilder = null
   var featureEncoder: SimpleFeatureEncoder = null
@@ -55,30 +51,13 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
     logger.trace("Initializing classLoader")
     IndexIterator.initClassLoader(logger)
 
-    val simpleFeatureTypeSpec = options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
-
-    val featureType = SimpleFeatureTypes.createType(this.getClass.getCanonicalName, simpleFeatureTypeSpec)
-    featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
+    val featureType = commonInit(options)
 
     // default to text if not found for backwards compatibility
     val encodingOpt = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
     featureEncoder = SimpleFeatureEncoderFactory.createEncoder(encodingOpt)
 
     featureBuilder = AvroSimpleFeatureFactory.featureBuilder(featureType)
-
-    val schemaEncoding = options.get(DEFAULT_SCHEMA_NAME)
-    decoder = IndexSchema.getIndexEntryDecoder(schemaEncoding)
-
-    if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
-      val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
-      filter = ECQL.toFilter(filterString)
-      val sfb = new SimpleFeatureBuilder(featureType)
-      testSimpleFeature = sfb.buildFeature("test")
-    }
-
-    if (options.containsKey(DEFAULT_CACHE_SIZE_NAME))
-      maxInMemoryIdCacheEntries = options.get(DEFAULT_CACHE_SIZE_NAME).toInt
-    deduplicate = IndexSchema.mayContainDuplicates(featureType)
 
     this.indexSource = source.deepCopy(env)
   }
