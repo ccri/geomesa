@@ -107,12 +107,22 @@ object FilterHelper {
       "meters")
   }
 
-  def extractGeometry(bso: BinarySpatialOperator) = {
-    bso.getExpression1.evaluate(null, classOf[Geometry]) match {
-      case g: Geometry => Seq(GeohashUtils.getInternationalDateLineSafeGeometry(g))
-      case _           =>
-        bso.getExpression2.evaluate(null, classOf[Geometry]) match {
+  def extractGeometry(bso: BinarySpatialOperator): Seq[Geometry] = {
+    bso match {
+      // The Dwithin has between rewritten.
+      case dwithin: DWithin =>
+        val e2 = dwithin.getExpression2.asInstanceOf[Literal]
+        val geom = e2.getValue.asInstanceOf[Geometry]
+        val buffer = dwithin.getDistance
+        val bufferedGeom = geom.buffer(buffer)
+        Seq(GeohashUtils.getInternationalDateLineSafeGeometry(bufferedGeom))
+      case bs =>
+        bs.getExpression1.evaluate(null, classOf[Geometry]) match {
           case g: Geometry => Seq(GeohashUtils.getInternationalDateLineSafeGeometry(g))
+          case _           =>
+            bso.getExpression2.evaluate(null, classOf[Geometry]) match {
+              case g: Geometry => Seq(GeohashUtils.getInternationalDateLineSafeGeometry(g))
+            }
         }
     }
   }
