@@ -110,6 +110,6 @@ package object filter {
 
   // Notes: This may need to be 'smaller' as we may wish to handle the various temporal predicates more carefully.
   //  Also, this needs to cover 'BETWEEN' with the indexed date field.
-  def temporalFilters(f: Filter): Boolean = f.isInstanceOf[BinaryTemporalOperator]
+  def temporalFilters(f: Filter): Boolean = f.isInstanceOf[BinaryTemporalOperator] || f.isInstanceOf[PropertyIsBetween]
 
 }
