@@ -28,6 +28,7 @@ import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.core.data.AccumuloConnectorCreator
 import org.locationtech.geomesa.core.DEFAULT_FILTER_PROPERTY_NAME
 import org.locationtech.geomesa.core.filter._
+import org.locationtech.geomesa.core.index.FilterHelper._
 import org.locationtech.geomesa.core.index.QueryPlanner._
 import org.locationtech.geomesa.core.iterators.AttributeIndexFilteringIterator
 import org.locationtech.geomesa.core.util.{BatchMultiScanner, SelfClosingIterator}
@@ -56,7 +57,7 @@ trait AttributeIdxStrategy extends Strategy with Logging {
     val attrScanner = acc.createAttrIdxScanner(featureType)
 
     val (geomFilters, otherFilters) = partitionGeom(query.getFilter)
-    val (temporalFilters, nonSTFilters) = partitionTemporal(otherFilters)
+    val (temporalFilters, nonSTFilters) = partitionTemporal(otherFilters, getDtgFieldName(featureType))
 
     // NB: Added check to see if the nonSTFilters is empty.
     //  If it is, we needn't configure the SFFI

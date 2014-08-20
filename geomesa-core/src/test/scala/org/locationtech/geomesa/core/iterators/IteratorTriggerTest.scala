@@ -95,7 +95,7 @@ class IteratorTriggerTest extends Specification {
 
     def extractReWrittenCQL(query: Query, featureType: SimpleFeatureType): Option[String] = {
       val (_, otherFilters) = partitionGeom(query.getFilter)
-      val (_, ecqlFilters: Seq[Filter]) = partitionTemporal(otherFilters)
+      val (_, ecqlFilters: Seq[Filter]) = partitionTemporal(otherFilters, getDtgFieldName(featureType))
 
       filterListAsAnd(ecqlFilters).map(ECQL.toCQL)
     }

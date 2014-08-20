@@ -112,9 +112,18 @@ package object filter {
   // Notes: This may need to be 'smaller' as we may wish to handle the various temporal predicates more carefully.
   //  Also, this needs to cover 'BETWEEN' with the indexed date field.
   def temporalFilters(f: Filter, dtgAttr: Option[String]): Boolean =
-    f.isInstanceOf[BinaryTemporalOperator] || filterIsBetween(f, dtgAttr)
+    filterIsApplicableTemporal(f, dtgAttr) || filterIsBetween(f, dtgAttr)
+
+  def filterIsApplicableTemporal(f: Filter, dtgAttr: Option[String]) =
+    f match {
+      case bto: BinaryTemporalOperator => dtgAttr.exists(_ == bto.getExpression1.toString)
+      case _ => false
+    }
 
   def filterIsBetween(f: Filter, dtgAttr: Option[String]): Boolean = {
-    f.isInstanceOf[PropertyIsBetween] && dtgAttr.exists(attr => f.asInstanceOf[PropertyIsBetween].getExpression.evaluate(null, classOf[String]) == attr)
+    f match {
+      case between: PropertyIsBetween => dtgAttr.exists(_ == between.getExpression.toString)
+      case _ => false
+    }
   }
 }
