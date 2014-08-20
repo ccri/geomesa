@@ -109,8 +109,7 @@ package object filter {
     }
   }
 
-  // Notes: This may need to be 'smaller' as we may wish to handle the various temporal predicates more carefully.
-  //  Also, this needs to cover 'BETWEEN' with the indexed date field.
+  // This function identifies filters which are either BinaryTemporal
   def temporalFilters(f: Filter, dtgAttr: Option[String]): Boolean =
     filterIsApplicableTemporal(f, dtgAttr) || filterIsBetween(f, dtgAttr)
 
