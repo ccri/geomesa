@@ -39,7 +39,6 @@ trait Strategy {
               iqp: QueryPlanner,
               featureType: SimpleFeatureType,
               query: Query,
-              filterVisitor: FilterToAccumulo,
               output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]]
 
   def configureBatchScanner(bs: BatchScanner, qp: QueryPlan) {

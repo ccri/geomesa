@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.{Key, Value, Range => AccRange}
 import org.apache.hadoop.io.Text
 import org.geotools.data.Query
 import org.geotools.filter.text.ecql.ECQL
-import org.locationtech.geomesa.core.data.{FilterToAccumulo, AccumuloConnectorCreator}
+import org.locationtech.geomesa.core.data.AccumuloConnectorCreator
 import org.locationtech.geomesa.core.DEFAULT_FILTER_PROPERTY_NAME
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.QueryPlanner._
@@ -46,7 +46,6 @@ trait AttributeIdxStrategy extends Strategy with Logging {
                    query: Query,
                    iqp: QueryPlanner,
                    featureType: SimpleFeatureType,
-                   filterVisitor: FilterToAccumulo,
                    range: AccRange,
                    output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     output(s"Searching the attribute table with filter ${query.getFilter}")
@@ -109,7 +108,6 @@ class AttributeEqualsIdxStrategy extends AttributeIdxStrategy {
                        iqp: QueryPlanner,
                        featureType: SimpleFeatureType,
                        query: Query,
-                       filterVisitor: FilterToAccumulo,
                        output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     val filter = query.getFilter.asInstanceOf[PropertyIsEqualTo]
     val one = filter.getExpression1
@@ -127,7 +125,7 @@ class AttributeEqualsIdxStrategy extends AttributeIdxStrategy {
 
     val range = new AccRange(formatAttrIdxRow(prop, lit))
 
-    attrIdxQuery(acc, query, iqp, featureType, filterVisitor, range, output)
+    attrIdxQuery(acc, query, iqp, featureType, range, output)
   }
 }
 
@@ -137,7 +135,6 @@ class AttributeLikeIdxStrategy extends AttributeIdxStrategy {
                        iqp: QueryPlanner,
                        featureType: SimpleFeatureType,
                        query: Query,
-                       filterVisitor: FilterToAccumulo,
                        output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     val filter = query.getFilter.asInstanceOf[PropertyIsLike]
     val expr = filter.getExpression
@@ -155,6 +152,6 @@ class AttributeLikeIdxStrategy extends AttributeIdxStrategy {
 
     val range = AccRange.prefix(formatAttrIdxRow(prop, value))
 
-    attrIdxQuery(acc, query, iqp, featureType, filterVisitor, range, output)
+    attrIdxQuery(acc, query, iqp, featureType, range, output)
   }
 }

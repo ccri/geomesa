@@ -94,6 +94,7 @@ class IteratorTriggerTest extends Specification {
      */
 
     def extractReWrittenCQL(query: Query, featureType: SimpleFeatureType): Option[String] = {
+
       val ff = CommonFactoryFinder.getFilterFactory2
       val derivedQuery =
         if (query.getHints.containsKey(BBOX_KEY)) {
@@ -104,6 +105,8 @@ class IteratorTriggerTest extends Specification {
       val filterVisitor = new FilterToAccumulo(featureType)
       val rewrittenCQL = filterVisitor.visit(derivedQuery)
       Option(ECQL.toCQL(rewrittenCQL))
+
+
     }
   }
 

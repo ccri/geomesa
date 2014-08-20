@@ -27,7 +27,7 @@ import org.apache.hadoop.io.Text
 import org.geotools.data.Query
 import org.geotools.filter.text.ecql.ECQL
 import org.joda.time.Interval
-import org.locationtech.geomesa.core.data.{SimpleFeatureEncoder, FilterToAccumulo, AccumuloConnectorCreator}
+import org.locationtech.geomesa.core.data.{SimpleFeatureEncoder, AccumuloConnectorCreator}
 import org.locationtech.geomesa.core.DEFAULT_SCHEMA_NAME
 import org.locationtech.geomesa.core.GEOMESA_ITERATORS_IS_DENSITY_TYPE
 import org.locationtech.geomesa.core.iterators._
@@ -47,7 +47,6 @@ class STIdxStrategy extends Strategy with Logging {
               iqp: QueryPlanner,
               featureType: SimpleFeatureType,
               query: Query,
-              filterVisitor: FilterToAccumulo,
               output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     val bs = acc.createSTIdxScanner(featureType)
     val qp = buildSTIdxQueryPlan(query, iqp, featureType, output)
