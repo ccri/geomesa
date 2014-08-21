@@ -54,15 +54,17 @@ object AttributeIndexEntry extends Logging {
                                  indexedAttributes: Seq[AttributeDescriptor],
                                  visibility: ColumnVisibility,
                                  delete: Boolean = false): Seq[Mutation] = {
-    val cf = new Text(feature.getID)
+    val cq = new Text(feature.getID)
     lazy val value = IndexEntry.encodeIndexValue(feature)
     indexedAttributes.map { descriptor =>
       val attribute = Option(feature.getAttribute(descriptor.getName))
       val m = new Mutation(getAttributeIndexRow(descriptor.getLocalName, attribute))
       if (delete) {
-        m.putDelete(cf, EMPTY_COLQ, visibility)
+        //m.putDelete(cf, EMPTY_COLQ, visibility)
+        m.putDelete(EMPTY_COLF, cq, visibility)
       } else {
-        m.put(cf, EMPTY_COLQ, visibility, value)
+        //m.put(cf, EMPTY_COLQ, visibility, value)
+        m.put(EMPTY_COLF, cq, visibility, value)
       }
       m
     }

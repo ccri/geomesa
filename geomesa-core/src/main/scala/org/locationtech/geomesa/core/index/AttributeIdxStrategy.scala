@@ -74,7 +74,10 @@ trait AttributeIdxStrategy extends Strategy with Logging {
 
     // function to join the attribute index scan results to the record table
     // since the row id of the record table is in the CF just grab that
-    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new AccRange(kv.getKey.getColumnFamily)
+
+    // JNH: Details regarding Attribute table structure.
+    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new AccRange(kv.getKey.getColumnQualifier)
+    //val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new AccRange(kv.getKey.getColumnFamily)
     val bms = new BatchMultiScanner(attrScanner, recordScanner, joinFunction)
 
     SelfClosingIterator(bms.iterator, () => bms.close())

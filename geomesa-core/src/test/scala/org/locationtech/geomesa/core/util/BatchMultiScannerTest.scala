@@ -101,7 +101,8 @@ class BatchMultiScannerTest extends Specification {
     conn.tableOperations().exists(recordTable) must beTrue
     val recordScanner = conn.createBatchScanner(recordTable, new Authorizations(), 5)
 
-    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new ARange(kv.getKey.getColumnFamily)
+    // JNH: NB: This test encodes Attribute table structure
+    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new ARange(kv.getKey.getColumnQualifier)
     val bms = new BatchMultiScanner(attrScanner, recordScanner, joinFunction, batchSize)
 
     val retrieved = bms.iterator.toList
