@@ -215,7 +215,7 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
         val attrTable = dataStore.getAttrIdxTableName(featureType)
         val recTable = dataStore.getRecordTableForType(featureType)
         List(
-          //removeAttrIdx(multiBWWriter.getBatchWriter(attrTable)),
+          removeAttrIdx(multiBWWriter.getBatchWriter(attrTable)),
           RecordTable.recordDeleter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
       } else {
         List.empty

@@ -28,6 +28,7 @@ import org.geotools.filter.text.ecql.ECQL
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.index.{AttributeIdxEqualsStrategy, QueryStrategyDecider, IndexSchemaBuilder, SF_PROPERTY_START_TIME}
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.SimpleFeature
 import org.specs2.mutable.Specification
@@ -43,7 +44,7 @@ class FeatureWritersTest extends Specification {
 
   val geotimeAttributes = org.locationtech.geomesa.core.index.spec
   val sftName = "mutableType"
-  val sft = DataUtilities.createType(sftName, s"name:String:index=true,age:Integer,$geotimeAttributes")
+  val sft = SimpleFeatureTypes.createType(sftName, s"name:String:index=true,age:Integer,$geotimeAttributes")
   sft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
   val sdf = new SimpleDateFormat("yyyyMMdd")
   sdf.setTimeZone(TimeZone.getTimeZone("Zulu"))
@@ -399,7 +400,7 @@ class FeatureWritersTest extends Specification {
         val deleteFilter = CQL.toFilter("name = 'will'")
 
         val q = new Query(sft.getTypeName, deleteFilter)
-        //QueryStrategyDecider.chooseStrategy(true, sft, q) must beAnInstanceOf[AttributeIdxEqualsStrategy]
+        QueryStrategyDecider.chooseStrategy(true, sft, q) must beAnInstanceOf[AttributeIdxEqualsStrategy]
 
         import org.locationtech.geomesa.utils.geotools.Conversions._
 
@@ -412,13 +413,19 @@ class FeatureWritersTest extends Specification {
 
         fs.removeFeatures(deleteFilter)
 
+        // NB: We really need a test which reads from the attribute table directly since missing records entries
+        //  will result in attribute queries
         // This verifies that 'will' has been deleted from the attribute table.
-        val featuresAfterDelete = getMap[String,Int](getFeatures(sftName, fs, "name = 'will'"), "name", "age")
-        featuresAfterDelete.keySet.size mustEqual 0
+        val attributeTableFeatures = getMap[String,Int](getFeatures(sftName, fs, "name = 'will'"), "name", "age")
+        attributeTableFeatures.keySet.size mustEqual 0
 
         // This verifies that 'will' has been deleted from the record table.
-        val recordsAfterDelete = getMap[String,Int](getFeatures(sftName, fs, s"IN('$willId')"), "name", "age")
-        featuresAfterDelete.keySet.size mustEqual 0
+        val recordTableFeatures = getMap[String,Int](getFeatures(sftName, fs, s"IN('$willId')"), "name", "age")
+        recordTableFeatures.keySet.size mustEqual 0
+
+        // This verifies that 'will' has been deleted from the ST idx table.
+        val stTableFeatures = getFeatures(sftName, fs, "BBOX(geom, 44.0,44.0,51.0,51.0)")
+        stTableFeatures.count(_.getID == willId) mustEqual 0
 
         val featureCollection = new DefaultFeatureCollection(sftName, sft)
         val sftType = ds.getSchema(sftName)
