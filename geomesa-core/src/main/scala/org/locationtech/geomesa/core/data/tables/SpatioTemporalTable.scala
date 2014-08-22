@@ -33,6 +33,4 @@ object SpatioTemporalTable {
         bw.addMutation(m)
       }
     }
-
-
 }
