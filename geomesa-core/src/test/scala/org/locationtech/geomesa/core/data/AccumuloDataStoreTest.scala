@@ -602,6 +602,22 @@ class AccumuloDataStoreTest extends Specification {
         results must haveLength(1)
         results.head.getAttribute("numattr") mustEqual 2
       }
+
+      "delete by id and verify that the feature is gone" >> {
+        // INCLUDE query.
+        val fr = ds.getFeatureReader(sftName, new Query(sftName))
+        val results = CloseableIterator(fr).toList
+        results must haveLength(2)
+
+        val first = results.head
+        val id = first.getID
+
+
+
+        results.head.getAttribute("numattr") mustEqual 2
+
+      }
+
     }
 
     "hex encode multibyte chars as multiple underscore + hex" in {

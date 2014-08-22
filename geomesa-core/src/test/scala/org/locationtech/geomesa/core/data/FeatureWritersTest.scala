@@ -24,8 +24,9 @@ import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.factory.Hints
 import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.filter.text.cql2.CQL
+import org.geotools.filter.text.ecql.ECQL
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.core.index.{IndexSchemaBuilder, SF_PROPERTY_START_TIME}
+import org.locationtech.geomesa.core.index.{AttributeIdxEqualsStrategy, QueryStrategyDecider, IndexSchemaBuilder, SF_PROPERTY_START_TIME}
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.SimpleFeature
@@ -42,7 +43,7 @@ class FeatureWritersTest extends Specification {
 
   val geotimeAttributes = org.locationtech.geomesa.core.index.spec
   val sftName = "mutableType"
-  val sft = DataUtilities.createType(sftName, s"name:String,age:Integer,$geotimeAttributes")
+  val sft = DataUtilities.createType(sftName, s"name:String:index=true,age:Integer,$geotimeAttributes")
   sft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
   val sdf = new SimpleDateFormat("yyyyMMdd")
   sdf.setTimeZone(TimeZone.getTimeZone("Zulu"))
@@ -396,9 +397,27 @@ class FeatureWritersTest extends Specification {
         val fs = ds.getFeatureSource(sftName).asInstanceOf[AccumuloFeatureStore]
 
         val deleteFilter = CQL.toFilter("name = 'will'")
+
+        val q = new Query(sft.getTypeName, deleteFilter)
+        //QueryStrategyDecider.chooseStrategy(true, sft, q) must beAnInstanceOf[AttributeIdxEqualsStrategy]
+
+        import org.locationtech.geomesa.utils.geotools.Conversions._
+
+        // Retrieve Will's ID before deletion.
+        val featuresBeforeDelete = getFeatures(sftName, fs, "name = 'will'")
+        val feats = featuresBeforeDelete.toList
+
+        feats.size mustEqual 1
+        val willId = feats.head.getID
+
         fs.removeFeatures(deleteFilter)
 
+        // This verifies that 'will' has been deleted from the attribute table.
         val featuresAfterDelete = getMap[String,Int](getFeatures(sftName, fs, "name = 'will'"), "name", "age")
+        featuresAfterDelete.keySet.size mustEqual 0
+
+        // This verifies that 'will' has been deleted from the record table.
+        val recordsAfterDelete = getMap[String,Int](getFeatures(sftName, fs, s"IN('$willId')"), "name", "age")
         featuresAfterDelete.keySet.size mustEqual 0
 
         val featureCollection = new DefaultFeatureCollection(sftName, sft)
@@ -415,7 +434,7 @@ class FeatureWritersTest extends Specification {
     }
 
   def getFeatures(sftName: String, store: AccumuloFeatureStore, cql: String): SimpleFeatureIterator = {
-    val query = new Query(sftName, CQL.toFilter(cql))
+    val query = new Query(sftName, ECQL.toFilter(cql))
     val results = store.getFeatures(query)
     results.features
   }

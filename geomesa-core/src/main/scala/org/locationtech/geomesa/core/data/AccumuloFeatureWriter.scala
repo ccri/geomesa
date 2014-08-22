@@ -29,6 +29,7 @@ import org.geotools.data.DataUtilities
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
+import org.locationtech.geomesa.core.data.tables.{RecordTable, TableWriter}
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.feature.{AvroSimpleFeature, AvroSimpleFeatureFactory}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
@@ -95,7 +96,7 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
         val recTable = ds.getRecordTableForType(featureType)
         List(
           attrWriter(multiBWWriter.getBatchWriter(attrTable)),
-          recordWriter(multiBWWriter.getBatchWriter(recTable)))
+          RecordTable.recordWriter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
       } else {
         List.empty
       }
@@ -128,13 +129,6 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
     }
   }
 
-  /** Creates a function to write a feature to the Record Table **/
-  private def recordWriter(bw: BatchWriter): SimpleFeature => Unit =
-    (feature: SimpleFeature) => {
-      val m = new Mutation(feature.getID)
-      m.put(SFT_CF, EMPTY_COLQ, new ColumnVisibility(visibility), new Value(encoder.encode(feature)))
-      bw.addMutation(m)
-    }
 
   /** Creates a function to write a feature to the spatio temporal index **/
   private def spatioTemporalWriter(bw: BatchWriter): SimpleFeature => Unit =
@@ -213,6 +207,7 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
   // table + index tables)
   val removers: List[SimpleFeature => Unit] = {
     val stTable = dataStore.getSpatioTemporalIdxTableName(featureType)
+    // JNH: This is tested.
     val stWriter = List(removeSpatioTemporalIdx(multiBWWriter.getBatchWriter(stTable)))
 
     val attrWriters: List[SimpleFeature => Unit] =
@@ -220,31 +215,14 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
         val attrTable = dataStore.getAttrIdxTableName(featureType)
         val recTable = dataStore.getRecordTableForType(featureType)
         List(
-          removeAttrIdx(multiBWWriter.getBatchWriter(attrTable)),
-          removeRecord(multiBWWriter.getBatchWriter(recTable)))
+          //removeAttrIdx(multiBWWriter.getBatchWriter(attrTable)),
+          RecordTable.recordDeleter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
       } else {
         List.empty
       }
 
     stWriter ::: attrWriters
   }
-
-  /** Creates a function to remove a feature from the record table **/
-  private def removeRecord(bw: BatchWriter): SimpleFeature => Unit =
-    (feature: SimpleFeature) => {
-      val row = new Text(feature.getID)
-      val mutation = new Mutation(row)
-
-      val scanner = dataStore.createRecordScanner(featureType)
-      scanner.setRanges(List(new ARange(row, true, row, true)))
-      scanner.iterator().foreach { entry =>
-        val key = entry.getKey
-        mutation.putDelete(key.getColumnFamily, key.getColumnQualifier, key.getColumnVisibilityParsed)
-      }
-      if (mutation.size() > 0) {
-        bw.addMutation(mutation)
-      }
-    }
 
   /** Creates a function to remove spatio temporal index entries for a feature **/
   private def removeSpatioTemporalIdx(bw: BatchWriter): SimpleFeature => Unit =
