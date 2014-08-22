@@ -62,7 +62,7 @@ object AccumuloFeatureWriter {
 }
 
 abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
-                                     indexer: IndexSchema,
+                                     indexEncoder: IndexEntryEncoder,
                                      encoder: SimpleFeatureEncoder,
                                      ds: AccumuloDataStore,
                                      visibility: String)
@@ -81,7 +81,7 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
   // table + index tables)
   protected val writers: List[SimpleFeature => Unit] = {
     val stTable = ds.getSpatioTemporalIdxTableName(featureType)
-    val stWriter = List(SpatioTemporalTable.spatioTemporalWriter(multiBWWriter.getBatchWriter(stTable), indexer))
+    val stWriter = List(SpatioTemporalTable.spatioTemporalWriter(multiBWWriter.getBatchWriter(stTable), indexEncoder))
 
     val attrWriters: List[SimpleFeature => Unit] =
       if (ds.catalogTableFormat(featureType)) {
@@ -130,12 +130,12 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
 }
 
 class AppendAccumuloFeatureWriter(featureType: SimpleFeatureType,
-                                  indexer: IndexSchema,
+                                  indexEncoder: IndexEntryEncoder,
                                   connector: Connector,
                                   encoder: SimpleFeatureEncoder,
                                   visibility: String,
                                   ds: AccumuloDataStore)
-  extends AccumuloFeatureWriter(featureType, indexer, encoder, ds, visibility) {
+  extends AccumuloFeatureWriter(featureType, indexEncoder, encoder, ds, visibility) {
 
   var currentFeature: SimpleFeature = null
 
@@ -153,12 +153,12 @@ class AppendAccumuloFeatureWriter(featureType: SimpleFeatureType,
 }
 
 class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
-                                  indexer: IndexSchema,
+                                  indexEncoder: IndexEntryEncoder,
                                   connector: Connector,
                                   encoder: SimpleFeatureEncoder,
                                   visibility: String,
                                   dataStore: AccumuloDataStore)
-  extends AccumuloFeatureWriter(featureType, indexer, encoder, dataStore, visibility) {
+  extends AccumuloFeatureWriter(featureType, indexEncoder, encoder, dataStore, visibility) {
 
   val reader = dataStore.getFeatureReader(featureType.getName.toString)
   var live: SimpleFeature = null      /* feature to let user modify   */
@@ -170,7 +170,7 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
   // table + index tables)
   val removers: List[SimpleFeature => Unit] = {
     val stTable = dataStore.getSpatioTemporalIdxTableName(featureType)
-    val stWriter = List(SpatioTemporalTable.removeSpatioTemporalIdx(multiBWWriter.getBatchWriter(stTable), indexer))
+    val stWriter = List(SpatioTemporalTable.removeSpatioTemporalIdx(multiBWWriter.getBatchWriter(stTable), indexEncoder))
 
     val attrWriters: List[SimpleFeature => Unit] =
       if (dataStore.catalogTableFormat(featureType)) {

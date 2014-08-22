@@ -36,7 +36,7 @@ class ProximitySearchProcessTest extends Specification {
        "auths"             -> "A,B,C",
        "tableName"         -> "testwrite",
        "useMock"           -> "true",
-       "indexSchemaFormat" -> new IndexSchemaBuilder("~").randomNumber(3).constant("TEST").geoHash(0, 3).date("yyyyMMdd").nextPart().geoHash(3, 2).nextPart().id().build(),
+       "indexSchemaFormat" -> new IndexSchemaBuilder("~").randomNumber(3).constant(sftName).geoHash(0, 3).date("yyyyMMdd").nextPart().geoHash(3, 2).nextPart().id().build(),
        "featureEncoding"   -> "avro")).asInstanceOf[AccumuloDataStore]
 
      val sftName = "geomesaProximityTestType"

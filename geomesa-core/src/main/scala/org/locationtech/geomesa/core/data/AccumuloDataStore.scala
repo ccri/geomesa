@@ -380,6 +380,8 @@ class AccumuloDataStore(val connector: Connector,
                   "The custom index format will take precedence.")
     }
     val spatioTemporalSchema = computeSpatioTemporalSchema(getFeatureName(featureType), maxShard)
+
+    println(s"Creating type $featureType: $spatioTemporalSchema")
     createTablesForType(featureType, maxShard)
     writeMetadata(featureType, featureEncoding, spatioTemporalSchema, maxShard)
   }
@@ -830,8 +832,8 @@ class AccumuloDataStore(val connector: Connector,
         sft.getUserData.put(core.index.SF_PROPERTY_START_TIME, dtgField)
         sft.getUserData.put(core.index.SF_PROPERTY_END_TIME, dtgField)
 
-        val sharingBoolean: String = readMetadataItem(featureName, SHARED_TABLES_CF).getOrElse("false")
-        println(s"Table: $featureName sharing: $sharingBoolean")
+        val sharingBoolean: String = readMetadataItem(featureName, SHARED_TABLES_CF).getOrElse("true")
+       // println(s"Table: $featureName sharing: $sharingBoolean")
 
         sft.getUserData.put(core.index.SF_TABLE_SHARING, sharingBoolean)
         // readMetaDataItem(shares? prefix)
@@ -859,8 +861,8 @@ class AccumuloDataStore(val connector: Connector,
     val featureType = getSchema(typeName)
     val indexSchemaFmt = getIndexSchemaFmt(typeName)
     val fe = getFeatureEncoder(typeName)
-    val schema = IndexSchema(indexSchemaFmt, featureType, fe)
-    new ModifyAccumuloFeatureWriter(featureType, schema, connector, fe, writeVisibilities, this)
+    val encoder = IndexSchema.buildKeyEncoder(indexSchemaFmt, fe)
+    new ModifyAccumuloFeatureWriter(featureType, encoder, connector, fe, writeVisibilities, this)
   }
 
   /* optimized for GeoTools API to return writer ONLY for appending (aka don't scan table) */
@@ -871,8 +873,8 @@ class AccumuloDataStore(val connector: Connector,
     val featureType = getSchema(typeName)
     val indexSchemaFmt = getIndexSchemaFmt(typeName)
     val fe = getFeatureEncoder(typeName)
-    val schema = IndexSchema(indexSchemaFmt, featureType, fe)
-    new AppendAccumuloFeatureWriter(featureType, schema, connector, fe, writeVisibilities, this)
+    val encoder = IndexSchema.buildKeyEncoder(indexSchemaFmt, fe)
+    new AppendAccumuloFeatureWriter(featureType, encoder, connector, fe, writeVisibilities, this)
   }
 
   override def getUnsupportedFilter(featureName: String, filter: Filter): Filter = Filter.INCLUDE
@@ -1004,7 +1006,11 @@ object AccumuloDataStore {
   /**
    * Format a table name for the shared tables
    */
-  def formatTableName(catalogTable: String, suffix: String): String = s"${catalogTable}_$suffix"
+  def formatTableName(catalogTable: String, suffix: String): String = {
+    val st = s"${catalogTable}_$suffix"
+    println(s"Table name: $st")
+    st
+  }
 
   /**
    * Format a table name with a namespace. Non alpha-numeric characters present in

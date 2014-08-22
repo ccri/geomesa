@@ -11,10 +11,11 @@ import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.joda.time.DateTime
 import org.locationtech.geomesa.core._
 import org.locationtech.geomesa.core.data.{DATA_CQ, SimpleFeatureEncoder}
+import org.locationtech.geomesa.core.index.IndexSchema
 import org.locationtech.geomesa.utils.geohash.{GeoHash, GeohashUtils}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKBUtils
-import org.opengis.feature.simple.SimpleFeature
+import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
 
 import scala.collection.JavaConversions._
 
@@ -85,7 +86,7 @@ case class IndexEntryEncoder(rowf: TextFormatter[SimpleFeature],
   import org.locationtech.geomesa.core.index.IndexEntry._
   import org.locationtech.geomesa.utils.geohash.GeohashUtils._
 
-  val formats = Array(rowf,cff,cqf)
+  val formats: Array[TextFormatter[SimpleFeature]] = Array(rowf,cff,cqf)
 
   // the resolutions are valid for decomposed objects are all 5-bit boundaries
   // between 5-bits and 35-bits (inclusive)
@@ -115,7 +116,7 @@ case class IndexEntryEncoder(rowf: TextFormatter[SimpleFeature],
     def setDefaultGeometry(sf: SimpleFeature, geom: Geometry) =
       sf.setAttribute(decompFeatureType.getGeometryDescriptor.getName, geom)
 
-    val entries = geohashes.map { gh =>
+    val entries: List[SimpleFeature] = geohashes.map { gh =>
       val copy = DataUtilities.reType(decompFeatureType, featureToEncode, true)
       setDefaultGeometry(copy, gh)
       copy
