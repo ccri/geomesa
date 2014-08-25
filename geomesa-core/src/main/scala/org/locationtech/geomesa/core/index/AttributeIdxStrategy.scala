@@ -69,9 +69,11 @@ trait AttributeIdxStrategy extends Strategy with Logging {
 
     configureAttributeIndexIterator(attrScanner, featureType, ofilter, range)
 
+    // JNH: Can likely add the analysis tools to the record scanner.
     val recordScanner = acc.createRecordScanner(featureType)
     val iterSetting = configureSimpleFeatureFilteringIterator(featureType, None, schema, featureEncoder, query)
     recordScanner.addScanIterator(iterSetting)
+
 
     // function to join the attribute index scan results to the record table
     // since the row id of the record table is in the CF just grab that
@@ -127,6 +129,7 @@ trait AttributeIdxStrategy extends Strategy with Logging {
         // try to convert to the appropriate class
         AttributeTable.convertType(value, actualBinding, expectedBinding)
       }
+    // JNH: This is how we get the rowid for the Attribute queries.
     AttributeTable.getAttributeIndexRow(prop, Some(typedValue))
   }
 }

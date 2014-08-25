@@ -150,6 +150,11 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
   val fs1 = buildFeatureSource(sft, mediumDataFeatures)
   val fs2 = buildFeatureSource(sft2, mediumDataFeatures2)
 
+  val attrTable = ds.getAttrIdxTableName(sft)
+
+  val scanner = ds.createAttrIdxScanner(sft)
+
+
   val afr = ds.getFeatureReader(sft.getTypeName)
 
   def getFeatureStore = {
