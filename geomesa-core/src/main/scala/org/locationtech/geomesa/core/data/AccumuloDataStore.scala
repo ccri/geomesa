@@ -65,7 +65,7 @@ class AccumuloDataStore(val connector: Connector,
                         val catalogTable: String,
                         val authorizationsProvider: AuthorizationsProvider,
                         val writeVisibilities: String,
-                        val spatioTemporalIdxSchemaFmt: Option[String] = None,
+                        val spatioTemporalIdxSchemaFmt: Option[String] = None,       // JNH: This is horribly wrong
                         val queryThreadsConfig: Option[Int] = None,
                         val recordThreadsConfig: Option[Int] = None,
                         val writeThreadsConfig: Option[Int] = None,
@@ -375,10 +375,13 @@ class AccumuloDataStore(val connector: Connector,
    */
   // JNH: And here....
   def createSchema(featureType: SimpleFeatureType, maxShard: Int) {
+    // Check for existing FeatureName??!?!
+
     if (maxShard != DEFAULT_MAX_SHARD && spatioTemporalIdxSchemaFmt.isDefined) {
       logger.warn("Calling create schema with a custom index format AND a custom shard number. " +
                   "The custom index format will take precedence.")
     }
+    // JNH: Read the IndexSchema from the feature type:)
     val spatioTemporalSchema = computeSpatioTemporalSchema(getFeatureName(featureType), maxShard)
 
     println(s"Creating type $featureType: $spatioTemporalSchema")
