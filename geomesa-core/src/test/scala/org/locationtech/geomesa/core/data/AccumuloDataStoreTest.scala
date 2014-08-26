@@ -46,6 +46,7 @@ import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
+import org.opengis.geometry.Envelope
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -237,35 +238,70 @@ class AccumuloDataStoreTest extends Specification {
 
         val fs = ds.getFeatureSource(sftName).asInstanceOf[AccumuloFeatureStore]
 
+
+        import java.util.Date
         // create a feature
         val geom = WKTUtils.read("POINT(45.0 49.0)")
         val builder = new SimpleFeatureBuilder(sft, featureFactory)
-        builder.addAll(List("testType", null, geom))
+        builder.addAll(List("testType", new Date, geom))
         val liveFeature = builder.buildFeature("fid-1")
 
         // make sure we ask the system to re-use the provided feature-ID
         liveFeature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
         val featureCollection = new DefaultFeatureCollection(sftName, sft)
         featureCollection.add(liveFeature)
+
+
+
         fs.addFeatures(featureCollection)
 
+        // create a feature
+        val geom2 = WKTUtils.read("POINT(45.05 49.05)")
+        val builder2 = new SimpleFeatureBuilder(sft, featureFactory)
+        builder2.addAll(List("testType", new Date(), geom2))
+        val liveFeature2 = builder2.buildFeature("fid-2")
+
+        // make sure we ask the system to re-use the provided feature-ID
+        liveFeature2.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+        val featureCollection2 = new DefaultFeatureCollection(sftName, sft)
+        featureCollection2.add(liveFeature2)
+        fs.addFeatures(featureCollection2)
+
+//        import org.geotools.renderer.lite._
+//        val envelope = new Envelope(44.0, 48.0, 46.0, 50.0)
+//        new FastBBOX("geom", envelope, ff)
+
         val filter = ff.bbox("geom", 44.0, 48.0, 46.0, 50.0, "EPSG:4326")
-        val query = new Query("transformtest0", filter)
+        val query = new Query(sftName, filter)
         query.setPropertyNames(Array("geom"))
 
+        //        val afr: AccumuloFeatureReader = ds.getFeatureReader(sftName, query)
+        //
+
         // Let's read out what we wrote.
-        val results = fs.getFeatures(query)
-        val features = results.features
-        val f = features.next()
+        val fss = fs.getFeatures(query)
+        val features = fss.features
 
-        "with matching schema" >> {
-          "*geom:Point:srid=4326:index=false" mustEqual
-            SimpleFeatureTypes.encodeType(results.getSchema)
+        val iter = new Iterator[SimpleFeature] {
+          override def hasNext: Boolean = features.hasNext
+
+          override def next() = {
+            val n = features.next
+            println(s"Next: $n: ${n.getDefaultGeometry}")
+            n
+          }
         }
 
-        "and correct result" >> {
-          "fid-1=POINT (45 49)" mustEqual DataUtilities.encodeFeature(f)
-        }
+        val results = iter.toList
+
+        //val f = results.head
+
+        "must has exactly one result" >>
+          { results.size  must equalTo(2) }
+
+//        "and correct result" >> {
+//          "fid-1=testType|<null>|POINT (45 49)" mustEqual DataUtilities.encodeFeature(f)
+//        }
       }
 
 

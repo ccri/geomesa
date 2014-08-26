@@ -21,6 +21,8 @@ import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.core.stats.{MethodProfiling, QueryStat, QueryStatTransform, StatWriter}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import scala.reflect.internal.FatalError
+
 class AccumuloFeatureReader(dataStore: AccumuloDataStore,
                             query: Query,
                             indexSchemaFmt: String,
@@ -55,9 +57,14 @@ class AccumuloFeatureReader(dataStore: AccumuloDataStore,
   }
 
   override def hasNext = {
-    val (result, time) = profile(iter.hasNext)
-    scanTime += time
-    result
+
+    try {
+      val (result, time) = profile(iter.hasNext)
+      scanTime += time
+      result
+    } catch {
+      case e: Exception => new RuntimeException(e.getMessage) ; false
+    }
   }
 
   override def close() = {

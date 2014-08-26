@@ -50,23 +50,40 @@ trait CloseableIterator[+A] extends Iterator[A] {
 
     // Add in the 'SelfClosing' behavior.
     def hasNext: Boolean = {
-      val iterHasNext = innerHasNext
-      if(!iterHasNext) close()
-      iterHasNext
+      try {
+        val iterHasNext = innerHasNext
+        if (!iterHasNext) close()
+        iterHasNext
+      }  catch {
+        case e: Exception => println(e); e.printStackTrace(); throw new Error(e.getMessage); false
+      }
+
     }
 
-    private def innerHasNext: Boolean =
-      cur.hasNext || self.hasNext && { advanceClosing(); hasNext }
+    private def innerHasNext: Boolean = try {
+      cur.hasNext || self.hasNext && {
+        advanceClosing(); hasNext
+      }
+    } catch {
+      case e: Exception => println(e); e.printStackTrace(); throw new Error(e.getMessage); false
+    }
+
 
     private def advanceClosing() = {
       if (cur != empty) cur.close()
       cur = f(self.next())
     }
 
-    def next(): B = (if (hasNext) cur else empty).next()
+    def next() = try {
+
+      (if (hasNext) cur else empty).next()
+    } catch {
+      case e: Exception => println(e); e.printStackTrace(); throw new Error(e.getMessage)
+    }
 
     def close() = { cur.close(); self.close() }
   }
+
 }
 
 // By 'self-closing', we mean that the iterator will automatically call close once it is completely exhausted.
@@ -75,9 +92,14 @@ trait SelfClosingIterator[+A] extends CloseableIterator[A]
 object SelfClosingIterator {
   def apply[A](iter: Iterator[A], closeIter: () => Unit) = new SelfClosingIterator[A] {
     def hasNext: Boolean = {
-      val iterHasNext = iter.hasNext
-      if(!iterHasNext) close()
-      iterHasNext
+      try {
+        val iterHasNext = iter.hasNext
+        if(!iterHasNext) close()
+        iterHasNext
+      } catch {
+        case e: Exception => println(e); e.printStackTrace(); throw new Error(e.getMessage); false
+      }
+
     }
     def next(): A = iter.next()
     def close() = closeIter()
@@ -90,5 +112,21 @@ object SelfClosingIterator {
 
 // This object provides a standard way to wrap BatchScanners in a self-closing and closeable iterator.
 object SelfClosingBatchScanner {
-  def apply(bs: BatchScanner): SelfClosingIterator[Entry[Key, Value]] = SelfClosingIterator(bs.iterator, () => bs.close())
+  def apply(bs: BatchScanner): SelfClosingIterator[Entry[Key, Value]] = {
+    val iter = new Iterator[Entry[Key, Value]] {
+      val inner = bs.iterator
+
+      override def hasNext: Boolean = try{
+        inner.hasNext()
+      } catch {
+        case e: Exception => println(e.getMessage); new Error(e.getMessage); false
+      }
+      override def next() = try {
+        inner.next()
+      } catch {
+        case e: Exception => println(e.getMessage); new java.lang.Error(e.getMessage); null
+      }
+    }
+    SelfClosingIterator(iter, () => bs.close())
+  }
 }
