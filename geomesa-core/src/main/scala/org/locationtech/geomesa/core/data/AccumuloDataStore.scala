@@ -65,6 +65,10 @@ class AccumuloDataStore(val connector: Connector,
                         val catalogTable: String,
                         val authorizationsProvider: AuthorizationsProvider,
                         val writeVisibilities: String,
+<<<<<<< HEAD
+=======
+                        val spatioTemporalIdxSchemaFmt: Option[String] = None,       // JNH: This is horribly wrong
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
                         val queryThreadsConfig: Option[Int] = None,
                         val recordThreadsConfig: Option[Int] = None,
                         val writeThreadsConfig: Option[Int] = None,
@@ -125,6 +129,7 @@ class AccumuloDataStore(val connector: Connector,
    * @param sft
    * @param fe
    */
+  // JNH: Update writing Metadata
   private def writeMetadata(sft: SimpleFeatureType,
                             fe: FeatureEncoding,
                             spatioTemporalSchemaValue: String,
@@ -154,6 +159,7 @@ class AccumuloDataStore(val connector: Connector,
     val recordTableValue            = formatRecordTableName(catalogTable, sft)
     val queriesTableValue           = formatQueriesTableName(catalogTable, sft)
     val dtgFieldValue               = dtgValue.getOrElse(core.DEFAULT_DTG_PROPERTY_NAME)
+    val tableSharingValue           = false.toString
 
     // store each metadata in the associated column family
     val attributeMap = Map(ATTRIBUTES_CF        -> attributesValue,
@@ -164,7 +170,8 @@ class AccumuloDataStore(val connector: Connector,
                            ST_IDX_TABLE_CF      -> spatioTemporalIdxTableValue,
                            ATTR_IDX_TABLE_CF    -> attrIdxTableValue,
                            RECORD_TABLE_CF      -> recordTableValue,
-                           QUERIES_TABLE_CF     -> queriesTableValue)
+                           QUERIES_TABLE_CF     -> queriesTableValue,
+                           SHARED_TABLES_CF     -> tableSharingValue)
 
     attributeMap.foreach { case (cf, value) =>
       putMetadata(featureName, mutation, cf, value)
@@ -309,6 +316,7 @@ class AccumuloDataStore(val connector: Connector,
     readMetadataItem(featureName, ST_IDX_TABLE_CF).nonEmpty
 
   def createTablesForType(featureType: SimpleFeatureType, maxShard: Int) {
+    // JNH: If we update the first format Mojo, this might be fine.
     val spatioTemporalIdxTable = formatSpatioTemporalIdxTableName(catalogTable, featureType)
     val attributeIndexTable    = formatAttrIdxTableName(catalogTable, featureType)
     val recordTable            = formatRecordTableName(catalogTable, featureType)
@@ -319,6 +327,7 @@ class AccumuloDataStore(val connector: Connector,
       }
     }
 
+    // JNH: The various configures might need some help.
     if (!connector.isInstanceOf[MockConnector]) {
       configureRecordTable(featureType, recordTable)
       configureAttrIdxTable(featureType, attributeIndexTable)
@@ -374,8 +383,22 @@ class AccumuloDataStore(val connector: Connector,
    * @param featureType
    * @param maxShard numerical id of the max shard (creates maxShard + 1 splits)
    */
+  // JNH: And here....
   def createSchema(featureType: SimpleFeatureType, maxShard: Int) {
+<<<<<<< HEAD
     val spatioTemporalSchema = computeSpatioTemporalSchema(featureType, maxShard)
+=======
+    // Check for existing FeatureName??!?!
+
+    if (maxShard != DEFAULT_MAX_SHARD && spatioTemporalIdxSchemaFmt.isDefined) {
+      logger.warn("Calling create schema with a custom index format AND a custom shard number. " +
+                  "The custom index format will take precedence.")
+    }
+    // JNH: Read the IndexSchema from the feature type:)
+    val spatioTemporalSchema = computeSpatioTemporalSchema(getFeatureName(featureType), maxShard)
+
+    println(s"Creating type $featureType: $spatioTemporalSchema")
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
     createTablesForType(featureType, maxShard)
     writeMetadata(featureType, featureEncoding, spatioTemporalSchema, maxShard)
   }
@@ -795,6 +818,7 @@ class AccumuloDataStore(val connector: Connector,
    * @return the corresponding feature type (schema) for this feature name,
    *         or NULL if this feature name does not appear to exist
    */
+  // JNH: Look here
   override def getSchema(featureName: String): SimpleFeatureType =
     getAttributes(featureName) match {
       case attributes if attributes.isEmpty =>
@@ -807,7 +831,17 @@ class AccumuloDataStore(val connector: Connector,
 
         sft.getUserData.put(core.index.SF_PROPERTY_START_TIME, dtgField)
         sft.getUserData.put(core.index.SF_PROPERTY_END_TIME, dtgField)
+<<<<<<< HEAD
         sft.getUserData.put(core.index.SFT_INDEX_SCHEMA, indexSchema)
+=======
+
+        val sharingBoolean: String = readMetadataItem(featureName, SHARED_TABLES_CF).getOrElse("true")
+       // println(s"Table: $featureName sharing: $sharingBoolean")
+
+        sft.getUserData.put(core.index.SF_TABLE_SHARING, sharingBoolean)
+        // readMetaDataItem(shares? prefix)
+        //sft.getUserData.put(.....)
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
         sft
     }
 
@@ -831,8 +865,8 @@ class AccumuloDataStore(val connector: Connector,
     val featureType = getSchema(typeName)
     val indexSchemaFmt = getIndexSchemaFmt(typeName)
     val fe = getFeatureEncoder(typeName)
-    val schema = IndexSchema(indexSchemaFmt, featureType, fe)
-    new ModifyAccumuloFeatureWriter(featureType, schema, connector, fe, writeVisibilities, this)
+    val encoder = IndexSchema.buildKeyEncoder(indexSchemaFmt, fe)
+    new ModifyAccumuloFeatureWriter(featureType, encoder, connector, fe, writeVisibilities, this)
   }
 
   /* optimized for GeoTools API to return writer ONLY for appending (aka don't scan table) */
@@ -843,8 +877,8 @@ class AccumuloDataStore(val connector: Connector,
     val featureType = getSchema(typeName)
     val indexSchemaFmt = getIndexSchemaFmt(typeName)
     val fe = getFeatureEncoder(typeName)
-    val schema = IndexSchema(indexSchemaFmt, featureType, fe)
-    new AppendAccumuloFeatureWriter(featureType, schema, connector, fe, writeVisibilities, this)
+    val encoder = IndexSchema.buildKeyEncoder(indexSchemaFmt, fe)
+    new AppendAccumuloFeatureWriter(featureType, encoder, connector, fe, writeVisibilities, this)
   }
 
   override def getUnsupportedFilter(featureName: String, filter: Filter): Filter = Filter.INCLUDE
@@ -953,7 +987,7 @@ object AccumuloDataStore {
    * @return
    */
   def formatQueriesTableName(catalogTable: String, featureType: SimpleFeatureType): String =
-    formatTableName(catalogTable, featureType, "queries")
+    s"${catalogTable}_queries" //formatTableName(catalogTable, featureType, "queries")
 
   // only alphanumeric is safe
   val SAFE_FEATURE_NAME_PATTERN = "^[a-zA-Z0-9]+$"
@@ -964,8 +998,23 @@ object AccumuloDataStore {
    * UTF8 characters (e.g. _2a_f3_8c) to make them safe for accumulo table names
    * but still human readable.
    */
+  // JNH: This one!
   def formatTableName(catalogTable: String, featureType: SimpleFeatureType, suffix: String): String =
-    formatTableName(catalogTable, featureType.getTypeName, suffix)
+    if (core.index.getTableSharing(featureType)) {
+      formatTableName(catalogTable, suffix)
+    } else {
+      formatTableName(catalogTable, featureType.getTypeName, suffix)
+    }
+
+
+  /**
+   * Format a table name for the shared tables
+   */
+  def formatTableName(catalogTable: String, suffix: String): String = {
+    val st = s"${catalogTable}_$suffix"
+    println(s"Table name: $st")
+    st
+  }
 
   /**
    * Format a table name with a namespace. Non alpha-numeric characters present in

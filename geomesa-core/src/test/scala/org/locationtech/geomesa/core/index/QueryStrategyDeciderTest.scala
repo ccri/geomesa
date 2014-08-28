@@ -207,7 +207,12 @@ class QueryStrategyDeciderTest extends Specification {
       val fs = "attr2 = 'val56' AND attr1 = 'val3'"
 
       getStrategy(fs) must beAnInstanceOf[AttributeIdxEqualsStrategy]
+<<<<<<< HEAD
     }
+=======
+    }.pendingUntilFixed
+  }
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 
     "get the STIdx strategy" in {
       forall(stIdxStrategyPredicates) { getStStrategy }

@@ -27,16 +27,26 @@ import org.geotools.data.Query
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.temporal.`object`.DefaultPeriod
 import org.locationtech.geomesa.core.DEFAULT_FILTER_PROPERTY_NAME
+<<<<<<< HEAD
 import org.locationtech.geomesa.core.data.AccumuloConnectorCreator
+=======
+import org.locationtech.geomesa.core.data.tables.AttributeTable
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.FilterHelper._
 import org.locationtech.geomesa.core.index.QueryPlanner._
 import org.locationtech.geomesa.core.iterators.AttributeIndexFilteringIterator
 import org.locationtech.geomesa.core.util.{BatchMultiScanner, SelfClosingIterator}
 import org.opengis.feature.simple.SimpleFeatureType
+<<<<<<< HEAD
 import org.opengis.filter._
 import org.opengis.filter.expression.{Expression, Literal, PropertyName}
 import org.opengis.filter.temporal.{After, Before, During, TEquals}
+=======
+import org.opengis.filter.expression.{Literal, PropertyName}
+import org.opengis.filter.temporal.TEquals
+import org.opengis.filter.{Filter, PropertyIsEqualTo, PropertyIsLike}
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 
 import scala.collection.JavaConversions._
 
@@ -69,13 +79,18 @@ trait AttributeIdxStrategy extends Strategy with Logging {
 
     configureAttributeIndexIterator(attrScanner, featureType, ofilter, range)
 
+    // JNH: Can likely add the analysis tools to the record scanner.
     val recordScanner = acc.createRecordScanner(featureType)
     val iterSetting = configureSimpleFeatureFilteringIterator(featureType, None, schema, featureEncoder, query)
     recordScanner.addScanIterator(iterSetting)
 
+
     // function to join the attribute index scan results to the record table
     // since the row id of the record table is in the CF just grab that
-    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new AccRange(kv.getKey.getColumnFamily)
+
+    // JNH: Details regarding Attribute table structure.
+    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new AccRange(kv.getKey.getColumnQualifier)
+    //val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new AccRange(kv.getKey.getColumnFamily)
     val bms = new BatchMultiScanner(attrScanner, recordScanner, joinFunction)
 
     SelfClosingIterator(bms.iterator, () => bms.close())
@@ -122,6 +137,7 @@ trait AttributeIdxStrategy extends Strategy with Logging {
       } else {
         // type mismatch, encoding won't work b/c class is stored as part of the row
         // try to convert to the appropriate class
+<<<<<<< HEAD
         AttributeIndexEntry.convertType(value, actualBinding, expectedBinding)
       }
     AttributeIndexEntry.getAttributeIndexRow(prop, Some(typedValue))
@@ -154,6 +170,12 @@ trait AttributeIdxStrategy extends Strategy with Logging {
     }
 
     (new Query(sft.getTypeName, filterListAsAnd(cqlFilter).getOrElse(Filter.INCLUDE)), indexFilter.get)
+=======
+        AttributeTable.convertType(value, actualBinding, expectedBinding)
+      }
+    // JNH: This is how we get the rowid for the Attribute queries.
+    AttributeTable.getAttributeIndexRow(prop, Some(typedValue))
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   }
 }
 
@@ -164,6 +186,7 @@ class AttributeIdxEqualsStrategy extends AttributeIdxStrategy {
                        featureType: SimpleFeatureType,
                        query: Query,
                        output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
+<<<<<<< HEAD
     val range =
       query.getFilter match {
         case f: PropertyIsEqualTo =>
@@ -186,11 +209,34 @@ class AttributeIdxEqualsStrategy extends AttributeIdxStrategy {
           val msg = s"Unhandled filter type in equals strategy: ${query.getFilter.getClass.getName}"
           throw new RuntimeException(msg)
       }
+=======
+    val (one, two) =
+      query.getFilter match {
+        case f: PropertyIsEqualTo => (f.getExpression1, f.getExpression2)
+        case f: TEquals => (f.getExpression1, f.getExpression2)
+        case _ =>
+          val msg = s"Unhandled filter type in equals strategy: ${query.getFilter.getClass.getName}"
+          throw new RuntimeException(msg)
+      }
+    val (prop, lit) = (one, two) match {
+      case (p: PropertyName, l: Literal) => (p.getPropertyName, l.getValue)
+      case (l: Literal, p: PropertyName) => (p.getPropertyName, l.getValue)
+      case _ =>
+        val msg =
+          s"""Unhandled equalTo Query (expr1 type: ${one.getClass.getName}, expr2 type: ${two.getClass.getName}
+            |Supported types are literal = propertyName and propertyName = literal
+          """.stripMargin
+        throw new RuntimeException(msg)
+    }
+
+    val range = new AccRange(getEncodedAttrIdxRow(featureType, prop, lit))
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 
     attrIdxQuery(acc, query, iqp, featureType, range, output)
   }
 }
 
+<<<<<<< HEAD
 class AttributeIdxRangeStrategy extends AttributeIdxStrategy {
 
   override def execute(acc: AccumuloConnectorCreator,
@@ -292,6 +338,8 @@ class AttributeIdxRangeStrategy extends AttributeIdxStrategy {
   }
 }
 
+=======
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 class AttributeIdxLikeStrategy extends AttributeIdxStrategy {
 
   override def execute(acc: AccumuloConnectorCreator,

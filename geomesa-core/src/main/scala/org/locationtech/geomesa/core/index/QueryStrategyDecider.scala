@@ -19,12 +19,21 @@ package org.locationtech.geomesa.core.index
 import java.util
 
 import org.geotools.data.Query
+<<<<<<< HEAD
 import org.locationtech.geomesa.core.index.FilterHelper._
 import org.locationtech.geomesa.core.index.QueryHints._
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.{And, Filter, Id, PropertyIsLike}
 
 import scala.collection.JavaConversions._
+=======
+import org.locationtech.geomesa.core.index.AttributeIdxEqualsStrategy
+import org.locationtech.geomesa.core.index.QueryHints._
+import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.filter.expression.{Expression, PropertyName}
+import org.opengis.filter.temporal.TEquals
+import org.opengis.filter.{Filter, Id, PropertyIsEqualTo, PropertyIsLike}
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 
 object QueryStrategyDecider {
 
@@ -46,6 +55,7 @@ object QueryStrategyDecider {
       new STIdxStrategy
     } else {
       // check if we can use the attribute index first
+<<<<<<< HEAD
       val attributeStrategy = AttributeIndexStrategy.getAttributeIndexStrategy(filter, sft)
       attributeStrategy.getOrElse {
         filter match {
@@ -72,6 +82,15 @@ object QueryStrategyDecider {
       case (None, Some(stFilter)) => new STIdxStrategy
       case (Some(attrFilter), None) => getAttributeIndexStrategy(attrFilter, sft).get  // Never call .get
       case (None, None) => new STIdxStrategy
+=======
+      val attributeStrategy = getAttributeIndexStrategy(filter, sft)
+      attributeStrategy.getOrElse {
+        filter match {
+          case idFilter: Id => new RecordIdxStrategy
+          case cql          => new STIdxStrategy
+        }
+      }
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
     }
   }
 
@@ -94,4 +113,32 @@ object QueryStrategyDecider {
       filter.getLiteral.indexOf(MULTICHAR_WILDCARD) == filter.getLiteral.length - MULTICHAR_WILDCARD.length) ||
       filter.getLiteral.indexOf(MULTICHAR_WILDCARD) == -1
 
+<<<<<<< HEAD
+=======
+
+  import org.locationtech.geomesa.utils.geotools.Conversions._
+
+  def getAttributeIndexStrategy(f: Filter, sft: SimpleFeatureType): Option[Strategy] =
+    f match {
+      case filter: PropertyIsEqualTo =>
+        checkEqualsExpression(sft, filter.getExpression1, filter.getExpression2)
+      case filter: TEquals =>
+        checkEqualsExpression(sft, filter.getExpression1, filter.getExpression2)
+      case filter: PropertyIsLike =>
+        val prop = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
+        val indexed = sft.getDescriptor(prop).isIndexed
+        if (indexed) Some(new AttributeIdxLikeStrategy) else None
+      case _ => None
+    }
+
+  private def checkEqualsExpression(sft: SimpleFeatureType, one: Expression, two: Expression): Option[Strategy] = {
+    val prop =
+      (one, two) match {
+        case (p: PropertyName, _) => Some(p.getPropertyName)
+        case (_, p: PropertyName) => Some(p.getPropertyName)
+        case (_, _)               => None
+      }
+    prop.filter(p => sft.getDescriptor(p).isIndexed).map(_ => new AttributeIdxEqualsStrategy)
+  }
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 }

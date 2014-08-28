@@ -19,23 +19,19 @@ package org.locationtech.geomesa.core.data
 import java.util.UUID
 
 import com.typesafe.scalalogging.slf4j.Logging
-import org.apache.accumulo.core.client.{BatchWriter, BatchWriterConfig, Connector}
-import org.apache.accumulo.core.data.{Key, Mutation, PartialKey, Value, Range => ARange}
-import org.apache.accumulo.core.security.ColumnVisibility
-import org.apache.hadoop.io.Text
+import org.apache.accumulo.core.client.{BatchWriterConfig, Connector}
+import org.apache.accumulo.core.data.{Key, Mutation, Value}
 import org.apache.hadoop.mapred.{RecordWriter, Reporter}
 import org.apache.hadoop.mapreduce.TaskInputOutputContext
 import org.geotools.data.DataUtilities
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
+import org.locationtech.geomesa.core.data.tables.{AttributeTable, RecordTable, SpatioTemporalTable}
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.feature.{AvroSimpleFeature, AvroSimpleFeatureFactory}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-
-import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 object AccumuloFeatureWriter {
 
@@ -66,15 +62,18 @@ object AccumuloFeatureWriter {
 }
 
 abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
-                                     indexer: IndexSchema,
+                                     indexEncoder: IndexEntryEncoder,
                                      encoder: SimpleFeatureEncoder,
                                      ds: AccumuloDataStore,
                                      visibility: String)
   extends SimpleFeatureWriter
           with Logging {
 
+<<<<<<< HEAD
   import org.locationtech.geomesa.core.index.AttributeIndexEntry._
 
+=======
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   val indexedAttributes = SimpleFeatureTypes.getIndexedAttributes(featureType)
 
   val connector = ds.connector
@@ -87,15 +86,15 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
   // table + index tables)
   protected val writers: List[SimpleFeature => Unit] = {
     val stTable = ds.getSpatioTemporalIdxTableName(featureType)
-    val stWriter = List(spatioTemporalWriter(multiBWWriter.getBatchWriter(stTable)))
+    val stWriter = List(SpatioTemporalTable.spatioTemporalWriter(multiBWWriter.getBatchWriter(stTable), indexEncoder))
 
     val attrWriters: List[SimpleFeature => Unit] =
       if (ds.catalogTableFormat(featureType)) {
         val attrTable = ds.getAttrIdxTableName(featureType)
         val recTable = ds.getRecordTableForType(featureType)
         List(
-          attrWriter(multiBWWriter.getBatchWriter(attrTable)),
-          recordWriter(multiBWWriter.getBatchWriter(recTable)))
+          AttributeTable.attrWriter(multiBWWriter.getBatchWriter(attrTable), indexedAttributes, visibility),
+          RecordTable.recordWriter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
       } else {
         List.empty
       }
@@ -128,6 +127,7 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
     }
   }
 
+<<<<<<< HEAD
   /** Creates a function to write a feature to the Record Table **/
   private def recordWriter(bw: BatchWriter): SimpleFeature => Unit =
     (feature: SimpleFeature) => {
@@ -163,6 +163,8 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
     m
   }
 
+=======
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   def close() = multiBWWriter.close()
 
   def remove() {}
@@ -171,12 +173,12 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
 }
 
 class AppendAccumuloFeatureWriter(featureType: SimpleFeatureType,
-                                  indexer: IndexSchema,
+                                  indexEncoder: IndexEntryEncoder,
                                   connector: Connector,
                                   encoder: SimpleFeatureEncoder,
                                   visibility: String,
                                   ds: AccumuloDataStore)
-  extends AccumuloFeatureWriter(featureType, indexer, encoder, ds, visibility) {
+  extends AccumuloFeatureWriter(featureType, indexEncoder, encoder, ds, visibility) {
 
   var currentFeature: SimpleFeature = null
 
@@ -194,14 +196,18 @@ class AppendAccumuloFeatureWriter(featureType: SimpleFeatureType,
 }
 
 class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
-                                  indexer: IndexSchema,
+                                  indexEncoder: IndexEntryEncoder,
                                   connector: Connector,
                                   encoder: SimpleFeatureEncoder,
                                   visibility: String,
                                   dataStore: AccumuloDataStore)
+<<<<<<< HEAD
   extends AccumuloFeatureWriter(featureType, indexer, encoder, dataStore, visibility) {
 
   import org.locationtech.geomesa.core.index.AttributeIndexEntry._
+=======
+  extends AccumuloFeatureWriter(featureType, indexEncoder, encoder, dataStore, visibility) {
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 
   val reader = dataStore.getFeatureReader(featureType.getName.toString)
   var live: SimpleFeature = null      /* feature to let user modify   */
@@ -213,22 +219,22 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
   // table + index tables)
   val removers: List[SimpleFeature => Unit] = {
     val stTable = dataStore.getSpatioTemporalIdxTableName(featureType)
-    val stWriter = List(removeSpatioTemporalIdx(multiBWWriter.getBatchWriter(stTable)))
+    val stWriter = List(SpatioTemporalTable.removeSpatioTemporalIdx(multiBWWriter.getBatchWriter(stTable), indexEncoder))
 
     val attrWriters: List[SimpleFeature => Unit] =
       if (dataStore.catalogTableFormat(featureType)) {
         val attrTable = dataStore.getAttrIdxTableName(featureType)
         val recTable = dataStore.getRecordTableForType(featureType)
         List(
-          removeAttrIdx(multiBWWriter.getBatchWriter(attrTable)),
-          removeRecord(multiBWWriter.getBatchWriter(recTable)))
+          AttributeTable.removeAttrIdx(multiBWWriter.getBatchWriter(attrTable), indexedAttributes, visibility),
+          RecordTable.recordDeleter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
       } else {
         List.empty
       }
-
     stWriter ::: attrWriters
   }
 
+<<<<<<< HEAD
   /** Creates a function to remove a feature from the record table **/
   private def removeRecord(bw: BatchWriter): SimpleFeature => Unit =
     (feature: SimpleFeature) => {
@@ -266,6 +272,8 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
       bw.addMutations(mutations)
     }
 
+=======
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   override def remove() =
     if (original != null) {
       removers.foreach { r => r(original)}
@@ -281,16 +289,6 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
       if(original != null) remove()
       writeToAccumulo(live)
     }
-
-  /* Delete keys from original index and data entries that are different from new keys */
-  /* Return list of old keys that should be deleted */
-  def keysToDelete = {
-    val oldKeys = indexer.encode(original).map { case (k, v) => k }
-    val newKeys = indexer.encode(live).map { case (k, v) => k }
-    oldKeys.zip(newKeys).filter { case(o, n) =>
-      !o.equals(n, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
-    }.map { case (k1, _) => k1 }
-  }
 
   override def next: SimpleFeature = {
     original = null

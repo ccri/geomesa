@@ -28,8 +28,12 @@ import org.geotools.data._
 import org.geotools.factory.Hints
 import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.feature.simple.SimpleFeatureBuilder
+<<<<<<< HEAD
 import org.geotools.filter.text.cql2.CQLException
 import org.geotools.filter.text.ecql.ECQL
+=======
+import org.geotools.filter.text.cql2.CQL
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.data.AccumuloDataStore
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
@@ -44,6 +48,11 @@ import scala.collection.JavaConverters._
 @RunWith(classOf[JUnitRunner])
 class AttributeIndexStrategyTest extends Specification {
 
+<<<<<<< HEAD
+=======
+  sequential
+
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   val sftName = "AttributeIndexStrategyTest"
   val spec = "name:String:index=true,age:Integer:index=true,count:Long:index=true," +
                "weight:Double:index=true,height:Float:index=true,admin:Boolean:index=true," +
@@ -76,10 +85,17 @@ class AttributeIndexStrategyTest extends Specification {
 
   val geom = WKTUtils.read("POINT(45.0 49.0)")
 
+<<<<<<< HEAD
   Seq(TestAttributes("alice",   20,   1, 5.0, 10.0F, true,  geom, dtFormat.parse("20120101 12:00:00")),
       TestAttributes("bill",    21,   2, 6.0, 11.0F, false, geom, dtFormat.parse("20130101 12:00:00")),
       TestAttributes("bob",     30,   3, 6.0, 12.0F, false, geom, dtFormat.parse("20140101 12:00:00")),
       TestAttributes("charles", null, 4, 7.0, 12.0F, false, geom, dtFormat.parse("20140101 12:30:00")))
+=======
+  Seq(TestAttributes("alice",   20, 1, 5.0, 10.0F, true, geom, dtFormat.parse("20140101 12:00:00")),
+      TestAttributes("bill",    21, 2, 6.0, 11.0F, false, geom, dtFormat.parse("20130101 12:00:00")),
+      TestAttributes("bob",     30, 3, 6.0, 12.0F, false, geom, dtFormat.parse("20120101 12:00:00")),
+      TestAttributes("charles", 40, 4, 7.0, 12.0F, false, geom, dtFormat.parse("20120101 12:30:00")))
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   .foreach { entry =>
     val feature = builder.buildFeature(entry.name)
     feature.setDefaultGeometry(entry.geom)
@@ -102,17 +118,24 @@ class AttributeIndexStrategyTest extends Specification {
   val indexSchema = IndexSchema(ds.getIndexSchemaFmt(sftName), sft, ds.getFeatureEncoder(sftName))
   val queryPlanner = indexSchema.planner
 
+<<<<<<< HEAD
   def execute(strategy: AttributeIdxStrategy, filter: String): List[String] = {
     val query = new Query(sftName, ECQL.toFilter(filter))
     val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
     queryPlanner.adaptIterator(results, query).map(_.getAttribute("name").toString).toList
   }
 
+=======
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
   "AttributeIndexStrategy" should {
     "print values" in {
       skipped("used for debugging")
       val scanner = connector.createScanner(ds.getAttrIdxTableName(sftName), new Authorizations())
+<<<<<<< HEAD
       scanner.setRange(AccRange.prefix("dtg"))
+=======
+      scanner.setRange(AccRange.prefix("weight"))
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
       scanner.asScala.foreach(println)
       success
     }
@@ -123,6 +146,7 @@ class AttributeIndexStrategyTest extends Specification {
     val strategy = new AttributeIdxEqualsStrategy
 
     "correctly query on ints" in {
+<<<<<<< HEAD
       val features = execute(strategy, "age=21")
       features must have size(1)
       features must contain("bill")
@@ -461,6 +485,110 @@ class AttributeIndexStrategyTest extends Specification {
       "after" >> {
         execute(strategy, "2013-01-01T12:30:00.000Z BEFORE dtg") should throwA[CQLException]
       }
+=======
+      val query = new Query(sftName, CQL.toFilter("age=21"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList
+
+      features.size mustEqual(1)
+      features(0).getAttribute("name") mustEqual("bill")
+    }
+
+    "correctly query on longs" in {
+      val query = new Query(sftName, CQL.toFilter("count=2"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList
+
+      features.size mustEqual(1)
+      features(0).getAttribute("name") mustEqual("bill")
+    }
+
+    "correctly query on floats" in {
+      val query = new Query(sftName, CQL.toFilter("height=12.0"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList.sortBy(_.getAttribute("name").toString)
+
+      features.size mustEqual(2)
+      features(0).getAttribute("name") mustEqual("bob")
+      features(1).getAttribute("name") mustEqual("charles")
+    }
+
+    "correctly query on floats in different precisions" in {
+      val query = new Query(sftName, CQL.toFilter("height=10"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList.sortBy(_.getAttribute("name").toString)
+
+      features.size mustEqual(1)
+      features(0).getAttribute("name") mustEqual("alice")
+    }
+
+    "correctly query on doubles" in {
+      val query = new Query(sftName, CQL.toFilter("weight=6.0"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList.sortBy(_.getAttribute("name").toString)
+
+      features.size mustEqual(2)
+      features(0).getAttribute("name") mustEqual("bill")
+      features(1).getAttribute("name") mustEqual("bob")
+    }
+
+    "correctly query on doubles in different precisions" in {
+      val query = new Query(sftName, CQL.toFilter("weight=6"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList.sortBy(_.getAttribute("name").toString)
+
+      features.size mustEqual(2)
+      features(0).getAttribute("name") mustEqual("bill")
+      features(1).getAttribute("name") mustEqual("bob")
+    }
+
+    "correctly query on booleans" in {
+      val query = new Query(sftName, CQL.toFilter("admin=false"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList.sortBy(_.getAttribute("name").toString)
+
+      features.size mustEqual(3)
+      features(0).getAttribute("name") mustEqual("bill")
+      features(1).getAttribute("name") mustEqual("bob")
+      features(2).getAttribute("name") mustEqual("charles")
+    }
+
+    "correctly query on strings" in {
+      val query = new Query(sftName, CQL.toFilter("name='bill'"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList
+
+      features.size mustEqual(1)
+      features(0).getAttribute("name") mustEqual("bill")
+    }
+
+    "correctly query on date objects" in {
+      val query = new Query(sftName, CQL.toFilter("dtg TEQUALS 2012-01-01T12:30:00.000Z"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList
+
+      features.size mustEqual(1)
+      features(0).getAttribute("name") mustEqual("charles")
+    }
+
+    "correctly query on date strings in standard format" in {
+      val query = new Query(sftName, CQL.toFilter("dtg = '2012-01-01T12:30:00.000Z'"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val features = queryPlanner.adaptIterator(results, query).toList
+
+      features.size mustEqual(1)
+      features(0).getAttribute("name") mustEqual("charles")
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
     }
   }
 
@@ -469,9 +597,21 @@ class AttributeIndexStrategyTest extends Specification {
     val strategy = new AttributeIdxLikeStrategy
 
     "correctly query on strings" in {
+<<<<<<< HEAD
       val features = execute(strategy, "name LIKE 'b%'")
       features must have size(2)
       features must contain("bill", "bob")
+=======
+      val query = new Query(sftName, CQL.toFilter("name LIKE 'b%'"))
+
+      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+
+      val features = queryPlanner.adaptIterator(results, query).toList.sortBy(_.getAttribute("name").toString)
+
+      features.size mustEqual(2)
+      features(0).getAttribute("name") mustEqual("bill")
+      features(1).getAttribute("name") mustEqual("bob")
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
     }
   }
 }

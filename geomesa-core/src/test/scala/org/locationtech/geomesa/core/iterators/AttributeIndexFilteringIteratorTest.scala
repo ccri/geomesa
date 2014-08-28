@@ -34,7 +34,12 @@ import org.geotools.filter.text.ecql.ECQL
 import org.joda.time.{DateTime, DateTimeZone}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.data._
+<<<<<<< HEAD
 import org.locationtech.geomesa.core.index.AttributeIndexEntry
+=======
+import org.locationtech.geomesa.core.data.tables.AttributeTable
+import org.locationtech.geomesa.core.index.IndexSchemaBuilder
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
@@ -97,7 +102,11 @@ class AttributeIndexFilteringIteratorTest extends Specification {
 
       val bw = conn.createBatchWriter(table, new BatchWriterConfig)
       featureCollection.foreach { feature =>
+<<<<<<< HEAD
         val muts = AttributeIndexEntry.getAttributeIndexMutations(feature,
+=======
+        val muts = AttributeTable.getAttributeIndexMutations(feature,
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
                                                                   sft.getAttributeDescriptors,
                                                                   new ColumnVisibility())
         bw.addMutations(muts)
@@ -108,7 +117,11 @@ class AttributeIndexFilteringIteratorTest extends Specification {
       val scanner = conn.createScanner(table, new Authorizations())
       val is = new IteratorSetting(40, classOf[AttributeIndexFilteringIterator])
       scanner.addScanIterator(is)
+<<<<<<< HEAD
       scanner.setRange(new ARange(AttributeIndexEntry.getAttributeIndexRow("name", Some("b"))))
+=======
+      scanner.setRange(new ARange(AttributeTable.getAttributeIndexRow("name", Some("b"))))
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
       scanner.iterator.size mustEqual 4
     }
 

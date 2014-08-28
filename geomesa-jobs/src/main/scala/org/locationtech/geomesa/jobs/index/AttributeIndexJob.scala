@@ -22,7 +22,11 @@ import org.apache.accumulo.core.security.ColumnVisibility
 import org.apache.hadoop.conf.Configuration
 import org.geotools.data.DataStoreFinder
 import org.locationtech.geomesa.core.data.AccumuloDataStore
+<<<<<<< HEAD
 import org.locationtech.geomesa.core.index.AttributeIndexEntry
+=======
+import org.locationtech.geomesa.core.data.tables.AttributeTable
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 import org.locationtech.geomesa.jobs.JobUtils
 import org.locationtech.geomesa.jobs.scalding.{AccumuloInputOptions, AccumuloOutputOptions, AccumuloSource, AccumuloSourceOptions, ConnectionParams}
 
@@ -84,7 +88,11 @@ class AttributeIndexJob(args: Args) extends Job(args) {
    */
   def getAttributeIndexMutation(r: Resources, key: Key, value: Value): Seq[Mutation] = {
     val feature = r.decoder.decode(r.sft, value)
+<<<<<<< HEAD
     AttributeIndexEntry.getAttributeIndexMutations(feature,
+=======
+    AttributeTable.getAttributeIndexMutations(feature,
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
                                                    r.attributeDescriptors,
                                                    new ColumnVisibility(r.visibilities))
   }

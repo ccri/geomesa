@@ -30,7 +30,11 @@ import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.joda.time.{DateTime, DateTimeZone}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.data._
+<<<<<<< HEAD
 import org.locationtech.geomesa.core.index.AttributeIndexEntry
+=======
+import org.locationtech.geomesa.core.data.tables.AttributeTable
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.execute.Success
@@ -95,19 +99,28 @@ class BatchMultiScannerTest extends Specification {
     val attrIdxTable = AccumuloDataStore.formatAttrIdxTableName(catalogTable, sft)
     conn.tableOperations.exists(attrIdxTable) must beTrue
     val attrScanner = conn.createScanner(attrIdxTable, new Authorizations())
+<<<<<<< HEAD
     attrScanner.setRange(new ARange(AttributeIndexEntry.getAttributeIndexRow(attr, Option(value))))
+=======
+    attrScanner.setRange(new ARange(AttributeTable.getAttributeIndexRow(attr, Some(value))))
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
 
     val recordTable = AccumuloDataStore.formatRecordTableName(catalogTable, sft)
     conn.tableOperations().exists(recordTable) must beTrue
     val recordScanner = conn.createBatchScanner(recordTable, new Authorizations(), 5)
 
-    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new ARange(kv.getKey.getColumnFamily)
+    // JNH: NB: This test encodes Attribute table structure
+    val joinFunction = (kv: java.util.Map.Entry[Key, Value]) => new ARange(kv.getKey.getColumnQualifier)
     val bms = new BatchMultiScanner(attrScanner, recordScanner, joinFunction, batchSize)
 
     val retrieved = bms.iterator.toList
     retrieved.foreach { e =>
       val sf = SimpleFeatureEncoderFactory.defaultEncoder.decode(sft, e.getValue)
+<<<<<<< HEAD
       if (value != null) {
+=======
+      if (value != AttributeTable.nullString) {
+>>>>>>> jnh_multiTable_fixUnShareTablesTable
         sf.getAttribute(attr) mustEqual value
       }
     }
