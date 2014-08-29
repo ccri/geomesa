@@ -187,7 +187,15 @@ class SVIngest(args: Args) extends Job(args) with Logging {
       val lon = Option(toWrite.getAttribute(lonField)).map(_.asInstanceOf[Double])
       val lat = Option(toWrite.getAttribute(latField)).map(_.asInstanceOf[Double])
       (lon, lat) match {
-        case (Some(x), Some(y)) => toWrite.setDefaultGeometry(geomFactory.createPoint(new Coordinate(x, y)))
+        case (Some(x), Some(y)) =>
+          if (-180.0 <= x && x <= 180.0 &&
+              -90.0  <= y && y <= 90
+          ) {
+            toWrite.setDefaultGeometry(geomFactory.createPoint(new Coordinate(x, y)))
+          } else {
+            throw new Exception(s"Lon-lat ($lon, $lat) is outside of the bounds.}")
+          }
+
         case _ => Nil
       }
     }
@@ -198,19 +206,22 @@ class SVIngest(args: Args) extends Job(args) with Logging {
       write <- Try { fw.write() }
     } yield write
 
-    // if Successful,
-    if (writeSuccess.isSuccess) {
-      successes += 1
-      if (lineNumber % 10000 == 0) {
-        val successPvsS = if (successes == 1) "feature" else "features"
-        val failurePvsS = if (failures == 1) "feature" else "features"
-        logger.info(s"${DateTime.now} Ingest proceeding, on line number: $lineNumber," +
-          s" ingested: $successes $successPvsS, and failed to ingest: $failures $failurePvsS.")
-      }
-    } else {
-      failures += 1
-      logger.info(s"Cannot ingest avro simple feature on line number: $lineNumber, with value $line ")
+    writeSuccess match {
+      case Success(_) =>
+        successes += 1
+        if (lineNumber % 10000 == 0) {
+          val successPvsS = if (successes == 1) "feature" else "features"
+          val failurePvsS = if (failures == 1) "feature" else "features"
+          logger.info(s"${DateTime.now} Ingest proceeding, on line number: $lineNumber," +
+            s" ingested: $successes $successPvsS, and failed to ingest: $failures $failurePvsS.")
+        }
+      case Failure(ex) =>
+        failures += 1
+        logger.info(s"Failure: $ex")
+        logger.info(s"Cannot ingest avro simple feature on line number: $lineNumber, with value $line ")
     }
+
+
   }
 
   def dateTimeFormatOverride = true       // JNH: TODO

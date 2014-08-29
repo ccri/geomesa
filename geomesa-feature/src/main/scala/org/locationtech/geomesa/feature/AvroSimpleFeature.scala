@@ -25,7 +25,7 @@ import java.util.{Date, UUID, Collection => JCollection, List => JList}
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.google.common.collect.Maps
 import com.vividsolutions.jts.geom.Geometry
-import com.vividsolutions.jts.io.WKBWriter
+import com.vividsolutions.jts.io.{WKTReader, WKBWriter}
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.{BinaryEncoder, EncoderFactory}
 import org.apache.avro.{Schema, SchemaBuilder}
@@ -45,6 +45,10 @@ import org.opengis.geometry.BoundingBox
 import scala.collection.JavaConversions._
 import scala.util.Try
 
+
+//object AvroSimpleFeature {
+//
+//}
 
 class AvroSimpleFeature(id: FeatureId, sft: SimpleFeatureType)
   extends SimpleFeature
@@ -97,7 +101,11 @@ class AvroSimpleFeature(id: FeatureId, sft: SimpleFeatureType)
 
   def setAttribute(name: String, value: Object) = setAttribute(nameIndex(name), value)
   def setAttribute(name: Name, value: Object) = setAttribute(name.getLocalPart, value)
-  def setAttribute(index: Int, value: Object) = setAttributeNoConvert(index, Converters.convert(value, getFeatureType.getDescriptor(index).getType.getBinding).asInstanceOf[AnyRef])
+  def setAttribute(index: Int, value: Object) = {
+    val targetClass: Class[_] = getFeatureType.getDescriptor(index).getType.getBinding
+    val converted = AvroSimpleFeature.convert(value, targetClass)
+    setAttributeNoConvert(index, converted)
+  }
   def setAttributes(vals: JList[Object]) = vals.zipWithIndex.foreach { case (v, idx) => setAttribute(idx, v) }
   def setAttributes(vals: Array[Object])= vals.zipWithIndex.foreach { case (v, idx) => setAttribute(idx, v) }
 
@@ -174,6 +182,10 @@ object AvroSimpleFeature {
 
   val wkbWriter = new ThreadLocal[WKBWriter] {
     override def initialValue() = new WKBWriter
+  }
+
+  val wktReader = new ThreadLocal[WKTReader] {
+    override def initialValue() = new WKTReader
   }
 
   def apply(sf: SimpleFeature) = {
@@ -309,5 +321,31 @@ object AvroSimpleFeature {
       case c if classOf[Geometry].isAssignableFrom(c)           => baseType.bytesType.noDefault
     }
   }
+
+  def convert(value: Object, targetClass: Class[_]): AnyRef = {
+    value match {
+      case s: String => parseStringToTarget(s, targetClass)
+      // This is a back-up.
+      case a: Object => Converters.convert(a, targetClass).asInstanceOf[AnyRef]
+    }
+  }
+
+  def parseStringToTarget(s: String, targetClass: Class[_]): AnyRef = {
+    targetClass match {
+      case c if classOf[String].isAssignableFrom(c) => s
+      case c if classOf[java.lang.Double].isAssignableFrom(c) => new java.lang.Double(s)
+      case c if classOf[Geometry].isAssignableFrom(c)         => wktReader.get.read(s)
+
+      case date if classOf[Date].isAssignableFrom(date) =>  null
+
+      case _ =>
+        println(s"Falling back to converters for $targetClass")
+        Converters.convert(s, targetClass).asInstanceOf[AnyRef]
+
+    }
+
+  }
+
+
 
 }
