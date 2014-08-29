@@ -19,13 +19,13 @@ package org.locationtech.geomesa.core.index
 import java.nio.ByteBuffer
 
 import com.vividsolutions.jts.geom.{GeometryCollection, Geometry, Point, Polygon}
+import com.vividsolutions.jts.io.{WKBWriter, WKBReader, WKTReader}
 import org.apache.accumulo.core.data.{Key, Value}
 import org.geotools.data.Query
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone, Interval}
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.util._
-import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.annotation.tailrec
@@ -91,10 +91,17 @@ case class IndexSchema(encoder: IndexEncoder,
 }
 
 object IndexSchema extends RegexParsers {
+  val wkbReader = new ThreadLocal[WKBReader] {
+    override def initialValue() = new WKBReader
+  }
+  val wkbWriter = new ThreadLocal[WKBWriter] {
+    override def initialValue() = new WKBWriter
+  }
+      
   val minDateTime = new DateTime(0, 1, 1, 0, 0, 0, DateTimeZone.forID("UTC"))
   val maxDateTime = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeZone.forID("UTC"))
   val everywhen = new Interval(minDateTime, maxDateTime)
-  val everywhere = WKTUtils.read("POLYGON((-180 -90, 0 -90, 180 -90, 180 90, 0 90, -180 90, -180 -90))").asInstanceOf[Polygon]
+  val everywhere = (new WKTReader).read("POLYGON((-180 -90, 0 -90, 180 -90, 180 90, 0 90, -180 90, -180 -90))").asInstanceOf[Polygon]
 
   def somewhen(interval: Interval): Option[Interval] =
     interval match {
@@ -352,7 +359,7 @@ object IndexSchema extends RegexParsers {
   def encodeIndexValue(entry: SimpleFeature): Value = {
     import org.locationtech.geomesa.core.index.IndexEntry._
     val encodedId = entry.sid.getBytes
-    val encodedGeom = WKBUtils.write(entry.geometry)
+    val encodedGeom = wkbWriter.get.write(entry.geometry)
     val encodedDtg = entry.dt.map(dtg => ByteBuffer.allocate(8).putLong(dtg.getMillis).array()).getOrElse(Array[Byte]())
 
     new Value(
@@ -371,9 +378,9 @@ object IndexSchema extends RegexParsers {
     val geomLength = ByteBuffer.wrap(geomDatePortion, 0, 4).getInt
     if(geomLength < (geomDatePortion.length - 4)) {
       val (l,r) = geomDatePortion.drop(4).splitAt(geomLength)
-      DecodedIndexValue(id, WKBUtils.read(l), Some(ByteBuffer.wrap(r).getLong))
+      DecodedIndexValue(id, wkbReader.get.read(l), Some(ByteBuffer.wrap(r).getLong))
     } else {
-      DecodedIndexValue(id, WKBUtils.read(geomDatePortion.drop(4)), None)
+      DecodedIndexValue(id, wkbReader.get.read(geomDatePortion.drop(4)), None)
     }
   }
 

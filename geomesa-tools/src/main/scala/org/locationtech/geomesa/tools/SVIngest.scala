@@ -22,7 +22,7 @@ import com.google.common.hash.Hashing
 import com.twitter.scalding.{Args, Job, TextLine}
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Coordinate
-import org.apache.commons.csv.{CSVFormat, CSVParser}
+import org.apache.commons.csv.{CSVRecord, CSVFormat, CSVParser}
 import org.geotools.data.{DataStoreFinder, FeatureWriter, Transaction}
 import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
@@ -133,11 +133,11 @@ class SVIngest(args: Args) extends Job(args) with Logging {
       .foreach('line) { (cfw: Resources, line: String) => lineNumber += 1; ingestLine(cfw.fw, line) }
   }
 
-  def runTestIngest(lines: Iterator[String]) = Try {
-    val cfw = new Resources
-    lines.foreach( line => ingestLine(cfw.fw, line) )
-    cfw.release()
-  }
+//  def runTestIngest(lines: Iterator[String]) = Try {
+//    val cfw = new Resources
+//    lines.foreach( line => ingestLine(cfw.fw, line) )
+//    cfw.release()
+//  }
 
   def ingestLine(fw: FeatureWriter[SimpleFeatureType, SimpleFeature], line: String) {
     val toWrite = fw.next
@@ -145,6 +145,7 @@ class SVIngest(args: Args) extends Job(args) with Logging {
     val greatSuccess = Try {
       val reader: CSVParser = CSVParser.parse(line, delim)
       val fields: Array[String] = try {
+        // JNH: Tweak this.
         reader.iterator.toArray.flatten
       } catch {
         case e: Exception => throw new Exception(s"Commons CSV could not parse " +
