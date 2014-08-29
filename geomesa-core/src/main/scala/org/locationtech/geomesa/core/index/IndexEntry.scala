@@ -62,6 +62,13 @@ case class IndexEncoder(rowf: TextFormatter,
   // the maximum number of sub-units into which a geometry may be decomposed
   lazy val maximumDecompositions: Int = 5
 
+  val getRCFCQ = (geohash: GeoHash, dt: DateTime, featureToEncode: SimpleFeature) =>
+    Array(
+      rowf.format(geohash, dt, featureToEncode),
+      cff.format(geohash, dt, featureToEncode),
+      cqf.format(geohash, dt, featureToEncode)
+    )
+
   def encode(featureToEncode: SimpleFeature, visibility: String = ""): List[KeyValuePair] = {
 
     logger.trace(s"encoding feature: $featureToEncode")
@@ -84,11 +91,11 @@ case class IndexEncoder(rowf: TextFormatter,
     val dataValue = new Value(featureEncoder.encode(featureToEncode))
 
     // remember the resulting index-entries
-    val keys = geohashes.map { gh =>
-      val Array(r, cf, cq) = formats.map { _.format(gh, dt, featureToEncode) }
-      new Key(r, cf, cq, v)
-    }
-    val rowIDs = keys.map(_.getRow)
+//    val keys = geohashes.map { gh =>
+//      val Array(r, cf, cq) = formats.map { _.format(gh, dt, featureToEncode) }
+//      new Key(r, cf, cq, v)
+//    }
+//    val rowIDs = keys.map(_.getRow)
 
     // the index entries are (key, FID) pairs
 //    val indexEntries: List[(Key, Value)] = keys.map { k => (k, iv) }
@@ -109,7 +116,7 @@ case class IndexEncoder(rowf: TextFormatter,
 
       val gh = geohashes(i)
 
-      val Array(r, cf, cq) = formats.map { _.format(gh, dt, featureToEncode) }
+      val Array(r, cf, cq) = getRCFCQ(gh, dt, featureToEncode)
       val indexKey = new Key(r, cf, cq, v)
 
       ret(indexEntryIndex) = (indexKey, iv)
@@ -118,8 +125,7 @@ case class IndexEncoder(rowf: TextFormatter,
       ret(dataEntryIndex) = (dataKey, dataValue)
     }
 
-
-    ret.toList //(indexEntries ++ dataEntries).toList
+    ret.toList
   }
 
 }

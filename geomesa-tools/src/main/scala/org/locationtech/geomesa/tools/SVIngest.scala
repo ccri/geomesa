@@ -229,7 +229,7 @@ class SVIngest(args: Args) extends Job(args) with Logging {
 
   def getAttributeIndexInLine(attribute: String) = attributes.indexOf(sft.getDescriptor(attribute))
 
-  def buildIDBuilder: (Array[String]) => String = {
+  lazy val buildIDBuilder: (Array[String]) => String = {
     (idFields, doHash) match {
       case (s: String, false) =>
         val idSplit = idFields.split(",").map { f => sft.indexOf(f) }
