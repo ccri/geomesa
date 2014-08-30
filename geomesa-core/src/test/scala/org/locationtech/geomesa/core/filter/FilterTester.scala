@@ -4,7 +4,7 @@ import java.util.Date
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Coordinate
-import org.geotools.data.DataStoreFinder
+import org.geotools.data.{Query, DataStoreFinder}
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureStore}
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.DefaultFeatureCollection
@@ -14,10 +14,11 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloDataStoreTest, AccumuloFeatureStore}
 import org.locationtech.geomesa.core.filter.TestFilters._
+import org.locationtech.geomesa.core.iterators.TestData
 import org.locationtech.geomesa.core.iterators.TestData._
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.opengis.feature.simple.SimpleFeature
+import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
 import org.opengis.filter._
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -130,6 +131,9 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
   val mediumDataFeatures: Seq[SimpleFeature] = mediumData.map(createSF)
   val sft = mediumDataFeatures.head.getFeatureType
 
+  val sft2 = TestData.getFeatureType(TestData.featureName + "2")
+  val mediumDataFeatures2: Seq[SimpleFeature] = mediumData.map(createSF(_, sft2))
+
   val ds = {
     DataStoreFinder.getDataStore(Map(
       "instanceId"        -> "mycloud",
@@ -142,23 +146,33 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
       "featureEncoding"   -> "avro")).asInstanceOf[AccumuloDataStore]
   }
 
-  def getFeatureStore: SimpleFeatureSource = {
+  val fs1 = buildFeatureSource(sft, mediumDataFeatures)
+  val fs2 = buildFeatureSource(sft2, mediumDataFeatures2)
+
+  val attrTable = ds.getAttrIdxTableName(sft)
+
+  val scanner = ds.createAttrIdxScanner(sft)
+
+
+  val afr = ds.getFeatureReader(sft.getTypeName)
+
+  def getFeatureStore = {
     val names = ds.getNames
 
-    if(names.size == 0) {
-      buildFeatureSource()
+    if(!names.contains(sft.getTypeName)) {
+      buildFeatureSource(sft, mediumDataFeatures)
     } else {
-      ds.getFeatureSource(names(0))
+      ds.getFeatureSource(sft.getTypeName)
     }
   }
 
-  def buildFeatureSource(): SimpleFeatureSource = {
-    ds.createSchema(sft)
-    val fs: AccumuloFeatureStore = ds.getFeatureSource(sft.getTypeName).asInstanceOf[AccumuloFeatureStore]
-    val coll = new DefaultFeatureCollection(sft.getTypeName)
-    coll.addAll(mediumDataFeatures.asJavaCollection)
+  def buildFeatureSource(featureType: SimpleFeatureType, features: Seq[SimpleFeature]): SimpleFeatureSource = {
+    ds.createSchema(featureType)
+    val fs: AccumuloFeatureStore = ds.getFeatureSource(featureType.getTypeName).asInstanceOf[AccumuloFeatureStore]
+    val coll = new DefaultFeatureCollection(featureType.getTypeName)
+    coll.addAll(features.asJavaCollection)
 
-    logger.debug("Adding SimpleFeatures to feature store.")
+    logger.debug(s"Adding SimpleFeatures of type ${coll.getSchema.getTypeName} to feature store.")
     fs.addFeatures(coll)
     logger.debug("Done adding SimpleFeaturest to feature store.")
 
@@ -170,7 +184,7 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
 
 trait FilterTester extends Specification with Logging {
   import org.locationtech.geomesa.core.filter.FilterTester._
-  lazy val fs = getFeatureStore
+  val fs = fs1
 
   def filters: Seq[String]
 
@@ -188,7 +202,8 @@ trait FilterTester extends Specification with Logging {
       }
     }
   }
+  val q = new Query(sft.getTypeName)
 
   import org.locationtech.geomesa.core.filter.FilterUtils._
-  def runTest = filters.map {s => compareFilter(s) }
+  def runTest = filters.map {s => q.setFilter(s); afr.explainQuery(q); compareFilter(s) }
 }

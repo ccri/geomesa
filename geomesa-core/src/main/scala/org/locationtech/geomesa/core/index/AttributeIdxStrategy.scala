@@ -28,15 +28,16 @@ import org.geotools.filter.text.ecql.ECQL
 import org.geotools.temporal.`object`.DefaultPeriod
 import org.locationtech.geomesa.core.DEFAULT_FILTER_PROPERTY_NAME
 import org.locationtech.geomesa.core.data.AccumuloConnectorCreator
+import org.locationtech.geomesa.core.data.tables.AttributeTable
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.FilterHelper._
 import org.locationtech.geomesa.core.index.QueryPlanner._
 import org.locationtech.geomesa.core.iterators.AttributeIndexFilteringIterator
 import org.locationtech.geomesa.core.util.{BatchMultiScanner, SelfClosingIterator}
 import org.opengis.feature.simple.SimpleFeatureType
-import org.opengis.filter._
 import org.opengis.filter.expression.{Expression, Literal, PropertyName}
 import org.opengis.filter.temporal.{After, Before, During, TEquals}
+import org.opengis.filter.{Filter, PropertyIsEqualTo, PropertyIsLike, _}
 
 import scala.collection.JavaConversions._
 
@@ -69,9 +70,11 @@ trait AttributeIdxStrategy extends Strategy with Logging {
 
     configureAttributeIndexIterator(attrScanner, featureType, ofilter, range)
 
+    // JNH: Can likely add the analysis tools to the record scanner.
     val recordScanner = acc.createRecordScanner(featureType)
     val iterSetting = configureSimpleFeatureFilteringIterator(featureType, None, schema, featureEncoder, query)
     recordScanner.addScanIterator(iterSetting)
+
 
     // function to join the attribute index scan results to the record table
     // since the row id of the record table is in the CF just grab that
@@ -125,9 +128,10 @@ trait AttributeIdxStrategy extends Strategy with Logging {
       } else {
         // type mismatch, encoding won't work b/c class is stored as part of the row
         // try to convert to the appropriate class
-        AttributeIndexEntry.convertType(value, actualBinding, expectedBinding)
+        AttributeTable.convertType(value, actualBinding, expectedBinding)
       }
-    AttributeIndexEntry.getAttributeIndexRow(prop, Some(typedValue))
+    // JNH: This is how we get the rowid for the Attribute queries.
+    AttributeTable.getAttributeIndexRow(prop, Some(typedValue))
   }
 
   /**
@@ -167,11 +171,11 @@ class AttributeIdxEqualsStrategy extends AttributeIdxStrategy {
 
         case f: PropertyIsNil =>
           val prop = f.getExpression.asInstanceOf[PropertyName].getPropertyName
-          AccRange.exact(AttributeIndexEntry.getAttributeIndexRow(prop, None))
+          AccRange.exact(AttributeTable.getAttributeIndexRow(prop, None))
 
         case f: PropertyIsNull =>
           val prop = f.getExpression.asInstanceOf[PropertyName].getPropertyName
-          AccRange.exact(AttributeIndexEntry.getAttributeIndexRow(prop, None))
+          AccRange.exact(AttributeTable.getAttributeIndexRow(prop, None))
 
         case _ =>
           val msg = s"Unhandled filter type in equals strategy: ${query.getFilter.getClass.getName}"
@@ -260,24 +264,24 @@ class AttributeIdxRangeStrategy extends AttributeIdxStrategy {
 
   private def greaterThanRange(featureType: SimpleFeatureType, prop: String, lit: AnyRef): AccRange = {
     val start = new Text(getEncodedAttrIdxRow(featureType, prop, lit))
-    val end = AccRange.followingPrefix(new Text(AttributeIndexEntry.getAttributeIndexRowPrefix(prop)))
+    val end = AccRange.followingPrefix(new Text(AttributeTable.getAttributeIndexRowPrefix(prop)))
     new AccRange(start, false, end, false)
   }
 
   private def greaterThanOrEqualRange(featureType: SimpleFeatureType, prop: String, lit: AnyRef): AccRange = {
     val start = new Text(getEncodedAttrIdxRow(featureType, prop, lit))
-    val end = AccRange.followingPrefix(new Text(AttributeIndexEntry.getAttributeIndexRowPrefix(prop)))
+    val end = AccRange.followingPrefix(new Text(AttributeTable.getAttributeIndexRowPrefix(prop)))
     new AccRange(start, true, end, false)
   }
 
   private def lessThanRange(featureType: SimpleFeatureType, prop: String, lit: AnyRef): AccRange = {
-    val start = AttributeIndexEntry.getAttributeIndexRowPrefix(prop)
+    val start = AttributeTable.getAttributeIndexRowPrefix(prop)
     val end = getEncodedAttrIdxRow(featureType, prop, lit)
     new AccRange(start, false, end, false)
   }
 
   private def lessThanOrEqualRange(featureType: SimpleFeatureType, prop: String, lit: AnyRef): AccRange = {
-    val start = AttributeIndexEntry.getAttributeIndexRowPrefix(prop)
+    val start = AttributeTable.getAttributeIndexRowPrefix(prop)
     val end = getEncodedAttrIdxRow(featureType, prop, lit)
     new AccRange(start, false, end, true)
   }

@@ -1,43 +1,70 @@
 /*
  * Copyright 2014 Commonwealth Computer Research, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the License);
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an AS IS BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
-package org.locationtech.geomesa.core.index
+
+package org.locationtech.geomesa.core.data.tables
 
 import java.util.Date
 
 import com.typesafe.scalalogging.slf4j.Logging
+import org.apache.accumulo.core.client.BatchWriter
 import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.core.security.ColumnVisibility
 import org.apache.hadoop.io.Text
 import org.calrissian.mango.types.{LexiTypeEncoders, SimpleTypeEncoders, TypeEncoder}
 import org.joda.time.format.ISODateTimeFormat
 import org.locationtech.geomesa.core.data._
+import org.locationtech.geomesa.core.index.IndexEntry
 import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.SimpleFeature
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 /**
  * Contains logic for converting between accumulo and geotools for the attribute index
  */
-object AttributeIndexEntry extends Logging {
+object AttributeTable extends Logging {
+
+  /** Creates a function to write a feature to the attribute index **/
+  def attrWriter(bw: BatchWriter,
+                 indexedAttributes: Seq[AttributeDescriptor],
+                 visibility: String): SimpleFeature => Unit =
+    (feature: SimpleFeature) => {
+      val mutations = getAttributeIndexMutations(feature,
+        indexedAttributes,
+        new ColumnVisibility(visibility))
+      bw.addMutations(mutations)
+    }
+
+  /** Creates a function to remove attribute index entries for a feature **/
+  def removeAttrIdx(bw: BatchWriter,
+                    indexedAttributes: Seq[AttributeDescriptor],
+                    visibility: String): SimpleFeature => Unit =
+    (feature: SimpleFeature) => {
+      val mutations = getAttributeIndexMutations(feature,
+        indexedAttributes,
+        new ColumnVisibility(visibility),
+        true)
+      bw.addMutations(mutations)
+    }
 
   val typeRegistry = LexiTypeEncoders.LEXI_TYPES
-  val NULLBYTE = "\u0000" // null byte (unicode value) as a string
+  val nullString = ""   // JNH: Emilio's branch had it this way.
+  private val NULLBYTE = "\u0000"
 
   /**
    * Gets mutations for the attribute index table
@@ -58,10 +85,8 @@ object AttributeIndexEntry extends Logging {
       val attribute = Option(feature.getAttribute(descriptor.getName))
       val m = new Mutation(getAttributeIndexRow(descriptor.getLocalName, attribute))
       if (delete) {
-        //m.putDelete(cf, EMPTY_COLQ, visibility)
         m.putDelete(EMPTY_COLF, cq, visibility)
       } else {
-        //m.put(cf, EMPTY_COLQ, visibility, value)
         m.put(EMPTY_COLF, cq, visibility, value)
       }
       m
@@ -86,20 +111,20 @@ object AttributeIndexEntry extends Logging {
    */
   def getAttributeIndexRowPrefix(attributeName: String): String = attributeName ++ NULLBYTE
 
+
   /**
    * Lexicographically encode the value
    *
    * @param valueOption
    * @return
    */
-  def encode(valueOption: Option[Any]): String =
-    valueOption match {
-      case Some(value) => Try(typeRegistry.encode(value)).getOrElse(value.toString)
-      case None => ""
-    }
+  def encode(valueOption: Option[Any]): String = {
+    val value = valueOption.getOrElse(nullString)
+    Try(typeRegistry.encode(value)).getOrElse(value.toString)
+  }
 
   private val dateFormat = ISODateTimeFormat.dateTime();
-  private val simpleEncoders = SimpleTypeEncoders.SIMPLE_TYPES.getAllEncoders.asScala
+  private val simpleEncoders = SimpleTypeEncoders.SIMPLE_TYPES.getAllEncoders
 
   private type TryEncoder = Try[(TypeEncoder[Any, String], TypeEncoder[_, String])]
 
@@ -134,7 +159,7 @@ object AttributeIndexEntry extends Logging {
       case Success(converted) => converted
       case Failure(e) =>
         logger.warn(s"Error converting type for '$value' from ${current.getSimpleName} to " +
-                    s"${desired.getSimpleName}: ${e.toString}")
+          s"${desired.getSimpleName}: ${e.toString}")
         value
     }
   }

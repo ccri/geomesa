@@ -33,14 +33,14 @@ object TestData extends Logging {
   val featureName = "feature"
   val schemaEncoding = "%~#s%" + featureName + "#cstr%10#r%0,1#gh%yyyyMM#d::%~#s%1,3#gh::%~#s%4,3#gh%ddHH#d%10#id"
 
-  def getFeatureType = {
-    val ft: SimpleFeatureType = SimpleFeatureTypes.createType(featureName, UnitTestEntryType.getTypeSpec)
+  def getFeatureType(fn: String = featureName) = {
+    val ft: SimpleFeatureType = SimpleFeatureTypes.createType(fn, UnitTestEntryType.getTypeSpec)
     ft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
     ft
   }
 
   // This is a quick trick to make sure that the userData is set.
-  lazy val featureType: SimpleFeatureType = getFeatureType
+  lazy val featureType: SimpleFeatureType = getFeatureType()
 
   val index = IndexSchema(schemaEncoding, featureType, featureEncoder)
 
@@ -61,11 +61,13 @@ object TestData extends Logging {
     index.encode(entry).toList
   }
 
-  def createSF(e: Entry): SimpleFeature = {
+  def createSF(e: Entry): SimpleFeature = createSF(e, featureType)
+
+  def createSF(e: Entry, sft: SimpleFeatureType): SimpleFeature = {
     val geometry: Geometry = WKTUtils.read(e.wkt)
     val entry =
       AvroSimpleFeatureFactory.buildAvroFeature(
-        featureType,
+        sft,
         List(null, null, null, null, geometry, e.dt.toDate, e.dt.toDate),
         s"|data|${e.id}")
     entry.setAttribute("attr2", "2nd" + e.id)

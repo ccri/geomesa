@@ -30,7 +30,7 @@ import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.joda.time.{DateTime, DateTimeZone}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.data._
-import org.locationtech.geomesa.core.index.AttributeIndexEntry
+import org.locationtech.geomesa.core.data.tables.AttributeTable
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.execute.Success
@@ -95,7 +95,7 @@ class BatchMultiScannerTest extends Specification {
     val attrIdxTable = AccumuloDataStore.formatAttrIdxTableName(catalogTable, sft)
     conn.tableOperations.exists(attrIdxTable) must beTrue
     val attrScanner = conn.createScanner(attrIdxTable, new Authorizations())
-    attrScanner.setRange(new ARange(AttributeIndexEntry.getAttributeIndexRow(attr, Option(value))))
+    attrScanner.setRange(new ARange(AttributeTable.getAttributeIndexRow(attr, Option(value))))
 
     val recordTable = AccumuloDataStore.formatRecordTableName(catalogTable, sft)
     conn.tableOperations().exists(recordTable) must beTrue
@@ -108,7 +108,7 @@ class BatchMultiScannerTest extends Specification {
     val retrieved = bms.iterator.toList
     retrieved.foreach { e =>
       val sf = SimpleFeatureEncoderFactory.defaultEncoder.decode(sft, e.getValue)
-      if (value != null) {
+      if (value != AttributeTable.nullString) {
         sf.getAttribute(attr) mustEqual value
       }
     }
