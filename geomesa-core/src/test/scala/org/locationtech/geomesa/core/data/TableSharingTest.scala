@@ -110,6 +110,8 @@ class TableSharingTest extends Specification {
 
   s"FeatureStore named ${sft2.getTypeName} should be gone" >> { ds.getNames.contains(sft2.getTypeName) must beFalse }
 
+  println(s"Tables: ${c.tableOperations().list")
+
   // Query again.
 
 

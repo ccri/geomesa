@@ -406,6 +406,8 @@ class AccumuloDataStore(val connector: Connector,
    */
   def removeSchema(featureName: String, numThreads: Int = 1) =
     if (readMetadataItem(featureName, ST_IDX_TABLE_CF).nonEmpty) {
+
+      // JNH: Check sharing.
       val featureType = getSchema(featureName)
 
       Seq(getSpatioTemporalIdxTableName(featureType),
