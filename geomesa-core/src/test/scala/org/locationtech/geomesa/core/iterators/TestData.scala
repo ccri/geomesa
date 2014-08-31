@@ -6,8 +6,12 @@ import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Geometry, GeometryFactory}
 import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.data.{Key, Value}
+import org.geotools.data.DataStore
+import org.geotools.data.simple.SimpleFeatureSource
+import org.geotools.factory.Hints
+import org.geotools.feature.DefaultFeatureCollection
 import org.joda.time.{DateTime, DateTimeZone}
-import org.locationtech.geomesa.core.data.SimpleFeatureEncoderFactory
+import org.locationtech.geomesa.core.data.{AccumuloFeatureStore, SimpleFeatureEncoderFactory}
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
@@ -41,11 +45,34 @@ object TestData extends Logging {
     s"POINT:String,LINESTRING:String,POLYGON:String,attr$suffix:String:index=true," + spec
   }
 
-  def getFeatureType(typeNameSuffix: String = "", attrNameSuffix: String = "2") = {
+  def getFeatureType(typeNameSuffix: String = "", attrNameSuffix: String = "2", tableSharing: Boolean = true) = {
     val fn = s"$featureName$typeNameSuffix"
     val ft: SimpleFeatureType = SimpleFeatureTypes.createType(fn, getTypeSpec(attrNameSuffix))
     ft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
     ft
+  }
+
+  def buildFeatureSource(ds: DataStore, featureType: SimpleFeatureType, features: Seq[SimpleFeature]): SimpleFeatureSource = {
+    ds.createSchema(featureType)
+    val fs: AccumuloFeatureStore = ds.getFeatureSource(featureType.getTypeName).asInstanceOf[AccumuloFeatureStore]
+    val coll = new DefaultFeatureCollection(featureType.getTypeName)
+    coll.addAll(features.asJavaCollection)
+
+    logger.debug(s"Adding SimpleFeatures of type ${coll.getSchema.getTypeName} to feature store.")
+    fs.addFeatures(coll)
+    logger.debug("Done adding SimpleFeatures to feature store.")
+
+    fs
+  }
+
+  def getFeatureStore(ds: DataStore, simpleFeatureType: SimpleFeatureType, features: Seq[SimpleFeature]) = {
+    val names = ds.getNames
+
+    if(!names.contains(simpleFeatureType.getTypeName)) {
+      buildFeatureSource(ds, simpleFeatureType, features)
+    } else {
+      ds.getFeatureSource(simpleFeatureType.getTypeName)
+    }
   }
 
   // This is a quick trick to make sure that the userData is set.
@@ -78,8 +105,9 @@ object TestData extends Logging {
       AvroSimpleFeatureFactory.buildAvroFeature(
         sft,
         List(null, null, null, null, geometry, e.dt.toDate, e.dt.toDate),
-        s"|data|${e.id}")
+        s"${e.id}")
     entry.setAttribute("attr2", "2nd" + e.id)
+    entry.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
     entry
   }
 

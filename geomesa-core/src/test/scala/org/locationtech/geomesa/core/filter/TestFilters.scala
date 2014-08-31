@@ -160,7 +160,7 @@ object TestFilters {
   )
 
   val idPredicates = Seq(
-    "IN('|data|100001')",
-    "IN('|data|100001', '|data|100011')"
+    "IN(100001)",
+    "IN(100001, 100011)"
   )
 }
