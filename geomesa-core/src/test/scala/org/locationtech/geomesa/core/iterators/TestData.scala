@@ -18,6 +18,10 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.util.Random
 
+object UnitTestEntryType  {
+  def getTypeSpec = "POINT:String," + "LINESTRING:String," + "POLYGON:String," + "attr2:String," + spec
+}
+
 object TestData extends Logging {
   val TEST_USER = "root"
   val TEST_TABLE = "test_table"
@@ -33,8 +37,13 @@ object TestData extends Logging {
   val featureName = "feature"
   val schemaEncoding = "%~#s%" + featureName + "#cstr%10#r%0,1#gh%yyyyMM#d::%~#s%1,3#gh::%~#s%4,3#gh%ddHH#d%10#id"
 
-  def getFeatureType(fn: String = featureName) = {
-    val ft: SimpleFeatureType = SimpleFeatureTypes.createType(fn, UnitTestEntryType.getTypeSpec)
+  def getTypeSpec(suffix: String = "2") = {
+    s"POINT:String,LINESTRING:String,POLYGON:String,attr$suffix:String:index=true," + spec
+  }
+
+  def getFeatureType(typeNameSuffix: String = "", attrNameSuffix: String = "2") = {
+    val fn = s"$featureName$typeNameSuffix"
+    val ft: SimpleFeatureType = SimpleFeatureTypes.createType(fn, getTypeSpec(attrNameSuffix))
     ft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
     ft
   }

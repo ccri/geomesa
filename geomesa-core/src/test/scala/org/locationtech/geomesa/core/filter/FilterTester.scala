@@ -22,7 +22,6 @@ import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}
 import org.opengis.filter._
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import org.specs2.specification.Fragments
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -69,6 +68,13 @@ class AttributeGeoPredicateTest extends FilterTester {
   val filters = attributeAndGeometricPredicates
   runTest
 }
+
+@RunWith(classOf[JUnitRunner])
+class IDPredicateTest extends FilterTester {
+  val filters = idPredicates
+  runFails
+}
+
 
 @RunWith(classOf[JUnitRunner])
 class IdQueryTest extends Specification {
@@ -131,7 +137,7 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
   val mediumDataFeatures: Seq[SimpleFeature] = mediumData.map(createSF)
   val sft = mediumDataFeatures.head.getFeatureType
 
-  val sft2 = TestData.getFeatureType(TestData.featureName + "2")
+  val sft2 = TestData.getFeatureType(typeNameSuffix = "2")
   val mediumDataFeatures2: Seq[SimpleFeature] = mediumData.map(createSF(_, sft2))
 
   val ds = {
@@ -148,11 +154,10 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
 
   val fs1 = buildFeatureSource(sft, mediumDataFeatures)
   val fs2 = buildFeatureSource(sft2, mediumDataFeatures2)
-
-  val attrTable = ds.getAttrIdxTableName(sft)
-
-  val scanner = ds.createAttrIdxScanner(sft)
-
+//  JNH: What was I doing?
+//  val attrTable = ds.getAttrIdxTableName(sft)
+//
+//  val scanner = ds.createAttrIdxScanner(sft)
 
   val afr = ds.getFeatureReader(sft.getTypeName)
 
@@ -188,7 +193,7 @@ trait FilterTester extends Specification with Logging {
 
   def filters: Seq[String]
 
-  def compareFilter(filter: Filter): Fragments = {
+  def compareFilter(filter: Filter) = {
     logger.debug(s"Filter: ${ECQL.toCQL(filter)}")
 
     s"The filter $filter" should {
@@ -202,8 +207,25 @@ trait FilterTester extends Specification with Logging {
       }
     }
   }
+
+  def compareFilterFailing(filter: Filter) = {
+    logger.debug(s"Filter: ${ECQL.toCQL(filter)}")
+
+    s"The filter $filter" should {
+      "return the same number of results from filtering and querying" in {
+        val filterCount = mediumDataFeatures.count(filter.evaluate)
+        val queryCount = fs.getFeatures(filter).size
+
+        logger.debug(s"\nFilter: ${ECQL.toCQL(filter)}\nFullData size: ${mediumDataFeatures.size}: " +
+          s"filter hits: $filterCount query hits: $queryCount")
+        filterCount mustEqual queryCount
+      }.pendingUntilFixed
+    }
+  }
+
   val q = new Query(sft.getTypeName)
 
   import org.locationtech.geomesa.core.filter.FilterUtils._
   def runTest = filters.map {s => q.setFilter(s); afr.explainQuery(q); compareFilter(s) }
+  def runFails = filters.map {s => q.setFilter(s); afr.explainQuery(q); compareFilterFailing(s) }
 }

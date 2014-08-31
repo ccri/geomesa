@@ -45,7 +45,7 @@ package object index {
 
   def getIndexSchema(sft: SimpleFeatureType) = Option(sft.getUserData.get(SFT_INDEX_SCHEMA)).map { _.toString }
 
-  def getTableSharing(sft: SimpleFeatureType) = true //sft.getUserData.get(SF_TABLE_SHARING)
+  def getTableSharing(sft: SimpleFeatureType) = false // true //sft.getUserData.get(SF_TABLE_SHARING)
 
 
   val spec = "geom:Geometry:srid=4326,dtg:Date,dtg_end_time:Date"
