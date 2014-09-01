@@ -416,7 +416,14 @@ class AccumuloDataStore(val connector: Connector,
           getQueriesTableName(featureType)).filter(tableOps.exists).foreach(tableOps.delete)
 
       deleteMetadata(featureName, numThreads)
+      expireMetadataFromCache(featureName)
     } else throw new RuntimeException("Cannot delete schema for this version of the data store")
+
+  private def expireMetadataFromCache(featureName: String) = {
+    metaDataCache.keys
+      .filter { case (fn, cf) => fn == featureName }
+      .map { metaDataCache.remove }
+  }
 
   /**
    * GeoTools API createSchema() method for a featureType...creates tables with
@@ -476,11 +483,13 @@ class AccumuloDataStore(val connector: Connector,
    * @param numThreads the number of concurrent threads to spawn for querying
    */
   private def deleteMetadata(featureName: String, numThreads: Int): Unit = {
-    val range = new Range(s"${METADATA_TAG}_$featureName")
+    val rowText = new Text(s"${METADATA_TAG}_$featureName")
+    val range = new Range(rowText)
     val deleter = connector.createBatchDeleter(catalogTable, authorizationsProvider.getAuthorizations, numThreads, metadataBWConfig)
     deleter.setRanges(List(range))
     deleter.delete()
     deleter.close()
+    connector.tableOperations().compact(catalogTable, rowText, rowText, true, true)
   }
 
   /**

@@ -19,6 +19,7 @@ import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
 class TableSharingTest extends Specification {
+  sequential
 
   // Two datastores?
 
@@ -49,7 +50,6 @@ class TableSharingTest extends Specification {
   val list: util.SortedSet[String] = c.tableOperations().list
   println(s"Tables: $list")
 
-
   // Load up data
   val mediumData1 = mediumData.map(createSF(_, sft1))
   val mediumData2 = mediumData.map(createSF(_, sft2))
@@ -64,13 +64,6 @@ class TableSharingTest extends Specification {
   println(s"Tables after adding the features: $list2")
 
   // At least three queries: st, attr, id.
-
-//  val filterStrings = Seq(
-//    "IN(100001, 100011)",
-//    "attr2 = '2nd100001'",
-//    "INTERSECTS(geom, POLYGON ((41 28, 42 28, 42 29, 41 29, 41 28)))"
-//  )
-
   def filterCount(f: Filter) = mediumData1.count(f.evaluate)
   def queryCount(f: Filter, fs: SimpleFeatureSource) = fs.getFeatures(f).size
 
@@ -79,60 +72,86 @@ class TableSharingTest extends Specification {
   val at = "attr2 = '2nd100001'"
 
   // This function compares the number of returned results.
-  def compare(fs: String, isFS2deleted: Boolean = false, featureStore2: SimpleFeatureSource = fs2) = {
+  def compare(fs: String, step: Int, featureStore2: SimpleFeatureSource = fs2) = {
     val f = ECQL.toFilter(fs)
     val fc = filterCount(f)
     val q1 = queryCount(f, fs1)
-    val q2 = queryCount(f, featureStore2)
+
     val q3 = queryCount(f, fs3)
+
+    println(s"Compare (step: $step filter: $f fc: $fc q1: $q1 q3: $q3")
+
+    step match {
+      case 1 => check(q3)
+      case 2 =>
+      case 3 => check(0)   // Feature source #2 should be empty
+      case 4 => check(q3)
+    }
+
+    def check(count: Int) = {
+
+      val q2 = queryCount(f, featureStore2)
+      println(s"Q2: $q2 for step $step for filter $fs")
+
+      s"fs2 must get $count results from filter $fs" >> {
+        q2 mustEqual count
+      }
+    }
 
     s"fc and fs1 get the same results from filter $fs" >> { fc mustEqual q1 }
     s"fs1 and fs3 get the same results from filter $fs" >> { q1 mustEqual q3 }
-
-    if(!isFS2deleted)
-      s"fs2 and fs3 get the same results from filter $fs" >> { q2 mustEqual q3 }
-    else
-      s"fs2 must get 0 from $fs" >> { q2 mustEqual 0 }
   }
-
 
   "all three queries" should {
     "work for all three features (after setup) " >> {
-      compare(id)
-      compare(st)
-      compare(at)
+      compare(id, 1)
+      compare(st, 1)
+      compare(at, 1)
     }
   }
-
 
   // Delete one shared table feature to ensure that deleteSchema works.
-  ds.removeSchema(sft2.getTypeName)
+  s"Removing ${sft2.getTypeName}" should {
+    ds.removeSchema(sft2.getTypeName)
 
-  s"FeatureStore named ${sft2.getTypeName} should be gone" >> { ds.getNames.contains(sft2.getTypeName) must beFalse }
+    println(s"Tables (after delete): ${c.tableOperations().list}")
 
-  println(s"Tables: ${c.tableOperations().list")
+    println(s"GetNames after delete ${ds.getNames}")
 
-  // Query again.
-
-
-  "all three queries" should {
-    "work for all three features (after delete) " >> {
-      compare(id, true)
-      compare(st, true)
-      compare(at, true)
+    s"result in FeatureStore named ${sft2.getTypeName} being gone" >> {
+      ds.getNames.contains(sft2.getTypeName) must beFalse
     }
   }
 
-  // Reingest a feature or ingest one with the same name.
-  val fs2ReIngested = getFeatureStore(ds, sft2, mediumData2)
+  // Query again.
+  "all three queries" should {
+    "work for all three features (after delete) " >> {
+      compare(id, 2)
+      compare(st, 2)
+      compare(at, 2)
+    }
+  }
+
+  // Query again after recreating just the SFT for feature source 2.
+  "all three queries" should {
+    ds.createSchema(sft2)
+
+    "work for all three features (after recreating the schema for SFT2) " >> {
+      compare(id, 3)
+      compare(st, 3)
+      compare(at, 3)
+    }
+  }
 
   // Query again.
-
   "all three queries" should {
+    // Reingest a feature or ingest one with the same name.
+    val fs2ReIngested = getFeatureStore(ds, sft2, mediumData2)
+
     "work for all three features (after re-ingest) " >> {
-      compare(id, featureStore2 = fs2ReIngested)
-      compare(st, featureStore2 = fs2ReIngested)
-      compare(at, featureStore2 = fs2ReIngested)
+      compare(id, 4, featureStore2 = fs2ReIngested)
+      compare(st, 4, featureStore2 = fs2ReIngested)
+      compare(at, 4, featureStore2 = fs2ReIngested)
     }
   }
 }
