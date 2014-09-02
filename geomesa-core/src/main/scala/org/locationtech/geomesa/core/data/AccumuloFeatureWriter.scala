@@ -91,7 +91,7 @@ abstract class AccumuloFeatureWriter(featureType: SimpleFeatureType,
 
         List(
           AttributeTable.attrWriter(multiBWWriter.getBatchWriter(attrTable), indexedAttributes, visibility, rowIdPrefix),
-          RecordTable.recordWriter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
+          RecordTable.recordWriter(multiBWWriter.getBatchWriter(recTable), encoder, visibility, rowIdPrefix))
       } else {
         List.empty
       }
@@ -182,7 +182,7 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
         val recTable = dataStore.getRecordTableForType(featureType)
         List(
           AttributeTable.removeAttrIdx(multiBWWriter.getBatchWriter(attrTable), indexedAttributes, visibility, rowIdPrefix),
-          RecordTable.recordDeleter(multiBWWriter.getBatchWriter(recTable), encoder, visibility))
+          RecordTable.recordDeleter(multiBWWriter.getBatchWriter(recTable), encoder, visibility, rowIdPrefix))
       } else {
         List.empty
       }
