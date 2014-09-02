@@ -2,7 +2,7 @@
  * Copyright 2014 Commonwealth Computer Research, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the License);
- * you may not use this file except in compliance with the License.
+ * yo1u may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -50,7 +50,7 @@ class AttributeTableTest extends Specification {
 
         val mutations = AttributeTable.getAttributeIndexMutations(feature,
                                                                        descriptors,
-                                                                       new ColumnVisibility())
+                                                                       new ColumnVisibility(), "")
         mutations.size mustEqual descriptors.size()
         mutations.map(_.getUpdates.size()) must contain(beEqualTo(1)).foreach
         mutations.map(_.getUpdates.get(0).isDeleted) must contain(beEqualTo(false)).foreach
@@ -68,7 +68,7 @@ class AttributeTableTest extends Specification {
 
         val mutations = AttributeTable.getAttributeIndexMutations(feature,
                                                                        descriptors,
-                                                                       new ColumnVisibility(),
+                                                                       new ColumnVisibility(), "",
                                                                        true)
         mutations.size mustEqual descriptors.size()
         mutations.map(_.getUpdates.size()) must contain(beEqualTo(1)).foreach

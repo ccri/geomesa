@@ -452,23 +452,19 @@ class AccumuloDataStore(val connector: Connector,
     val stBatchDeleter =
       connector.createBatchDeleter(stTableName, authorizationsProvider.getAuthorizations, numThreads, metadataBWConfig)
 
-    SpatioTemporalTable.deleteFeaturesFromTable(connector, stTableName, stBatchDeleter, sft)
-
-//    // JNH: Hacks
-//    val row = new Text("0~feature2")
-//    connector.tableOperations().compact(catalogTable, row, row, true, true)
+    SpatioTemporalTable.deleteFeaturesFromTable(connector, stBatchDeleter, sft)
 
     println(s"Deleting entries from the attr table: $attrTableName" )
 
     val atBatchDeleter =
       connector.createBatchDeleter(attrTableName, authorizationsProvider.getAuthorizations, numThreads, metadataBWConfig)
-    AttributeTable.deleteFeaturesFromTable(connector, stTableName, atBatchDeleter, sft)
+    AttributeTable.deleteFeaturesFromTable(connector, atBatchDeleter, sft)
 
     println(s"Deleting entries from the record table: $recordTableName" )
 
-//    val recordBatchDeleter =
-//      connector.createBatchDeleter(recordTableName, authorizationsProvider.getAuthorizations, numThreads, metadataBWConfig)
-//    RecordTable.deleteFeaturesFromTable(connector, stTableName, recordBatchDeleter, sft)
+    val recordBatchDeleter =
+      connector.createBatchDeleter(recordTableName, authorizationsProvider.getAuthorizations, numThreads, metadataBWConfig)
+    RecordTable.deleteFeaturesFromTable(connector, recordBatchDeleter, sft)
   }
 
   private def deteleStandAloneTables(sft: SimpleFeatureType) =

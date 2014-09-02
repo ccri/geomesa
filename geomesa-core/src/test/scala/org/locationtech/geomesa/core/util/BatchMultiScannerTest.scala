@@ -95,7 +95,7 @@ class BatchMultiScannerTest extends Specification {
     val attrIdxTable = AccumuloDataStore.formatAttrIdxTableName(catalogTable, sft)
     conn.tableOperations.exists(attrIdxTable) must beTrue
     val attrScanner = conn.createScanner(attrIdxTable, new Authorizations())
-    attrScanner.setRange(new ARange(AttributeTable.getAttributeIndexRow(attr, Option(value))))
+    attrScanner.setRange(new ARange(AttributeTable.getAttributeIndexRow("", attr, Option(value))))
 
     val recordTable = AccumuloDataStore.formatRecordTableName(catalogTable, sft)
     conn.tableOperations().exists(recordTable) must beTrue

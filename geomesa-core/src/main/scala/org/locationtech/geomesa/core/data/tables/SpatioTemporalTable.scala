@@ -52,7 +52,7 @@ object SpatioTemporalTable {
       }
     }
 
-  def deleteFeaturesFromTable(conn: Connector, table: String, bd: BatchDeleter, sft: SimpleFeatureType): Unit = {
+  def deleteFeaturesFromTable(conn: Connector, bd: BatchDeleter, sft: SimpleFeatureType): Unit = {
     val MIN_START = "\u0000"
     val MAX_END = "~"
 

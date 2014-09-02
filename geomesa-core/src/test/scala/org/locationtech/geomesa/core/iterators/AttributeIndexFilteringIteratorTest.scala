@@ -99,7 +99,7 @@ class AttributeIndexFilteringIteratorTest extends Specification {
       featureCollection.foreach { feature =>
         val muts = AttributeTable.getAttributeIndexMutations(feature,
                                                                   sft.getAttributeDescriptors,
-                                                                  new ColumnVisibility())
+                                                                  new ColumnVisibility(), "")
         bw.addMutations(muts)
       }
       bw.close()
@@ -108,7 +108,7 @@ class AttributeIndexFilteringIteratorTest extends Specification {
       val scanner = conn.createScanner(table, new Authorizations())
       val is = new IteratorSetting(40, classOf[AttributeIndexFilteringIterator])
       scanner.addScanIterator(is)
-      scanner.setRange(new ARange(AttributeTable.getAttributeIndexRow("name", Some("b"))))
+      scanner.setRange(new ARange(AttributeTable.getAttributeIndexRow("", "name", Some("b"))))
       scanner.iterator.size mustEqual 4
     }
 
