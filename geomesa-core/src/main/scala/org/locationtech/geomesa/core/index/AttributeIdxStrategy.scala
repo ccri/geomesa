@@ -52,6 +52,8 @@ trait AttributeIdxStrategy extends Strategy with Logging {
                    featureType: SimpleFeatureType,
                    range: AccRange,
                    output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
+    println(s"**** Range: $range for $query")
+
     output(s"Searching the attribute table with filter ${query.getFilter}")
     val schema         = iqp.schema
     val featureEncoder = iqp.featureEncoder
@@ -262,7 +264,7 @@ class AttributeIdxRangeStrategy extends AttributeIdxStrategy {
           val msg = s"Unhandled filter type in range strategy: ${query.getFilter.getClass.getName}"
           throw new RuntimeException(msg)
       }
-
+    println(s"**** Range: $range for $query")
     attrIdxQuery(acc, query, iqp, featureType, range, output)
   }
 
