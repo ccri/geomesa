@@ -4,6 +4,7 @@ import java.util
 
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
+import org.apache.accumulo.core.data.{Value, Key}
 import org.geotools.data.simple.SimpleFeatureSource
 import org.geotools.data.{FeatureSource, FeatureStore, DataStoreFinder}
 import org.geotools.filter.text.ecql.ECQL
@@ -28,6 +29,12 @@ class TableSharingTest extends Specification {
   val sft1 = TestData.getFeatureType("1", tableSharing = true)
   val sft2 = TestData.getFeatureType("2", tableSharing = true)
   val sft3 = TestData.getFeatureType("3", tableSharing = false)
+
+  "sft3" should {
+    "have table sharing true" in {
+      org.locationtech.geomesa.core.index.getTableSharing(sft3) must beFalse
+    }
+  }
 
   val tableName = "sharingTest"
 
@@ -112,7 +119,22 @@ class TableSharingTest extends Specification {
   "all three queries" should {
 
     val sft2AttrScanner = ds.createAttrIdxScanner(sft2)
-    sft2AttrScanner.iterator.take(10).foreach { e => println(s"Attr Key: ${e.getKey}") }
+    val list = sft2AttrScanner.iterator.toList
+    //list.take(10).foreach { e => println(s"Attr Key: ${e.getKey}") }
+
+//    val sft3AttrScanner = ds.createAttrIdxScanner(sft3)
+//    val list3 = sft2AttrScanner.iterator.toList
+//    list3.take(10).foreach { e => println(s"Attr Key: ${e.getKey}") }
+
+    "counts" >> {
+      val f1c = list.filter(_.getKey.toString.contains("feature1"))
+      val f2c = list.filter(_.getKey.toString.contains("feature2"))
+
+//      f1c.take(10).foreach { k => println(s"Attr feature1 : ${k.getKey}")}
+//      f2c.take(10).foreach { k => println(s"Attr feature2 : ${k.getKey}")}
+
+      f1c mustEqual f2c
+    }
 
     val sft2RecordScanner = ds.createRecordScanner(sft2)
     sft2RecordScanner.setRanges(Seq(new org.apache.accumulo.core.data.Range()))
