@@ -319,8 +319,10 @@ class AttributeIdxLikeStrategy extends AttributeIdxStrategy {
       else
         literal
 
+    output(s"Running query ${query.getFilter} with literal ${value}")
     val range = AccRange.prefix(getEncodedAttrIdxRow(featureType, prop, value))
 
+    output(s"DEBUG: range is $range")
     attrIdxQuery(acc, strippedQuery, iqp, featureType, range, output)
   }
 }

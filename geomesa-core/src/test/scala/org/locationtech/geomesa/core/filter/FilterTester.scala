@@ -4,7 +4,7 @@ import java.util.Date
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Coordinate
-import org.geotools.data.DataStoreFinder
+import org.geotools.data.{Query, DataStoreFinder}
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureStore}
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.DefaultFeatureCollection
@@ -165,6 +165,9 @@ object FilterTester extends AccumuloDataStoreTest with Logging {
     fs
   }
 
+  val fs1 = getFeatureStore
+  val afr = ds.getFeatureReader(sft.getTypeName)
+
 }
 
 
@@ -189,6 +192,11 @@ trait FilterTester extends Specification with Logging {
     }
   }
 
+  val q = new Query(sft.getTypeName)
+
   import org.locationtech.geomesa.core.filter.FilterUtils._
-  def runTest = filters.map {s => compareFilter(s) }
+  // JNH: Take out the explain Query bit
+  def runTest = filters.map {s => q.setFilter(s); afr.explainQuery(q); compareFilter(s) }
+  //def runFails = filters.map {s => q.setFilter(s); afr.explainQuery(q); compareFilterFailing(s) }
+
 }
