@@ -735,9 +735,9 @@
     </build>
 
     <scm>
-        <connection>scm:git:git@github.com:locationtech/geomesa.git</connection>
-        <developerConnection>scm:git:git@github.com:locationtech/geomesa.git</developerConnection>
-        <url>https://github.com/locationtech/geomesa</url>
+        <connection>scm:git:git@github.com:ccri/geomesa.git</connection>
+        <developerConnection>scm:git:git@github.com:ccri/geomesa.git</developerConnection>
+        <url>https://github.com/ccri/geomesa</url>
         <tag>HEAD</tag>
     </scm>
 
