@@ -88,14 +88,13 @@
 
     <distributionManagement>
         <repository>
-            <id>repo.locationtech.org</id>
-            <name>GeoMesa Repository - Releases</name>
-            <url>https://repo.locationtech.org/content/repositories/geomesa-releases/</url>
+            <id>local-release</id>
+            <url>http://art.ccri.com:8081/artifactory/libs-release-local</url>
         </repository>
         <snapshotRepository>
-            <id>repo.locationtech.org</id>
-            <name>GeoMesa Repository - Snapshots</name>
-            <url>https://repo.locationtech.org/content/repositories/geomesa-snapshots/</url>
+            <id>local-snapshot</id>
+            <url>http://art.ccri.com:8081/artifactory/libs-snapshot-local</url>
+            <uniqueVersion>true</uniqueVersion>
         </snapshotRepository>
     </distributionManagement>
 
@@ -889,9 +888,9 @@
     </build>
 
     <scm>
-        <connection>scm:git:git@github.com:locationtech/geomesa.git</connection>
-        <developerConnection>scm:git:git@github.com:locationtech/geomesa.git</developerConnection>
-        <url>https://github.com/locationtech/geomesa</url>
+        <connection>scm:git:git@github.com:ccri/geomesa.git</connection>
+        <developerConnection>scm:git:git@github.com:ccri/geomesa.git</developerConnection>
+        <url>https://github.com/ccri/geomesa</url>
         <tag>HEAD</tag>
     </scm>
 
