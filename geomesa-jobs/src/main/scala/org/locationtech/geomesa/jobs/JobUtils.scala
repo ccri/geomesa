@@ -19,6 +19,7 @@ package org.locationtech.geomesa.jobs
 import java.io.{File, FileFilter, FilenameFilter}
 import java.net.{URLClassLoader, URLDecoder}
 
+import cascading.tap.hadoop.io.MultiInputSplit
 import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.client.Connector
 import org.apache.commons.vfs2.impl.VFSClassLoader
@@ -45,7 +46,8 @@ object JobUtils extends Logging {
     Iterator(() => getJarsFromEnvironment("GEOMESA_HOME"),
              () => getJarsFromEnvironment("ACCUMULO_HOME"),
              () => getJarsFromClasspath(classOf[AccumuloDataStore]),
-             () => getJarsFromClasspath(classOf[Connector]))
+             () => getJarsFromClasspath(classOf[Connector]),
+             () => getJarsFromClasspath(classOf[MultiInputSplit]))
 
   /**
    * Sets the libjars into a Hadoop configuration. Will search the environment first, then the
