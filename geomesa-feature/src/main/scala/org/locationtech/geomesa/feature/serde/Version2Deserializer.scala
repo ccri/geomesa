@@ -18,7 +18,7 @@ package org.locationtech.geomesa.feature.serde
 
 import java.nio.ByteBuffer
 
-import com.vividsolutions.jts.io.InStream
+import com.vividsolutions.jts.io.{WKBReader, InStream}
 import org.apache.avro.io.Decoder
 import org.locationtech.geomesa.feature.AvroSimpleFeature
 import org.locationtech.geomesa.utils.text.WKBUtils
@@ -29,11 +29,15 @@ import org.locationtech.geomesa.utils.text.WKBUtils
  */
 object Version2Deserializer extends ASFDeserializer {
 
+  val wkbreader = new ThreadLocal[WKBReader] {
+    override def initialValue(): WKBReader = new WKBReader
+  }
+
   override def setGeometry(sf: AvroSimpleFeature, field: String, in: Decoder): Unit = {
     val bb = in.readBytes(null)
     val bytes = new Array[Byte](bb.remaining)
     bb.get(bytes)
-    val geom = WKBUtils.read(bytes)
+    val geom = wkbreader.get.read(bytes) // WKBUtils.read(bytes)
     sf.setAttributeNoConvert(field, geom)
   }
 
