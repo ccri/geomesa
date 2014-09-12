@@ -192,20 +192,20 @@ import JNHLoadingCacheBuilder._
 
 case class Binding(clazz: Class[_], conv: AnyRef => Any)
 
-class JNHLoadingCacheBuilder(f: SimpleFeatureType => Array[Binding]) {
+class JNHLoadingCacheBuilder[T <: AnyRef](f: SimpleFeatureType => T) {
   val l = new java.util.concurrent.locks.ReentrantLock
 
-  val internalCache: Cache[String, Array[Binding]] =
+  val internalCache: Cache[String, T] =
     CacheBuilder
       .newBuilder
       .maximumSize(100)
       .expireAfterWrite(10, TimeUnit.MINUTES)
-      .build[String, Array[Binding]]()
+      .build[String, T]()
 
-  def get(sft: SimpleFeatureType): Array[Binding] = {
+  def get(sft: SimpleFeatureType): T = {
     l.lock()
-    val ret = internalCache.get(sft.getTypeName, new Callable[Array[Binding]] {
-      override def call(): Array[Binding] = {
+    val ret = internalCache.get(sft.getTypeName, new Callable[T] {
+      override def call(): T = {
         f(sft)
       }
     })
@@ -325,16 +325,16 @@ object AvroSimpleFeature {
   val bindingCache =
     new JNHLoadingCacheBuilder(func)
 
-  val avroSchemaCache: LoadingCache[SimpleFeatureType, Schema] =
-    loadingCacheBuilder { sft => generateSchema(sft) }
+  val avroSchemaCache =
+    new JNHLoadingCacheBuilder( { sft => generateSchema(sft) } )
 
-  val nameCache: LoadingCache[SimpleFeatureType, Array[String]] =
-    loadingCacheBuilder { sft => DataUtilities.attributeNames(sft).map(encodeAttributeName) }
+  val nameCache =
+    new JNHLoadingCacheBuilder( {sft: SimpleFeatureType => DataUtilities.attributeNames(sft).map(encodeAttributeName) })
 
-  val nameIndexCache: LoadingCache[SimpleFeatureType, Map[String, Int]] =
-    loadingCacheBuilder { sft =>
+  val nameIndexCache =
+    new JNHLoadingCacheBuilder( { sft =>
       DataUtilities.attributeNames(sft).map { name => (name, sft.indexOf(name))}.toMap
-    }
+    } )
 
   val datumWriterCache: LoadingCache[SimpleFeatureType, GenericDatumWriter[GenericRecord]] =
     loadingCacheBuilder { sft =>
