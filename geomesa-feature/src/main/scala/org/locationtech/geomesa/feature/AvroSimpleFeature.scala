@@ -18,10 +18,10 @@ package org.locationtech.geomesa.feature
 
 import java.io.OutputStream
 import java.nio._
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{Callable, TimeUnit}
 import java.util.{Date, UUID, Collection => JCollection, List => JList}
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
+import com.google.common.cache.{Cache, CacheBuilder, CacheLoader, LoadingCache}
 import com.google.common.collect.Maps
 import com.vividsolutions.jts.geom.Geometry
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
@@ -52,8 +52,12 @@ class AvroSimpleFeature(id: FeatureId, sft: SimpleFeatureType)
 
   val values  = Array.ofDim[AnyRef](sft.getAttributeCount)
   @transient val userData  = collection.mutable.HashMap.empty[AnyRef, AnyRef]
-  @transient val typeMap   = typeMapCache.get(sft)
-  @transient val names     = nameCache.get(sft)
+
+//  @transient lazy val typeMap   = typeMapCache.get(sft)
+//  @transient lazy val names     = nameCache.get(sft)
+
+  val bindings = bindingCache.get(sft)
+
   @transient val nameIndex = nameIndexCache.get(sft)
   @transient val schema    = avroSchemaCache.get(sft)
 
@@ -75,9 +79,12 @@ class AvroSimpleFeature(id: FeatureId, sft: SimpleFeatureType)
     encoder.flush()
   }
 
-  def convertValue(idx: Int, v: AnyRef) = typeMap(names(idx)).conv.apply(v)
 
-  val gdw = new GenericDatumWriter[GenericRecord](schema)
+  def convertValue(idx: Int, v: AnyRef) = bindings(idx).conv.apply(v)
+//  def convertValue(idx: Int, v: AnyRef) = typeMap(names(idx)).conv.apply(v)
+
+  //@transient lazy val schema    = avroSchemaCache.get(sft)
+  lazy val gdw = new GenericDatumWriter[GenericRecord](schema)
   var encoder: BinaryEncoder = null
   def write(os: OutputStream) {
     encoder = EncoderFactory.get.binaryEncoder(os, null)
@@ -168,6 +175,53 @@ class AvroSimpleFeature(id: FeatureId, sft: SimpleFeatureType)
 
 }
 
+object JNHLoadingCacheBuilder {
+  def jnhloadingCacheBuilder[V <: AnyRef](f: SimpleFeatureType => V) =
+    CacheBuilder
+      .newBuilder
+      .maximumSize(100)
+      .expireAfterWrite(10, TimeUnit.MINUTES)
+      .build(
+        new CacheLoader[SimpleFeatureType, V] {
+          def load(sft: SimpleFeatureType): V = f(sft)
+        }
+      )
+
+}
+import JNHLoadingCacheBuilder._
+
+case class Binding(clazz: Class[_], conv: AnyRef => Any)
+
+class JNHLoadingCacheBuilder(f: SimpleFeatureType => Array[Binding]) {
+  val l = new java.util.concurrent.locks.ReentrantLock
+
+  val internalCache: Cache[String, Array[Binding]] =
+    CacheBuilder
+      .newBuilder
+      .maximumSize(100)
+      .expireAfterWrite(10, TimeUnit.MINUTES)
+      .build[String, Array[Binding]]()
+
+  def get(sft: SimpleFeatureType): Array[Binding] = {
+    l.lock()
+    val ret = internalCache.get(sft.getTypeName, new Callable[Array[Binding]] {
+      override def call(): Array[Binding] = {
+        f(sft)
+      }
+    })
+    val ret2 = if (ret == null) {
+      val load = f(sft)
+      internalCache.put(sft.getTypeName, load)
+
+      load
+    } else {
+      ret
+    }
+    l.unlock()
+    ret2
+  }
+}
+
 object AvroSimpleFeature {
 
   def apply(sf: SimpleFeature) = {
@@ -205,7 +259,37 @@ object AvroSimpleFeature {
         }
       )
 
-  case class Binding(clazz: Class[_], conv: AnyRef => Any)
+
+  val func: SimpleFeatureType => Array[Binding] = { sft =>
+    sft.getAttributeDescriptors.map { ad =>
+      val conv =
+        ad.getType.getBinding match {
+          case t if primitiveTypes.contains(t) => (v: AnyRef) => v
+          case t if classOf[UUID].isAssignableFrom(t) =>
+            (v: AnyRef) => {
+              val uuid = v.asInstanceOf[UUID]
+              val bb = ByteBuffer.allocate(16)
+              bb.putLong(uuid.getMostSignificantBits)
+              bb.putLong(uuid.getLeastSignificantBits)
+              bb.flip
+              bb
+            }
+
+          case t if classOf[Date].isAssignableFrom(t) =>
+            (v: AnyRef) => v.asInstanceOf[Date].getTime
+
+          case t if classOf[Geometry].isAssignableFrom(t) =>
+            (v: AnyRef) => ByteBuffer.wrap(WKBUtils.write(v.asInstanceOf[Geometry]))
+
+          case _ =>
+            (v: AnyRef) =>
+              Option(Converters.convert(v, classOf[String])).getOrElse { a: AnyRef => a.toString }
+        }
+
+      Binding(ad.getType.getBinding, conv)
+    }.toArray
+  }
+
 
   val typeMapCache: LoadingCache[SimpleFeatureType, Map[String, Binding]] =
     loadingCacheBuilder { sft =>
@@ -237,6 +321,9 @@ object AvroSimpleFeature {
         (encodeAttributeName(ad.getLocalName), Binding(ad.getType.getBinding, conv))
       }.toMap
     }
+
+  val bindingCache =
+    new JNHLoadingCacheBuilder(func)
 
   val avroSchemaCache: LoadingCache[SimpleFeatureType, Schema] =
     loadingCacheBuilder { sft => generateSchema(sft) }

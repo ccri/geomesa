@@ -22,7 +22,7 @@ class FeatureSpecificReaderTest {
 
 
   def createTypeWithGeo: AvroSimpleFeature = {
-    val sft = SimpleFeatureTypes.createType("test","f0:Point,f1:Polygon,f2:LineString")
+    val sft = SimpleFeatureTypes.createType("testGeo","f0:Point,f1:Polygon,f2:LineString")
     val sf = new AvroSimpleFeature(new FeatureIdImpl("fakeid"), sft)
 
     sf.setAttribute("f0", GeohashUtils.wkt2geom("POINT(45.0 49.0)").asInstanceOf[Point])
@@ -87,7 +87,7 @@ class FeatureSpecificReaderTest {
   }
 
   def createStringFeatures(schema:String, size: Int, id: String) : AvroSimpleFeature = {
-    val sft = SimpleFeatureTypes.createType("test", schema)
+    val sft = SimpleFeatureTypes.createType(s"test${Random.nextPrintableChar}", schema)
     val r = new Random()
     r.setSeed(0)
 
@@ -120,7 +120,7 @@ class FeatureSpecificReaderTest {
     val oldType = sfList(0).getType
 
     val f = writeAvroFile(sfList)
-    val subsetType = SimpleFeatureTypes.createType("subsetType", "f0:String,f1:String,f3:String,f30:String,f59:String")
+    val subsetType = SimpleFeatureTypes.createType("subsetType1", "f0:String,f1:String,f3:String,f30:String,f59:String")
     val subsetList = readAvroWithFsr(new FeatureSpecificReader(oldType, subsetType), f)
 
     subsetList
@@ -192,7 +192,7 @@ class FeatureSpecificReaderTest {
     val avroFile = writeAvroFile(sfList)
     val pipeFile = writePipeFile(sfList)
 
-    val subsetType = SimpleFeatureTypes.createType("subsetType", "f0:String,f1:String,f3:String,f30:String,f59:String")
+    val subsetType = SimpleFeatureTypes.createType("subsetType2", "f0:String,f1:String,f3:String,f30:String,f59:String")
     val fsrList = readAvroWithFsr(new FeatureSpecificReader(oldType, subsetType), avroFile)
     val pipeList = readPipeFile(pipeFile, oldType)
 
@@ -222,7 +222,7 @@ class FeatureSpecificReaderTest {
 
   def createComplicatedFeatures(numFeatures : Int) : List[AvroSimpleFeature] = {
     val geoSchema = "f0:String,f1:Integer,f2:Double,f3:Float,f4:Boolean,f5:UUID,f6:Date,f7:Point:srid=4326,f8:Polygon:srid=4326"
-    val sft = SimpleFeatureTypes.createType("test", geoSchema)
+    val sft = SimpleFeatureTypes.createType("testGeoSchema", geoSchema)
     val r = new Random()
     r.setSeed(0)
 
@@ -255,7 +255,7 @@ class FeatureSpecificReaderTest {
     val avroFile = writeAvroFile(sfList)
     val pipeFile = writePipeFile(sfList)
 
-    val subsetType = SimpleFeatureTypes.createType("subsetType", "f0:String,f3:Float,f5:UUID,f6:Date")
+    val subsetType = SimpleFeatureTypes.createType("subsetType3", "f0:String,f3:Float,f5:UUID,f6:Date")
 
     val pipeList = readPipeFile(pipeFile, oldType)
 
@@ -288,7 +288,7 @@ class FeatureSpecificReaderTest {
     val sfList = for (i <- (0 until numRecords).toList) yield  createStringFeatures(geoSchema, numFields, i.toString)
 
     val oldType = sfList(0).getType
-    val subsetType = SimpleFeatureTypes.createType("subsetType", "f0:String,f1:String,f3:String,f30:String,f59:String")
+    val subsetType = SimpleFeatureTypes.createType("subsetType4", "f0:String,f1:String,f3:String,f30:String,f59:String")
 
     val avroFile = writeAvroFile(sfList)
     val pipeFile = writePipeFile(sfList)
