@@ -19,7 +19,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa-accumulo1.5</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>pre-1.0-20140918-ccri-internal</version>
     <packaging>pom</packaging>
     <name>GeoMesa - [Accumulo 1.5.x]</name>
 
@@ -738,7 +738,7 @@
         <connection>scm:git:git@github.com:ccri/geomesa.git</connection>
         <developerConnection>scm:git:git@github.com:ccri/geomesa.git</developerConnection>
         <url>https://github.com/ccri/geomesa</url>
-        <tag>HEAD</tag>
+        <tag>geomesa-accumulo1.5-pre-1.0-20140918-ccri-internal</tag>
     </scm>
 
     <repositories>
