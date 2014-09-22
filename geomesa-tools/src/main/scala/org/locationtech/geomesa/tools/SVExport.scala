@@ -18,7 +18,7 @@
 
 package org.locationtech.geomesa.tools
 
-import java.io.{FileWriter, PrintWriter}
+import java.io.{File, FileWriter, PrintWriter}
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -29,17 +29,17 @@ import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.filter.text.cql2.CQL
 import org.geotools.geometry.jts.JTSFactoryFinder
+import org.joda.time.DateTime
 import org.locationtech.geomesa.core.data.{AccumuloDataStore, AccumuloFeatureStore}
 import org.locationtech.geomesa.utils.geotools.Conversions._
 
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-object DataExporter extends App with Logging {
+object SVExport extends App with Logging {
 
   // replace this with your load specification
   val load: LoadAttributes = null
-  val format = "tsv"
 
   val params = Map("instanceId"    -> "mycloud",
                     "zookeepers"   -> "zoo1,zoo2,zoo3",
@@ -49,12 +49,12 @@ object DataExporter extends App with Logging {
                     "visibilities" -> "",
                     "tableName"    -> load.table)
 
-  val extractor = new DataExporter(load, params, format)
+  val extractor = new SVExport(load, params)
   val features = extractor.queryFeatures()
   extractor.writeFeatures(features)
 }
 
-class DataExporter(load: LoadAttributes, params: Map[_,_], format: String) extends Logging {
+class SVExport(load: LoadAttributes, params: Map[_,_]) extends Logging {
 
   lazy val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
@@ -73,28 +73,30 @@ class DataExporter(load: LoadAttributes, params: Map[_,_], format: String) exten
     val attributeTypes = idAttributeArray ++ attributesArray
     val attributes = attributeTypes.map(_.split(":")(0))
 
-    val fr = new PrintWriter(new FileWriter(s"${System.getProperty("user.dir")}/${load.table}_${load.name}.$format"))
+    var outputPath: File = null
+    do {
+      //check for overridden/user-given output path first
+      if (load.fileOutputPath != null) {
+        outputPath = load.fileOutputPath
+      } else {
+        //if not found, make own output path
+        if (outputPath != null) { Thread.sleep(1) }
+        outputPath = new File(s"${System.getProperty("user.dir")}/${load.table}_${load.name}_${DateTime.now()}.${load.format}")
+      }
+    } while (outputPath.exists)
 
-    format.toLowerCase match {
-      case "tsv" =>
-        fr.println(attributeTypes.mkString("\t"))
-      case "csv" =>
-        fr.println(attributeTypes.mkString(","))
-    }
-
+    val fr = if (load.toStdOut) { new PrintWriter(System.out) } else { new PrintWriter(new FileWriter(outputPath)) }
     var count = 0
 
     features.foreach { sf =>
       val map = scala.collection.mutable.Map.empty[String, Object]
 
-      val attrs = if (attributes.size > 0) { attributes } else { sf.getProperties.map(property => property.getName.toString) }
+      val attrs = if (attributeTypes.size > 0) { attributeTypes } else { sf.getProperties.map(property => property.getName.toString) }
 
-      if (attributes.size == 0 && count == 0) {
-        format.toLowerCase match {
-          case "tsv" =>
-            fr.println(attrs.mkString("\t"))
-          case "csv" =>
-            fr.println(attrs.mkString(","))
+      if (count == 0) {
+        load.format.toLowerCase match {
+          case "tsv" => fr.println(attrs.mkString("\t"))
+          case "csv" => fr.println(attrs.mkString(","))
         }
       }
 
@@ -141,7 +143,7 @@ class DataExporter(load: LoadAttributes, params: Map[_,_], format: String) exten
         }
       }
 
-      val separatedString = format.toLowerCase match {
+      val separatedString = load.format.toLowerCase match {
         case "tsv" =>
           attributeValues.mkString("\t")
         case "csv" =>
@@ -153,12 +155,12 @@ class DataExporter(load: LoadAttributes, params: Map[_,_], format: String) exten
       fr.flush()
       count = count + 1
 
-      if (count % 10000 == 0) {
+      if (count % 10000 == 0 && !load.toStdOut) {
         logger.debug("wrote {} features", "" + count)
       }
     }
     fr.close()
-    logger.info(s"Successfully wrote $count features to '${System.getProperty("user.dir")}/${load.table}_${load.name}.$format'")
+    if (!load.toStdOut) { logger.info(s"Successfully wrote $count features to '${outputPath.toString}'") }
   }
 
   /**
@@ -188,4 +190,7 @@ case class LoadAttributes(name: String,
                           latitudeAttribute: Option[String],
                           longitudeAttribute: Option[String],
                           dateAttribute: Option[String],
-                          query: String)
+                          query: String,
+                          format: String = "tsv",
+                          toStdOut: Boolean = false,
+                          fileOutputPath: File = null)

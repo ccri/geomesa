@@ -60,6 +60,8 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
     val featureType = SimpleFeatureTypes.createType(this.getClass.getCanonicalName, simpleFeatureTypeSpec)
     featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
 
+    dateAttributeName = getDtgFieldName(featureType)
+
     // default to text if not found for backwards compatibility
     val encodingOpt = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
     featureEncoder = SimpleFeatureEncoderFactory.createEncoder(encodingOpt)
@@ -97,7 +99,7 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
     // using the already decoded index value, generate a SimpleFeature and set as the Value
     val nextSimpleFeature = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue.id,
       decodedValue.geom, decodedValue.dtgMillis)
-    nextValue = featureEncoder.encode(nextSimpleFeature)
+    nextValue = new Value(featureEncoder.encode(nextSimpleFeature))
   }
 
   override def deepCopy(env: IteratorEnvironment) =
