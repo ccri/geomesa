@@ -38,7 +38,7 @@
 
     <properties>
         <scala.version>2.10.4</scala.version>
-        <geoserver.version>2.5</geoserver.version>
+        <geoserver.version>2.5.2</geoserver.version>
         <gt.version>11.2</gt.version>
         <jts.version>1.13</jts.version>
         <scopt.version>3.2.0</scopt.version>
@@ -482,6 +482,42 @@
                         <artifactId>log4j</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.geoserver</groupId>
+                <artifactId>gs-ows</artifactId>
+                <version>${geoserver.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.geoserver</groupId>
+                <artifactId>gs-platform</artifactId>
+                <version>${geoserver.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.geoserver</groupId>
+                <artifactId>gs-wfs</artifactId>
+                <version>${geoserver.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.wicket</groupId>
+                <artifactId>wicket</artifactId>
+                <version>1.4.12</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.wicket</groupId>
+                <artifactId>wicket-extensions</artifactId>
+                <version>1.4.12</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-webmvc</artifactId>
+                <version>3.1.4.RELEASE</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.geotools</groupId>
