@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.locationtech.geomesa</groupId>
         <artifactId>geomesa-accumulo1.5</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>pre-1.0-20140930-ccri-internal</version>
     </parent>
 
     <artifactId>geomesa-plugin-accumulo1.5</artifactId>
