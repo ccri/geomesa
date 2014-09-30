@@ -3,7 +3,7 @@
     <parent>
         <artifactId>geomesa-accumulo1.5</artifactId>
         <groupId>org.locationtech.geomesa</groupId>
-        <version>pre-1.0-20140930-ccri-internal</version>
+        <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
