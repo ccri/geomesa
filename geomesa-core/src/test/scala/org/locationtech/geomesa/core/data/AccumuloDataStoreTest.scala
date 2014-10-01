@@ -268,6 +268,11 @@ class AccumuloDataStoreTest extends Specification {
         fs.addFeatures(featureCollection)
 
         val query = new Query(sftName, Filter.INCLUDE, List("dtg", "geom").toArray)
+
+        val afr = ds.getFeatureReader(sftName, query)
+
+        afr.explainQuery()
+
         val results = SelfClosingIterator(CloseableIterator(ds.getFeatureSource(sftName).getFeatures(query).features())).toList
         results must haveSize(1)
         results(0).getAttribute("dtg") mustEqual(dtg)
