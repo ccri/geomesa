@@ -85,7 +85,7 @@ object IteratorTrigger {
 
     // the Density Iterator is run in place of the SFFI. If it is requested we keep the SFFI config in the stack,
     // and do NOT run the IndexIterator. Wrap in an Option to keep clean logic below
-    val notDensity = Some(!useDensityIterator(query: Query))
+    val notDensity = Some(!useSpatialDensityIterator(query: Query))
 
     // require both to be true
     (isIndexTransform ++ isPassThroughFilter ++ notDensity).forall {_ == true}
@@ -93,7 +93,7 @@ object IteratorTrigger {
 
   /**
    * Scans the ECQL predicate,the transform definition and Density Key in order to determine if the
-   * SimpleFeatureFilteringIterator or DensityIterator needs to be run
+   * SimpleFeatureFilteringIterator or SpatialDensityIterator needs to be run
    */
   def useSimpleFeatureFilteringIterator(ecqlPredicate: Option[Filter], query: Query): Boolean = {
     // get transforms if they exist
@@ -101,7 +101,7 @@ object IteratorTrigger {
     // if the ecql predicate exists, check that it is a trivial filter that does nothing
     val nonPassThroughFilter = ecqlPredicate.exists { ecql => !passThroughFilter(ecql)}
     // the Density Iterator is run in place of the SFFI. If it is requested we keep the SFFI config in the stack
-    val useDensity = useDensityIterator(query: Query)
+    val useDensity = useSpatialDensityIterator(query: Query)
     // SFFI is needed if a transform and/or non-trivial filter is defined
     transformDefs.isDefined || nonPassThroughFilter || useDensity
   }
@@ -133,7 +133,7 @@ object IteratorTrigger {
   /**
    * get the query hint that activates the Density Iterator
    */
-  def useDensityIterator(query: Query) = query.getHints.containsKey(DENSITY_KEY)
+  def useSpatialDensityIterator(query: Query) = query.getHints.containsKey(DENSITY_KEY)
 
   /**
    * Scans the ECQL, query, and sourceSFTspec and determines which Iterators should be configured.

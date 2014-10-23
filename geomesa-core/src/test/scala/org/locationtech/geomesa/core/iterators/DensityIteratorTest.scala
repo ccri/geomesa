@@ -45,7 +45,7 @@ import scala.collection.JavaConversions._
 import scala.util.Random
 
 @RunWith(classOf[JUnitRunner])
-class DensityIteratorTest extends Specification {
+class SpatialDensityIteratorTest extends Specification {
 
   sequential
 
@@ -109,7 +109,7 @@ class DensityIteratorTest extends Specification {
     q
   }
 
-  "DensityIterator" should {
+  "SpatialDensityIterator" should {
     val spec = "id:java.lang.Integer,attr:java.lang.Double,dtg:Date,geom:Geometry:srid=4326"
     val sft = SimpleFeatureTypes.createType("test", spec)
     sft.getUserData.put(Constants.SF_PROPERTY_START_TIME, "dtg")
@@ -209,9 +209,9 @@ class DensityIteratorTest extends Specification {
       matrix.put(1.0, 2.0, 3)
       matrix.put(2.0, 3.0, 5)
 
-      val encoded = DensityIterator.encodeSparseMatrix(matrix)
+      val encoded = SpatialDensityIterator.encodeSparseMatrix(matrix)
 
-      val decoded = DensityIterator.decodeSparseMatrix(encoded)
+      val decoded = SpatialDensityIterator.decodeSparseMatrix(encoded)
 
       matrix should be equalTo decoded
     }

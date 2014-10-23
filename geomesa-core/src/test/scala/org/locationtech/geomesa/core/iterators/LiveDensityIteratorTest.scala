@@ -41,7 +41,7 @@ import org.specs2.runner.JUnitRunner
 import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
-class LiveDensityIteratorTest extends Specification with Logging {
+class LiveSpatialDensityIteratorTest extends Specification with Logging {
 
   sequential
 

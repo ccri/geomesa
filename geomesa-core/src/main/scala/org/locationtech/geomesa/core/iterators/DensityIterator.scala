@@ -41,9 +41,9 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Random, Success, Try}
 
-class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends SortedKeyValueIterator[Key, Value] {
+class SpatialDensityIterator(other: SpatialDensityIterator, env: IteratorEnvironment) extends SortedKeyValueIterator[Key, Value] {
 
-  import org.locationtech.geomesa.core.iterators.DensityIterator.{DENSITY_FEATURE_STRING, SparseMatrix}
+  import org.locationtech.geomesa.core.iterators.SpatialDensityIterator.{DENSITY_FEATURE_STRING, SparseMatrix}
 
   var bbox: ReferencedEnvelope = null
   var curRange: ARange = null
@@ -83,8 +83,8 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
     val encodingOpt = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
     originalDecoder = SimpleFeatureDecoder(simpleFeatureType, encodingOpt)
 
-    bbox = JTS.toEnvelope(WKTUtils.read(options.get(DensityIterator.BBOX_KEY)))
-    val (w, h) = DensityIterator.getBounds(options)
+    bbox = JTS.toEnvelope(WKTUtils.read(options.get(SpatialDensityIterator.BBOX_KEY)))
+    val (w, h) = SpatialDensityIterator.getBounds(options)
     snap = new GridSnap(bbox, w, h)
     projectedSFT = SimpleFeatureTypes.createType(simpleFeatureType.getTypeName, DENSITY_FEATURE_STRING)
 
@@ -154,7 +154,7 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
     if(topSourceKey != null) {
       featureBuilder.reset()
       // encode the bins into the feature - this will be expanded by the IndexSchema
-      featureBuilder.add(DensityIterator.encodeSparseMatrix(result))
+      featureBuilder.add(SpatialDensityIterator.encodeSparseMatrix(result))
       featureBuilder.add(geometry)
       val feature = featureBuilder.buildFeature(Random.nextString(6))
       topDensityKey = Some(topSourceKey)
@@ -207,7 +207,7 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
 
   def getTopValue = topDensityValue.orNull
 
-  def deepCopy(env: IteratorEnvironment): SortedKeyValueIterator[Key, Value] = new DensityIterator(this, env)
+  def deepCopy(env: IteratorEnvironment): SortedKeyValueIterator[Key, Value] = new SpatialDensityIterator(this, env)
 
   def next(): Unit = if(!source.hasTop) {
     topDensityKey = None
@@ -217,7 +217,7 @@ class DensityIterator(other: DensityIterator, env: IteratorEnvironment) extends 
   }
 }
 
-object DensityIterator extends Logging {
+object SpatialDensityIterator extends Logging {
 
   val BBOX_KEY = "geomesa.density.bbox"
   val BOUNDS_KEY = "geomesa.density.bounds"

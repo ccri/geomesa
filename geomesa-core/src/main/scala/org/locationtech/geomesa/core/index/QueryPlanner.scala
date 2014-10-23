@@ -28,7 +28,7 @@ import org.locationtech.geomesa.core.data.FeatureEncoding.FeatureEncoding
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.QueryHints._
-import org.locationtech.geomesa.core.iterators.{DeDuplicatingIterator, DensityIterator}
+import org.locationtech.geomesa.core.iterators.{DeDuplicatingIterator, SpatialDensityIterator}
 import org.locationtech.geomesa.core.util.CloseableIterator._
 import org.locationtech.geomesa.core.util.{CloseableIterator, SelfClosingIterator}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
@@ -165,7 +165,7 @@ case class QueryPlanner(schema: String,
     // if this is a density query, expand the map
     if (query.getHints.containsKey(DENSITY_KEY)) {
       uniqKVIter.flatMap { kv: Entry[Key, Value] =>
-        DensityIterator.expandFeature(decoder.decode(kv.getValue))
+        SpatialDensityIterator.expandFeature(decoder.decode(kv.getValue))
       }
     } else {
       uniqKVIter.map { kv => decoder.decode(kv.getValue) }
@@ -176,7 +176,7 @@ case class QueryPlanner(schema: String,
   private def getReturnSFT(query: Query): SimpleFeatureType =
     query match {
       case _: Query if query.getHints.containsKey(DENSITY_KEY)  =>
-        SimpleFeatureTypes.createType(featureType.getTypeName, DensityIterator.DENSITY_FEATURE_STRING)
+        SimpleFeatureTypes.createType(featureType.getTypeName, SpatialDensityIterator.DENSITY_FEATURE_STRING)
       case _: Query if query.getHints.get(TRANSFORM_SCHEMA) != null =>
         query.getHints.get(TRANSFORM_SCHEMA).asInstanceOf[SimpleFeatureType]
       case _ => featureType

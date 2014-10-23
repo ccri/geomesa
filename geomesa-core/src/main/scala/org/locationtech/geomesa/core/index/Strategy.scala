@@ -122,7 +122,7 @@ trait Strategy {
                     featureEncoding: FeatureEncoding,
                     featureType: SimpleFeatureType) = {
     if (query.getHints.containsKey(DENSITY_KEY)) {
-      val clazz = classOf[DensityIterator]
+      val clazz = classOf[SpatialDensityIterator]
 
       val cfg = new IteratorSetting(iteratorPriority_AnalysisIterator,
         "topfilter-" + randomPrintableString(5),
@@ -132,7 +132,7 @@ trait Strategy {
       val height = query.getHints.get(HEIGHT_KEY).asInstanceOf[Int]
       val polygon = if (geometryToCover == null) null else geometryToCover.getEnvelope.asInstanceOf[Polygon]
 
-      DensityIterator.configure(cfg, polygon, width, height)
+      SpatialDensityIterator.configure(cfg, polygon, width, height)
 
       cfg.addOption(DEFAULT_SCHEMA_NAME, schema)
       configureFeatureEncoding(cfg, featureEncoding)
