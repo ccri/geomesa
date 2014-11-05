@@ -42,6 +42,7 @@ object Utils {
     val AUTHORIZATIONS      = "geomesa-tools.ingest.authorizations"
     val VISIBILITIES        = "geomesa-tools.ingest.visibilities"
     val SHARDS              = "geomesa-tools.ingest.shards"
+    val PREC                = "geomesa-tools.ingest.prec"
     val INDEX_SCHEMA_FMT    = "geomesa-tools.ingest.indexSchemaFormat"
     val SKIP_HEADER         = "geomesa-tools.ingest.skipHeader"
     val DO_HASH             = "geomesa-tools.ingest.doHash"
@@ -123,6 +124,7 @@ case class IngestArguments(username: String = null,
                            latAttribute: Option[String] = None,
                            doHash: Boolean = false,
                            maxShards: Option[Int] = None,
+                           prec: Option[Int] = None,
                            dryRun: Boolean = false,
                            sharedTable: Option[Boolean] = Some(true))
 
