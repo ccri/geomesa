@@ -34,7 +34,6 @@
         <module>geomesa-tools</module>
         <module>geomesa-compute</module>
         <module>geomesa-assemble</module>
-        <module>geomesa-raster</module>
     </modules>
 
     <properties>
