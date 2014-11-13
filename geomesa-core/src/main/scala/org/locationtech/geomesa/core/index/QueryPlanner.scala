@@ -28,14 +28,19 @@ import org.locationtech.geomesa.core.data.FeatureEncoding.FeatureEncoding
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.QueryHints._
-import org.locationtech.geomesa.core.iterators.{DeDuplicatingIterator, DensityIterator}
+import org.locationtech.geomesa.core.iterators.{DeDuplicatingIterator, DensityIterator, TemporalDensityIterator}
+import org.locationtech.geomesa.core.iterators.TemporalDensityIterator._
 import org.locationtech.geomesa.core.util.CloseableIterator._
 import org.locationtech.geomesa.core.util.{CloseableIterator, SelfClosingIterator}
+import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.sort.{SortBy, SortOrder}
 
 import scala.reflect.ClassTag
+
+import scala.util.Random
 
 object QueryPlanner {
   val iteratorPriority_RowRegex                        = 0
@@ -46,6 +51,8 @@ object QueryPlanner {
   val iteratorPriority_SpatioTemporalIterator          = 200
   val iteratorPriority_SimpleFeatureFilteringIterator  = 300
   val iteratorPriority_AnalysisIterator                = 400
+
+  val zeroPoint = (new GeometryFactory()).createPoint(new Coordinate(0,0))
 }
 
 case class QueryPlanner(schema: String,
@@ -120,8 +127,13 @@ case class QueryPlanner(schema: String,
       }
     }
   }
+<<<<<<< HEAD
   
   def splitQueryOnOrs(query: Query, output: ExplainerOutputType): Seq[Query] = {
+=======
+
+  def splitQueryOnOrs(query: Query, output: ExplainerOutputType): Iterator[Query] = {
+>>>>>>> f0358eb5d7dbc7562acb46939ee3e161f144f7d4
     val originalFilter = query.getFilter
     output(s"Original filter: $originalFilter")
 
@@ -153,7 +165,7 @@ case class QueryPlanner(schema: String,
   private def configureScanners(acc: AccumuloConnectorCreator,
                        sft: SimpleFeatureType,
                        derivedQuery: Query,
-                       isDensity: Boolean,
+                       isADensity: Boolean,
                        output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
     output(s"Transforms: ${derivedQuery.getHints.get(TRANSFORMS)}")
     val strategy = QueryStrategyDecider.chooseStrategy(acc.catalogTableFormat(sft), sft, derivedQuery)
@@ -182,10 +194,35 @@ case class QueryPlanner(schema: String,
       accumuloIterator.flatMap { kv: Entry[Key, Value] =>
         DensityIterator.expandFeature(decoder.decode(kv.getValue))
       }
+<<<<<<< HEAD
     } else {
       val features = accumuloIterator.map { kv => decoder.decode(kv.getValue) }
       if(query.getSortBy != null && query.getSortBy.length > 0) sort(features, query.getSortBy)
       else features
+=======
+    }
+    else if(query.getHints.containsKey(TEMPORAL_DENSITY_KEY)){
+      val timeSeriesStrings = uniqKVIter.map { kv:Entry[Key, Value] =>
+        decoder.decode(kv.getValue).getAttribute(ENCODED_TIME_SERIES).toString
+      }
+
+      val summedTimeSeries = timeSeriesStrings.map { s =>
+        decodeTimeSeries(s)
+      }.reduce(combineTimeSeries(_,_))
+
+      val featureBuilder = AvroSimpleFeatureFactory.featureBuilder(returnSFT)
+      featureBuilder.reset()
+      featureBuilder.add(TemporalDensityIterator.encodeTimeSeries(summedTimeSeries))
+
+      featureBuilder.add(QueryPlanner.zeroPoint) //Filler value as Feature requires a geometry
+      val result = featureBuilder.buildFeature(null)
+
+      //TODO is this right? How do I wrap the sf in a closeable iterator?
+      List(result).iterator
+    }
+    else {
+      uniqKVIter.map { kv => decoder.decode(kv.getValue) }
+>>>>>>> f0358eb5d7dbc7562acb46939ee3e161f144f7d4
     }
   }
 
@@ -219,9 +256,10 @@ case class QueryPlanner(schema: String,
     query match {
       case _: Query if query.getHints.containsKey(DENSITY_KEY)  =>
         SimpleFeatureTypes.createType(featureType.getTypeName, DensityIterator.DENSITY_FEATURE_STRING)
+      case _: Query if query.getHints.containsKey(TEMPORAL_DENSITY_KEY)  =>
+        SimpleFeatureTypes.createType(featureType.getTypeName, TemporalDensityIterator.TEMPORAL_DENSITY_FEATURE_STRING)
       case _: Query if query.getHints.get(TRANSFORM_SCHEMA) != null =>
         query.getHints.get(TRANSFORM_SCHEMA).asInstanceOf[SimpleFeatureType]
       case _ => featureType
     }
 }
-

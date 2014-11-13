@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * Copyright 2014 Commonwealth Computer Research, Inc.
  *
@@ -16,6 +17,11 @@
 package org.locationtech.geomesa.utils.geotools
 
 import org.joda.time.{DateTime, Duration, Interval}
+=======
+package org.locationtech.geomesa.utils.geotools
+
+import org.joda.time.{Interval, Duration, DateTime}
+>>>>>>> f0358eb5d7dbc7562acb46939ee3e161f144f7d4
 
 class TimeSnap(val interval: Interval, val buckets: Int) {
 
