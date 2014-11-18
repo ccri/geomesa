@@ -2,7 +2,8 @@ package org.locationtech.geomesa.plugin.wcs
 
 import java.awt.image._
 import java.awt.{AlphaComposite, Color, Graphics2D, Point, Rectangle}
-import java.util.{Date, List => JList}
+import java.io._
+import java.util.Date
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Geometry
@@ -28,7 +29,7 @@ import org.locationtech.geomesa.core.util.{BoundingBoxUtil, SelfClosingBatchScan
 import org.locationtech.geomesa.utils.geohash.{BoundingBox, Bounds, GeoHash, TwoGeoHashBoundingBox}
 import org.opengis.coverage.grid.GridCoverage
 import org.opengis.geometry.Envelope
-import org.opengis.parameter.{GeneralParameterValue, InvalidParameterValueException}
+import org.opengis.parameter.GeneralParameterValue
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
@@ -45,8 +46,9 @@ class AccumuloCoverageReader(val url: String, hints: Hints) extends AbstractGrid
 
   logger.debug(s"""creating coverage reader for url "${url.replaceAll(":.*@", ":********@").replaceAll("#auths=.*","#auths=********")}"""")
 
-  val FORMAT = """accumulo://(.*):(.*)@(.*)/(.*)#columns=(.*)#resolution=([0-9]*)#zookeepers=([^#]*)(?:#auths=)?(.*)$""".r
-  val FORMAT(user, password, instanceId, table, columnsStr, resolutionStr, zookeepers, authtokens) = url
+  val FORMAT =
+    """accumulo://(.*):(.*)@(.*)/(.*)#columns=(.*)#geohash=(.*)#resolution=([0-9]*)#zookeepers=([^#]*)(?:#auths=)?(.*)$""".r
+  val FORMAT(user, password, instanceId, table, columnsStr, geohash, resolutionStr, zookeepers, authtokens) = url
 
   logger.debug(s"extracted user $user, password ********, instance id $instanceId, table $table, columns $columnsStr, " +
     s"resolution $resolutionStr, zookeepers $zookeepers, auths ********")
@@ -110,24 +112,73 @@ class AccumuloCoverageReader(val url: String, hints: Hints) extends AbstractGrid
     val max = Array(Math.min(env.getMaximum(0), 180) - .00000001, Math.min(env.getMaximum(1), 90) - .00000001)
     val bbox = BoundingBox(Bounds(min(0), max(0)), Bounds(min(1), max(1)))
 
-    val timeParam: Option[Either[Date, DateRange]] =
-      parameters
-        .find(_.getDescriptor.getName.getCode == AbstractGridFormat.TIME.getName.toString)
-        .flatMap({ case p: Parameter[JList[AnyRef]] => p.getValue.lift(0) })
-        .map({
-        case date: Date => Left(date)
-        case dateRange: DateRange => Right(dateRange)
-        case x => throw new InvalidParameterValueException(s"Invalid value for parameter TIME: ${x.toString}", "TIME", x)
-      })
+//    val timeParam: Option[Either[Date, DateRange]] =
+//      parameters
+//        .find(_.getDescriptor.getName.getCode == AbstractGridFormat.TIME.getName.toString)
+//        .flatMap({ case p: Parameter[JList[AnyRef]] => p.getValue.lift(0) })
+//        .map({
+//        case date: Date => Left(date)
+//        case dateRange: DateRange => Right(dateRange)
+//        case x => throw new InvalidParameterValueException(s"Invalid value for parameter TIME: ${x.toString}", "TIME", x)
+//      })
+//
+//    val coverageIterator = getCoverages(timeParam, env, gridGeometry)
+//    val coverages = coverageIterator.toList
+//    if (coverages.toList.size > 0) {
+//      val mosaicedImage = mosaicGridCoverages(coverageIterator, gridGeometry.getGridRange2D.getWidth.toInt, gridGeometry.getGridRange2D.getHeight.toInt, env)
+//      this.coverageFactory.create(coverageName, mosaicedImage, env)
+//    } else {
+//      this.coverageFactory.create(coverageName, getEmptyImage(), env)
+//    }
 
-    val coverageIterator = getCoverages(timeParam, env, gridGeometry)
-    val coverages = coverageIterator.toList
-    if (coverages.toList.size > 0) {
-      val mosaicedImage = mosaicGridCoverages(coverageIterator, gridGeometry.getGridRange2D.getWidth.toInt, gridGeometry.getGridRange2D.getHeight.toInt, env)
-      this.coverageFactory.create(coverageName, mosaicedImage, env)
-    } else {
-      this.coverageFactory.create(coverageName, getEmptyImage(), env)
+    val grid = getChunk(geohash, getGeohashPrecision, None)
+    grid
+  }
+
+  def getChunk(geohash: String, iRes: Int, timeParam: Option[Either[Date, DateRange]]): GridCoverage2D = {
+    withScanner(scanner => {
+      val row = new Text(s"~$iRes~$geohash")
+      scanner.setRange(new org.apache.accumulo.core.data.Range(row))
+      val name = "version-" + Random.alphanumeric.take(5).mkString
+      val cfg = new IteratorSetting(2, name, classOf[VersioningIterator])
+      VersioningIterator.setMaxVersions(cfg, 1)
+      scanner.addScanIterator(cfg)
+      scanner.fetchColumnFamily(new Text(""))
+    })(_.map(entry => {
+      rasterDeserialize(entry.getValue.get)
+    })).toList.head
+  }
+
+  protected def withScanner[A](configure: Scanner => Unit)(f: Scanner => A): A = {
+    val scanner = connector.createScanner(table, auths)
+    try {
+      configure(scanner)
+      f(scanner)
+    } catch {
+      case e: Exception => throw new Exception(s"Error accessing table ", e)
     }
+  }
+
+  def rasterSerialize(coverage: GridCoverage2D): Array[Byte] = {
+    val buffer: ByteArrayOutputStream = new ByteArrayOutputStream
+    val out: ObjectOutputStream = new ObjectOutputStream(buffer)
+    try {
+      out.writeObject(coverage)
+    } finally {
+      out.close
+    }
+    buffer.toByteArray
+  }
+
+  def rasterDeserialize(coverageBytes: Array[Byte]): GridCoverage2D = {
+    val in: ObjectInputStream = new ObjectInputStream(new ByteArrayInputStream(coverageBytes))
+    var read: GridCoverage2D = null
+    try {
+      read = in.readObject.asInstanceOf[GridCoverage2D]
+    } finally {
+      in.close
+    }
+    read
   }
 
   def getCoverages(timeParam: Option[Either[Date, DateRange]], env: Envelope, gridGeometry: GridGeometry2D): Iterator[GridCoverage2D] = {
