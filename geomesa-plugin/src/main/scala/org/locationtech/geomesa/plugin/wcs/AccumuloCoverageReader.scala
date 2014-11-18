@@ -4,6 +4,7 @@ import java.awt.image._
 import java.awt.{AlphaComposite, Color, Graphics2D, Point, Rectangle}
 import java.io._
 import java.util.Date
+import javax.media.jai.remote.SerializableRenderedImage
 
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Geometry
@@ -130,12 +131,12 @@ class AccumuloCoverageReader(val url: String, hints: Hints) extends AbstractGrid
 //    } else {
 //      this.coverageFactory.create(coverageName, getEmptyImage(), env)
 //    }
-
-    val grid = getChunk(geohash, getGeohashPrecision, None)
-    grid
+//
+    val image = getChunk(geohash, getGeohashPrecision, None)
+    this.coverageFactory.create(coverageName, image, env)
   }
 
-  def getChunk(geohash: String, iRes: Int, timeParam: Option[Either[Date, DateRange]]): GridCoverage2D = {
+  def getChunk(geohash: String, iRes: Int, timeParam: Option[Either[Date, DateRange]]): RenderedImage = {
     withScanner(scanner => {
       val row = new Text(s"~$iRes~$geohash")
       scanner.setRange(new org.apache.accumulo.core.data.Range(row))
@@ -145,7 +146,8 @@ class AccumuloCoverageReader(val url: String, hints: Hints) extends AbstractGrid
       scanner.addScanIterator(cfg)
       scanner.fetchColumnFamily(new Text(""))
     })(_.map(entry => {
-      rasterDeserialize(entry.getValue.get)
+//      rasterDeserialize(entry.getValue.get)
+      imageDeserialize(entry.getValue.get)
     })).toList.head
   }
 
@@ -157,6 +159,29 @@ class AccumuloCoverageReader(val url: String, hints: Hints) extends AbstractGrid
     } catch {
       case e: Exception => throw new Exception(s"Error accessing table ", e)
     }
+  }
+
+  def imageSerialize(coverage: GridCoverage2D): Array[Byte] = {
+    val buffer: ByteArrayOutputStream = new ByteArrayOutputStream
+    val out: ObjectOutputStream = new ObjectOutputStream(buffer)
+    val serializableImage = new SerializableRenderedImage(coverage.getRenderedImage, true)
+    try {
+      out.writeObject(serializableImage)
+    } finally {
+      out.close
+    }
+    buffer.toByteArray
+  }
+
+  def imageDeserialize(imageBytes: Array[Byte]): RenderedImage = {
+    val in: ObjectInputStream = new ObjectInputStream(new ByteArrayInputStream(imageBytes))
+    var read: RenderedImage = null
+    try {
+      read = in.readObject().asInstanceOf[RenderedImage]
+    } finally {
+      in.close
+    }
+    read
   }
 
   def rasterSerialize(coverage: GridCoverage2D): Array[Byte] = {
