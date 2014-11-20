@@ -18,8 +18,10 @@ package org.locationtech.geomesa.raster.utils
 
 import java.awt.Point
 import java.awt.image._
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
+import javax.media.jai.remote.SerializableRenderedImage
 
-import org.geotools.coverage.grid.GridCoverageFactory
+import org.geotools.coverage.grid.{GridCoverage2D, GridCoverageFactory}
 import org.locationtech.geomesa.raster.feature.RasterDataEncoding
 import org.opengis.geometry.Envelope
 
@@ -65,4 +67,29 @@ object RasterUtils extends RasterDataEncoding {
     defaultGridCoverageFactory.create(name, doubleRasterToWritableRaster(raster), env)
   }
 
+  def renderedImageToGridCoverage2d(name: String, image: RenderedImage, env: Envelope) =
+    defaultGridCoverageFactory.create(name, image, env)
+
+  def imageSerialize(image: RenderedImage): Array[Byte] = {
+    val buffer: ByteArrayOutputStream = new ByteArrayOutputStream
+    val out: ObjectOutputStream = new ObjectOutputStream(buffer)
+    val serializableImage = new SerializableRenderedImage(image, true)
+    try {
+      out.writeObject(serializableImage)
+    } finally {
+      out.close
+    }
+    buffer.toByteArray
+  }
+
+  def imageDeserialize(imageBytes: Array[Byte]): RenderedImage = {
+    val in: ObjectInputStream = new ObjectInputStream(new ByteArrayInputStream(imageBytes))
+    var read: RenderedImage = null
+    try {
+      read = in.readObject.asInstanceOf[RenderedImage]
+    } finally {
+      in.close
+    }
+    read
+  }
 }

@@ -16,14 +16,16 @@
 
 package org.locationtech.geomesa.raster.feature
 
-import java.awt.image.BufferedImage
+import java.awt.image.RenderedImage
 import java.nio.ByteBuffer
 
 import breeze.linalg.DenseMatrix
-import org.geotools.coverage.grid.GridCoverage2D
 import org.geotools.geometry.Envelope2D
 import org.geotools.geometry.jts.ReferencedEnvelope
-import org.locationtech.geomesa.raster.utils.RasterUtils.doubleRasterToGridCoverage2d
+import org.joda.time.DateTime
+import org.locationtech.geomesa.raster.utils.RasterUtils
+import org.locationtech.geomesa.raster.utils.RasterUtils._
+import org.locationtech.geomesa.utils.geohash.GeoHash
 import org.opengis.filter.identity.FeatureId
 import org.opengis.geometry.{BoundingBox, Envelope}
 
@@ -31,20 +33,34 @@ class GeomesaRasterFeature(id: FeatureId) extends RasterTrait with Serializable 
 
   private var chunkData = None: Option[ByteBuffer]
   private var envelope = None: Option[Envelope2D]
+  private var mbgh = None: Option[GeoHash]
   private var band = None: Option[String]
   private var resolution = None: Option[Double]
   private var units = None: Option[String]
-  private var cachedGC = None: Option[GridCoverage2D]
-
-
+  private var dataType = None: Option[String]
+  private var timeStamp = None: Option[DateTime]
+  private var cachedImage = None: Option[RenderedImage]
 
   def setBand(b: String) = band = Some(b)
   def setResolution(d: Double) = resolution = Some(d)
   def setUnits(u: String) = units = Some(u)
+  def setDataType(dType: String) = dataType = Some(dType)
+
+  def setMbgh(minimumBboxGh: GeoHash) = mbgh = Some(minimumBboxGh)
+  def getMbgh = mbgh match {
+    case Some(m) => m
+    case _ => throw UninitializedFieldError("Error, no minimum bounding box geohash")
+  }
+
+  def setTime(time: DateTime) = timeStamp = Some(time)
+  def getTime = timeStamp match {
+    case Some(t) => t
+    case _ => throw UninitializedFieldError("Error, no timestamp")
+  }
 
   def setEncodedChunkData(chunk: Array[Array[Double]]) = chunkData = Some(flattenRasterToNIO(chunk))
 
-  def setEncodedChunkData(chunk: BufferedImage) = {
+  def setEncodedChunkData(chunk: RenderedImage) = {
     val data = chunk.getData
     val x = data.getWidth
     val y = data.getHeight
@@ -76,17 +92,19 @@ class GeomesaRasterFeature(id: FeatureId) extends RasterTrait with Serializable 
     case _ => throw UninitializedFieldError("Error, no encoded chunk data available ")
   }
 
-  // Gets the GC2d if Some(gc) exists, else call the method that optionally sets it and return Some(gc) or None
-  def getGridCoverage2d = cachedGC match {
-    case Some(gc) => gc
-    case _ => setSomeGridCoverage
+  def setImage(image: RenderedImage) = cachedImage = Some(image)
+
+  def getImage: RenderedImage = cachedImage match {
+    case Some(image) => image
+    case _ => throw UninitializedFieldError("Error, no raster data available ")
   }
 
-  private def setSomeGridCoverage = (chunkData, envelope) match {
-    case (Some(c), Some(e)) =>
-      //This can be something other than a float array
-      cachedGC = Some(doubleRasterToGridCoverage2d(getID, getDecodedChunkData, getEnvelope))
-      cachedGC
+  def encodeValue = RasterUtils.imageSerialize(getImage)
+
+  def encodeMetaData = ???
+
+  def getGridCoverage = (cachedImage, envelope) match {
+    case (Some(image), Some(e)) => Some(renderedImageToGridCoverage2d(getID, image, getEnvelope))
     case _ => None
   }
 

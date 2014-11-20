@@ -32,8 +32,10 @@ import org.geotools.geometry.Envelope2D
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
+import org.locationtech.geomesa.core.index
 import org.locationtech.geomesa.raster.data.AccumuloCoverageStore
-import org.locationtech.geomesa.raster.util.RasterUtils
+import org.locationtech.geomesa.raster.feature.GeomesaRasterFeature
+import org.locationtech.geomesa.raster.utils.RasterUtils
 import org.locationtech.geomesa.utils.geohash.GeoHash
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
@@ -59,7 +61,20 @@ class SimpleRasterIngest(config: Map[String, Option[String]], cs: AccumuloCovera
     val rasterReader = getReader(file, fileType)
     val rasterGrid: GridCoverage2D = rasterReader.read(null)
 
-    cs.saveRaster(rasterGrid, rasterMetadata)
+    val envelope = rasterGrid.getEnvelope2D
+    val mbgh = getMBGH(envelope.getMinX, envelope.getMinY, envelope.getMaxX, envelope.getMaxY)
+    val rasterFeature = new GeomesaRasterFeature(index.string2id(rasterName))
+    rasterFeature.setBand("0")
+    rasterFeature.setImage(rasterGrid.getRenderedImage)
+    rasterFeature.setResolution(rasterReader.getResolutionLevels.head(0))
+    rasterFeature.setEnvelope(envelope)
+    rasterFeature.setDataType(rasterGrid.getSampleDimensions.head.getSampleDimensionType.name)
+    rasterFeature.setTime(ingestTime)
+    rasterFeature.setMbgh(mbgh)
+    rasterFeature.setUnits("degree")
+
+//    cs.saveRaster(rasterGrid, rasterMetadata)
+    cs.saveRaster(rasterFeature)
 
     //Register raster to Geoserver if specified
     config(IngestRasterParams.GEOSERVER_REG).foreach(geoserverRegConfig => {

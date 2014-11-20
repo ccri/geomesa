@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client._
 import org.geotools.coverage.grid.GridCoverage2D
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.core.security.AuthorizationsProvider
+import org.locationtech.geomesa.raster.feature.GeomesaRasterFeature
 import org.locationtech.geomesa.raster.ingest.RasterMetadata
 
 /**
@@ -67,6 +68,8 @@ class AccumuloCoverageStore(val connector: Connector,
 
   coverageOps.ensureTableExists(coverageTable)
 
+  def saveRaster(rasterFeature: GeomesaRasterFeature) =
+    coverageOps.saveChunk(rasterFeature, writeVisibilities)
 
   def saveRaster(raster: GridCoverage2D, rm: RasterMetadata) =
     coverageOps.saveChunk(raster, rm, writeVisibilities)

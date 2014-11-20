@@ -17,6 +17,8 @@
 
 package org.locationtech.geomesa.raster.data
 
+import java.awt.image.RenderedImage
+
 import org.apache.accumulo.core.client.{TableExistsException, BatchWriterConfig, Connector}
 import org.apache.accumulo.core.data.{Value, Mutation}
 import org.apache.accumulo.core.security.{TablePermission, ColumnVisibility}
@@ -24,8 +26,9 @@ import org.apache.hadoop.io.Text
 import org.geotools.coverage.grid.GridCoverage2D
 import org.joda.time.DateTime
 import org.locationtech.geomesa.core.security.AuthorizationsProvider
+import org.locationtech.geomesa.raster.feature.GeomesaRasterFeature
 import org.locationtech.geomesa.raster.ingest.RasterMetadata
-import org.locationtech.geomesa.raster.util.RasterUtils
+import org.locationtech.geomesa.raster.utils.RasterUtils
 import org.locationtech.geomesa.utils.geohash.GeoHash
 
 trait CoverageOperations {
@@ -45,6 +48,16 @@ class AccumuloCoverageOperations(connector: Connector,
 
   private def getRow(geo: GeoHash) = new Text(s"~${geo.prec}~${geo.hash}")
 
+  private def getCF(rasterFeature: GeomesaRasterFeature): Text = new Text("")
+
+  private def getCQ(rasterFeature: GeomesaRasterFeature): Text = {
+    val timeStampString = dateToAccTimestamp(rasterFeature.getTime).toString
+    new Text(s"${rasterFeature.getID}~$timeStampString")
+  }
+
+  private def encodeValue(rasterFeature: GeomesaRasterFeature): Value =
+    new Value(rasterFeature.encodeValue)
+
   private def getCF(rm: RasterMetadata): Text = new Text("")
 
   private def getCQ(rm: RasterMetadata): Text = {
@@ -52,13 +65,28 @@ class AccumuloCoverageOperations(connector: Connector,
     new Text(s"${rm.id}~$timeStampString")
   }
 
-  private def encodeValue(raster: GridCoverage2D): Value =
-    new Value(RasterUtils.imageSerialize(raster))
+  private def encodeValue(image: RenderedImage): Value =
+    new Value(RasterUtils.imageSerialize(image))
 
   def dateToAccTimestamp(dt: DateTime): Long =  dt.getMillis / 1000
 
   def saveChunk(raster: GridCoverage2D, rm: RasterMetadata, visibilities: String) {
     writeMutations(createMutation(raster, rm, visibilities))
+  }
+
+  def saveChunk(rasterFeature: GeomesaRasterFeature, visibilities: String) {
+    writeMutations(createMutation(rasterFeature, visibilities))
+  }
+
+  def createMutation(rasterFeature: GeomesaRasterFeature, visibilities: String): Mutation = {
+    val mutation = new Mutation(getRow(rasterFeature.getMbgh))
+    val colFam = getCF(rasterFeature)
+    val colQual = getCQ(rasterFeature)
+    val timestamp: Long = dateToAccTimestamp(rasterFeature.getTime)
+    val colVis = new ColumnVisibility(visibilities)
+    val value = encodeValue(rasterFeature)
+    mutation.put(colFam, colQual, colVis, timestamp, value)
+    mutation
   }
 
   def createMutation(raster: GridCoverage2D, rm: RasterMetadata, visibilities: String): Mutation = {
@@ -67,7 +95,7 @@ class AccumuloCoverageOperations(connector: Connector,
     val colQual = getCQ(rm)
     val timestamp: Long = dateToAccTimestamp(rm.time)
     val colVis = new ColumnVisibility(visibilities)
-    val value = encodeValue(raster)
+    val value = encodeValue(raster.getRenderedImage)
     mutation.put(colFam, colQual, colVis, timestamp, value)
     mutation
   }
