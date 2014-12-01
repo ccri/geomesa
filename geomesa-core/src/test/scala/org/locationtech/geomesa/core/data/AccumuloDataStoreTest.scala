@@ -294,6 +294,45 @@ class AccumuloDataStoreTest extends Specification {
         "and correct result" >> { "fid-1=testType|POINT (45 49)|hellotestType" mustEqual DataUtilities.encodeFeature(f) }
       }
 
+
+      "handle a buffer transformation" in {
+        val sftName = "transformBufferTest"
+        val sft = SimpleFeatureTypes.createType(sftName, s"name:String,dtg:Date,*geom:Point:srid=4326")
+        sft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
+        ds.createSchema(sft)
+
+        val fs = ds.getFeatureSource(sftName).asInstanceOf[AccumuloFeatureStore]
+
+        // create a feature
+        val geom = WKTUtils.read("POINT(45.0 49.0)")
+        val builder = new SimpleFeatureBuilder(sft, featureFactory)
+        builder.addAll(List("testType", null, geom))
+        val liveFeature = builder.buildFeature("fid-1")
+
+        // make sure we ask the system to re-use the provided feature-ID
+        liveFeature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+        val featureCollection = new DefaultFeatureCollection(sftName, sft)
+        featureCollection.add(liveFeature)
+        fs.addFeatures(featureCollection)
+
+        val query = new Query(sftName, Filter.INCLUDE, //Array("derived=geom", "geom"))
+          Array("derived=buffer(geom, 2)", "geom"))
+
+        // Let's read out what we wrote.
+        val results = fs.getFeatures(query)
+        val features = results.features
+        val f = features.next()
+
+        "with matching schema" >> {
+          "name:String:index=false,*geom:Point:srid=4326:index=true,derived:String:index=false" mustEqual
+            SimpleFeatureTypes.encodeType(results.getSchema)
+        }
+
+        println(s"JHUGHES: ${f.getAttribute("geom")}")
+
+        "and correct result" >> { "fid-1=testType|POINT (45 49)|hellotestType" mustEqual DataUtilities.encodeFeature(f) }
+      }
+
       "handle transformations with dtg and geom" in {
         val sftName = "transformtest5"
         val sft = SimpleFeatureTypes.createType(sftName, s"name:String,dtg:Date,*geom:Point:srid=4326")
