@@ -54,7 +54,7 @@ object GeoMesaSpark {
   def typeProp(typeName: String) = s"geomesa.types.$typeName"
   def jOpt(typeName: String, spec: String) = s"-D${typeProp(typeName)}=$spec"
 
-  def rdd(conf: Configuration, sc: SparkContext, ds: AccumuloDataStore, query: Query): RDD[SimpleFeature] = {
+  def rdd(conf: Configuration, sc: SparkContext, ds: AccumuloDataStore, query: Query): RDD[AvroSimpleFeature] = {
     val typeName = query.getTypeName
     val sft = ds.getSchema(typeName)
     val spec = SimpleFeatureTypes.encodeType(sft)
@@ -76,8 +76,13 @@ object GeoMesaSpark {
     rdd.mapPartitions { iter =>
       val sft = SimpleFeatureTypes.createType(typeName, spec)
       val decoder = new AvroFeatureDecoder(sft)
-      iter.map { case (k: Key, v: Value) => decoder.decode(v) }
+      iter.map{ genMapper { case (k: Key, v: Value) => decoder.decode(v).asInstanceOf[AvroSimpleFeature] } }
     }
+  }
+
+  def genMapper[A, B](f: A => B): A => B = {
+    val locker = com.twitter.chill.MeatLocker(f)
+    x => locker.get.apply(x)
   }
 
   def countByDay(conf: Configuration, sccc: SparkContext, ds: AccumuloDataStore, query: Query, dateField: String = "dtg") = {
