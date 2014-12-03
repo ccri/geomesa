@@ -58,7 +58,7 @@ val queryRDD = org.locationtech.geomesa.compute.spark.GeoMesaSpark.rdd(conf, sc,
 val dayAndFeature = queryRDD.mapPartitions { iter =>
   val df = new SimpleDateFormat("yyyyMMdd")
   val ff = CommonFactoryFinder.getFilterFactory2
-  val exp = ff.property("dtg")
+  val exp = ff.property("When")
   iter.map { f => (df.format(exp.evaluate(f).asInstanceOf[java.util.Date]), f) }
 }
 
