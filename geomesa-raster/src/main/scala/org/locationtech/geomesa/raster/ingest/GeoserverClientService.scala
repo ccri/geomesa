@@ -286,7 +286,7 @@ class GeoserverClientService(userName: String,
     logger.debug(s"Registering coverage store:  name $name; URL $url")
     post(coverageStoresURL,
       ContentType.TEXT_XML,
-      coverageStoreBody(name, coverageFormatName, true, namespace, url))
+      coverageStoreBody(name, org.locationtech.geomesa.raster.formatName, true, namespace, url))
   }
 
   def coverageStoreBody(name: String,

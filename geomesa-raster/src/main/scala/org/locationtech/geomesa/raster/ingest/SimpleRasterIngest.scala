@@ -21,7 +21,7 @@ import java.util.UUID
 import javax.media.jai.{ImageLayout, JAI}
 
 import com.typesafe.scalalogging.slf4j.Logging
-import com.vividsolutions.jts.geom.{Coordinate, Point}
+import com.vividsolutions.jts.geom.{Geometry, Polygon, Coordinate, Point}
 import org.apache.accumulo.core.client.BatchWriterConfig
 import org.geotools.coverage.grid.GridCoverage2D
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader
@@ -34,7 +34,7 @@ import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.raster.data.AccumuloCoverageStore
 import org.locationtech.geomesa.raster.util.RasterUtils
-import org.locationtech.geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.geohash.{GeohashUtils, GeoHash}
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
 import scala.util.Try
@@ -113,14 +113,24 @@ class SimpleRasterIngest(config: Map[String, Option[String]], cs: AccumuloCovera
   def getRasterId(rasterName: String): String =
     s"${rasterName}_${UUID.randomUUID.toString}"
 
+  def getExtentPolygon(env: Envelope2D): Polygon = {
+    val minx = env.getMinX
+    val maxx = env.getMaxX
+    val miny = env.getMinY
+    val maxy = env.getMaxY
+
+    GeohashUtils.wkt2geom(s"POLYGON(($minx $miny, $minx $maxy, $maxx $maxy, $maxx $miny, $minx $miny))").asInstanceOf[Polygon]
+  }
+
   def rasterMetadataFromFile(imageFile: File, imageType: String, time: DateTime): RasterMetadata = {
     val reader = getReader(imageFile, imageType)
     val gcOrig: GridCoverage2D = reader.read(null)
     val crs = gcOrig.getCoordinateReferenceSystem2D
-    val envelope = gcOrig.getEnvelope2D
+    val envelope: Envelope2D = gcOrig.getEnvelope2D
     val mbgh = getMBGH(envelope.getMinX, envelope.getMinY, envelope.getMaxX, envelope.getMaxY)
+    val rasterExtent = getExtentPolygon(envelope)
     val id = getRasterId(rasterName)
-    RasterMetadata(id, envelope, mbgh, time, imageType, crs)
+    RasterMetadata(id, rasterExtent, mbgh, time, imageType, crs)
   }
 
   def getReader(imageFile: File, imageType: String): AbstractGridCoverage2DReader = {
@@ -145,7 +155,7 @@ class SimpleRasterIngest(config: Map[String, Option[String]], cs: AccumuloCovera
 }
 
 case class RasterMetadata(id: String,
-                          envelope: Envelope2D,
+                          rasterExtent: Polygon,
                           mbgh: GeoHash, //Minimum bounding box GeoHash
                           time: DateTime,
                           fileType: String,

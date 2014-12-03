@@ -79,7 +79,7 @@ class AccumuloCoverageOperations(connector: Connector,
   def createMutation(raster: GridCoverage2D, rm: RasterMetadata, visibilities: String): Mutation = {
     val mutation = new Mutation(getRow(rm.mbgh))
     val colFam = getCF(rm)
-    val colQual = RasterIndexEntry.encodeIndexCQMetadata(rm.id, rm.envelope.asInstanceOf[Polygon], Some(rm.time))
+    val colQual = RasterIndexEntry.encodeIndexCQMetadata(rm.id, rm.rasterExtent, Some(rm.time))
     val timestamp: Long = dateToAccTimestamp(rm.time)
     val colVis = new ColumnVisibility(visibilities)
     val value = encodeValue(raster)

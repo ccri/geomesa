@@ -11,7 +11,7 @@ import org.opengis.parameter.GeneralParameterDescriptor
 
 class GeoMesaCoverageFormat extends AbstractGridFormat() with Format {
   mInfo = new java.util.HashMap[String, String]()
-  mInfo.put("name", "Geomesa Coverage Format")
+  mInfo.put("name", org.locationtech.geomesa.raster.formatName)
   mInfo.put("description", "Serve tile imagery from GeoMesa tables with a specific format")
   mInfo.put("vendor", "CCRI")
   mInfo.put("docURL", "http://www.geomesa.org")

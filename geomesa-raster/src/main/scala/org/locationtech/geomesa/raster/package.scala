@@ -17,5 +17,5 @@
 package org.locationtech.geomesa
 
 package object raster {
-
+  val formatName = "Geomesa Coverage Format"
 }

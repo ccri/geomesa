@@ -222,6 +222,12 @@
             <artifactId>jai_core</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>javax.media</groupId>
+            <artifactId>jai_imageio</artifactId>
+            <version>1.1</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- test deps -->
         <dependency>
