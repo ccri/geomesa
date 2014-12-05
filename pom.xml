@@ -616,6 +616,12 @@
                 <artifactId>accumulo-core</artifactId>
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>jline</groupId>
+                        <artifactId>jline</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
