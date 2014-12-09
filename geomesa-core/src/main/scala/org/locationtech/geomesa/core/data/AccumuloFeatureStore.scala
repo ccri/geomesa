@@ -16,6 +16,7 @@
 
 package org.locationtech.geomesa.core.data
 
+import java.util
 import java.util.{Date, List => JList, Map => JMap, Set => JSet}
 
 import com.vividsolutions.jts.geom.Geometry
@@ -35,9 +36,11 @@ import org.opengis.filter.identity.FeatureId
 class AccumuloFeatureStore(val dataStore: AccumuloDataStore, val featureName: Name)
     extends AbstractFeatureStore with AccumuloAbstractFeatureSource {
   override def addFeatures(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]): JList[FeatureId] = {
-    writeBounds(collection.getBounds)
-    writeTimeBounds(collection)
-    super.addFeatures(collection)
+    if (collection.size > 0) {
+      writeBounds(collection.getBounds)
+      writeTimeBounds(collection)
+      super.addFeatures(collection)
+    } else new util.ArrayList[FeatureId]()
   }
 
   def updateTimeBounds(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]) = {

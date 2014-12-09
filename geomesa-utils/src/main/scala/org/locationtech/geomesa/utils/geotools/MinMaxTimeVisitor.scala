@@ -36,7 +36,7 @@ class MinMaxTimeVisitor(dtg: String) extends FeatureVisitor {
   override def visit(p1: Feature): Unit = {
 
     val date = expr.evaluate(p1).asInstanceOf[Date]
-    println(s"Feature $p1 has date $date")
+    //println(s"Feature $p1 has date $date")
     if (date != null) {
       updateBounds(date)
     }
