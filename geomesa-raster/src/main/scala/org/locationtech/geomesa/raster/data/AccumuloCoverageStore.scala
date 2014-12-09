@@ -24,7 +24,8 @@ import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.client.Connector
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.raster.feature.Raster
-import org.locationtech.geomesa.raster.ingest.{IngestRasterParams, GeoserverClientService}
+import org.locationtech.geomesa.raster.ingest.GeoserverClientService
+import org.locationtech.geomesa.raster.util.RasterUtils.IngestRasterParams
 
 import scala.util.Try
 
