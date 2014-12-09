@@ -16,6 +16,8 @@
 
 package org.locationtech.geomesa.core
 
+import java.util.Date
+
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.mapreduce.TaskInputOutputContext
@@ -43,7 +45,8 @@ import scala.collection.JavaConversions._
 
   // Metadata keys
   val ATTRIBUTES_KEY         = "attributes"
-  val BOUNDS_KEY             = "bounds"
+  val SPATIAL_BOUNDS_KEY     = "bounds"
+  val TEMPORAL_BOUNDS_KEY    = "time.bounds"
   val SCHEMA_KEY             = "schema"
   val DTGFIELD_KEY           = "dtgfield"
   val FEATURE_ENCODING_KEY   = "featureEncoding"
@@ -65,6 +68,9 @@ import scala.collection.JavaConversions._
   val EMPTY_COLF           = new Text(EMPTY_STRING)
   val EMPTY_COLQ           = new Text(EMPTY_STRING)
   val WHOLE_WORLD_BOUNDS   = "-180.0:180.0:-90.0:90.0"
+  val ALL_TIME_BOUNDS      = Seq(new Date(0l), new Date())  // Epoch till now
+
+  type TimeBounds = Seq[Date] //(Date, Date)
 
   // SimpleFeature Hints
   val TRANSFORMS           = new ClassKey(classOf[String])

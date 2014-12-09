@@ -17,7 +17,7 @@
 
 package org.locationtech.geomesa.core.data
 
-import java.util.{Map => JMap}
+import java.util.{Map => JMap, Date}
 
 import com.google.common.collect.ImmutableSortedSet
 import com.typesafe.scalalogging.slf4j.Logging
@@ -647,7 +647,7 @@ class AccumuloDataStore(val connector: Connector,
 
   // We assume that they want the bounds for everything.
   override def getBounds(query: Query): ReferencedEnvelope = {
-    val env = metadata.read(query.getTypeName, BOUNDS_KEY).getOrElse(WHOLE_WORLD_BOUNDS)
+    val env = metadata.read(query.getTypeName, SPATIAL_BOUNDS_KEY).getOrElse(WHOLE_WORLD_BOUNDS)
     val minMaxXY = env.split(":")
     val curBounds = minMaxXY.size match {
       case 4 => env
@@ -656,6 +656,20 @@ class AccumuloDataStore(val connector: Connector,
     val sft = getSchema(query.getTypeName)
     val crs = sft.getCoordinateReferenceSystem
     stringToReferencedEnvelope(curBounds, crs)
+  }
+
+  def getTimeBounds(query: Query): Seq[Date] = {
+    metadata.read(query.getTypeName, TEMPORAL_BOUNDS_KEY)
+      .map(stringToTimeBounds)
+      .getOrElse(ALL_TIME_BOUNDS)
+  }
+
+  def stringToTimeBounds(value: String): Seq[Date] = {
+    val longs = value.split(":").map(java.lang.Long.parseLong)
+    val start = new Date(longs(0))
+    val end = new Date(longs(1))
+    require(start.compareTo(end) < 0)
+    Seq(start, end)
   }
 
   private def stringToReferencedEnvelope(string: String,
@@ -672,9 +686,9 @@ class AccumuloDataStore(val connector: Connector,
    * @param featureName
    * @param bounds
    */
-  def writeBounds(featureName: String, bounds: ReferencedEnvelope) {
+  def writeSpatialBounds(featureName: String, bounds: ReferencedEnvelope) {
     // prepare to write out properties to the Accumulo SHP-file table
-    val newbounds = metadata.read(featureName, BOUNDS_KEY) match {
+    val newbounds = metadata.read(featureName, SPATIAL_BOUNDS_KEY) match {
       case Some(env) => getNewBounds(env, bounds)
       case None      => bounds
     }
@@ -682,13 +696,37 @@ class AccumuloDataStore(val connector: Connector,
     val minMaxXY = List(newbounds.getMinX, newbounds.getMaxX, newbounds.getMinY, newbounds.getMaxY)
     val encoded = minMaxXY.mkString(":")
 
-    metadata.insert(featureName, BOUNDS_KEY, encoded)
+    metadata.insert(featureName, SPATIAL_BOUNDS_KEY, encoded)
   }
 
   private def getNewBounds(env: String, bounds: ReferencedEnvelope) = {
     val oldBounds = stringToReferencedEnvelope(env, DefaultGeographicCRS.WGS84)
     oldBounds.expandToInclude(bounds)
     oldBounds
+  }
+
+  /**
+   * Writes bounds for this feature
+   *
+   * @param featureName
+   * @param timeBounds
+   */
+  def writeTemporalBounds(featureName: String, timeBounds: TimeBounds) {
+    val newTimeBounds = metadata.read(featureName, TEMPORAL_BOUNDS_KEY) match {
+      case Some(currentTimeBoundsString) => getNewTimeBounds(currentTimeBoundsString, timeBounds)
+      case None                          => timeBounds
+    }
+
+    val encoded = s"${newTimeBounds(0).getTime}:${newTimeBounds(1).getTime}"
+
+    metadata.insert(featureName, TEMPORAL_BOUNDS_KEY, encoded)
+  }
+
+  def getNewTimeBounds(current: String, newBounds: TimeBounds): TimeBounds = {
+    val currentBounds = stringToTimeBounds(current)
+    val list = currentBounds ++ newBounds
+    val sorted = list.sorted
+    Seq(sorted(0), sorted.last)
   }
 
   /**
@@ -763,8 +801,8 @@ class AccumuloDataStore(val connector: Connector,
   def createSpatioTemporalIdxScanner(sft: SimpleFeatureType, numThreads: Int): BatchScanner = {
     logger.trace(s"Creating ST batch scanner with $numThreads threads")
     if (catalogTableFormat(sft)) {
-      connector.createBatchScanner(getSpatioTemporalIdxTableName(sft), 
-                                   authorizationsProvider.getAuthorizations, 
+      connector.createBatchScanner(getSpatioTemporalIdxTableName(sft),
+                                   authorizationsProvider.getAuthorizations,
                                    numThreads)
     } else {
       connector.createBatchScanner(catalogTable, authorizationsProvider.getAuthorizations, numThreads)
