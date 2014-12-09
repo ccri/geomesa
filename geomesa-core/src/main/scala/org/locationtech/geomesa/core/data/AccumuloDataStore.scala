@@ -668,7 +668,7 @@ class AccumuloDataStore(val connector: Connector,
     val longs = value.split(":").map(java.lang.Long.parseLong)
     val start = new Date(longs(0))
     val end = new Date(longs(1))
-    require(start.compareTo(end) < 0)
+    require(start.compareTo(end) <= 0)
     Seq(start, end)
   }
 
