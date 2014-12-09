@@ -47,11 +47,13 @@ class AccumuloFeatureStore(val dataStore: AccumuloDataStore, val featureName: Na
     val sft = collection.getSchema
     val dateField: Option[String] = org.locationtech.geomesa.core.index.getDtgFieldName(sft)
 
-    dateField.map { dtg =>
+    dateField.flatMap { dtg =>
       val minMax = new MinMaxTimeVisitor(dtg)
 
       collection.accepts(minMax, null)
-      minMax.getBounds
+
+      Option(minMax.getBounds)
+
 
 //      val ci = new Iterator[SimpleFeature] {
 //        val fi = collection.features()

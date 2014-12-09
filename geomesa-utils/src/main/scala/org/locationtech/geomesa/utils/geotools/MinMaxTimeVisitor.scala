@@ -28,7 +28,7 @@ class MinMaxTimeVisitor(dtg: String) extends FeatureVisitor {
   val factory = CommonFactoryFinder.getFilterFactory(null)
   val expr = factory.property(dtg)
 
-  var timeBounds = Seq(new Date(0), new Date())
+  var timeBounds: Seq[Date] = null
 
   // TODO: Convert to CalcResults/etc
   def getBounds = timeBounds
@@ -38,12 +38,14 @@ class MinMaxTimeVisitor(dtg: String) extends FeatureVisitor {
     val date = expr.evaluate(p1).asInstanceOf[Date]
     //println(s"Feature $p1 has date $date")
     if (date != null) {
-      updateBounds(date)
+      timeBounds = updateBounds(date)
     }
   }
 
-  def updateBounds(date: Date): Unit = {
-    val allThree = (timeBounds :+ date).sorted
-    timeBounds = Seq(allThree.head, allThree.last)
+  def updateBounds(date: Date) = {
+    if(timeBounds == null) Seq(date, date)
+    else if (date.compareTo(timeBounds(0)) < 0) Seq(date, timeBounds(1))
+    else if (date.compareTo(timeBounds(1)) > 0) Seq(timeBounds(0), date)
+    else timeBounds
   }
 }
