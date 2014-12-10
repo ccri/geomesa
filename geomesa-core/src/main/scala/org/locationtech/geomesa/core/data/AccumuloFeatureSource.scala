@@ -22,13 +22,13 @@ import org.geotools.data._
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
 import org.geotools.feature.visitor.{BoundsVisitor, MaxVisitor, MinVisitor}
-import org.joda.time.DateTime
 import org.locationtech.geomesa.core.process.knn.KNNVisitor
 import org.locationtech.geomesa.core.process.proximity.ProximityVisitor
 import org.locationtech.geomesa.core.process.query.QueryVisitor
 import org.locationtech.geomesa.core.process.tube.TubeVisitor
 import org.locationtech.geomesa.core.process.unique.AttributeVisitor
 import org.locationtech.geomesa.core.util.TryLoggingFailure
+import org.locationtech.geomesa.utils.geotools.MinMaxTimeVisitor
 import org.opengis.feature.FeatureVisitor
 import org.opengis.feature.`type`.Name
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -88,15 +88,16 @@ class AccumuloFeatureCollection(source: SimpleFeatureSource, query: Query)
   override def accepts(visitor: FeatureVisitor, progress: ProgressListener) =
     visitor match {
       // TODO GEOMESA-421 implement min/max iterators
-      case v: MinVisitor       => v.setValue(new DateTime(2000,1,1,0,0).toDate)
-      case v: MaxVisitor       => v.setValue(new DateTime().toDate)
-      case v: BoundsVisitor    => v.reset(ds.getBounds(query))
-      case v: TubeVisitor      => v.setValue(v.tubeSelect(source, query))
-      case v: ProximityVisitor => v.setValue(v.proximitySearch(source, query))
-      case v: QueryVisitor     => v.setValue(v.query(source, query))
-      case v: KNNVisitor       => v.setValue(v.kNNSearch(source,query))
-      case v: AttributeVisitor => v.setValue(v.unique(source, query))
-      case _                   => super.accepts(visitor, progress)
+      case v: MinVisitor        => v.setValue(ds.getTimeBounds(query).getStart.toDate)
+      case v: MaxVisitor        => v.setValue(ds.getTimeBounds(query).getEnd.toDate)
+      case v: BoundsVisitor     => v.reset(ds.getBounds(query))
+      case v: TubeVisitor       => v.setValue(v.tubeSelect(source, query))
+      case v: ProximityVisitor  => v.setValue(v.proximitySearch(source, query))
+      case v: QueryVisitor      => v.setValue(v.query(source, query))
+      case v: KNNVisitor        => v.setValue(v.kNNSearch(source,query))
+      case v: AttributeVisitor  => v.setValue(v.unique(source, query))
+      case v: MinMaxTimeVisitor => v.computeMinMaxTime(source, query)
+      case _                    => super.accepts(visitor, progress)
     }
 
   override def reader(): FeatureReader[SimpleFeatureType, SimpleFeature] = super.reader()

@@ -16,7 +16,8 @@
 
 package org.locationtech.geomesa.core.data
 
-import java.util.{List => JList, Map => JMap, Set => JSet}
+import java.util
+import java.util.{Date, List => JList, Map => JMap, Set => JSet}
 
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data._
@@ -24,6 +25,7 @@ import org.geotools.feature._
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.geotools.filter.FunctionExpressionImpl
 import org.geotools.geometry.jts.ReferencedEnvelope
+import org.locationtech.geomesa.utils.geotools.MinMaxTimeVisitor
 import org.geotools.process.vector.TransformProcess.Definition
 import org.opengis.feature.GeometryAttribute
 import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor, Name}
@@ -34,13 +36,47 @@ import org.opengis.filter.identity.FeatureId
 class AccumuloFeatureStore(val dataStore: AccumuloDataStore, val featureName: Name)
     extends AbstractFeatureStore with AccumuloAbstractFeatureSource {
   override def addFeatures(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]): JList[FeatureId] = {
-    writeBounds(collection.getBounds)
-    super.addFeatures(collection)
+    if (collection.size > 0) {
+      writeBounds(collection.getBounds)
+      writeTimeBounds(collection)
+      super.addFeatures(collection)
+    } else new util.ArrayList[FeatureId]()
+  }
+
+  def updateTimeBounds(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]) = {
+    val sft = collection.getSchema
+    val dateField: Option[String] = org.locationtech.geomesa.core.index.getDtgFieldName(sft)
+
+    dateField.flatMap { dtg =>
+      val minMax = new MinMaxTimeVisitor(dtg)
+
+      collection.accepts(minMax, null)
+
+      Option(minMax.getBounds)
+
+
+//      val ci = new Iterator[SimpleFeature] {
+//        val fi = collection.features()
+//        override def hasNext: Boolean = fi.hasNext
+//        override def next(): SimpleFeature = fi.next
+//      }
+//
+//      ci.foldLeft(Seq(new Date(0), new Date())) {
+//        case (dates, feature) =>
+//          val featureDate = feature.getAttribute(dtg).asInstanceOf[Date]
+//          val allThree = (dates :+ featureDate).sorted
+//          Seq(allThree.head, allThree.last)
+//      }
+    }
+  }
+
+  def writeTimeBounds(collection: FeatureCollection[SimpleFeatureType, SimpleFeature]) {
+    updateTimeBounds(collection).foreach { dataStore.writeTemporalBounds(featureName.getLocalPart, _) }
   }
 
   def writeBounds(envelope: ReferencedEnvelope) {
     if(envelope != null)
-      dataStore.writeBounds(featureName.getLocalPart, envelope)
+      dataStore.writeSpatialBounds(featureName.getLocalPart, envelope)
   }
 }
 
