@@ -64,6 +64,6 @@ object Time {
     def expandByInterval(interval: Interval) =
       if (interval == null)  self
       else if (self == null) interval
-      else expandByDateTime(interval.getStart).expandByDateTime(interval.getEnd)
+      else new RichInterval(expandByDateTime(interval.getStart)).expandByDateTime(interval.getEnd)
   }
 }
