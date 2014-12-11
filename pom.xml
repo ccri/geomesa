@@ -702,6 +702,19 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>org.geoserver</groupId>
+                <artifactId>gs-wms</artifactId>
+                <version>${geoserver.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <!-- excluded due to license issues -->
+                        <groupId>javax.media</groupId>
+                        <artifactId>jai_core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
                 <groupId>org.geoserver.web</groupId>
                 <artifactId>gs-web-core</artifactId>
                 <version>${geoserver.version}</version>

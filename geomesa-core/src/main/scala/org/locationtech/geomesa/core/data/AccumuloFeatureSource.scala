@@ -103,6 +103,12 @@ class AccumuloFeatureCollection(source: SimpleFeatureSource, query: Query)
   override def reader(): FeatureReader[SimpleFeatureType, SimpleFeature] = super.reader()
 }
 
+class CacheableAccumuloFeatureCollection(source: SimpleFeatureSource, query: Query) extends AccumuloFeatureCollection(source, query) {
+  lazy val internalFeatures = super.features()
+
+  override def features = internalFeatures
+}
+
 trait CachingFeatureSource extends AccumuloAbstractFeatureSource {
   self: AccumuloAbstractFeatureSource =>
 
@@ -110,8 +116,7 @@ trait CachingFeatureSource extends AccumuloAbstractFeatureSource {
     CacheBuilder.newBuilder().build(
       new CacheLoader[Query, SimpleFeatureCollection] {
         override def load(query: Query): SimpleFeatureCollection = {
-          val accFC = self.getFeaturesNoCache(query)
-          new ListFeatureCollection(accFC)
+          new CacheableAccumuloFeatureCollection(self, query)
         }
       })
 
