@@ -668,10 +668,9 @@ class AccumuloDataStore(val connector: Connector,
 
   def stringToTimeBounds(value: String): Interval = {
     val longs = value.split(":").map(java.lang.Long.parseLong)
-    val start = new DateTime(longs(0))
-    val end = new DateTime(longs(1))
-    require(start.compareTo(end) <= 0)
-    new Interval(start, end)
+    require(longs(0) <= longs(1))
+    require(longs.length == 2)
+    new Interval(longs(0), longs(1))
   }
 
   private def stringToReferencedEnvelope(string: String,
@@ -683,7 +682,7 @@ class AccumuloDataStore(val connector: Connector,
   }
 
   /**
-   * Writes bounds for this feature
+   * Writes spatial bounds for this feature
    *
    * @param featureName
    * @param bounds
@@ -708,7 +707,7 @@ class AccumuloDataStore(val connector: Connector,
   }
 
   /**
-   * Writes bounds for this feature
+   * Writes temporal bounds for this feature
    *
    * @param featureName
    * @param timeBounds
@@ -724,10 +723,7 @@ class AccumuloDataStore(val connector: Connector,
     metadata.insert(featureName, TEMPORAL_BOUNDS_KEY, encoded)
   }
 
-  def getNewTimeBounds(current: String, newBounds: Interval): Interval = {
-    val currentBounds: Interval = stringToTimeBounds(current)
-    currentBounds.expandByInterval(newBounds)
-  }
+  def getNewTimeBounds(current: String, newBounds: Interval) = stringToTimeBounds(current).expandByInterval(newBounds)
 
   /**
    * Implementation of abstract method

@@ -43,16 +43,27 @@ object Time {
         )
       }
 
-    def expandByDate(date: Date): Interval =
-      expandByDateTime(new DateTime(date))
+    def expandByDate(date: Date): Interval = {
+      if      (date == null) self
+      else if (self == null) new Interval(new DateTime(date), new DateTime(date))
+      else                   expandByDateTimeNoChecks(new DateTime(date))
+    }
 
-    def expandByDateTime(dt: DateTime): Interval = {
+    private def expandByDateTime(dt: DateTime): Interval = {
+      if      (dt == null)   self
+      else if (self == null) new Interval(dt, dt)
+      else                   expandByDateTimeNoChecks(dt)
+    }
+
+    private def expandByDateTimeNoChecks(dt: DateTime): Interval = {
       if      (self.isBefore(dt)) self.withEnd(dt)
       else if (self.isAfter(dt))  self.withStart(dt)
       else                        self
     }
 
     def expandByInterval(interval: Interval) =
-      expandByDateTime(interval.getStart).expandByDateTime(interval.getEnd)
+      if (interval == null)  self
+      else if (self == null) interval
+      else expandByDateTime(interval.getStart).expandByDateTime(interval.getEnd)
   }
 }
