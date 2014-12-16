@@ -660,8 +660,8 @@ class AccumuloDataStore(val connector: Connector,
     stringToReferencedEnvelope(curBounds, crs)
   }
 
-  def getTimeBounds(query: Query): Interval = {
-    metadata.read(query.getTypeName, TEMPORAL_BOUNDS_KEY)
+  def getTimeBounds(typeName: String): Interval = {
+    metadata.read(typeName, TEMPORAL_BOUNDS_KEY)
       .map(stringToTimeBounds)
       .getOrElse(ALL_TIME_BOUNDS)
   }
