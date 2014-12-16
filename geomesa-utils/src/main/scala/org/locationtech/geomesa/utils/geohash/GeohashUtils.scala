@@ -1005,4 +1005,48 @@ object GeohashUtils
       } else Seq()
     } else unDotted
   }
+
+  def getMBGH(minX: Double, maxX: Double, minY: Double, maxY: Double): GeoHash = {
+    val width = maxX - minX
+    val height = maxY - minY
+    require(width >= 0 && height >= 0, s"Wrong width $width and height $height of input bounding box, cannot process")
+
+    val ur = GeoHash.factory.createPoint(new Coordinate(maxX, maxY))
+
+    val bbox = BoundingBox(minX, maxX, minY, maxY)
+    val bboxGeom = bbox.geom
+    val bboxArea = bboxGeom.getArea
+
+    (60 to 0 by -5).foreach(prec => {
+      val lonDelta = GeoHash.longitudeDeltaForPrecision(prec)
+      val latDelta = GeoHash.latitudeDeltaForPrecision(prec)
+
+      if (lonDelta >= width && latDelta >= height) {
+
+
+        val gh = GeoHash(minX, minY, prec)
+        val ghGeom = gh.geom
+        val i = ghGeom.intersection(bboxGeom)
+        val iArea = i.getArea
+        println(s"For gh: $gh the overlap is $iArea")
+
+        if( iArea > bboxArea * 0.95) return gh
+      }
+    })
+
+    null
+  }
+
+
+  def getMBGH(minX: Double, maxX: Double, minY: Double, maxY: Double, resolution: Int) = {
+    val bbox = BoundingBox(minX, maxX, minY, maxY)
+    val g = bbox.geom
+    val ghs = GeohashUtils.getUniqueGeohashSubstringsInPolygon(g, 0, resolution, includeDots=false).map(GeoHash(_))
+
+    ghs.map { gh =>
+      val area = g.getArea
+      val ia = g.intersection(gh.geom).getArea
+      (gh, ia/area)
+    }.sortBy { case (gh, d) => d}.last
+  }
 }
