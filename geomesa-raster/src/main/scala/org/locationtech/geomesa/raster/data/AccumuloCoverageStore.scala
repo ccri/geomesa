@@ -74,7 +74,7 @@ class AccumuloCoverageStore(val rasterStore: RasterStore,
 
   def saveRaster(raster: Raster) = {
     rasterStore.putRaster(raster)
-    registerToGeoserver(raster)
+//    registerToGeoserver(raster)
   }
 
   def registerToGeoserver(raster: Raster) {
@@ -204,7 +204,7 @@ object AccumuloCoverageStore extends Logging {
               logger.error("Failed to instantiate Geoserver client service: wrong parameters.")
               sys.exit()
           }).toMap
-        Some(new GeoserverClientService(gsConnectConfig))
+        Some(new GeoserverClientService(dsConnectConfig ++ gsConnectConfig))
       }
 
     new AccumuloCoverageStore(new RasterStore(rasterOps), geoserverClientServiceO)
