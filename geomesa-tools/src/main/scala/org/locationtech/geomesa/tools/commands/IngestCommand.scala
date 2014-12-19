@@ -19,7 +19,7 @@ import java.util
 
 import com.beust.jcommander.{JCommander, Parameter, Parameters}
 import com.typesafe.scalalogging.slf4j.Logging
-import org.locationtech.geomesa.tools.Utils.Formats._
+import org.locationtech.geomesa.utils.formats.Formats._
 import org.locationtech.geomesa.tools._
 import org.locationtech.geomesa.tools.commands.IngestCommand._
 

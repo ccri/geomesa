@@ -74,7 +74,7 @@ class AccumuloCoverageStore(val rasterStore: RasterStore,
 
   def saveRaster(raster: Raster) = {
     rasterStore.putRaster(raster)
-    registerToGeoserver(raster)
+//    registerToGeoserver(raster)
   }
 
   def registerToGeoserver(raster: Raster) {

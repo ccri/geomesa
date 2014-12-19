@@ -29,7 +29,7 @@ import org.geotools.data.shapefile.{ShapefileDataStore, ShapefileDataStoreFactor
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureStore}
 import org.geotools.geojson.feature.FeatureJSON
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.locationtech.geomesa.tools.Utils.Formats
+import org.locationtech.geomesa.utils.formats.Formats
 import org.locationtech.geomesa.tools.commands.ExportCommand.ExportParameters
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.opengis.feature.simple.{SimpleFeatureType, SimpleFeature}

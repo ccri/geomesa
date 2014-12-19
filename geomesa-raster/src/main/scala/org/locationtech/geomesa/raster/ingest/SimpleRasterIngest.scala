@@ -17,7 +17,7 @@
 package org.locationtech.geomesa.raster.ingest
 
 import java.awt.RenderingHints
-import java.io.File
+import java.io.{FilenameFilter, File}
 import javax.media.jai.{ImageLayout, JAI}
 
 import com.typesafe.scalalogging.slf4j.Logging
@@ -32,16 +32,18 @@ import org.locationtech.geomesa.core.index.DecodedIndex
 import org.locationtech.geomesa.raster.data.AccumuloCoverageStore
 import org.locationtech.geomesa.raster.feature.Raster
 import org.locationtech.geomesa.raster.util.RasterUtils.IngestRasterParams
+import org.locationtech.geomesa.utils.formats.Formats._
 import org.locationtech.geomesa.utils.geohash.BoundingBox
 
+import scala.collection.parallel.ForkJoinTaskSupport
 import scala.util.Try
 
 object SimpleRasterIngest {
 
   def getReader(imageFile: File, imageType: String): AbstractGridCoverage2DReader = {
     imageType match {
-      case "tiff" => getTiffReader(imageFile)
-      case "dted" => getDtedReader(imageFile)
+      case TIFF => getTiffReader(imageFile)
+      case DTED => getDtedReader(imageFile)
       case _ => throw new Exception("Image type is not supported.")
     }
   }
@@ -68,28 +70,52 @@ class SimpleRasterIngest(config: Map[String, Option[String]], cs: AccumuloCovera
   lazy val fileType = config(IngestRasterParams.FORMAT).get
   lazy val rasterName = config(IngestRasterParams.RASTER_NAME).get
   lazy val visibilities = config(IngestRasterParams.VISIBILITIES).get
-
+  lazy val parLevel = config(IngestRasterParams.PARLEVEL).get.toInt
 
   val df = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
 
   def runIngestTask() = Try {
-    val file = new File(path)
-    val ingestTime = config(IngestRasterParams.TIME).map(df.parseDateTime).getOrElse(new DateTime(DateTimeZone.UTC))
+    val fileOrDir = new File(path)
+    val ingestTime = config(IngestRasterParams.TIME).map(df.parseDateTime(_)).getOrElse(new DateTime(DateTimeZone.UTC))
 
-    val rasterReader = getReader(file, fileType)
-    val rasterGrid: GridCoverage2D = rasterReader.read(null)
+    val files =
+      (if (fileOrDir.isDirectory)
+         fileOrDir.listFiles(new FilenameFilter() {
+           override def accept(dir: File, name: String) =
+             getFileExtension(name).endsWith(fileType)
+         })
+       else Array(fileOrDir)).par
 
-    val envelope = rasterGrid.getEnvelope2D
+    files.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(parLevel))
+    files.foreach { file =>
+      val rasterReader = getReader(file, fileType)
+      val rasterGrid: GridCoverage2D = rasterReader.read(null)
 
-    val bbox = BoundingBox(envelope.getMinX, envelope.getMaxX, envelope.getMinY, envelope.getMaxY)
+      val envelope = rasterGrid.getEnvelope2D
+      val bbox = BoundingBox(envelope.getMinX, envelope.getMaxX, envelope.getMinY, envelope.getMaxY)
 
-    val metadata = DecodedIndex(Raster.getRasterId(rasterName), bbox.geom, Option(ingestTime.getMillis))
+      val metadata = DecodedIndex(Raster.getRasterId(rasterName), bbox.geom, Some(ingestTime.getMillis))
 
-    val res = 1.0  //TODO: get the resolution from the reader or from the gridcoverage
+      val res = 1.0  //TODO: get the resolution from the reader or from the gridcoverage
 
-    val raster = Raster(rasterGrid.getRenderedImage, metadata, res)
+      val raster = Raster(rasterGrid.getRenderedImage, metadata, res)
 
-    cs.saveRaster(raster)
+      cs.saveRaster(raster)
+    }
 
+    cs.geoserverClientServiceO.foreach { geoserverClientService => {
+      geoserverClientService.registerRasterStyles()
+      val rasterId = Raster.getRasterId(rasterName)
+      //TODO: Figure out what we need to register to geoserver.
+      //If geohash and resolution of a coverage is not needed, they can be removed.
+      geoserverClientService.registerRaster(rasterId,
+                                            rasterName,
+                                            ingestTime.getMillis,
+                                            rasterId,
+                                            "Raster image",
+                                            rasterName, //for test
+                                            10, //for test
+                                            None)
+    }}
   }
 }
