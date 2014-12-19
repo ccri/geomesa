@@ -16,6 +16,10 @@
 
 package org.locationtech.geomesa.utils.formats
 
+import org.apache.commons.compress.compressors.bzip2.BZip2Utils
+import org.apache.commons.compress.compressors.gzip.GzipUtils
+import org.apache.commons.compress.compressors.xz.XZUtils
+
 object Formats {
   val CSV     = "csv"
   val TSV     = "tsv"
@@ -26,20 +30,28 @@ object Formats {
   val GeoJson = "geojson"
   val GML = "gml"
 
-  def getFileExtension(name: String) =
-    name.toLowerCase match {
-      case _ if name.endsWith(CSV)  => CSV
-      case _ if name.endsWith("tif") ||
-                name.endsWith("tiff") => TIFF
-      case _ if name.endsWith("dt0") ||
-                name.endsWith("dt1") ||
-                name.endsWith("dt2")=> DTED
-      case _ if name.endsWith(TSV)  => TSV
-      case _ if name.endsWith(SHP)  => SHP
-      case _ if name.endsWith(JSON) => JSON
-      case _ if name.endsWith(GML)  => GML
-      case _                        => "unknown"
+  def getFileExtension(name: String) = {
+    val fileExtension = name match {
+      case _ if GzipUtils.isCompressedFilename(name)  => GzipUtils.getUncompressedFilename(name)
+      case _ if BZip2Utils.isCompressedFilename(name) => BZip2Utils.getUncompressedFilename(name)
+      case _ if XZUtils.isCompressedFilename(name)    => XZUtils.getUncompressedFilename(name)
+      case _ => name
     }
+
+    fileExtension.toLowerCase match {
+      case _ if fileExtension.endsWith(CSV)  => CSV
+      case _ if fileExtension.endsWith("tif") ||
+        fileExtension.endsWith("tiff") => TIFF
+      case _ if fileExtension.endsWith("dt0") ||
+        fileExtension.endsWith("dt1") ||
+        fileExtension.endsWith("dt2")=> DTED
+      case _ if fileExtension.endsWith(TSV)  => TSV
+      case _ if fileExtension.endsWith(SHP)  => SHP
+      case _ if fileExtension.endsWith(JSON) => JSON
+      case _ if fileExtension.endsWith(GML)  => GML
+      case _ => "unknown"
+    }
+  }
 
   val All = List(CSV, TSV, SHP, JSON, GeoJson, GML)
 }
