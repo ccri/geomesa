@@ -26,9 +26,10 @@ import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.locationtech.geomesa.core.data.AccumuloDataStore
 import org.locationtech.geomesa.jobs.JobUtils
-import org.locationtech.geomesa.utils.formats.Formats._
-import org.locationtech.geomesa.tools.Utils.Modes._
-import org.locationtech.geomesa.tools.Utils.{IngestParams, Modes}
+import org.locationtech.geomesa.utils.ingest.Formats._
+import org.locationtech.geomesa.utils.ingest.Modes
+import org.locationtech.geomesa.utils.ingest.Modes._
+import org.locationtech.geomesa.tools.Utils.IngestParams
 import org.locationtech.geomesa.tools.commands.IngestCommand.IngestParameters
 import org.locationtech.geomesa.tools.ingest.DelimitedIngest._
 import org.locationtech.geomesa.tools.{AccumuloProperties, FeatureCreator}

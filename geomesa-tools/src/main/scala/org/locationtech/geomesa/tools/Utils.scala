@@ -54,15 +54,6 @@ object Utils {
     val IS_TEST_INGEST      = "geomesa.tools.ingest.is-test-ingest"
     val LIST_DELIMITER      = "geomesa.tools.ingest.list-delimiter"
   }
-
-  object Modes {
-    val Local = "local"
-    val Hdfs = "hdfs"
-
-    def getJobMode(filename: String) = if (filename.toLowerCase.trim.startsWith("hdfs://")) Hdfs else Local
-    def getModeFlag(filename: String) = "--" + getJobMode(filename)
-  }
-
 }
 /* get password trait */
 trait GetPassword {

@@ -33,6 +33,10 @@ object RasterUtils {
     val GEOSERVER_REG       = "geomesa-tools.ingestraster.geoserver.reg"
     val RASTER_NAME         = "geomesa-tools.ingestraster.name"
     val TABLE               = "geomesa-tools.ingestraster.table"
+    val WRITE_MEMORY        = "geomesa-tools.ingestraster.write.memory"
+    val WRITE_THREADS       = "geomesa-tools.ingestraster.write.threads"
+    val QUERY_THREADS       = "geomesa-tools.ingestraster.query.threads"
+    val SHARDS              = "geomesa-tools.ingestraster.shards"
     val PARLEVEL            = "geomesa-tools.ingestraster.parallel.level"
   }
 

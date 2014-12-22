@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.locationtech.geomesa.utils.formats
+package org.locationtech.geomesa.utils.ingest
 
 import org.apache.commons.compress.compressors.bzip2.BZip2Utils
 import org.apache.commons.compress.compressors.gzip.GzipUtils
@@ -41,10 +41,10 @@ object Formats {
     fileExtension.toLowerCase match {
       case _ if fileExtension.endsWith(CSV)  => CSV
       case _ if fileExtension.endsWith("tif") ||
-        fileExtension.endsWith("tiff") => TIFF
+                fileExtension.endsWith("tiff") => TIFF
       case _ if fileExtension.endsWith("dt0") ||
-        fileExtension.endsWith("dt1") ||
-        fileExtension.endsWith("dt2")=> DTED
+                fileExtension.endsWith("dt1") ||
+                fileExtension.endsWith("dt2")=> DTED
       case _ if fileExtension.endsWith(TSV)  => TSV
       case _ if fileExtension.endsWith(SHP)  => SHP
       case _ if fileExtension.endsWith(JSON) => JSON

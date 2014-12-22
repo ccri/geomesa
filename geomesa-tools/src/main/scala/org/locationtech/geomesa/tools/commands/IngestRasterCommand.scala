@@ -15,18 +15,13 @@
  */
 package org.locationtech.geomesa.tools.commands
 
-import java.io.{File, Serializable}
-import java.util.{Map => JMap}
-
 import com.beust.jcommander.{JCommander, Parameter, Parameters}
-import org.locationtech.geomesa.raster.data.AccumuloCoverageStore
-import org.locationtech.geomesa.raster.ingest.SimpleRasterIngest
+import org.locationtech.geomesa.raster.ingest.LocalRasterIngest
 import org.locationtech.geomesa.raster.util.RasterUtils.IngestRasterParams
-import org.locationtech.geomesa.utils.formats.Formats._
 import org.locationtech.geomesa.tools._
 import org.locationtech.geomesa.tools.commands.IngestRasterCommand.{Command, IngestRasterParameters}
+import org.locationtech.geomesa.utils.ingest.Formats._
 
-import scala.collection.JavaConversions._
 import scala.util.{Failure, Success}
 
 class IngestRasterCommand(parent: JCommander) extends Command with AccumuloProperties {
@@ -39,61 +34,42 @@ class IngestRasterCommand(parent: JCommander) extends Command with AccumuloPrope
     fmt match {
       case TIFF | DTED =>
         ingest
-      case _         =>
+      case _           =>
         logger.error("Error: File format not supported for file " + params.file + ". Supported formats" +
           "are tif, tiff, dt0, dt1 and dt2")
     }
   }
 
   def ingest() {
-    val cs = createCoverageStore(params)
-
-    val args: Map[String, Option[String]] = Map(
-      IngestRasterParams.FILE_PATH -> Some(params.file),
-      IngestRasterParams.FORMAT -> Some(Option(params.format).getOrElse(getFileExtension(params.file))),
-      IngestRasterParams.RASTER_NAME -> Some(params.rasterName),
-      IngestRasterParams.TIME -> Option(params.timeStamp),
-      IngestRasterParams.PARLEVEL -> Option(params.parLevel.toString)
-    )
-
-    val ingester = new SimpleRasterIngest(args, cs)
+    val ingester = new LocalRasterIngest(getRsaterIngestParams)
     ingester.runIngestTask() match {
       case Success(info) => logger.info("Ingestion is done.")
       case Failure(e) => throw new RuntimeException(e)
     }
   }
 
-  def createCoverageStore(config: IngestRasterParameters): AccumuloCoverageStore = {
-    if (config.rasterName == null || config.rasterName.isEmpty) {
-      logger.error("No raster name specified for raster feature ingest." +
-        " Please check that all arguments are correct in the previous command. ")
-      sys.exit()
-    }
-
-    val password = getPassword(params.password)
-    val csConfig: JMap[String, Serializable] = getAccumuloCoverageStoreConf(config, password)
-
-    AccumuloCoverageStore(csConfig)
+  def getRsaterIngestParams(): Map[String, Option[String]] = {
+    Map(
+      IngestRasterParams.ZOOKEEPERS        -> Some(Option(params.zookeepers).getOrElse(zookeepersProp)),
+      IngestRasterParams.ACCUMULO_INSTANCE -> Some(Option(params.instance).getOrElse(instanceName)),
+      IngestRasterParams.ACCUMULO_USER     -> Some(params.user),
+      IngestRasterParams.ACCUMULO_PASSWORD -> Some(getPassword(params.password)),
+      IngestRasterParams.AUTHORIZATIONS    -> Option(params.auths),
+      IngestRasterParams.VISIBILITIES      -> Option(params.visibilities),
+      IngestRasterParams.ACCUMULO_MOCK     -> Some(params.useMock.toString),
+      IngestRasterParams.TABLE             -> Some(params.table),
+      IngestRasterParams.FILE_PATH         -> Some(params.file),
+      IngestRasterParams.FORMAT            -> Some(Option(params.format).getOrElse(getFileExtension(params.file))),
+      IngestRasterParams.RASTER_NAME       -> Some(params.rasterName),
+      IngestRasterParams.GEOSERVER_REG     -> Option(params.geoserverConf),
+      IngestRasterParams.TIME              -> Option(params.timeStamp),
+      IngestRasterParams.WRITE_MEMORY      -> Option(params.writeMemory),
+      IngestRasterParams.WRITE_THREADS     -> Option(params.writeThreads).map(_.toString),
+      IngestRasterParams.QUERY_THREADS     -> Option(params.queryThreads).map(_.toString),
+      IngestRasterParams.SHARDS            -> Option(params.numShards).map(_.toString),
+      IngestRasterParams.PARLEVEL          -> Some(params.parLevel.toString)
+    )
   }
-
-  def getAccumuloCoverageStoreConf(config: IngestRasterParameters, password: String): JMap[String, Serializable] =
-    mapAsJavaMap(Map(
-      "instanceId" -> Option(config.instance).getOrElse(instanceName),
-      "zookeepers" -> Option(config.zookeepers).getOrElse(zookeepersProp),
-      "user" -> config.user,
-      "password" -> password,
-      "tableName" -> config.table,
-      "geoserverConfig" -> Option(config.geoserverConf),
-      "auths" -> Option(config.auths),
-      "visibilities" -> Option(config.visibilities),
-      "maxShard" -> Option(config.numShards),
-      "writeMemory" -> Option(config.writeMemory),
-      "writeThreads" -> Option(config.writeThreads),
-      "queryThreads" -> Option(config.queryThreads)
-    ).collect {
-      case (key, Some(value)) => (key, value);
-      case (key, value: String) => (key, value)
-    }).asInstanceOf[java.util.Map[String, Serializable]]
 }
 
 object IngestRasterCommand {
@@ -113,6 +89,6 @@ object IngestRasterCommand {
 
     @Parameter(names = Array("-par", "--parallelLevel"), description = "Maximum number of threads for ingesting " +
       "multiple raster files")
-    var parLevel: Int = 4
+    var parLevel: Int = 1
   }
 }

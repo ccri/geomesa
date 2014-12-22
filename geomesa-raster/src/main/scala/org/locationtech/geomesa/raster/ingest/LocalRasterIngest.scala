@@ -17,7 +17,7 @@
 package org.locationtech.geomesa.raster.ingest
 
 import java.awt.RenderingHints
-import java.io.{FilenameFilter, File}
+import java.io.{File, FilenameFilter}
 import javax.media.jai.{ImageLayout, JAI}
 
 import com.typesafe.scalalogging.slf4j.Logging
@@ -29,16 +29,15 @@ import org.geotools.gce.geotiff.GeoTiffReader
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.core.index.DecodedIndex
-import org.locationtech.geomesa.raster.data.AccumuloCoverageStore
 import org.locationtech.geomesa.raster.feature.Raster
 import org.locationtech.geomesa.raster.util.RasterUtils.IngestRasterParams
-import org.locationtech.geomesa.utils.formats.Formats._
+import org.locationtech.geomesa.utils.ingest.Formats._
 import org.locationtech.geomesa.utils.geohash.BoundingBox
 
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.util.Try
 
-object SimpleRasterIngest {
+object LocalRasterIngest {
 
   def getReader(imageFile: File, imageType: String): AbstractGridCoverage2DReader = {
     imageType match {
@@ -62,14 +61,13 @@ object SimpleRasterIngest {
 
 }
 
-import SimpleRasterIngest._
+import org.locationtech.geomesa.raster.ingest.LocalRasterIngest._
 
-class SimpleRasterIngest(config: Map[String, Option[String]], cs: AccumuloCoverageStore) extends Logging {
+class LocalRasterIngest(config: Map[String, Option[String]]) extends RasterIngest with Logging {
 
   lazy val path = config(IngestRasterParams.FILE_PATH).get
   lazy val fileType = config(IngestRasterParams.FORMAT).get
   lazy val rasterName = config(IngestRasterParams.RASTER_NAME).get
-  lazy val visibilities = config(IngestRasterParams.VISIBILITIES).get
   lazy val parLevel = config(IngestRasterParams.PARLEVEL).get.toInt
 
   val df = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -77,6 +75,7 @@ class SimpleRasterIngest(config: Map[String, Option[String]], cs: AccumuloCovera
   def runIngestTask() = Try {
     val fileOrDir = new File(path)
     val ingestTime = config(IngestRasterParams.TIME).map(df.parseDateTime(_)).getOrElse(new DateTime(DateTimeZone.UTC))
+    val cs = createCoverageStore(config)
 
     val files =
       (if (fileOrDir.isDirectory)
