@@ -78,6 +78,7 @@ class AttributeIndexIterator extends SortedKeyValueIterator[Key, Value] with Log
     // if we're retrieving the attribute, we need the class in order to decode it
     attributeType = Option(options.get(GEOMESA_ITERATORS_ATTRIBUTE_NAME))
         .flatMap(n => Option(featureType.getDescriptor(n)))
+//        .map(_.getType.getBinding) // TODO not in 1.5
 
     // default to text if not found for backwards compatibility
     val encoding = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
@@ -147,6 +148,10 @@ class AttributeIndexIterator extends SortedKeyValueIterator[Key, Value] with Log
         topKey = Some(new Key(indexSource.getTopKey))
         // using the already decoded index value, generate a SimpleFeature
         val sf = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue)
+//        val sf = IndexIterator.encodeIndexValueToSF(featureBuilder,
+//                                                    decodedValue.id,
+//                                                    decodedValue.geom,
+//                                                    decodedValue.dtgMillis) // TODO not in 1.5
 
         // if they requested the attribute value, decode it from the row key
         if (attributeType.isDefined) {

@@ -100,6 +100,7 @@ trait Strategy {
       "sffilter-" + randomPrintableString(5),
       classOf[SimpleFeatureFilteringIterator])
 
+//    cfg.addOption(DEFAULT_SCHEMA_NAME, schema) // TODO not in 1.5, line DNE there
     configureFeatureEncoding(cfg, featureEncoding)
     configureTransforms(query,cfg)
     configureFeatureType(cfg, simpleFeatureType)

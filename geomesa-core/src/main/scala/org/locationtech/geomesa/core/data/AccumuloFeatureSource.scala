@@ -22,6 +22,7 @@ import org.geotools.data._
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
 import org.geotools.feature.visitor.{BoundsVisitor, MaxVisitor, MinVisitor}
+import org.joda.time.DateTime
 import org.locationtech.geomesa.core.process.knn.KNNVisitor
 import org.locationtech.geomesa.core.process.proximity.ProximityVisitor
 import org.locationtech.geomesa.core.process.query.QueryVisitor
@@ -117,6 +118,8 @@ trait CachingFeatureSource extends AccumuloAbstractFeatureSource {
       new CacheLoader[Query, SimpleFeatureCollection] {
         override def load(query: Query): SimpleFeatureCollection = {
           new CachingAccumuloFeatureCollection(self, query)
+//          val accFC = self.getFeaturesNoCache(query) // TODO not in 1.5 (the previous line is)
+//          new ListFeatureCollection(accFC)
         }
       })
 

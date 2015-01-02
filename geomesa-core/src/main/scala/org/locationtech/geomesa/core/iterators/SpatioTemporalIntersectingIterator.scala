@@ -261,3 +261,16 @@ class SpatioTemporalIntersectingIterator
 
   def deepCopy(env: IteratorEnvironment) = throw new UnsupportedOperationException("STII does not support deepCopy.")
 }
+
+// TODO not in 1.5
+//object SpatioTemporalIntersectingIterator extends IteratorHelpers
+//
+///**
+// *  This trait contains many methods and values of general use to companion Iterator objects
+// */
+//trait IteratorHelpers  {
+//  def setOptions(cfg: IteratorSetting, schema: String, filter: Option[Filter]) {
+//    cfg.addOption(DEFAULT_SCHEMA_NAME, schema)
+//    filter.foreach { f => cfg.addOption(DEFAULT_FILTER_PROPERTY_NAME, ECQL.toCQL(f)) }
+//  }
+//}

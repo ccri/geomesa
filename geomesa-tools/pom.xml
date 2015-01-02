@@ -19,13 +19,13 @@
 
     <parent>
         <groupId>org.locationtech.geomesa</groupId>
-        <artifactId>geomesa-accumulo1.5</artifactId>
+        <artifactId>geomesa-accumulo1.6</artifactId>
         <version>1.0.0-rc.4</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>geomesa-tools-accumulo1.5</artifactId>
-    <name>GeoMesa Tools - [Accumulo 1.5.x]</name>
+    <artifactId>geomesa-tools-accumulo1.6</artifactId>
+    <name>GeoMesa Tools - [Accumulo 1.6.x]</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -34,15 +34,15 @@
     <dependencies>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-core-accumulo1.5</artifactId>
+            <artifactId>geomesa-core-accumulo1.6</artifactId>
         </dependency>
         <dependency>
            <groupId>org.locationtech.geomesa</groupId>
-           <artifactId>geomesa-jobs-accumulo1.5</artifactId>
+           <artifactId>geomesa-jobs-accumulo1.6</artifactId>
        </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-utils-accumulo1.5</artifactId>
+            <artifactId>geomesa-utils-accumulo1.6</artifactId>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -53,6 +53,10 @@
             <artifactId>commons-csv</artifactId>
         </dependency>
         <!-- provided dependencies -->
+        <dependency>
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-server-base</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.accumulo</groupId>
             <artifactId>accumulo-core</artifactId>
@@ -86,6 +90,10 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.scopt</groupId>
+            <artifactId>scopt_2.10</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>

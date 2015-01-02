@@ -68,6 +68,10 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
 
     featureBuilder = AvroSimpleFeatureFactory.featureBuilder(featureType)
 
+    // TODO not in 1.5
+//    val schemaEncoding = options.get(DEFAULT_SCHEMA_NAME)
+//    decoder = IndexSchema.getIndexEntryDecoder(schemaEncoding)
+
     if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
       val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
       filter = ECQL.toFilter(filterString)
@@ -95,6 +99,8 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
     nextKey = new Key(indexSource.getTopKey)
     // using the already decoded index value, generate a SimpleFeature and set as the Value
     val nextSimpleFeature = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue)
+//    val nextSimpleFeature = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue.id,
+//      decodedValue.geom, decodedValue.dtgMillis) // TODO not in 1.5
     nextValue = new Value(featureEncoder.encode(nextSimpleFeature))
   }
 

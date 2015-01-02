@@ -91,7 +91,7 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess {
     // import the layer into geoserver
     catalogBuilder.setStore(storeInfo)
     val typeInfo = catalogBuilder.buildFeatureType(targetType.getName)
-    
+
     val kws = for {
       ks <- Option(keywordStrs).getOrElse(new ju.ArrayList[String]())
       kw <- ks.split(",").map(_.trim)

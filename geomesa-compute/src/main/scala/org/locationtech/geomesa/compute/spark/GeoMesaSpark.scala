@@ -70,6 +70,7 @@ object GeoMesaSpark {
 
     InputConfigurator.setInputTableName(classOf[AccumuloInputFormat], conf, ds.getSpatioTemporalIdxTableName(sft))
     InputConfigurator.setRanges(classOf[AccumuloInputFormat], conf, qp.ranges)
+    InputConfigurator.setOfflineTableScan(classOf[AccumuloInputFormat], conf, true) // TODO not in 1.5
     qp.iterators.foreach { is => InputConfigurator.addIterator(classOf[AccumuloInputFormat], conf, is) }
 
     val rdd = sc.newAPIHadoopRDD(conf, classOf[AccumuloInputFormat], classOf[Key], classOf[Value])

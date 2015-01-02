@@ -32,6 +32,7 @@ import org.geotools.data.DataStore
 import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.util.Version
 import org.locationtech.geomesa.filter.function.BinaryOutputEncoder
+import org.opengis.feature.simple.SimpleFeature
 
 import scala.collection.JavaConversions._
 
@@ -94,6 +95,17 @@ class BinaryViewerOutputFormat(gs: GeoServer)
     }
     // none of the implementations in geoserver call 'close' on the output stream
   }
+
+  // TODO not in 1.5
+  /**
+   * Gets an optional attribute or id
+   *
+   * @param f
+   * @param attribute
+   * @return
+   */
+  private def getAttributeOrId(f: SimpleFeature, attribute: String): Option[String] =
+    if (attribute == "id") Some(f.getID) else Option(f.getAttribute(attribute)).map(_.toString)
 
   /**
    * Try to pull out the default date field from the SimpleFeatureType associated with this request

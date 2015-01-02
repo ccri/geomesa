@@ -148,6 +148,18 @@ class AccumuloDataStoreFactory extends DataStoreFactorySpi {
     }
   }
 
+  // TODO not in 1.5
+//  def buildAccumuloConnector(params: JMap[String,Serializable], useMock: Boolean): (Connector, AuthenticationToken) = {
+//    val zookeepers = zookeepersParam.lookUp(params).asInstanceOf[String]
+//    val instance = instanceIdParam.lookUp(params).asInstanceOf[String]
+//    val user = userParam.lookUp(params).asInstanceOf[String]
+//    val password = passwordParam.lookUp(params).asInstanceOf[String]
+//
+//    val authToken = new PasswordToken(password.getBytes)
+//    if(useMock) (new MockInstance(instance).getConnector(user, authToken), authToken)
+//    else (new ZooKeeperInstance(instance, zookeepers).getConnector(user, authToken), authToken)
+//  }
+
   override def getDisplayName = "Accumulo Feature Data Store"
 
   override def getDescription = "Feature Data store for accumulo"

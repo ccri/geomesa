@@ -600,4 +600,3 @@ To list, describe, and update the configuration parameters on a specified table,
     geomesa tableconf list -u username -p password -c test_catalog -fn test_feature -t st_idx
     geomesa tableconf describe -u username -p password -c test_catalog -fn test_feature -t attr_idx --param table.bloom.enabled
     geomesa tableconf update -u username -p password -c test_catalog -fn test_feature -t records --param table.bloom.enabled -n true
-
