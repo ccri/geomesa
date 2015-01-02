@@ -24,7 +24,6 @@ import org.apache.accumulo.core.iterators.{Filter, IteratorEnvironment, SortedKe
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.core._
-import org.locationtech.geomesa.core.index.IndexEntry.DecodedIndexValue
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 
@@ -57,7 +56,7 @@ class AttributeIndexFilteringIterator extends Filter with Logging with WrappedST
   }
 
   override def accept(k: Key, v: Value): Boolean = {
-    val DecodedIndexValue(_, geom, dtgOpt) = IndexEntry.decodeIndexValue(v)
+    val DecodedIndex(_, geom, dtgOpt) = IndexEntry.decodeIndexValue(v)
     wrappedSTFilter(geom, dtgOpt)
   }
 }
