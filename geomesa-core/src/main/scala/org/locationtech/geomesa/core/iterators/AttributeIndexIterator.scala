@@ -56,6 +56,50 @@ class AttributeIndexIterator
     // if we're retrieving the attribute, we need the class in order to decode it
     attributeType = Option(options.get(GEOMESA_ITERATORS_ATTRIBUTE_NAME))
         .flatMap(n => Option(featureType.getDescriptor(n)))
+
+    // TODO possible merge error, the below was in the rc4 merge
+////        .map(_.getType.getBinding) // TODO not in 1.5
+//
+//    // default to text if not found for backwards compatibility
+//    val encoding = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
+//    featureEncoder = SimpleFeatureEncoder(featureType, encoding)
+//
+//    featureBuilder = AvroSimpleFeatureFactory.featureBuilder(featureType)
+//
+//    // combine the simpleFeatureFilteringIterator functionality so we only have to decode each row once
+//    Option(options.get(DEFAULT_FILTER_PROPERTY_NAME)).foreach { filterString =>
+//      val filter = ECQL.toFilter(filterString)
+//
+//      val sfb = new SimpleFeatureBuilder(featureType)
+//      val testFeature = sfb.buildFeature("test")
+//
+//      filterTest = (geom: Geometry, odate: Option[Long]) => {
+//        testFeature.setDefaultGeometry(geom)
+//        dtgFieldName.foreach(dtgField => odate.foreach(date => testFeature.setAttribute(dtgField, new Date(date))))
+//        filter.evaluate(testFeature)
+//      }
+//    }
+//
+//    this.indexSource = source.deepCopy(env)
+//  }
+//
+//  override def hasTop = topKey.isDefined
+//
+//  override def getTopKey = topKey.orNull
+//
+//  override def getTopValue = topValue.orNull
+//
+//  /**
+//   * Seeks to the start of a range and fetches the top key/value
+//   *
+//   * @param range
+//   * @param columnFamilies
+//   * @param inclusive
+//   */
+//  override def seek(range: Range, columnFamilies: java.util.Collection[ByteSequence], inclusive: Boolean) {
+//    // move the source iterator to the right starting spot
+//    indexSource.seek(range, columnFamilies, inclusive)
+//    findTop()
   }
 
   override def setTopConditionally() {
@@ -80,6 +124,27 @@ class AttributeIndexIterator
         decoded match {
           case Success(att) => sf.setAttribute(att.attributeName, att.attributeValue)
           case Failure(e) => logger.error(s"Error decoding attribute row: row: $row, error: ${e.toString}")
+
+      // TODO possible merge error, the below was in the rc4 merge
+//      if (filterTest(decodedValue.geom, decodedValue.date.map(_.getTime))) {
+//        // current entry matches our filter - update the key and value
+//        // copy the key because reusing it is UNSAFE
+//        topKey = Some(new Key(indexSource.getTopKey))
+//        // using the already decoded index value, generate a SimpleFeature
+//        val sf = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue)
+////        val sf = IndexIterator.encodeIndexValueToSF(featureBuilder,
+////                                                    decodedValue.id,
+////                                                    decodedValue.geom,
+////                                                    decodedValue.dtgMillis) // TODO not in 1.5
+//
+//        // if they requested the attribute value, decode it from the row key
+//        if (attributeType.isDefined) {
+//          val row = topKey.get.getRow.toString
+//          val decoded = decodeAttributeIndexRow(attributeRowPrefix, attributeType.get, row)
+//          decoded match {
+//            case Success(att) => sf.setAttribute(att.attributeName, att.attributeValue)
+//            case Failure(e) => logger.error(s"Error decoding attribute row: row: $row, error: ${e.toString}")
+//          }
         }
       }
 

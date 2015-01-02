@@ -47,6 +47,7 @@ import scala.collection.JavaConversions._
   val ATTRIBUTES_KEY         = "attributes"
   val SPATIAL_BOUNDS_KEY     = "bounds"
   val TEMPORAL_BOUNDS_KEY    = "time.bounds"
+  val BOUNDS_KEY             = "bounds" // TODO not in 1.5
   val SCHEMA_KEY             = "schema"
   val DTGFIELD_KEY           = "dtgfield"
   val FEATURE_ENCODING_KEY   = "featureEncoding"

@@ -58,6 +58,38 @@ object IndexEntry {
     def setStartTime(time: DateTime) = setTime(dtgStartField, time)
     def setEndTime(time: DateTime)   = setTime(dtgEndField, time)
   }
+
+  // TODO not in 1.5
+//  // the index value consists of the feature's:
+//  // 1.  ID
+//  // 2.  WKB-encoded geometry
+//  // 3.  start-date/time
+//  def encodeIndexValue(entry: SimpleFeature): Value = {
+//    val encodedId = entry.sid.getBytes
+//    val encodedGeom = WKBUtils.write(entry.geometry)
+//    val encodedDtg = entry.dt.map(dtg => ByteBuffer.allocate(8).putLong(dtg.getMillis).array()).getOrElse(Array[Byte]())
+//
+//    new Value(
+//               ByteBuffer.allocate(4).putInt(encodedId.length).array() ++ encodedId ++
+//               ByteBuffer.allocate(4).putInt(encodedGeom.length).array() ++ encodedGeom ++
+//               encodedDtg)
+//  }
+//
+//  def decodeIndexValue(v: Value): DecodedIndexValue = {
+//    val buf = v.get()
+//    val idLength = ByteBuffer.wrap(buf, 0, 4).getInt
+//    val (idPortion, geomDatePortion) = buf.drop(4).splitAt(idLength)
+//    val id = new String(idPortion)
+//    val geomLength = ByteBuffer.wrap(geomDatePortion, 0, 4).getInt
+//    if(geomLength < (geomDatePortion.length - 4)) {
+//      val (l,r) = geomDatePortion.drop(4).splitAt(geomLength)
+//      DecodedIndexValue(id, WKBUtils.read(l), Some(ByteBuffer.wrap(r).getLong))
+//    } else {
+//      DecodedIndexValue(id, WKBUtils.read(geomDatePortion.drop(4)), None)
+//    }
+//  }
+//
+//  case class DecodedIndexValue(id: String, geom: Geometry, dtgMillis: Option[Long])
 }
 
 case class IndexEntryEncoder(rowf: TextFormatter,

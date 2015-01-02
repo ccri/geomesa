@@ -56,4 +56,3 @@ geomesa export $ACC_OPTS -c ${CATALOG} -fn ${FEATURENAME} -fmt shp -max ${MAXFEA
 # clean up previous temp feature
 geomesa delete $ACC_OPTS --force -c ${CREATE_CATALOG} -fn ${CREATE_FEATURENAME}
 geomesa list $ACC_OPTS -c ${CREATE_CATALOG}
-

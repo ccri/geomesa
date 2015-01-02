@@ -24,7 +24,7 @@ import com.google.common.collect._
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom._
 import org.apache.accumulo.core.client.IteratorSetting
-import org.apache.accumulo.core.data.{Key, Value}
+import org.apache.accumulo.core.data.{ByteSequence, Key, Value, Range => ARange}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.apache.commons.codec.binary.Base64
 import org.geotools.feature.simple.SimpleFeatureBuilder

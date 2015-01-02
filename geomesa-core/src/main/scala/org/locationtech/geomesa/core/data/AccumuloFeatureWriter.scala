@@ -198,6 +198,8 @@ class ModifyAccumuloFeatureWriter(featureType: SimpleFeatureType,
   override def remove() =
     if (original != null) {
       removers.foreach { r => r(original, original.getUserData.getOrElse(security.SecurityUtils.FEATURE_VISIBILITY, visibility).asInstanceOf[String]) }
+//      removers.foreach { r => r(original)} // TODO not in 1.5 (line above is 1.5)
+//      multiBWWriter.flush() // TODO not in 1.5 either
     }
 
   override def hasNext = reader.hasNext

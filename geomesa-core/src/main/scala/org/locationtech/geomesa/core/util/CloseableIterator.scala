@@ -87,6 +87,16 @@ trait CloseableIterator[+A] extends Iterator[A] {
       iterHasNext
     }
 
+    // TODO not in 1.5
+    private def innerHasNext: Boolean =
+      cur.hasNext || self.hasNext && { advanceClosing(); hasNext }
+
+    // TODO not in 1.5
+    private def advanceClosing() = {
+      if (cur != empty) cur.close()
+      cur = f(self.next())
+    }
+
     def next(): B = (if (hasNext) cur else empty).next()
 
     def close() = { cur.close(); self.close() }

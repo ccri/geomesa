@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 import org.locationtech.geomesa.core.data.tables.SpatioTemporalTable
-import org.locationtech.geomesa.utils.stats.MethodProfiling
+import org.locationtech.geomesa.core.stats.MethodProfiling
 
 /**
  * This is an Index Only Iterator, to be used in situations where the data records are
@@ -50,6 +50,63 @@ class IndexIterator
   }
 
   override def setTopConditionally() = {
+    // TODO possible merge error, the below was in the rc4 merge
+//    TServerClassLoader.initClassLoader(logger)
+//
+//    val simpleFeatureTypeSpec = options.get(GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
+//
+//    val featureType = SimpleFeatureTypes.createType(this.getClass.getCanonicalName, simpleFeatureTypeSpec)
+//    featureType.decodeUserData(options, GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE)
+//
+//    indexEncoder = IndexValueEncoder(featureType)
+//
+//    dateAttributeName = getDtgFieldName(featureType)
+//
+//    // default to text if not found for backwards compatibility
+//    val encodingOpt = Option(options.get(FEATURE_ENCODING)).getOrElse(FeatureEncoding.TEXT.toString)
+//    featureEncoder = SimpleFeatureEncoder(featureType, encodingOpt)
+//
+//    featureBuilder = AvroSimpleFeatureFactory.featureBuilder(featureType)
+//
+//    // TODO not in 1.5
+////    val schemaEncoding = options.get(DEFAULT_SCHEMA_NAME)
+////    decoder = IndexSchema.getIndexEntryDecoder(schemaEncoding)
+//
+//    if (options.containsKey(DEFAULT_FILTER_PROPERTY_NAME)) {
+//      val filterString  = options.get(DEFAULT_FILTER_PROPERTY_NAME)
+//      filter = ECQL.toFilter(filterString)
+//      val sfb = new SimpleFeatureBuilder(featureType)
+//      testSimpleFeature = sfb.buildFeature("test")
+//    }
+//
+//    if (options.containsKey(DEFAULT_CACHE_SIZE_NAME))
+//      maxInMemoryIdCacheEntries = options.get(DEFAULT_CACHE_SIZE_NAME).toInt
+//    deduplicate = IndexSchema.mayContainDuplicates(featureType)
+//
+//    this.indexSource = source.deepCopy(env)
+//  }
+//
+//  /**
+//   * Generates from the key's value a SimpleFeature that matches the current
+//   * (top) reference of the index-iterator.
+//   *
+//   * We emit the top-key from the index-iterator, and the top-value from the
+//   * converted key value.  This is *IMPORTANT*, as otherwise we do not emit rows
+//   * that honor the SortedKeyValueIterator expectation, and Bad Things Happen.
+//   */
+//  override def seekData(decodedValue: DecodedIndexValue) {
+//    // now increment the value of nextKey, copy because reusing it is UNSAFE
+//    nextKey = new Key(indexSource.getTopKey)
+//    // using the already decoded index value, generate a SimpleFeature and set as the Value
+//    val nextSimpleFeature = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue)
+////    val nextSimpleFeature = IndexIterator.encodeIndexValueToSF(featureBuilder, decodedValue.id,
+////      decodedValue.geom, decodedValue.dtgMillis) // TODO not in 1.5
+//    nextValue = new Value(featureEncoder.encode(nextSimpleFeature))
+//  }
+//
+//  override def deepCopy(env: IteratorEnvironment) =
+//    throw new UnsupportedOperationException("IndexIterator does not support deepCopy.")
+//}
 
     val indexKey = source.getTopKey
 

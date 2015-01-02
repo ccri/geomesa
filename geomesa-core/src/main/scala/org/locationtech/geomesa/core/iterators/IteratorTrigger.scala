@@ -208,4 +208,3 @@ object IteratorTrigger extends Logging {
     }
   }
 }
-

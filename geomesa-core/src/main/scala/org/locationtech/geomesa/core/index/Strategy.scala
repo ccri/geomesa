@@ -106,6 +106,7 @@ trait Strategy {
       classOf[RecordTableIterator].getSimpleName,
       classOf[RecordTableIterator]
     )
+    //    cfg.addOption(DEFAULT_SCHEMA_NAME, schema) // TODO not in 1.5, line DNE there
     configureFeatureType(cfg, simpleFeatureType)
     configureFeatureEncoding(cfg, featureEncoding)
     configureEcqlFilter(cfg, ecql.map(ECQL.toCQL))

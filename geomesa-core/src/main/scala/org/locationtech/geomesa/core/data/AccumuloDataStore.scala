@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSortedSet
 import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.client._
 import org.apache.accumulo.core.client.admin.TimeType
+import org.apache.accumulo.core.client.mock.MockConnector
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.file.keyfunctor.{ColumnFamilyFunctor, RowFunctor}
@@ -299,9 +300,11 @@ class AccumuloDataStore(val connector: Connector,
 
     List(spatioTemporalIdxTable, attributeIndexTable, recordTable).foreach(ensureTableExists)
 
-    configureRecordTable(featureType, recordTable)
-    configureAttrIdxTable(featureType, attributeIndexTable)
-    configureSpatioTemporalIdxTable(maxShard, featureType, spatioTemporalIdxTable)
+    if (!connector.isInstanceOf[MockConnector]) {
+      configureRecordTable(featureType, recordTable)
+      configureAttrIdxTable(featureType, attributeIndexTable)
+      configureSpatioTemporalIdxTable(maxShard, featureType, spatioTemporalIdxTable)
+    }
   }
 
   private def ensureTableExists(table: String) =
@@ -688,14 +691,15 @@ class AccumuloDataStore(val connector: Connector,
    * @param featureName
    * @return
    */
-  private def getAttributes(featureName: String) = metadata.read(featureName, ATTRIBUTES_KEY)
+  private def getAttributes(featureName: String) = metadata.read(featureName, ATTRIBUTES_KEY) //.getOrElse(EMPTY_STRING)
 
   /**
    * Reads the feature encoding from the metadata. Defaults to TEXT if there is no metadata.
    */
   def getFeatureEncoding(sft: SimpleFeatureType): FeatureEncoding = {
-    metadata.read(sft.getTypeName, FEATURE_ENCODING_KEY)
-      .map(FeatureEncoding.withName).getOrElse(FeatureEncoding.TEXT)
+      metadata
+        .read(sft.getTypeName, FEATURE_ENCODING_KEY)
+        .map(FeatureEncoding.withName).getOrElse(FeatureEncoding.TEXT)
   }
 
   // We assume that they want the bounds for everything.
@@ -786,6 +790,15 @@ class AccumuloDataStore(val connector: Connector,
     }
   }
 
+  // TODO not in 1.5
+  private def getNewBounds(env: String, featureName: String, bounds: ReferencedEnvelope) = {
+    val oldBounds = stringToReferencedEnvelope(env,
+                                                getSchema(featureName).getCoordinateReferenceSystem)
+    val projBounds = bounds.transform(oldBounds.getCoordinateReferenceSystem, true)
+    projBounds.expandToInclude(oldBounds)
+    projBounds
+  }
+
   /**
    * Implementation of abstract method
    *
@@ -859,7 +872,7 @@ class AccumuloDataStore(val connector: Connector,
     logger.trace(s"Creating ST batch scanner with $numThreads threads")
     if (getGeomesaVersion(sft) > 0) {
       connector.createBatchScanner(getSpatioTemporalIdxTableName(sft),
-                                   authorizationsProvider.getAuthorizations,
+                                   authorizationsProvider.getAuthorizations, 
                                    numThreads)
     } else {
       connector.createBatchScanner(catalogTable, authorizationsProvider.getAuthorizations, numThreads)

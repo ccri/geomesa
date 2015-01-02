@@ -22,4 +22,3 @@ val result = a
 println("%f seconds".format( (System.nanoTime - now) / 1000000000.0 ))
 result }
 */
-
