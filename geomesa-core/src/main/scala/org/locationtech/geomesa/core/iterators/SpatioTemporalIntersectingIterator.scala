@@ -198,7 +198,11 @@ class SpatioTemporalIntersectingIterator
    * data-iterator.  This is *IMPORTANT*, as otherwise we do not emit rows
    * that honor the SortedKeyValueIterator expectation, and Bad Things Happen.
    */
+<<<<<<< HEAD
   def seekData(indexValue: DecodedIndexValue) {
+=======
+  def seekData(indexValue: DecodedIndex) {
+>>>>>>> f_wcs_4
     val nextId = indexValue.id
     curId = new Text(nextId)
     val indexSourceTopKey = indexSource.getTopKey

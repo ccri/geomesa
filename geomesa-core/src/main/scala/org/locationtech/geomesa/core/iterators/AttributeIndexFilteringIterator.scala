@@ -59,10 +59,17 @@ class AttributeIndexFilteringIterator extends Filter with Logging with WrappedST
     copy
   }
 
+<<<<<<< HEAD
   override def accept(k: Key, v: Value): Boolean =
     indexEncoder == null || { // if index encoder is not set, wrapped filter will be a no-op
       val decoded = indexEncoder.decode(v.get())
       wrappedSTFilter(decoded.geom, decoded.date.map(_.getTime))
     }
+=======
+  override def accept(k: Key, v: Value): Boolean = {
+    val DecodedIndex(_, geom, dtgOpt) = IndexEntry.decodeIndexValue(v)
+    wrappedSTFilter(geom, dtgOpt)
+  }
+>>>>>>> f_wcs_4
 }
 

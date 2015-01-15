@@ -90,7 +90,11 @@ class IndexIterator extends SpatioTemporalIntersectingIterator with SortedKeyVal
    * converted key value.  This is *IMPORTANT*, as otherwise we do not emit rows
    * that honor the SortedKeyValueIterator expectation, and Bad Things Happen.
    */
+<<<<<<< HEAD
   override def seekData(decodedValue: DecodedIndexValue) {
+=======
+  override def seekData(decodedValue: DecodedIndex) {
+>>>>>>> f_wcs_4
     // now increment the value of nextKey, copy because reusing it is UNSAFE
     nextKey = new Key(indexSource.getTopKey)
     // using the already decoded index value, generate a SimpleFeature and set as the Value
