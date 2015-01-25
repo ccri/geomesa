@@ -111,6 +111,9 @@ object RasterUtils {
     val scaled = rescaleBufferedImage(mosaicXres, mosaicYres, cropped)
     val originX = Math.ceil((rasterEnv.getMinX - env.getMinimum(0)) / mosaicXres).toInt
     val originY = Math.ceil((env.getMaximum(1) - rasterEnv.getMaxY) / mosaicYres).toInt
+
+    println(s"In PopulateMosaic: mosaicX/Yres: $mosaicXres/$mosaicYres new origin $originX $originY")
+
     mosaic.getRaster.setRect(originX, originY, scaled.getData)
     scaled.flush()
   }
@@ -120,23 +123,35 @@ object RasterUtils {
     if (chunks.isEmpty) {
       getEmptyImage(queryWidth, queryHeight)
     } else {
-      val rescaleX = resX / (queryEnv.getSpan(0) / queryWidth)
-      val rescaleY = resY / (queryEnv.getSpan(1) / queryHeight)
-      val imageWidth = Math.max(Math.round(queryWidth / rescaleX), 1).toInt
-      val imageHeight = Math.max(Math.round(queryHeight / rescaleY), 1).toInt
+      // Why are we calculating this?
+//      val rescaleX = resX / (queryEnv.getSpan(0) / queryWidth)
+//      val rescaleY = resY / (queryEnv.getSpan(1) / queryHeight)
+//      val imageWidth = Math.max(Math.round(queryWidth / rescaleX), 1).toInt
+//      val imageHeight = Math.max(Math.round(queryHeight / rescaleY), 1).toInt
+
+      println(s"In evenBetterMosaic: rescaleX/y: $resX/$resY $queryWidth $queryHeight")
+
       val firstRaster = chunks.next()
-      val mosaic = allocateBufferedImage(imageWidth, imageHeight, firstRaster.chunk)
+      val mosaic = allocateBufferedImage(queryWidth, queryHeight, firstRaster.chunk)
       populateMosaic(mosaic, firstRaster, queryEnv, resX, resY)
       while (chunks.hasNext) {
         populateMosaic(mosaic, chunks.next(), queryEnv, resX, resY)
       }
-      rescaleBufferedImage(rescaleX, rescaleY, mosaic)
+
+      println(s"Rescaling result $resX/$resY")
+
+      rescaleBufferedImage(resX, resY, mosaic)
     }
   }
 
+  // We will 'plug and play' here.
+  // rescaleX/Y should be the desired resolution:
   def rescaleBufferedImage(rescaleX: Double, rescaleY: Double, image: BufferedImage): BufferedImage = {
     val xScaled = (image.getWidth * rescaleX).toInt
     val yScaled = (image.getHeight * rescaleY).toInt
+
+    // We should
+    println(s"In rescale: Scaling ${image.getWidth} x ${image.getHeight} to $xScaled x $yScaled}")
     val result = resize(image, Method.SPEED, xScaled, yScaled, null)
     image.flush()
     result
