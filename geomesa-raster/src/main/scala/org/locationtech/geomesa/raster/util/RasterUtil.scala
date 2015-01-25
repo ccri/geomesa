@@ -108,7 +108,9 @@ object RasterUtils {
     val mosaicXres = env.getSpan(0) / mosaic.getWidth
     val mosaicYres = env.getSpan(1) / mosaic.getHeight
     val cropped = cropRaster(raster, env)
-    val scaled = rescaleBufferedImage(mosaicXres, mosaicYres, cropped)
+
+    val scaled = rescaleBufferedImage(mosaicXres, mosaicYres, cropped, raster.resolution)
+
     val originX = Math.ceil((rasterEnv.getMinX - env.getMinimum(0)) / mosaicXres).toInt
     val originY = Math.ceil((env.getMaximum(1) - rasterEnv.getMaxY) / mosaicYres).toInt
 
@@ -140,15 +142,18 @@ object RasterUtils {
 
       println(s"Rescaling result $resX/$resY")
 
-      rescaleBufferedImage(resX, resY, mosaic)
+      //rescaleBufferedImage(resX, resY, mosaic)
+      // Is any more scaling required?
+      mosaic
     }
   }
 
   // We will 'plug and play' here.
   // rescaleX/Y should be the desired resolution:
-  def rescaleBufferedImage(rescaleX: Double, rescaleY: Double, image: BufferedImage): BufferedImage = {
-    val xScaled = (image.getWidth * rescaleX).toInt
-    val yScaled = (image.getHeight * rescaleY).toInt
+  // originalRes gives us our scale!
+  def rescaleBufferedImage(targetResX: Double, targetResY: Double, image: BufferedImage, originalRes: Double): BufferedImage = {
+    val xScaled = (image.getWidth * targetResX / originalRes).toInt
+    val yScaled = (image.getHeight * targetResY / originalRes).toInt
 
     // We should
     println(s"In rescale: Scaling ${image.getWidth} x ${image.getHeight} to $xScaled x $yScaled}")
