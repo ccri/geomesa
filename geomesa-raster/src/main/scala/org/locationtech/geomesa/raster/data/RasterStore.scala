@@ -16,9 +16,8 @@
 
 package org.locationtech.geomesa.raster.data
 
-import java.awt.image.BufferedImage
-
-import org.geotools.coverage.grid.GridEnvelope2D
+import com.google.common.collect.ImmutableSetMultimap
+import org.geotools.coverage.grid.{GridCoverage2D, GridEnvelope2D}
 import org.locationtech.geomesa.raster.AccumuloStoreHelper
 import org.locationtech.geomesa.utils.geohash.BoundingBox
 
@@ -42,8 +41,8 @@ class RasterStore(val rasterOps: RasterOperations) {
 
   def getTable = rasterOps.getTable
 
-  def getMosaicedRaster(rasterQuery: RasterQuery, params: GeoMesaCoverageQueryParams): BufferedImage =
-    rasterOps.getMosaicedRaster(rasterQuery, params)
+  def getMosaicedRaster(rasterQuery: RasterQuery, params: GeoMesaCoverageQueryParams): GridCoverage2D =
+    rasterOps.getMosaicedCoverage(rasterQuery, params)
 
   def getRasters(rasterQuery: RasterQuery): Iterator[Raster] = rasterOps.getRasters(rasterQuery)
 
@@ -54,6 +53,10 @@ class RasterStore(val rasterOps: RasterOperations) {
   def getBounds(): BoundingBox = rasterOps.getBounds()
 
   def getAvailableResolutions(): Seq[Double] = rasterOps.getAvailableResolutions()
+
+  def getAvailableGeoHashLengths(): Seq[Int] = rasterOps.getAvailableGeoHashLengths()
+  
+  def getAvailabilityMap(): ImmutableSetMultimap[Double, Int] = rasterOps.getResolutionAndGeoHashLengthMap()
 
   def getGridRange(): GridEnvelope2D = rasterOps.getGridRange()
 }

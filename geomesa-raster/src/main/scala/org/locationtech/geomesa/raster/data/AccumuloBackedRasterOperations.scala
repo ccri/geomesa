@@ -16,13 +16,13 @@
 
 package org.locationtech.geomesa.raster.data
 
-import java.awt.image.BufferedImage
 import java.util.Map.Entry
 
+import com.google.common.collect.ImmutableSetMultimap
 import org.apache.accumulo.core.client.{BatchWriterConfig, Connector, TableExistsException}
 import org.apache.accumulo.core.data.{Key, Mutation, Range, Value}
 import org.apache.accumulo.core.security.{Authorizations, TablePermission}
-import org.geotools.coverage.grid.GridEnvelope2D
+import org.geotools.coverage.grid.{GridCoverage2D, GridEnvelope2D}
 import org.joda.time.DateTime
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.core.iterators.BBOXCombiner._
@@ -49,8 +49,10 @@ trait RasterOperations extends StrategyHelpers {
   def putRaster(raster: Raster): Unit
   def getBounds(): BoundingBox
   def getAvailableResolutions(): Seq[Double]
+  def getAvailableGeoHashLengths(): Seq[Int]
+  def getResolutionAndGeoHashLengthMap(): ImmutableSetMultimap[Double, Int]
   def getGridRange(): GridEnvelope2D
-  def getMosaicedRaster(query: RasterQuery, params: GeoMesaCoverageQueryParams): BufferedImage
+  def getMosaicedCoverage(query: RasterQuery, params: GeoMesaCoverageQueryParams): GridCoverage2D
 }
 
 /**
@@ -112,15 +114,16 @@ class AccumuloBackedRasterOperations(val connector: Connector,
     writeMutations(GEOMESA_RASTER_BOUNDS_TABLE, createBoundsMutation(raster))
   }
 
-  def getMosaicedRaster(query: RasterQuery, params: GeoMesaCoverageQueryParams) = {
+  def getMosaicedCoverage(query: RasterQuery, params: GeoMesaCoverageQueryParams) = {
     implicit val timings = new TimingsImpl
     val rasters = getRastersWithTiming(query)
 
     val (image, numRasters) = profile("mosaic") {
-      RasterUtils.mosaicChunks(rasters,
+      RasterUtils.mosaicChunksToCoverage(rasters,
                                 params.height.toInt,
                                 params.width.toInt,
-                                params.envelope)
+                                params.envelope,
+                                rasterTable)
     }
     val stat = RasterQueryStat(rasterTable,
       System.currentTimeMillis(),
@@ -136,7 +139,7 @@ class AccumuloBackedRasterOperations(val connector: Connector,
   def getRastersWithTiming(rasterQuery: RasterQuery)(implicit timings: TimingsImpl): Iterator[Raster] = {
     profile("scanning") {
       val batchScanner = connector.createBatchScanner(rasterTable, authorizationsProvider.getAuthorizations, numQThreads)
-      val plan = profile(queryPlanner.getQueryPlan(rasterQuery, getAvailableResolutions.toList), "planning")
+      val plan = profile(queryPlanner.getQueryPlan(rasterQuery, getResolutionAndGeoHashLengthMap), "planning")
       configureBatchScanner(batchScanner, plan)
       adaptIteratorToChunks(SelfClosingBatchScanner(batchScanner))
     }
@@ -145,7 +148,7 @@ class AccumuloBackedRasterOperations(val connector: Connector,
   // Consider a no-op timing option to unify getRasters(WithTiming) https://geomesa.atlassian.net/browse/GEOMESA-672
   def getRasters(rasterQuery: RasterQuery): Iterator[Raster] = {
     val batchScanner = connector.createBatchScanner(rasterTable, authorizationsProvider.getAuthorizations, numQThreads)
-    val plan = queryPlanner.getQueryPlan(rasterQuery, getAvailableResolutions.toList)
+    val plan = queryPlanner.getQueryPlan(rasterQuery, getResolutionAndGeoHashLengthMap)
     configureBatchScanner(batchScanner, plan)
     adaptIteratorToChunks(SelfClosingBatchScanner(batchScanner))
   }
@@ -169,12 +172,25 @@ class AccumuloBackedRasterOperations(val connector: Connector,
   }
 
   def getAvailableResolutions(): Seq[Double] = {
-  // TODO: Consider adding resolutions + extent info  https://geomesa.atlassian.net/browse/GEOMESA-645
+    // TODO: Consider adding resolutions + extent info  https://geomesa.atlassian.net/browse/GEOMESA-645
+    getResolutionAndGeoHashLengthMap().keySet.toSeq.sorted
+  }
+
+  def getAvailableGeoHashLengths(): Seq[Int] = {
+    getResolutionAndGeoHashLengthMap().values.toSeq.distinct
+  }
+
+  def getResolutionAndGeoHashLengthMap(): ImmutableSetMultimap[Double, Int] = {
+    //TODO: This needs to be a MultiMap
     ensureTableExists(GEOMESA_RASTER_BOUNDS_TABLE)
     val scanner = connector.createScanner(GEOMESA_RASTER_BOUNDS_TABLE, getAuths())
     scanner.setRange(new Range(getBoundsRowID))
-    val scanResultingCQs = SelfClosingScanner(scanner).map(_.getKey.getColumnQualifier.toString)
-    scanResultingCQs.toSeq.distinct.map(lexiDecodeStringToDouble)
+    val scanResultingKeys = SelfClosingScanner(scanner).map(_.getKey).toSeq
+    val geohashlens = scanResultingKeys.map(_.getColumnFamily.toString).map(lexiDecodeStringToInt)
+    val resolutions = scanResultingKeys.map(_.getColumnQualifier.toString).map(lexiDecodeStringToDouble)
+    val m = new ImmutableSetMultimap.Builder[Double, Int]()
+    (resolutions zip geohashlens).foreach(x => m.put(x._1, x._2))
+    m.build()
   }
 
   def getGridRange(): GridEnvelope2D = {
@@ -211,9 +227,12 @@ class AccumuloBackedRasterOperations(val connector: Connector,
   private def dateToAccTimestamp(dt: DateTime): Long =  dt.getMillis / 1000
 
   private def createBoundsMutation(raster: Raster): Mutation = {
+    // write the bounds mutation
     val mutation = new Mutation(getBoundsRowID)
     val value = bboxToValue(BoundingBox(raster.metadata.geom.getEnvelopeInternal))
-    mutation.put("", lexiEncodeDoubleToString(raster.resolution), value)
+    val resolution = lexiEncodeDoubleToString(raster.resolution)
+    val geohashlen = lexiEncodeIntToString(raster.minimumBoundingGeoHash.map( _.hash ).getOrElse("").length)
+    mutation.put(geohashlen, resolution, value)
     mutation
   }
 
