@@ -52,11 +52,26 @@ class RasterChunking(config: Map[String, Option[String]]) extends RasterIngest {
     val rasterReader = getReader(new File(file), fileType)
     val rasterGrid: GridCoverage2D = rasterReader.read(null)
     val envelope = rasterGrid.getEnvelope2D
-    val bbox = BoundingBox(envelope.getMinX, envelope.getMaxX, envelope.getMinY, envelope.getMaxY)
+
+    val minX = math.max(envelope.getMinX, -180.0)
+    val minY = math.max(envelope.getMinY, -90.0)
+    val maxX = math.min(envelope.getMaxX, 180.0)
+    val maxY = math.min(envelope.getMaxY, 89.9999)
+
+    println(s"Original envelope: $envelope}")
+    println(s"MinX/Y: ($minX, $minY) MaxX/Y: ($maxX, $maxY)")
+
+    //val bbox = BoundingBox(envelope.getMinX, envelope.getMaxX, envelope.getMinY, envelope.getMaxY)
+    val bbox = BoundingBox(minX, maxX, minY, maxY)
+
     val (gridStepX, gridStepY) = RasterChunking.getSteps(rasterGrid)
     val chunkPrec = RasterChunking.GetGeoHashPrecisionBySize(rasterGrid, size)
-    val llGh = GeoHash(envelope.getMinX, envelope.getMinY, chunkPrec)
-    val urGh = GeoHash(envelope.getMaxX, envelope.getMaxY, chunkPrec)
+
+//    val llGh = GeoHash(envelope.getMinX, envelope.getMinY, chunkPrec)
+//    val urGh = GeoHash(envelope.getMaxX, envelope.getMaxY, chunkPrec)
+    val llGh = GeoHash(minX, minY, chunkPrec)
+    val urGh = GeoHash(maxX, maxY, chunkPrec)
+
     val (llX, llY, urX, urY) = (llGh.getPoint.getX, llGh.getPoint.getY, urGh.getPoint.getX, urGh.getPoint.getY)
     val (deltaX, deltaY) = ((llGh.bbox.ur.getX - llGh.bbox.ll.getX), (llGh.bbox.ur.getY - llGh.bbox.ll.getY))
     val (stepsX, stepsY) = (Math.ceil((urX - llX) / deltaX).toInt, Math.ceil((urY - llY) / deltaY).toInt)
@@ -76,6 +91,7 @@ class RasterChunking(config: Map[String, Option[String]]) extends RasterIngest {
         if (maxX > minX && maxY > minY) {
           val cmd = Seq("gdal_translate", "-q", "-of", "GTIFF", "-projwin", s"${minX}", s"${maxY}",
             s"${maxX}", s"${minY}", file, s"${outDir}/gh_${geoHash.hash}.tif")
+          println(s"Running command: ${cmd.mkString(" ")}")
           cmd.!!
         }
       }

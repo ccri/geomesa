@@ -36,8 +36,8 @@ case class GeoHash private(x: Double,
                            bitset: BitSet,
                            prec: Int, // checked in factory methods in companion object
                            private val optHash: Option[String]) extends Comparable[GeoHash] {
-  require(x >= -180.0 && x <= 180.0)
-  require(y >= -90.0  && y <= 90.0)
+  require(x >= -180.0 && x <= 180.0, s"x: $x is out of bounds.")
+  require(y >= -90.0  && y <= 90.0, s"y: $y is out of bounds.")
 
   import org.locationtech.geomesa.utils.geohash.GeoHash._
 
