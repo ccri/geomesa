@@ -1,6 +1,5 @@
 angular.module('geomesa', [
     'ngRoute',
-    'ngAnimate',
     'templates-app',
     'geomesa.home'
 ])

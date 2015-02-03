@@ -40,6 +40,8 @@ module.exports = {
             'vendor/bower/angular-route/angular-route.js',
             'vendor/bower/moment/moment.js',
             'vendor/bower/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js',
+            'vendor/bower/leaflet-dist/leaflet.js',
+            'vendor/bower/leaflet-providers/leaflet-providers.js',
             // TODO - test only
             'vendor/bower/angular-mocks/angular-mocks.js',
         ],
