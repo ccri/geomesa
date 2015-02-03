@@ -179,6 +179,16 @@ module.exports = function (grunt) {
         }
     });
 
+    grunt.config('connect', {
+        server: {
+            options: {
+                base: '<%= buildDir %>/',
+                port: grunt.option('port') || 8080,
+                hostname: '0.0.0.0'
+            }
+        }
+    });
+
     function filterForJS ( files ) {
         return files.filter( function ( file ) {
             return file.match( /\.js$/ );
@@ -246,6 +256,8 @@ module.exports = function (grunt) {
     grunt.registerTask('watch', ['build', 'karma:spec', 'delta']);
     // Register tasks.
     grunt.registerTask('default', 'build');
+
+    grunt.registerTask('server', ['connect', 'watch']);
 
     grunt.registerTask('build', [
         // 'clean',

@@ -5,11 +5,12 @@
     "angular": "~1.2.13",
     "angular-mocks": "~1.2.13",
     "angular-route": "~1.2.13",
-    "angular-animate": "~1.2.13",
     "bootstrap": "~3.1.1",
     "d3": "~3.4.2",
     "jquery": "~2.1.0",
     "font-awesome": "~4.0.3",
-    "lodash": "~2.4.1"
+    "lodash": "~2.4.1",
+    "moment": "~2.7.0",
+    "moment-timezone": "~0.1.0"
   }
 }

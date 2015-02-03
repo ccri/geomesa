@@ -3,11 +3,11 @@
 module.exports = {
     
     // Where the project is build during development.
-    buildDir: '../../../target/*SNAPSHOT',
+    buildDir: '../../../dist',
 
     // The location of the html page that will be built.
     // Change if needed...
-    indexDest: 'WEB-INF/views/index.ssp',
+    indexDest: 'index.html',
 
     // Where project is compiled for deployment.
     compileDir: 'deploy',
@@ -38,7 +38,8 @@ module.exports = {
             'vendor/bower/jquery/dist/jquery.js',
             'vendor/bower/angular/angular.js',
             'vendor/bower/angular-route/angular-route.js',
-            'vendor/bower/angular-animate/angular-animate.js',
+            'vendor/bower/moment/moment.js',
+            'vendor/bower/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js',
             // TODO - test only
             'vendor/bower/angular-mocks/angular-mocks.js',
         ],
