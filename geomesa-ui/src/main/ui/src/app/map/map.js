@@ -5,12 +5,13 @@ angular.module('geomesa.map', [])
             restrict: 'E',
             scope: {
                 map: '=?',
-                api: '='
+                api: '=',
+                selectedPoint: '='
             },
             link: function (scope, element, attrs) {
                 var baseLayer = L.tileLayer.provider('Stamen.TonerLite'),
-                    wmsLayer = L.tileLayer.wms("http://dgeo/geoserver/tiger/wms", {
-                        layers: 'tiger:QuickStart',
+                    wmsLayer = L.tileLayer.wms("http://dgeo:8080/geoserver/sf/wms", {
+                        layers: 'sf:bugsites',
                         format: 'image/png',
                         transparent: true
                     });
@@ -22,6 +23,15 @@ angular.module('geomesa.map', [])
                     minZoom: 3,
                     attributionControl: false,
                     layers: [baseLayer, wmsLayer]
+                });
+
+                scope.map.on('click', function (evt) {
+                    scope.$apply(function () {
+                        scope.selectedPoint = {
+                            lat: evt.latlng.lat,
+                            lng: evt.latlng.lng
+                        };
+                    });
                 });
 
                 scope.api = {

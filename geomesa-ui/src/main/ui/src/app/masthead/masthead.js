@@ -11,7 +11,6 @@ angular.module('geomesa.masthead', [])
                 scope.cqlHolder = '';
                 scope.submitCQL = function () {
                     scope.cql = scope.cqlHolder;
-                    scope.cqlHolder = '';
                 };
             }
         };
