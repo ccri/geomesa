@@ -33,7 +33,7 @@ angular.module('geomesa.card', [])
                         params = {
                             REQUEST: "GetFeatureInfo",
                             EXCEPTIONS: "application/vnd.ogc.se_xml",
-                            BBOX: (p.lng - 5.5) + ',' + (p.lat + 5.5) + ',' + (p.lng + 5.5) + ',' + (p.lat - 5.5),
+                            BBOX: (p.lng - 0.5) + ',' + (p.lat + 0.5) + ',' + (p.lng + 0.5) + ',' + (p.lat - 0.5),
                             SERVICE: "WMS",
                             INFO_FORMAT: 'application/json',
                             QUERY_LAYERS: 'sf:bugsites',
