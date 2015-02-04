@@ -1,8 +1,16 @@
 angular.module('geomesa', [
     'ngRoute',
+    'ngResource',
     'templates-app',
     'geomesa.home'
 ])
+
+    .factory('WFSResource', ['$resource', function ($resource) {
+        return $resource('dgeo:8080/geoserver/sf/wms', {}, {
+            wfsRequest: {method: 'POST', isArray: true}
+        });
+    }])
+
     .config(['$routeProvider', function ($routeProvider) {
         // Configure route provider to transform any undefined hashes to /home.
         $routeProvider.otherwise({redirectTo: '/home'});

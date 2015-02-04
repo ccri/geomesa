@@ -38,6 +38,7 @@ module.exports = {
             'vendor/bower/jquery/dist/jquery.js',
             'vendor/bower/angular/angular.js',
             'vendor/bower/angular-route/angular-route.js',
+            'vendor/bower/angular-resource/angular-resource.js',
             'vendor/bower/moment/moment.js',
             'vendor/bower/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js',
             'vendor/bower/leaflet-dist/leaflet.js',
