@@ -181,8 +181,7 @@ class MosaicTest extends Specification {
       testMosaic must beAnInstanceOf[RenderedImage]
       testMosaic.getHeight mustEqual 600
       testMosaic.getWidth mustEqual 200
-
-    }
+    }.pendingUntilFixed
   }
 
 }
