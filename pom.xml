@@ -71,6 +71,9 @@
         <fork.mode>once</fork.mode>
         <avro.version>1.7.5</avro.version>
         <accumuloSuffix>accumulo1.5</accumuloSuffix>
+
+        <!-- deploy settings -->
+        <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     </properties>
 
     <profiles>
@@ -966,9 +969,9 @@
     </build>
 
     <scm>
-        <connection>scm:git:git@github.com:locationtech/geomesa.git</connection>
-        <developerConnection>scm:git:git@github.com:locationtech/geomesa.git</developerConnection>
-        <url>https://github.com/locationtech/geomesa</url>
+        <connection>scm:git:git@github.com:ccri/geomesa.git</connection>
+        <developerConnection>scm:git:git@github.com:ccri/geomesa.git</developerConnection>
+        <url>https://github.com/ccri/geomesa</url>
         <tag>HEAD</tag>
     </scm>
 
