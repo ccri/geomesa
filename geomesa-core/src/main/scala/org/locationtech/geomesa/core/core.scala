@@ -16,6 +16,8 @@
 
 package org.locationtech.geomesa
 
+import scala.collection.{immutable, mutable}
+
 package object core {
 
   // This first string is used as a SimpleFeature attribute name.
@@ -43,5 +45,36 @@ package object core {
   val GEOMESA_ITERATORS_TRANSFORM           = "geomesa.iterators.transform"
   val GEOMESA_ITERATORS_TRANSFORM_SCHEMA    = "geomesa.iterators.transform.schema"
   val GEOMESA_ITERATORS_IS_DENSITY_TYPE     = "geomesa.iterators.is-density-type"
+
+  /**
+   * Sums the values by key and returns a map containing all of the keys in the maps, with values
+   * equal to the sum of all of the values for that key in the maps.
+   * Sums with and aggregates the valueMaps into the aggregateInto map.
+   * @param valueMaps
+   * @param aggregateInto
+   * @param num
+   * @tparam K
+   * @tparam V
+   * @return the modified aggregateInto map containing the summed values
+   */
+  private[core] def sumNumericValueMutableMaps[K, V](valueMaps: Iterable[collection.Map[K,V]],
+                                                     aggregateInto: mutable.Map[K,V] = mutable.Map[K,V]())
+                                                    (implicit num: Numeric[V]): mutable.Map[K, V] =
+    if(valueMaps.isEmpty) aggregateInto
+    else {
+      valueMaps.flatten.foldLeft(aggregateInto.withDefaultValue(num.zero)) { case (mapSoFar, (k, v)) =>
+        mapSoFar += ((k, num.plus(v, mapSoFar(k))))
+      }
+    }
+
+  private[core] def sumImmutableNumericValueMutableMaps[K, V](valueMaps: Iterable[collection.Map[K,V]])
+                                                             (implicit num: Numeric[V]): immutable.Map[K, V] = {
+    if(valueMaps.isEmpty) Map.empty[K, V]
+    else {
+      valueMaps.flatten.foldLeft(Map.empty[K, V].withDefaultValue(num.zero)) { case (mapSoFar, (k, v)) =>
+        mapSoFar.updated(k, num.plus(v, mapSoFar(k)))
+      }
+    }
+  }
 
 }
