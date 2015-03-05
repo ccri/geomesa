@@ -16,7 +16,6 @@
 
 package org.locationtech.geomesa.core.stats
 
-import org.apache.accumulo.core.client.BatchWriterConfig
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.security.Authorizations

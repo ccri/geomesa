@@ -19,11 +19,10 @@ package org.locationtech.geomesa.core.iterators
 import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
-import org.apache.accumulo.core.client.{BatchWriterConfig, Connector, IteratorSetting}
+import org.apache.accumulo.core.client.{Connector, IteratorSetting}
 import org.apache.accumulo.core.data.Mutation
 import org.apache.hadoop.io.Text
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.core.data.METADATA_TAG
 import org.locationtech.geomesa.core.iterators.TestData._
 import org.locationtech.geomesa.core.util.GeoMesaBatchWriterConfig
 import org.specs2.mutable.Specification

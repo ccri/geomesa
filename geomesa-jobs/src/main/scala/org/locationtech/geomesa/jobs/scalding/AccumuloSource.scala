@@ -33,6 +33,7 @@ import org.apache.accumulo.core.util.{Pair => AcPair}
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.mapred._
 import org.apache.log4j.Level
+import org.locationtech.geomesa.core.util.GeoMesaBatchWriterConfig
 
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
