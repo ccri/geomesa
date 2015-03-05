@@ -15,7 +15,7 @@ object GeoMesaBatchWriterConfig extends Logging {
   val WRITETIMEOUT         = "geomesa.batchwriter.timeout.seconds"  // Timeout measured in seconds.  Likely unnecessary.
 
   val DEFAULTLATENCY   = 10000l  // 10 seconds
-  val DEFAULTMAXMEMORY = 1000000 // 1 megabyte
+  val DEFAULTMAXMEMORY = 1000000l // 1 megabyte
   val DEFAULTTHREADS   = 10
 
   private lazy val bwc = buildBWC
@@ -26,30 +26,29 @@ object GeoMesaBatchWriterConfig extends Logging {
       l <- Try(java.lang.Long.parseLong(p)).toOption
     } yield l
 
-
-  def buildBWC: BatchWriterConfig = {
+  protected [util] def buildBWC: BatchWriterConfig = {
     val bwc = new BatchWriterConfig
 
-    fetchProperty(WRITERLATENCYSECONDS).map { latency =>
-      logger.info(s"GeoMesaBatchWriter config: maxLatency set to $latency seconds.")
-      bwc.setMaxLatency(latency, TimeUnit.SECONDS)
+    fetchProperty(WRITERLATENCYSECONDS) match {
+      case Some(latency) =>
+        logger.warn(s"GeoMesaBatchWriter config: maxLatency set to $latency seconds.")
+        bwc.setMaxLatency(latency, TimeUnit.SECONDS)
+      case None =>
+        val milliLatency = fetchProperty(WRITERLATENCYMILLIS).getOrElse(DEFAULTLATENCY)
+        logger.warn(s"GeoMesaBatchWriter config: maxLatency set to $milliLatency milliseconds.")
+        bwc.setMaxLatency(milliLatency, TimeUnit.MILLISECONDS)
     }
 
-    fetchProperty(WRITERLATENCYMILLIS).map { latency =>
-      logger.info(s"GeoMesaBatchWriter config: maxLatency set to $latency milliseconds.")
-      bwc.setMaxLatency(latency, TimeUnit.MILLISECONDS)
-    }
+    val memory = fetchProperty(WRITERMEMORY).getOrElse(DEFAULTMAXMEMORY)
+    logger.warn(s"GeoMesaBatchWriter config: maxMemory set to $memory bytes.")
+    bwc.setMaxMemory(memory)
 
-    fetchProperty(WRITERMEMORY).map { memory =>
-      logger.info(s"GeoMesaBatchWriter config: maxMemory set to $memory bytes.")
-      bwc.setMaxMemory(memory)
-    }
-    fetchProperty(WRITERTHREADS).map { threads =>
-      logger.info(s"GeoMesaBatchWriter config: maxWriteThreads set to $threads.")
-      bwc.setMaxWriteThreads(threads.toInt)
-    }
+    val threads = fetchProperty(WRITERTHREADS).map(_.toInt).getOrElse(DEFAULTTHREADS)
+    logger.warn(s"GeoMesaBatchWriter config: maxWriteThreads set to $threads.")
+    bwc.setMaxWriteThreads(threads.toInt)
+
     fetchProperty(WRITETIMEOUT).map { timeout =>
-      logger.info(s"GeoMesaBatchWriter config: maxTimeout set to $timeout seconds.")
+      logger.warn(s"GeoMesaBatchWriter config: maxTimeout set to $timeout seconds.")
       bwc.setTimeout(timeout, TimeUnit.SECONDS)
     }
 
