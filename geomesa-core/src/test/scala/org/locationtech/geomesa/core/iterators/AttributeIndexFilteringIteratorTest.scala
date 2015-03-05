@@ -101,7 +101,7 @@ class AttributeIndexFilteringIteratorTest extends Specification {
       val conn = instance.getConnector("", new PasswordToken(""))
       conn.tableOperations.create(table, true, TimeType.LOGICAL)
 
-      val bw = conn.createBatchWriter(table, new BatchWriterConfig)
+      val bw = conn.createBatchWriter(table, GeoMesaBatchWriterConfig)
       val attributes = (0 until sft.getAttributeCount).zip(sft.getAttributeDescriptors)
       featureCollection.foreach { feature =>
         val muts = AttributeTable.getAttributeIndexMutations(feature,

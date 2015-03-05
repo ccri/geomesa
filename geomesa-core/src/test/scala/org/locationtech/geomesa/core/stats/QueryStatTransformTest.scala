@@ -25,6 +25,7 @@ import org.geotools.filter.text.cql2.CQL
 import org.joda.time.format.DateTimeFormat
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.index.QueryHints
+import org.locationtech.geomesa.core.util.GeoMesaBatchWriterConfig
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -48,7 +49,7 @@ class QueryStatTransformTest extends Specification {
       // currently we don't restore table and feature in the query stat - thus setting them null here
       val stat = QueryStat(featureName, 500L, "attr=1", "hint1=true", 101L, 201L, 11)
 
-      val writer = connector.createBatchWriter(table, new BatchWriterConfig())
+      val writer = connector.createBatchWriter(table, GeoMesaBatchWriterConfig())
 
       writer.addMutation(QueryStatTransform.statToMutation(stat))
       writer.flush()

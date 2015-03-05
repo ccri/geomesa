@@ -65,7 +65,7 @@ class GeoMesaDataStoresPageTest extends Specification {
           mutation
       }
 
-      val writer = connector.createBatchWriter(table, new BatchWriterConfig)
+      val writer = connector.createBatchWriter(table, GeoMesaBatchWriterConfig)
       writer.addMutations(mutations.asJava)
       writer.flush()
       writer.close()
