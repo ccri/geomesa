@@ -18,7 +18,7 @@ object GeoMesaBatchWriterConfig extends Logging {
   val DEFAULTMAXMEMORY = 1000000l // 1 megabyte
   val DEFAULTTHREADS   = 10
 
-  private lazy val bwc = buildBWC
+  //private lazy val bwc = buildBWC
 
   protected [util] def fetchProperty(prop: String): Option[Long] =
     for {
@@ -55,5 +55,5 @@ object GeoMesaBatchWriterConfig extends Logging {
     bwc
   }
 
-  def apply(): BatchWriterConfig = bwc
+  def apply(): BatchWriterConfig = buildBWC
 }
