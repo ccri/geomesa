@@ -24,7 +24,6 @@ import org.locationtech.geomesa.core.filter.TestFilters._
 import org.locationtech.geomesa.core.util.SftBuilder
 import org.locationtech.geomesa.core.util.SftBuilder.Opts
 import org.locationtech.geomesa.utils.stats.Cardinality
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -53,13 +52,13 @@ class QueryStrategyDeciderTest extends Specification {
     .stringType("attr2")
     .build("featureNonIndex")
 
-  def getStrategy(filterString: String, isCatalogTable: Boolean = true): Strategy = {
-    val sft = if (isCatalogTable) sftIndex else sftNonIndex
+  def getStrategy(filterString: String, version: Int = data.INTERNAL_GEOMESA_VERSION): Strategy = {
+    val sft = if (version > 0) sftIndex else sftNonIndex
     val filter = ECQL.toFilter(filterString)
     val hints = new UserDataStrategyHints()
     val query = new Query(sft.getTypeName)
     query.setFilter(filter)
-    QueryStrategyDecider.chooseStrategy(isCatalogTable, sft, query, hints)
+    QueryStrategyDecider.chooseStrategy(sft, query, hints, version)
   }
 
   def getStrategyT[T <: Strategy](filterString: String, ct: ClassTag[T]) =
@@ -138,12 +137,6 @@ class QueryStrategyDeciderTest extends Specification {
       getStrategy(fs) must beAnInstanceOf[AttributeIdxRangeStrategy]
     }
 
-    "get the attribute strategy for null" in {
-      val fs = "attr2 IS NULL"
-
-      getStrategy(fs) must beAnInstanceOf[AttributeIdxEqualsStrategy]
-    }
-
     "get the attribute strategy for during" in {
       val fs = "attr2 DURING 2012-01-01T11:00:00.000Z/2014-01-01T12:15:00.000Z"
 
@@ -178,8 +171,7 @@ class QueryStrategyDeciderTest extends Specification {
   "Attribute filters" should {
     "get the stidx strategy if not catalog" in {
       val fs = "attr1 ILIKE '2nd1%'"
-
-      getStrategy(fs, isCatalogTable = false) must beAnInstanceOf[STIdxStrategy]
+      getStrategy(fs, 0) must beAnInstanceOf[STIdxStrategy]
     }
   }
 
@@ -188,12 +180,6 @@ class QueryStrategyDeciderTest extends Specification {
       val fs = "IN ('val56')"
 
       getStrategy(fs) must beAnInstanceOf[RecordIdxStrategy]
-    }
-
-    "get the stidx strategy if not catalog" in {
-      val fs = "IN ('val56')"
-
-      getStrategy(fs, isCatalogTable = false) must beAnInstanceOf[STIdxStrategy]
     }
   }
 
@@ -223,13 +209,24 @@ class QueryStrategyDeciderTest extends Specification {
     }
   }
 
+  "IS NOT NULL filters" should {
+    "get the attribute strategy if attribute is indexed" in {
+      val fs = "attr2 IS NOT NULL"
+      getStrategy(fs) must beAnInstanceOf[AttributeIdxRangeStrategy]
+    }
+    "get the stidx strategy if attribute is not indexed" in {
+      val fs = "attr1 IS NOT NULL"
+      getStrategy(fs) must beAnInstanceOf[STIdxStrategy]
+    }
+  }
+
   "Anded Attribute filters" should {
     "get the STIdx strategy with stIdxStrategyPredicates" in {
       forall(stIdxStrategyPredicates) { getStStrategy }
     }
 
-    "get the attribute strategy with attributeAndGeometricPredicates" in {
-      forall(attributeAndGeometricPredicates) { getAttributeIdxStrategy }
+    "get the stidx strategy with attributeAndGeometricPredicates" in {
+      forall(attributeAndGeometricPredicates) { getStStrategy }
     }
 
     "get the attribute strategy with attrIdxStrategyPredicates" in {

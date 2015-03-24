@@ -43,7 +43,7 @@ package object scalding {
     val VISIBILITIES        = "geomesa.accumulo.visibilities"
     val FEATURE_NAME        = "geomesa.feature.name"
     val CATALOG_TABLE       = "geomesa.feature.tables.catalog"
-    val RECORD_TABLE        = "geomesa.feature.tables.record"
-    val ATTRIBUTE_TABLE     = "geomesa.feature.tables.attribute"
+    val SCAN_RANGES         = "geomesa.scan.ranges"
+    val MOCK                = "geomesa.mock"
   }
 }

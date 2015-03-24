@@ -127,26 +127,26 @@ class AttributeIndexFilteringIteratorTest extends Specification {
 
       // % should return all features
       val wildCardQuery = new Query(sftName, ff.like(ff.property("name"),"%"))
-      QueryStrategyDecider.chooseStrategy(true, sft, wildCardQuery, hints) must
+      QueryStrategyDecider.chooseStrategy(sft, wildCardQuery, hints, INTERNAL_GEOMESA_VERSION) must
           beAnInstanceOf[AttributeIdxLikeStrategy]
       fs.getFeatures().features.size mustEqual 16
 
       forall(List("a", "b", "c", "d")) { letter =>
         // 4 features for this letter
         val leftWildCard = new Query(sftName, ff.like(ff.property("name"),s"%$letter"))
-        QueryStrategyDecider.chooseStrategy(true, sft, leftWildCard, hints) must
+        QueryStrategyDecider.chooseStrategy(sft, leftWildCard, hints, INTERNAL_GEOMESA_VERSION) must
             beAnInstanceOf[STIdxStrategy]
         fs.getFeatures(leftWildCard).features.size mustEqual 4
 
         // Double wildcards should be ST
         val doubleWildCard = new Query(sftName, ff.like(ff.property("name"),s"%$letter%"))
-        QueryStrategyDecider.chooseStrategy(true, sft, doubleWildCard, hints) must
+        QueryStrategyDecider.chooseStrategy(sft, doubleWildCard, hints, INTERNAL_GEOMESA_VERSION) must
             beAnInstanceOf[STIdxStrategy]
         fs.getFeatures(doubleWildCard).features.size mustEqual 4
 
         // should return the 4 features for this letter
         val rightWildcard = new Query(sftName, ff.like(ff.property("name"),s"$letter%"))
-        QueryStrategyDecider.chooseStrategy(true, sft, rightWildcard, hints) must
+        QueryStrategyDecider.chooseStrategy(sft, rightWildcard, hints, INTERNAL_GEOMESA_VERSION) must
             beAnInstanceOf[AttributeIdxLikeStrategy]
         fs.getFeatures(rightWildcard).features.size mustEqual 4
       }
@@ -156,19 +156,19 @@ class AttributeIndexFilteringIteratorTest extends Specification {
     "actually handle transforms properly and chose correct strategies for attribute indexing" in {
       // transform to only return the attribute geom - dropping dtg, age, and name
       val query = new Query(sftName, ECQL.toFilter("name = 'b'"), Array("geom"))
-      QueryStrategyDecider.chooseStrategy(true, sft, query, hints) must
+      QueryStrategyDecider.chooseStrategy(sft, query, hints, INTERNAL_GEOMESA_VERSION) must
           beAnInstanceOf[AttributeIdxEqualsStrategy]
 
       val leftWildCard = new Query(sftName, ff.like(ff.property("name"), "%b"), Array("geom"))
-      QueryStrategyDecider.chooseStrategy(true, sft, leftWildCard, hints) must
+      QueryStrategyDecider.chooseStrategy(sft, leftWildCard, hints, INTERNAL_GEOMESA_VERSION) must
           beAnInstanceOf[STIdxStrategy]
 
       val doubleWildCard = new Query(sftName, ff.like(ff.property("name"), "%b%"), Array("geom"))
-      QueryStrategyDecider.chooseStrategy(true, sft, doubleWildCard, hints) must
+      QueryStrategyDecider.chooseStrategy(sft, doubleWildCard, hints, INTERNAL_GEOMESA_VERSION) must
           beAnInstanceOf[STIdxStrategy]
 
       val rightWildcard = new Query(sftName, ff.like(ff.property("name"), "b%"), Array("geom"))
-      QueryStrategyDecider.chooseStrategy(true, sft, rightWildcard, hints) must
+      QueryStrategyDecider.chooseStrategy(sft, rightWildcard, hints, INTERNAL_GEOMESA_VERSION) must
           beAnInstanceOf[AttributeIdxLikeStrategy]
 
       forall(List(query, leftWildCard, doubleWildCard, rightWildcard)) { query =>
@@ -189,8 +189,8 @@ class AttributeIndexFilteringIteratorTest extends Specification {
     "handle corner case with attr idx, bbox, and no temporal filter" in {
       val filter = ff.and(ECQL.toFilter("name = 'b'"), ECQL.toFilter("BBOX(geom, 30, 30, 50, 50)"))
       val query = new Query(sftName, filter, Array("geom"))
-      QueryStrategyDecider.chooseStrategy(true, sft, query, hints) must
-          beAnInstanceOf[AttributeIdxEqualsStrategy]
+      QueryStrategyDecider.chooseStrategy(sft, query, hints, INTERNAL_GEOMESA_VERSION) must
+          beAnInstanceOf[STIdxStrategy]
 
       val features = fs.getFeatures(query)
 

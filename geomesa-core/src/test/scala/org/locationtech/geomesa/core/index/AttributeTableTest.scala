@@ -19,9 +19,12 @@ package org.locationtech.geomesa.core.index
 import org.apache.accumulo.core.security.ColumnVisibility
 import org.geotools.factory.Hints
 import org.junit.runner.RunWith
+import org.locationtech.geomesa.core.data.AccumuloFeatureWriter.FeatureToWrite
+import org.locationtech.geomesa.core.data.{DEFAULT_ENCODING, INTERNAL_GEOMESA_VERSION}
 import org.locationtech.geomesa.core.data.tables.{AttributeIndexRow, AttributeTable}
-import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.feature.{AvroSimpleFeatureFactory, SimpleFeatureEncoder}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes._
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -32,15 +35,15 @@ import scala.util.Success
 @RunWith(classOf[JUnitRunner])
 class AttributeTableTest extends Specification {
 
-  val geotimeAttributes = org.locationtech.geomesa.core.index.spec
   val sftName = "mutableType"
-  val sft = SimpleFeatureTypes.createType(sftName, s"name:String,age:Integer,$geotimeAttributes")
+  val spec = s"name:String:$OPT_INDEX=true,age:Integer:$OPT_INDEX=true,*geom:Geometry:srid=4326,dtg:Date:$OPT_INDEX=true"
+  val sft = SimpleFeatureTypes.createType(sftName, spec)
   sft.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
 
     "AttributeTable" should {
 
       "encode mutations for attribute index" in {
-        val descriptors = (0 until sft.getAttributeCount).zip(sft.getAttributeDescriptors).toSeq
+        val descriptors = sft.getAttributeDescriptors.zipWithIndex
 
         val feature = AvroSimpleFeatureFactory.buildAvroFeature(sft, List(), "id1")
         val geom = WKTUtils.read("POINT(45.0 49.0)")
@@ -49,14 +52,18 @@ class AttributeTableTest extends Specification {
         feature.setAttribute("age",50.asInstanceOf[Any])
         feature.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
 
-        val mutations = AttributeTable.getAttributeIndexMutations(feature, descriptors, new ColumnVisibility(), "")
-        mutations.size mustEqual descriptors.length
+        val indexValueEncoder = IndexValueEncoder(sft, INTERNAL_GEOMESA_VERSION)
+        val featureEncoder = SimpleFeatureEncoder(sft, DEFAULT_ENCODING)
+
+        val toWrite = new FeatureToWrite(feature, "", featureEncoder, indexValueEncoder)
+        val mutations = AttributeTable.getAttributeIndexMutations(toWrite, descriptors, "")
+        mutations.size mustEqual descriptors.length - 1 // for null date
         mutations.map(_.getUpdates.size()) must contain(beEqualTo(1)).foreach
         mutations.map(_.getUpdates.get(0).isDeleted) must contain(beEqualTo(false)).foreach
       }
 
       "encode mutations for delete attribute index" in {
-        val descriptors = (0 until sft.getAttributeCount).zip(sft.getAttributeDescriptors)
+        val descriptors = sft.getAttributeDescriptors.zipWithIndex
 
         val feature = AvroSimpleFeatureFactory.buildAvroFeature(sft, List(), "id1")
         val geom = WKTUtils.read("POINT(45.0 49.0)")
@@ -65,14 +72,15 @@ class AttributeTableTest extends Specification {
         feature.setAttribute("age",50.asInstanceOf[Any])
         feature.getUserData()(Hints.USE_PROVIDED_FID) = java.lang.Boolean.TRUE
 
-        val mutations = AttributeTable.getAttributeIndexMutations(feature, descriptors, new ColumnVisibility(), "", delete = true)
-        mutations.size mustEqual descriptors.length
+        val toWrite = new FeatureToWrite(feature, "", null, null)
+        val mutations = AttributeTable.getAttributeIndexMutations(toWrite, descriptors, "", true)
+        mutations.size mustEqual descriptors.length - 1 // for null date
         mutations.map(_.getUpdates.size()) must contain(beEqualTo(1)).foreach
         mutations.map(_.getUpdates.get(0).isDeleted) must contain(beEqualTo(true)).foreach
       }
 
       "decode attribute index rows" in {
-        val row = AttributeTable.getAttributeIndexRows("prefix", sft.getDescriptor("age"), Some(23)).head
+        val row = AttributeTable.getAttributeIndexRows("prefix", sft.getDescriptor("age"), 23).head
         val decoded = AttributeTable.decodeAttributeIndexRow("prefix", sft.getDescriptor("age"), row)
         decoded mustEqual(Success(AttributeIndexRow("age", 23)))
       }
