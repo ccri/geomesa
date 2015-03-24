@@ -22,7 +22,6 @@ import org.apache.accumulo.core.data.Key
 import org.geotools.data.Query
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone, Interval}
-import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.util._
 import org.locationtech.geomesa.feature.SimpleFeatureEncoder
 import org.locationtech.geomesa.utils.text.WKTUtils
@@ -67,23 +66,6 @@ import scala.util.parsing.combinator.RegexParsers
 //
 // %~#s%999#r%0,4#gh%HHmm#d::%~#s%4,2#gh::%~#s%6,1#gh%yyyyMMdd#d
 
-case class IndexSchema(encoder: IndexEntryEncoder,
-                       decoder: IndexEntryDecoder,
-                       planner: QueryPlanner,
-                       featureType: SimpleFeatureType) extends ExplainingLogging {
-
-  def encode(entry: SimpleFeature, visibility: String = "") = encoder.encode(entry, visibility)
-  def decode(key: Key): SimpleFeature = decoder.decode(key)
-
-
-  // utility method to ask for the maximum allowable shard number
-  def maxShard: Int =
-    encoder.rowf match {
-      case CompositeTextFormatter(Seq(PartitionTextFormatter(numPartitions), xs@_*), sep) => numPartitions
-      case _ => 1  // couldn't find a matching partitioner
-    }
-}
-
 object IndexSchema extends RegexParsers with Logging {
   val minDateTime = new DateTime(0, 1, 1, 0, 0, 0, DateTimeZone.forID("UTC"))
   val maxDateTime = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeZone.forID("UTC"))
@@ -124,6 +106,7 @@ object IndexSchema extends RegexParsers with Logging {
   val GEO_HASH_CODE = "gh"
   val DATE_CODE = "d"
   val CONSTANT_CODE = "cstr"
+  val INDEX_DATA_CODE = "i"
   val RANDOM_CODE = "r"
   val SEPARATOR_CODE = "s"
   val ID_CODE = "id"
@@ -135,7 +118,7 @@ object IndexSchema extends RegexParsers with Logging {
   // with a '~'
   def sep = pattern("\\W".r, SEPARATOR_CODE)
 
-  // A random partitioner.  '%999#r' would write a random value between 000 and 999 inclusive
+  // A random partitioner.  '%999#r' would write a random value between 000 and 998 inclusive
   def randPartitionPattern = pattern("\\d+".r,RANDOM_CODE)
   def randEncoder: Parser[PartitionTextFormatter] = randPartitionPattern ^^ {
     case d => PartitionTextFormatter(d.toInt)
@@ -164,9 +147,16 @@ object IndexSchema extends RegexParsers with Logging {
     case str => ConstantTextFormatter(str)
   }
 
+  // An index or data flag encoder. '%#i' is the pattern
+  //  We match the empty string
+  def indexOrDataPattern = pattern("".r, INDEX_DATA_CODE)
+  def indexOrDataEncoder: Parser[IndexOrDataTextFormatter] = indexOrDataPattern ^^ {
+    case _ => IndexOrDataTextFormatter()
+  }
+
   // a key element consists of a separator and any number of random partitions, geohashes, and dates
   def keypart: Parser[CompositeTextFormatter] =
-    (sep ~ rep(randEncoder | geohashEncoder | dateEncoder | constantStringEncoder)) ^^ {
+    (sep ~ rep(randEncoder | geohashEncoder | dateEncoder | constantStringEncoder | indexOrDataEncoder)) ^^ {
       case sep ~ xs => CompositeTextFormatter(xs, sep)
     }
 
@@ -182,9 +172,11 @@ object IndexSchema extends RegexParsers with Logging {
   }
 
   // builds the encoder from a string representation
-  def buildKeyEncoder(s: String, featureEncoder: SimpleFeatureEncoder): IndexEntryEncoder = {
+  def buildKeyEncoder(s: String,
+                      featureEncoder: SimpleFeatureEncoder,
+                      indexValueEncoder: IndexValueEncoder): IndexEntryEncoder = {
     val (rowf, cff, cqf) = parse(formatter, s).get
-    IndexEntryEncoder(rowf, cff, cqf, featureEncoder)
+    IndexEntryEncoder(rowf, cff, cqf, featureEncoder, indexValueEncoder)
   }
 
   // extracts an entire date encoder from a key part
@@ -276,12 +268,16 @@ object IndexSchema extends RegexParsers with Logging {
     case str => ConstStringPlanner(str)
   }
 
+  def indexOrDataPlanner: Parser[IndexOrDataPlanner] = indexOrDataPattern ^^ {
+    case _ => IndexOrDataPlanner()
+  }
+
   def randPartitionPlanner: Parser[RandomPartitionPlanner] = randPartitionPattern ^^ {
     case d => RandomPartitionPlanner(d.toInt)
   }
 
   def datePlanner: Parser[DatePlanner] = datePattern ^^ {
-    case fmt => DatePlanner(DateTimeFormat.forPattern(fmt))
+    case fmt => DatePlanner(DateTimeFormat.forPattern(fmt).withZoneUTC())
   }
 
   def geohashKeyPlanner: Parser[GeoHashKeyPlanner] = geohashPattern ^^ {
@@ -289,7 +285,7 @@ object IndexSchema extends RegexParsers with Logging {
   }
 
   def keyPlanner: Parser[KeyPlanner] =
-    sep ~ rep(constStringPlanner | datePlanner | randPartitionPlanner | geohashKeyPlanner) <~ "::.*".r ^^ {
+    sep ~ rep(constStringPlanner | datePlanner | randPartitionPlanner | geohashKeyPlanner | indexOrDataPlanner) <~ "::.*".r ^^ {
       case sep ~ list => CompositePlanner(list, sep)
     }
 
@@ -324,18 +320,13 @@ object IndexSchema extends RegexParsers with Logging {
         true
     }
 
-  // builds a IndexSchema (requiring a feature type)
-  def apply(s: String,
-            featureType: SimpleFeatureType,
-            featureEncoder: SimpleFeatureEncoder): IndexSchema = {
-    val keyEncoder        = buildKeyEncoder(s, featureEncoder)
-    val geohashDecoder    = buildGeohashDecoder(s)
-    val dateDecoder       = buildDateDecoder(s)
-    val keyPlanner        = buildKeyPlanner(s)
-    val cfPlanner         = buildColumnFamilyPlanner(s)
-    val indexEntryDecoder = IndexEntryDecoder(geohashDecoder, dateDecoder)
-    val queryPlanner      = QueryPlanner(s, featureType, featureEncoder.encoding)
-    IndexSchema(keyEncoder, indexEntryDecoder, queryPlanner, featureType)
+  // utility method to ask for the maximum allowable shard number
+  def maxShard(schema: String): Int = {
+    val (rowf, _, _) = parse(formatter, schema).get
+    rowf match {
+      case CompositeTextFormatter(Seq(PartitionTextFormatter(numPartitions), xs@_*), sep) => numPartitions
+      case _ => 1  // couldn't find a matching partitioner
+    }
   }
 
   def getIndexEntryDecoder(s: String) = {
@@ -364,6 +355,13 @@ class IndexSchemaBuilder(separator: String) {
    * @return the schema builder instance
    */
   def randomNumber(maxValue: Int): IndexSchemaBuilder = append(RANDOM_CODE, maxValue)
+
+  /**
+   * Adds an index/data flag.
+   *
+   * @return the schema builder instance
+   */
+  def indexOrDataFlag(): IndexSchemaBuilder = append(INDEX_DATA_CODE)
 
   /**
    * Adds a constant value.

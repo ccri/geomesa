@@ -27,9 +27,9 @@ import org.geotools.data.simple.SimpleFeatureSource
 import org.geotools.factory.Hints
 import org.geotools.feature.DefaultFeatureCollection
 import org.joda.time.{DateTime, DateTimeZone}
-import org.locationtech.geomesa.core.data.AccumuloFeatureStore
+import org.locationtech.geomesa.core.data.{AccumuloFeatureStore, INTERNAL_GEOMESA_VERSION}
 import org.locationtech.geomesa.core.index._
-import org.locationtech.geomesa.feature.{SimpleFeatureEncoder, AvroSimpleFeatureFactory}
+import org.locationtech.geomesa.feature.{AvroSimpleFeatureFactory, SimpleFeatureEncoder}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -54,7 +54,18 @@ object TestData extends Logging {
   val wktQuery = "POLYGON((45 23, 48 23, 48 27, 45 27, 45 23))"
 
   val featureName = "feature"
-  val schemaEncoding = "%~#s%" + featureName + "#cstr%10#r%0,1#gh%yyyyMM#d::%~#s%1,3#gh::%~#s%4,3#gh%ddHH#d%10#id"
+  val schemaEncoding =
+    new IndexSchemaBuilder("~")
+      .randomNumber(10)
+      .indexOrDataFlag()
+      .constant(featureName)
+      .geoHash(0, 3)
+      .date("yyyyMMdd")
+      .nextPart()
+      .geoHash(3, 2)
+      .nextPart()
+      .id()
+      .build()
 
   def getTypeSpec(suffix: String = "2") = {
     s"POINT:String,LINESTRING:String,POLYGON:String,attr$suffix:String:index=true," + spec
@@ -96,8 +107,9 @@ object TestData extends Logging {
   lazy val featureType: SimpleFeatureType = getFeatureType()
 
   lazy val featureEncoder = SimpleFeatureEncoder(getFeatureType(), "avro")
+  lazy val indexValueEncoder = IndexValueEncoder(featureType, INTERNAL_GEOMESA_VERSION)
 
-  lazy val index = IndexSchema(schemaEncoding, featureType, featureEncoder)
+  lazy val indexEncoder = IndexSchema.buildKeyEncoder(schemaEncoding, featureEncoder, indexValueEncoder)
 
   val defaultDateTime = new DateTime(2011, 6, 1, 0, 0, 0, DateTimeZone.forID("UTC")).toDate
 
@@ -113,7 +125,9 @@ object TestData extends Logging {
 
     //entry.setAttribute(geomType, id)
     entry.setAttribute("attr2", "2nd" + id)
-    index.encode(entry).toList
+    indexEncoder.synchronized {
+      indexEncoder.encode(entry, "").toList
+    }
   }
 
   def createSF(e: Entry): SimpleFeature = createSF(e, featureType)

@@ -18,10 +18,10 @@ package org.locationtech.geomesa.feature.kryo
 
 import java.io.{InputStream, OutputStream}
 
-import com.esotericsoftware.kryo.{Serializer, Kryo}
 import com.esotericsoftware.kryo.io.{Input, Output}
-import org.locationtech.geomesa.feature.{ScalaSimpleFeature, AvroSimpleFeature}
-import org.locationtech.geomesa.feature.kryo.KryoFeatureSerializer._
+import com.esotericsoftware.kryo.{Kryo, Serializer}
+import org.geotools.feature.simple.SimpleFeatureImpl
+import org.locationtech.geomesa.feature.{AvroSimpleFeature, ScalaSimpleFeature}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 /**
@@ -29,67 +29,10 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
  *
  * @param serializer
  */
-case class KryoFeatureSerializer(serializer: Serializer[SimpleFeature]) {
+case class KryoFeatureSerializer(serializer: Serializer[SimpleFeature])
+    extends KryoSerializerBase[SimpleFeature] {
 
-  private val kryo = new Kryo()
-
-  setupKryo(kryo, serializer)
-
-  val output = new Output(1024, -1)
-  val input = new Input(Array.empty[Byte])
-  lazy val streamBuffer = new Array[Byte](1024)
-
-  /**
-   * Serialize the feature into bytes
-   *
-   * @param sf
-   * @return
-   */
-  def write(sf: SimpleFeature): Array[Byte] = {
-    output.clear()
-    kryo.writeObject(output, sf)
-    output.toBytes()
-  }
-
-  /**
-   * Serialize the feature into a byte stream
-   *
-   * @param sf
-   * @param out
-   */
-  def write(sf: SimpleFeature, out: OutputStream): Unit = {
-    output.clear()
-    output.setOutputStream(out)
-    kryo.writeObject(output, sf)
-    output.flush()
-    output.setOutputStream(null)
-  }
-
-  /**
-   * Deserialize the feature from bytes - note that the buffer may be mutated during the read, but
-   * will be returned to normal.
-   *
-   * @param value
-   * @return
-   */
-  def read(value: Array[Byte]): SimpleFeature = {
-    input.setBuffer(value)
-    kryo.readObject(input, classOf[SimpleFeature])
-  }
-
-  /**
-   * Deserialize the feature from a byte stream
-   *
-   * @param in
-   * @return
-   */
-  def read(in: InputStream): SimpleFeature = {
-    input.setBuffer(streamBuffer)
-    input.setInputStream(in)
-    val sf = kryo.readObject(input, classOf[SimpleFeature])
-    input.setInputStream(null)
-    sf
-  }
+  private val idSerializer = new FeatureIdSerializer()
 
   /**
    * Read only the id from a serialized feature
@@ -99,23 +42,26 @@ case class KryoFeatureSerializer(serializer: Serializer[SimpleFeature]) {
    */
   def readId(value: Array[Byte]): String = {
     input.setBuffer(value)
-    kryo.readObject(input, classOf[KryoFeatureId]).id
+    kryo.readObject(input, classOf[KryoFeatureId], idSerializer).id
   }
 }
 
 object KryoFeatureSerializer {
 
+  val simpleFeatureImpls = Seq(classOf[ScalaSimpleFeature],
+                               classOf[SimpleFeature],
+                               classOf[AvroSimpleFeature],
+                               classOf[SimpleFeatureImpl])
+
   def apply(sft: SimpleFeatureType): KryoFeatureSerializer = apply(new SimpleFeatureSerializer(sft))
 
   def apply(sft: SimpleFeatureType, decodeAs: SimpleFeatureType): KryoFeatureSerializer =
-    if (sft.eq(decodeAs)) apply(sft) else  apply(new TransformingSimpleFeatureSerializer(sft, decodeAs))
+    if (sft.eq(decodeAs)) apply(sft) else apply(new TransformingSimpleFeatureSerializer(sft, decodeAs))
 
   def setupKryo(kryo: Kryo, serializer: Serializer[SimpleFeature]): Unit = {
     kryo.setReferences(false)
-    kryo.register(classOf[ScalaSimpleFeature], serializer,  kryo.getNextRegistrationId)
-    kryo.register(classOf[KryoFeatureId], new FeatureIdSerializer(),  kryo.getNextRegistrationId)
-    kryo.register(classOf[SimpleFeature], serializer,  kryo.getNextRegistrationId)
-    kryo.register(classOf[AvroSimpleFeature], serializer,  kryo.getNextRegistrationId)
+    simpleFeatureImpls.foreach(kryo.register(_, serializer, kryo.getNextRegistrationId))
+    kryo.register(classOf[KryoFeatureId], new FeatureIdSerializer(), kryo.getNextRegistrationId)
   }
 }
 

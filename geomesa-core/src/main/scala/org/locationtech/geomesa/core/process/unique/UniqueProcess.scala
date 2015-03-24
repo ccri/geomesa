@@ -29,7 +29,7 @@ import org.geotools.process.vector.VectorProcess
 import org.locationtech.geomesa.core.data.GEOMESA_UNIQUE
 import org.locationtech.geomesa.core.data.tables.AttributeTable
 import org.locationtech.geomesa.core.util.SelfClosingIterator
-import org.locationtech.geomesa.utils.geotools.Conversions.RichAttributeDescriptor
+import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
 import org.opengis.feature.Feature
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.filter.Filter
@@ -233,13 +233,11 @@ object AttributeVisitor {
 
   /**
    * Returns a filter that is equivalent to Filter.INCLUDE, but against the attribute index.
-   * Excludes null values, since we don't care about those anyway.
    *
    * @param attribute
    * @return
    */
-  def getIncludeAttributeFilter(attribute: String) =
-    ff.greater(ff.property(attribute), ff.literal(AttributeTable.nullString))
+  def getIncludeAttributeFilter(attribute: String) = ff.greater(ff.property(attribute), ff.literal(""))
 }
 
 /**

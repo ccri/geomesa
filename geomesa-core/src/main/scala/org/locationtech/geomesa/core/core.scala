@@ -31,7 +31,7 @@ package object core {
   val DEFAULT_FEATURE_NAME = "geomesa.index.feature"
 
   val INGEST_TABLE_NAME                      = "geomesa.ingest.table"
-  val DEFAULT_FILTER_PROPERTY_NAME           = "geomesa.index.filter"
+  val ST_FILTER_PROPERTY_NAME                = "geomesa.index.filter"
   val DEFAULT_INTERVAL_PROPERTY_NAME         = "geomesa.index.interval"
   val DEFAULT_ATTRIBUTE_NAMES                = "geomesa.index.shapefile.attribute-names"
   val DEFAULT_CACHE_SIZE_NAME                = "geomesa.index.cache-size"
@@ -40,11 +40,15 @@ package object core {
 
   val GEOMESA_ITERATORS_SIMPLE_FEATURE_TYPE = "geomesa.iterators.aggregator-types"
   val GEOMESA_ITERATORS_SFT_NAME            = "geomesa.iterators.sft-name"
+  val GEOMESA_ITERATORS_SFT_INDEX_VALUE     = "geomesa.iterators.sft.index-value-schema"
   val GEOMESA_ITERATORS_ATTRIBUTE_NAME      = "geomesa.iterators.attribute.name"
+  val GEOMESA_ITERATORS_ATTRIBUTE_COVERED   = "geomesa.iterators.attribute.covered"
   val GEOMESA_ITERATORS_ECQL_FILTER         = "geomesa.iterators.ecql-filter"
   val GEOMESA_ITERATORS_TRANSFORM           = "geomesa.iterators.transform"
   val GEOMESA_ITERATORS_TRANSFORM_SCHEMA    = "geomesa.iterators.transform.schema"
   val GEOMESA_ITERATORS_IS_DENSITY_TYPE     = "geomesa.iterators.is-density-type"
+  val GEOMESA_ITERATORS_INDEX_SCHEMA        = "geomesa.iterators.index.schema"
+  val GEOMESA_ITERATORS_VERSION             = "geomesa.iterators.version"
 
   /**
    * Sums the values by key and returns a map containing all of the keys in the maps, with values
