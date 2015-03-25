@@ -17,6 +17,7 @@
 
 package org.locationtech.geomesa.core.data
 
+import java.io.IOException
 import java.util.{Map => JMap}
 
 import com.google.common.collect.ImmutableSortedSet
@@ -42,6 +43,7 @@ import org.locationtech.geomesa.core.data.tables.{AttributeTable, RecordTable, S
 import org.locationtech.geomesa.core.index
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.core.security.AuthorizationsProvider
+import org.locationtech.geomesa.core.util.GeoMesaBatchWriterConfig
 import org.locationtech.geomesa.data.TableSplitter
 import org.locationtech.geomesa.feature.FeatureEncoding.FeatureEncoding
 import org.locationtech.geomesa.feature.{FeatureEncoding, SimpleFeatureEncoder}
@@ -120,9 +122,8 @@ class AccumuloDataStore(val connector: Connector,
   private val visibilityCheckCache = new mutable.HashMap[(String, String), Boolean]()
                                          with mutable.SynchronizedMap[(String, String), Boolean]
 
-  // TODO memory should be configurable
   private val defaultBWConfig =
-    new BatchWriterConfig().setMaxMemory(10000L).setMaxWriteThreads(writeThreads)
+    GeoMesaBatchWriterConfig().setMaxWriteThreads(writeThreads)
 
   private val tableOps = connector.tableOperations()
 
@@ -497,7 +498,7 @@ class AccumuloDataStore(val connector: Connector,
    */
   protected def validateMetadata(featureName: String): Unit = {
     metadata.read(featureName, ATTRIBUTES_KEY)
-      .getOrElse(throw new RuntimeException(s"Feature '$featureName' has not been initialized. Please call 'createSchema' first."))
+      .getOrElse(throw new IOException(s"Feature '$featureName' has not been initialized. Please call 'createSchema' first."))
 
     val ok = validated.getOrElseUpdate(featureName, checkMetadata(featureName))
 
