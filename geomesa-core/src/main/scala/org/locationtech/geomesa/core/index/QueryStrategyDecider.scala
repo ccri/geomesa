@@ -19,81 +19,96 @@ package org.locationtech.geomesa.core.index
 import java.util
 
 import org.geotools.data.Query
-import org.locationtech.geomesa.core.index.AttributeIndexStrategy.getAttributeIndexStrategy
 import org.locationtech.geomesa.core.index.FilterHelper._
 import org.locationtech.geomesa.core.index.QueryHints._
-import org.locationtech.geomesa.core.index.RecordIdxStrategy.getRecordIdxStrategy
-import org.locationtech.geomesa.core.index.STIdxStrategy.getSTIdxStrategy
+import org.locationtech.geomesa.utils.stats.Cardinality
 import org.opengis.feature.simple.SimpleFeatureType
+import org.locationtech.geomesa.utils.geotools.RichIterator.RichIterator
 import org.opengis.filter.{And, Filter, Id, PropertyIsLike}
 
 import scala.collection.JavaConversions._
 
 object QueryStrategyDecider {
 
-  def chooseStrategy(isCatalogTableFormat: Boolean,
-                     sft: SimpleFeatureType,
-                     query: Query): Strategy =
-    // if datastore doesn't support attr index use spatiotemporal only
-    if (isCatalogTableFormat) chooseNewStrategy(sft, query) else new STIdxStrategy
+  val REASONABLE_COST = 10000
+  val OPTIMAL_COST = 10
 
-  def chooseNewStrategy(sft: SimpleFeatureType, query: Query): Strategy = {
-    val filter = query.getFilter
-    val isADensity = query.getHints.containsKey(BBOX_KEY) || query.getHints.contains(TIME_BUCKETS_KEY)
-
-    if (isADensity) {
+  def chooseStrategy(sft: SimpleFeatureType, query: Query, hints: StrategyHints, version: Int): Strategy = {
+    // check for density queries
+    if (query.getHints.containsKey(BBOX_KEY) || query.getHints.contains(TIME_BUCKETS_KEY)) {
       // TODO GEOMESA-322 use other strategies with density iterator
-      new STIdxStrategy
-    } else {
-      // check if we can use the attribute index first
-      val attributeStrategy = getAttributeIndexStrategy(filter, sft)
-      attributeStrategy.getOrElse {
-        filter match {
-          case idFilter: Id => new RecordIdxStrategy
-          case and: And => processAnd(isADensity, sft, and)
-          case cql          => new STIdxStrategy
-        }
-      }
+      return new STIdxStrategy
+    }
+
+    query.getFilter match {
+      case id: Id   => new RecordIdxStrategy
+      case and: And => processFilters(decomposeAnd(and), sft, hints)
+      case cql =>
+        // a single clause - check for indexed attributes or fall back to spatio-temporal
+        AttributeIndexStrategy.getStrategy(cql, sft, hints).map(_.strategy).getOrElse(new STIdxStrategy)
     }
   }
 
-  private def processAnd(isADensity: Boolean, sft: SimpleFeatureType, and: And): Strategy = {
-    val children: util.List[Filter] = decomposeAnd(and)
-
-    def determineStrategy(attr: Filter, st: Filter): Strategy = {
-      if (children.indexOf(attr) < children.indexOf(st)) { getAttributeIndexStrategy(attr, sft).get }
-      else { new STIdxStrategy }
-    }
-
-    // first scan the query and identify the type of predicates present
-    val strats = (children.find(c => getAttributeIndexStrategy(c, sft).isDefined),
-                  children.find(c => getSTIdxStrategy(c, sft).isDefined),
-                  children.find(c => getRecordIdxStrategy(c, sft).isDefined))
-
-    /**
-     * Choose the query strategy to be employed here. This is the priority
-     *   * If an ID predicate is present, it is assumed that only a small number of IDs are requested
-     *            --> The Record Index is scanned, and the other ECQL filters, if any, are then applied
-     *
-     *   * If attribute filters and ST filters are present, use the ordering to choose the correct strategy
-     *
-     *   * If attribute filters are present, then select the correct type of AttributeIdx Strategy
-     *            --> The Attribute Indices are scanned, and the other ECQL filters, if any, are then applied
-     *
-     *   * If ST filters are present, use the STIdxStrategy
-     *            --> The ST Index is scanned, and the other ECQL filters, if any are then applied
-     *
-     *   * If filters are not identified, use the STIdxStrategy
-     *            --> The ST Index is scanned (likely a full table scan) and the ECQL filters are applied
-     */
-    strats match {
-      case (               _,              _, Some(idFilter))  => new RecordIdxStrategy
-      case (Some(attrFilter), Some(stFilter),           None)  => determineStrategy(attrFilter, stFilter)
-      case (Some(attrFilter),           None,           None)  => getAttributeIndexStrategy(attrFilter, sft).get
-      case (            None, Some(stFilter),           None)  => new STIdxStrategy
-      case (            None,           None,           None)  => new STIdxStrategy
+  /**
+   * Scans the filter and identify the type of predicates present.
+   *
+   * Choose the query strategy to be employed here. This is the priority:
+   *
+   *   * If an ID predicate is present, it is assumed that only a small number of IDs are requested
+   *            --> The Record Index is scanned, and the other ECQL filters, if any, are then applied
+   *
+   *   * If high cardinality attribute filters are present, then use the attribute strategy
+   *            --> The Attribute Indices are scanned, and the other ECQL filters, if any, are then applied
+   *
+   *   * If ST filters are present, use the STIdxStrategy
+   *            --> The ST Index is scanned, and the other ECQL filters, if any are then applied
+   *
+   *   * If other attribute filters are present, then use the Attribute strategy
+   *            --> The Attribute Indices are scanned, and the other ECQL filters, if any, are then applied
+   *
+   *   * If filters are not identified, use the STIdxStrategy
+   *            --> The ST Index is scanned (likely a full table scan) and the ECQL filters are applied
+   */
+  private def processFilters(filters: Seq[Filter], sft: SimpleFeatureType, hints: StrategyHints): Strategy = {
+    // record strategy takes priority
+    val recordStrategy = filters.iterator.flatMap(f => RecordIdxStrategy.getStrategy(f, sft, hints)).headOption
+    recordStrategy match {
+      case Some(s) => s.strategy
+      case None    => processNonRecordFilters(filters, sft, hints)
     }
   }
+
+  /**
+   * We've already eliminated record filters - look for attribute + spatio-temporal filters
+   */
+  private def processNonRecordFilters(filters: Seq[Filter],
+                                      sft: SimpleFeatureType,
+                                      hints: StrategyHints): Strategy = {
+    // look for reasonable cost attribute strategies - expensive ones will not be considered
+    val attributeStrategies =
+      filters.flatMap(f => AttributeIndexStrategy.getStrategy(f, sft, hints)).filter(_.cost < REASONABLE_COST)
+
+    // next look for low cost (high-cardinality) attribute filters - cost is set in the attribute strategy
+    val highCardinalityStrategy = attributeStrategies.find(_.cost < OPTIMAL_COST)
+    highCardinalityStrategy match {
+      case Some(s) => s.strategy
+      case None    => processStFilters(filters, attributeStrategies.headOption, sft, hints)
+    }
+  }
+
+  /**
+   * We've eliminated the best attribute strategies - look for spatio-temporal and use the best attribute
+   * strategy available as a fallback.
+   */
+  def processStFilters(filters: Seq[Filter],
+                       fallback: Option[StrategyDecision],
+                       sft: SimpleFeatureType,
+                       hints: StrategyHints): Strategy = {
+    // finally, prefer spatial filters if available
+    val stStrategy = filters.iterator.flatMap(f => STIdxStrategy.getStrategy(f, sft, hints)).headOption
+    stStrategy.orElse(fallback).map(_.strategy).getOrElse(new STIdxStrategy)
+  }
+
 
   // TODO try to use wildcard values from the Filter itself (https://geomesa.atlassian.net/browse/GEOMESA-309)
   // Currently pulling the wildcard values from the filter

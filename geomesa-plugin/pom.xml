@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.locationtech.geomesa</groupId>
         <artifactId>geomesa-accumulo1.5</artifactId>
-        <version>1.0.0-rc.3-SNAPSHOT</version>
+        <version>1.0.0-rc.5-SNAPSHOT</version>
     </parent>
 
     <artifactId>geomesa-plugin-accumulo1.5</artifactId>
@@ -76,10 +76,6 @@
         <dependency>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

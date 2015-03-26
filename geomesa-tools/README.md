@@ -153,27 +153,65 @@ To create a new feature on a specified catalog table, use the `create` command.
 #### Example command:
     geomesa create -u username -p password -c test_create -i instname -z zoo1,zoo2,zoo3 -fn testing -s fid:String:index=true,dtg:Date,geom:Point:srid=4326 -dt dtg
 
-### delete
-To delete a feature on a specified catalog table, use the `delete` command.
+### removeschema
+To remove a feature type and it's associated data from a catalog table, use the `removeschema` command.
 
 ####Usage (required options denoted with star):
-    $ geomesa help delete
-    Delete a feature's data and definition from a GeoMesa catalog
-    Usage: delete [options]
+    $ geomesa help removeschema
+    Usage: removeschema [options]
       Options:
         -a, --auths
            Accumulo authorizations
       * -c, --catalog
            Catalog table name for GeoMesa
-      * -fn, --feature-name
+        -fn, --feature-name
            Simple Feature Type name on which to operate
         -f, --force
-           Force deletion of feature without prompt
+           Force deletion without prompt
            Default: false
         -i, --instance
            Accumulo instance name
         -mc, --mock
            Run everything with a mock accumulo instance instead of a real one
+           (true/false)
+           Default: false
+        -p, --password
+           Accumulo password (will prompt if not supplied)
+        -pt, --pattern
+           Regular expression to select items to delete
+      * -u, --user
+           Accumulo user name
+        -v, --visibilities
+           Accumulo scan visibilities
+        -z, --zookeepers
+           Zookeepers (host[:port], comma separated)
+
+
+    
+####Example:
+    geomesa removeschema -u username -p password -i instname -z zoo1,zoo2,zoo3 -c test_catalog -fn testfeature1
+    geomesa removeschema -u username -p password -i instname -z zoo1,zoo2,zoo3 -c test_catalog -pt 'testfeatures\d+'
+
+### deletecatalog
+To delete a GeoMesa catalog completely (and all features in it) use the `deletecatalog` command.
+
+####Usage (required options denoted with star):
+    geomesa help deletecatalog
+    Delete a GeoMesa catalog completely (and all features in it)
+    Usage: deletecatalog [options]
+      Options:
+        -a, --auths
+           Accumulo authorizations
+      * -c, --catalog
+           Catalog table name for GeoMesa
+        -f, --force
+           Force deletion without prompt
+           Default: false
+        -i, --instance
+           Accumulo instance name
+        -mc, --mock
+           Run everything with a mock accumulo instance instead of a real one
+           (true/false)
            Default: false
         -p, --password
            Accumulo password (will prompt if not supplied)
@@ -183,11 +221,10 @@ To delete a feature on a specified catalog table, use the `delete` command.
            Accumulo scan visibilities
         -z, --zookeepers
            Zookeepers (host[:port], comma separated)
-
     
 ####Example:
-    geomesa delete -u username -p password -i instname -z zoo1,zoo2,zoo3 -c test_delete -fn testing
-
+    geomesa deletecatalog -u username -p password -i instname -z zoo1,zoo2,zoo3 -c test_catalog
+    
 ### describe
 To describe the attributes of a feature on a specified catalog table, use the `describe` command.  
 
@@ -337,7 +374,7 @@ The file type is inferred from the extension of the file, so ensure that the for
            Catalog table name for GeoMesa
         -cols, --columns
            the set of column indexes to be ingested, must match the
-           SimpleFeatureType spec
+           SimpleFeatureType spec (zero-indexed)
         -dtf, --dt-format
            format string for the date time field
         -dt, --dtg
@@ -358,11 +395,13 @@ The file type is inferred from the extension of the file, so ensure that the for
         -i, --instance
            Accumulo instance name
         -lat, --lat-attribute
-           name of the latitude field in the SimpleFeatureType if ingesting point
-           data
+           name of the latitude field in the SimpleFeature if latitude is 
+           kept in the SFT spec; otherwise defines the csv field index used to create the
+           default geometry
         -lon, --lon-attribute
-           name of the longitude field in the SimpleFeatureType if ingesting point
-           data
+           name of the longitude field in the SimpleFeature if longitude is 
+           kept in the SFT spec; otherwise defines the csv field index used to create the
+           default geometry
         -mc, --mock
            Run everything with a mock accumulo instance instead of a real one
            Default: false
@@ -385,13 +424,56 @@ The file type is inferred from the extension of the file, so ensure that the for
 
 
 #### Example commands:
-    geomesa ingest -u username -p password -c geomesa_catalog -fn somefeaturename -s fid:Double,dtg:Date,*geom:Geometry \
+
+##### Ingest CSV with single WKT (Well Known Text) geometry
+
+    # file.csv (comma separated)
+    featureId,date,geom
+    1.23623623,01/01/2014 06:30:23,POINT(2 3)
+    290.43234,01/02/2014 08:35:24,POINT(3 3)
+    3.14159,01/03/2014 18:11:56,POINT(4 5)
+
+    # ingest command
+    geomesa ingest -u username -p password -c geomesa_catalog -fn myfeature -s 'fid:Double,dtg:Date,*geom:Geometry' \
         --dtg dtg -dtf "MM/dd/yyyy HH:mm:ss" hdfs:///some/hdfs/path/to/file.csv
+
+##### Ingest lon/lat that are part of the SimpleFeatureType using a feature id made of the hash of two fields
+ 
+    # file.tsv (tab separated)
+    2.3623  01/01/2014 06:30:23 38.023 -74.0002
+    23.333  01/01/2014 06:30:23 39.424 -76.02
+    10.021  01/01/2014 06:30:23 40.325 -75.883
     
-    geomesa ingest -u username -p password -c geomesa_catalog -a someAuths -v someVis -sh 42 -fn somefeaturename
+    # ingest command
+    geomesa ingest -u username -p password -c geomesa_catalog -a someAuths -v someVis -sh 42 -fn myfeature
      -s fid:Double,dtg:Date,lon:Double,lat:Double,*geom:Point -dt dtg -dtf "MM/dd/yyyy HH:mm:ss" 
      -id fid,dtg -h -lon lon -lat lat /some/local/path/to/file.tsv
-     
+
+##### Create geometry field from the lon/lat but drop the lon/lat from the FeatureType spec - List[Int] is ingested
+
+    # file.csv (comma separated
+    "2014-01-01 22:33:44","38.023","-74.0002","5,6,7"
+    "2014-01-02 22:33:44","39.023","-78.0002",""
+    "2014-01-03 22:33:44","50.023","-73.0002","1, 2, 3"
+    
+    # ingest command
+    geomesa ingest -u username -p password -c geomesa_catalog -fn myfeature
+     -s 'dtg:Date,myList:List[Int],*geom:Point' -cols '0,3' -dt dtg -dtf "MM-dd-yyyy HH:mm:ss" 
+     -lon 1 -lat 2 /some/local/path/to/file.csv
+
+##### Create geometry field from the lon/lat but drop the lon/lat from the FeatureType spec - Map[String,Int] is ingested
+
+    # file.csv (comma separated
+    "2014-01-01 22:33:44","38.023","-74.0002","a,5;b,6;c,7"
+    "2014-01-02 22:33:44","39.023","-78.0002",""
+    "2014-01-03 22:33:44","50.023","-73.0002","a,1;b,2;d,3"
+
+    # ingest command
+    geomesa ingest -u username -p password -c geomesa_catalog -fn myfeature
+     -s 'dtg:Date,myMap:Map[String,Int],*geom:Point' -cols '0,3' -dt dtg -dtf "MM-dd-yyyy HH:mm:ss"
+     -lon 1 -lat 2 -md "," ";" /some/local/path/to/file.csv
+
+##### Ingest a shape file
     geomesa ingest -u username -p password -c test_catalog -f shapeFileFeatureName /some/path/to/file.shp
 
 ### list

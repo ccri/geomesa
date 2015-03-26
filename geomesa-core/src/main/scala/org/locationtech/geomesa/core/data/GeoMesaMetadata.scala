@@ -22,7 +22,7 @@ import org.apache.accumulo.core.security.ColumnVisibility
 import org.apache.hadoop.io.Text
 import org.locationtech.geomesa.core.data.AccumuloBackedMetadata._
 import org.locationtech.geomesa.core.security.AuthorizationsProvider
-import org.locationtech.geomesa.core.util.SelfClosingIterator
+import org.locationtech.geomesa.core.util.{GeoMesaBatchWriterConfig, SelfClosingIterator}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -52,12 +52,11 @@ class AccumuloBackedMetadata(connector: Connector,
                              writeVisibilities: String,
                              authorizationsProvider: AuthorizationsProvider) extends GeoMesaMetadata {
 
+  // warning: only access this map in a synchronized fashion
   private val metaDataCache = new mutable.HashMap[(String, String), Option[String]]()
-    with mutable.SynchronizedMap[(String, String), Option[String]]
 
-  // TODO memory should be configurable
   private val metadataBWConfig =
-    new BatchWriterConfig().setMaxMemory(10000L).setMaxWriteThreads(1)
+    GeoMesaBatchWriterConfig().setMaxMemory(10000L).setMaxWriteThreads(1)
 
   /**
    * Handles creating a mutation for writing metadata
@@ -82,7 +81,7 @@ class AccumuloBackedMetadata(connector: Connector,
     mutation.put(new Text(key), EMPTY_COLQ, new Value(value.getBytes))
     // also pre-fetch into the cache
     if (!value.isEmpty) {
-      metaDataCache.put((featureName, key), Some(value))
+      metaDataCache.synchronized { metaDataCache.put((featureName, key), Some(value)) }
     }
   }
 
@@ -134,7 +133,9 @@ class AccumuloBackedMetadata(connector: Connector,
    * @return
    */
   override def read(featureName: String, key: String): Option[String] =
-    metaDataCache.getOrElseUpdate((featureName, key), readRequiredNoCache(featureName, key))
+    metaDataCache.synchronized {
+      metaDataCache.getOrElseUpdate((featureName, key), readRequiredNoCache(featureName, key))
+    }
 
   override def readRequired(featureName: String, key: String): String =
     read(featureName, key)
@@ -164,9 +165,9 @@ class AccumuloBackedMetadata(connector: Connector,
   private def createCatalogScanner = connector.createScanner(catalogTable, authorizationsProvider.getAuthorizations)
 
   override def expireCache(featureName: String) =
-    metaDataCache.keys
-      .filter { case (fn, cf) => fn == featureName }
-      .foreach(metaDataCache.remove)
+    metaDataCache.synchronized {
+      metaDataCache.keys.filter { case (fn, _) => fn == featureName}.foreach(metaDataCache.remove)
+    }
 
   override def insert(featureName: String, key: String, value: String) =
     insert(featureName, Map(key -> value))

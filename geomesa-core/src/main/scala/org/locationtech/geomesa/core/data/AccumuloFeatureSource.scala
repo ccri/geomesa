@@ -19,16 +19,17 @@ package org.locationtech.geomesa.core.data
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geotools.data._
-import org.geotools.data.collection.ListFeatureCollection
-import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
+import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureIterator, SimpleFeatureSource}
 import org.geotools.feature.visitor.{BoundsVisitor, MaxVisitor, MinVisitor}
+import org.locationtech.geomesa.core.index.QueryHints._
+import org.locationtech.geomesa.core.iterators.TemporalDensityIterator.createFeatureType
 import org.locationtech.geomesa.core.process.knn.KNNVisitor
 import org.locationtech.geomesa.core.process.proximity.ProximityVisitor
 import org.locationtech.geomesa.core.process.query.QueryVisitor
+import org.locationtech.geomesa.core.process.temporalDensity.TemporalDensityVisitor
 import org.locationtech.geomesa.core.process.tube.TubeVisitor
 import org.locationtech.geomesa.core.process.unique.AttributeVisitor
-import org.locationtech.geomesa.core.util.TryLoggingFailure
-import org.locationtech.geomesa.utils.geotools.MinMaxTimeVisitor
+import org.locationtech.geomesa.core.util.{SelfClosingIterator, TryLoggingFailure}
 import org.opengis.feature.FeatureVisitor
 import org.opengis.feature.`type`.Name
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -67,10 +68,11 @@ trait AccumuloAbstractFeatureSource extends AbstractFeatureSource with Logging w
     new AccumuloFeatureCollection(self, query)
   }
 
-  override def getFeatures(query: Query): SimpleFeatureCollection = tryLoggingFailures(getFeaturesNoCache(query))
+  override def getFeatures(query: Query): SimpleFeatureCollection =
+    tryLoggingFailures(getFeaturesNoCache(query))
 
   override def getFeatures(filter: Filter): SimpleFeatureCollection =
-    tryLoggingFailures(getFeatures(new Query(getSchema().getTypeName, filter)))
+    getFeatures(new Query(getSchema().getTypeName, filter))
 }
 
 class AccumuloFeatureSource(val dataStore: AccumuloDataStore, val featureName: Name)
@@ -82,21 +84,27 @@ class AccumuloFeatureCollection(source: SimpleFeatureSource, query: Query)
   val ds  = source.getDataStore.asInstanceOf[AccumuloDataStore]
 
   override def getSchema: SimpleFeatureType =
-    if(query.getHints.containsKey(TRANSFORMS)) query.getHints.get(TRANSFORM_SCHEMA).asInstanceOf[SimpleFeatureType]
-    else super.getSchema
+    if (query.getHints.containsKey(TEMPORAL_DENSITY_KEY)) {
+      createFeatureType(source.getSchema())
+    } else if(query.getHints.containsKey(TRANSFORMS)) {
+      query.getHints.get(TRANSFORM_SCHEMA).asInstanceOf[SimpleFeatureType]
+    } else {
+      super.getSchema
+    }
 
   override def accepts(visitor: FeatureVisitor, progress: ProgressListener) =
     visitor match {
       // TODO GEOMESA-421 implement min/max iterators
-      case v: MinVisitor       => v.setValue(ds.getTimeBounds(query.getTypeName).getStart.toDate)
-      case v: MaxVisitor       => v.setValue(ds.getTimeBounds(query.getTypeName).getEnd.toDate)
-      case v: BoundsVisitor    => v.reset(ds.getBounds(query))
-      case v: TubeVisitor      => v.setValue(v.tubeSelect(source, query))
-      case v: ProximityVisitor => v.setValue(v.proximitySearch(source, query))
-      case v: QueryVisitor     => v.setValue(v.query(source, query))
-      case v: KNNVisitor       => v.setValue(v.kNNSearch(source,query))
-      case v: AttributeVisitor => v.setValue(v.unique(source, query))
-      case _                   => super.accepts(visitor, progress)
+      case v: MinVisitor             => v.setValue(ds.getTimeBounds(query.getTypeName).getStart.toDate)
+      case v: MaxVisitor             => v.setValue(ds.getTimeBounds(query.getTypeName).getEnd.toDate)
+      case v: BoundsVisitor          => v.reset(ds.getBounds(query))
+      case v: TubeVisitor            => v.setValue(v.tubeSelect(source, query))
+      case v: ProximityVisitor       => v.setValue(v.proximitySearch(source, query))
+      case v: QueryVisitor           => v.setValue(v.query(source, query))
+      case v: TemporalDensityVisitor => v.setValue(v.query(source, query))
+      case v: KNNVisitor             => v.setValue(v.kNNSearch(source,query))
+      case v: AttributeVisitor       => v.setValue(v.unique(source, query))
+      case _                         => super.accepts(visitor, progress)
     }
 
   override def reader(): FeatureReader[SimpleFeatureType, SimpleFeature] = super.reader()
@@ -104,9 +112,26 @@ class AccumuloFeatureCollection(source: SimpleFeatureSource, query: Query)
 
 class CachingAccumuloFeatureCollection(source: SimpleFeatureSource, query: Query)
     extends AccumuloFeatureCollection(source, query) {
-  lazy val internalFeatures = super.features()
 
-  override def features = internalFeatures
+  lazy val featureList = {
+    // use ListBuffer for constant append time and size
+    val buf = scala.collection.mutable.ListBuffer.empty[SimpleFeature]
+    val iter = super.features
+    while (iter.hasNext) {
+      buf.append(iter.next())
+    }
+    iter.close()
+    buf
+  }
+
+  override def features = new SimpleFeatureIterator() {
+    private val iter = featureList.iterator
+    override def hasNext = iter.hasNext
+    override def next = iter.next
+    override def close = {}
+  }
+
+  override def size = featureList.length
 }
 
 trait CachingFeatureSource extends AccumuloAbstractFeatureSource {
@@ -115,14 +140,15 @@ trait CachingFeatureSource extends AccumuloAbstractFeatureSource {
   private val featureCache =
     CacheBuilder.newBuilder().build(
       new CacheLoader[Query, SimpleFeatureCollection] {
-        override def load(query: Query): SimpleFeatureCollection = {
+        override def load(query: Query): SimpleFeatureCollection =
           new CachingAccumuloFeatureCollection(self, query)
-        }
       })
 
   override def getFeatures(query: Query): SimpleFeatureCollection = {
     // geotools bug in Query.hashCode
-    if(query.getStartIndex == null) query.setStartIndex(0)
+    if (query.getStartIndex == null) {
+      query.setStartIndex(0)
+    }
     featureCache.get(query)
   }
 

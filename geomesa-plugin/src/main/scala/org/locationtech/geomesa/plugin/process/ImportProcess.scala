@@ -1,3 +1,19 @@
+/*
+ * Copyright 2014 Commonwealth Computer Research, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.locationtech.geomesa.plugin.process
 
 import java.{util => ju}
@@ -54,7 +70,14 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess {
                  min = 0,
                  max= 1,
                  description = "Number of shards to store for this table (defaults to 4)")
-               numShards: Integer
+               numShards: Integer,
+
+               @DescribeParameter(
+                 name = "securityLevel",
+                 min = 0,
+                 max = 1,
+                 description = "The level of security to apply to this import")
+               securityLevel: String
               ) = {
 
     val workspaceInfo = Option(catalog.getWorkspaceByName(workspace)).getOrElse {
@@ -70,7 +93,7 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess {
 
     val maxShard = Option(numShards).map { n => if(n > 1) n-1 else DEFAULT_MAX_SHARD }.getOrElse(DEFAULT_MAX_SHARD)
 
-    val targetType = importIntoStore(features, name, storeInfo, maxShard)
+    val targetType = importIntoStore(features, name, storeInfo, maxShard, Option(securityLevel))
 
     // import the layer into geoserver
     catalogBuilder.setStore(storeInfo)
@@ -92,7 +115,11 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess {
     layerInfo.prefixedName
   }
 
-  def importIntoStore(features: SimpleFeatureCollection, name: String, storeInfo: DataStoreInfo, maxShard: Int) = {
+  def importIntoStore(features: SimpleFeatureCollection,
+                      name: String,
+                      storeInfo: DataStoreInfo,
+                      maxShard: Int,
+                      visibility: Option[String]) = {
     val ds = storeInfo.getDataStore(null)
     if(!ds.isInstanceOf[AccumuloDataStore]) {
       throw new ProcessException(s"Cannot import into non-AccumuloDataStore of type ${ds.getClass.getName}")
@@ -114,7 +141,7 @@ class ImportProcess(val catalog: Catalog) extends GeomesaProcess {
     if(layer != null) throw new ProcessException(s"Target layer $layerName already exists in the catalog")
 
     val fs = accumuloDS.getFeatureSource(storedSft.getName).asInstanceOf[AccumuloFeatureStore]
-    fs.addFeatures(features)
+    fs.addFeatures(features, visibility)
     storedSft
   }
 

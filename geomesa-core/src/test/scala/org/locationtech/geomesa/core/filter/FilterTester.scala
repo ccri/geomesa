@@ -1,3 +1,19 @@
+/*
+ * Copyright 2014 Commonwealth Computer Research, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.locationtech.geomesa.core.filter
 
 import java.util.Date
@@ -82,6 +98,7 @@ class DWithinPredicateTest extends FilterTester {
   val filters = dwithinPointPredicates
 }
 
+@RunWith(classOf[JUnitRunner])
 class IdPredicateTest extends FilterTester {
   val filters = idPredicates
   runTest
@@ -155,12 +172,9 @@ class IdQueryTest extends Specification {
   }
 }
 
-object FilterTester extends AccumuloDataStoreTest with Logging {
+object FilterTester extends Logging {
   val mediumDataFeatures: Seq[SimpleFeature] = mediumData.map(createSF)
   val sft = mediumDataFeatures.head.getFeatureType
-
-  val sft2 = TestData.getFeatureType(typeNameSuffix = "2")
-  val mediumDataFeatures2: Seq[SimpleFeature] = mediumData.map(createSF(_, sft2))
 
   val ds = {
     DataStoreFinder.getDataStore(Map(
@@ -206,8 +220,8 @@ trait FilterTester extends Specification with Logging {
         val filterCount = mediumDataFeatures.count(filter.evaluate)
         val queryCount = fs.getFeatures(filter).size
         logger.debug(s"\nFilter: ${ECQL.toCQL(filter)}\nFullData size: ${mediumDataFeatures.size}: " +
-          s"filter hits: $filterCount query hits: $queryCount")
-        filterCount mustEqual queryCount
+            s"filter hits: $filterCount query hits: $queryCount")
+        queryCount mustEqual filterCount
       }
     }
   }

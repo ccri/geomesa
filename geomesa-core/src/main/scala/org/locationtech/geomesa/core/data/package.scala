@@ -22,6 +22,7 @@ import org.apache.hadoop.mapreduce.TaskInputOutputContext
 import org.geotools.data.FeatureWriter
 import org.geotools.factory.Hints.ClassKey
 import org.joda.time.{DateTime, Interval}
+import org.locationtech.geomesa.feature.FeatureEncoding
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 package object data {
@@ -56,6 +57,7 @@ import scala.collection.JavaConversions._
   val RECORD_TABLE_KEY       = "tables.record.name"
   val QUERIES_TABLE_KEY      = "tables.queries.name"
   val SHARED_TABLES_KEY      = "tables.sharing"
+  val VERSION_KEY            = "version"
 
   // Storage implementation constants
   val DATA_CQ              = new Text("SimpleFeatureAttribute")
@@ -66,8 +68,17 @@ import scala.collection.JavaConversions._
   val EMPTY_VALUE          = new Value(Array[Byte]())
   val EMPTY_COLF           = new Text(EMPTY_STRING)
   val EMPTY_COLQ           = new Text(EMPTY_STRING)
+  val EMPTY_VIZ            = new Text(EMPTY_STRING)
   val WHOLE_WORLD_BOUNDS   = "-180.0:180.0:-90.0:90.0"
   val ALL_TIME_BOUNDS      = new Interval(new DateTime(0l), new DateTime())  // Epoch till now
+  val DEFAULT_ENCODING     = FeatureEncoding.KRYO
+
+  // 0 == old single table style
+  // 1 == multi-table style
+  // 2 == sorted keys in the STIDX table
+  // skipping 3 for integration...
+  // 4 is kryo encoded index values
+  val INTERNAL_GEOMESA_VERSION = 4
 
   // SimpleFeature Hints
   val TRANSFORMS           = new ClassKey(classOf[String])

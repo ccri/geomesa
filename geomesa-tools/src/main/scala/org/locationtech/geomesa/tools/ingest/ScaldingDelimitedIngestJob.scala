@@ -17,6 +17,7 @@ package org.locationtech.geomesa.tools.ingest
 
 import java.net.URLDecoder
 import java.nio.charset.Charset
+import java.util.{List => JList, Map => JMap}
 
 import com.google.common.hash.Hashing
 import com.twitter.scalding.{Args, Hdfs, Job, Local, Mode}
@@ -35,11 +36,10 @@ import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.{params => ds
 import org.locationtech.geomesa.core.index.Constants
 import org.locationtech.geomesa.jobs.scalding.MultipleUsefulTextLineFiles
 import org.locationtech.geomesa.tools.Utils.IngestParams
+import org.locationtech.geomesa.tools.ingest.ScaldingDelimitedIngestJob._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import ScaldingDelimitedIngestJob.toList
-import ScaldingDelimitedIngestJob.isList
 
 import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.{Failure, Success, Try}
@@ -54,6 +54,7 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
   lazy val idFields         = args.optional(IngestParams.ID_FIELDS).orNull
   lazy val pathList         = DelimitedIngest.decodeFileList(args(IngestParams.FILE_PATH))
   lazy val sftSpec          = URLDecoder.decode(args(IngestParams.SFT_SPEC), "UTF-8")
+  lazy val skipHeader       = args.optional(IngestParams.SKIP_HEADER).exists(_.toBoolean)
   lazy val colList          = args.optional(IngestParams.COLS).map(ColsParser.build)
   lazy val dtgField         = args.optional(IngestParams.DT_FIELD)
   lazy val dtgFmt           = args.optional(IngestParams.DT_FORMAT)
@@ -64,6 +65,7 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
   lazy val isTestRun        = args(IngestParams.IS_TEST_INGEST).toBoolean
   lazy val featureName      = args(IngestParams.FEATURE_NAME)
   lazy val listDelimiter    = args(IngestParams.LIST_DELIMITER).charAt(0)
+  lazy val mapDelimiters    = args.list(IngestParams.MAP_DELIMITERS).map(_.charAt(0))
 
   //Data Store parameters
   lazy val dsConfig =
@@ -98,6 +100,7 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
   lazy val attributes = sft.getAttributeDescriptors
   lazy val dtBuilder = dtgField.flatMap(buildDtBuilder)
   lazy val idBuilder = buildIDBuilder
+  lazy val setGeom = buildGeometrySetter
 
   // non-serializable resources.
   class Resources {
@@ -127,7 +130,11 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
   // Check to see if this an actual ingest job or just a test.
   if (!isTestRun) {
     new MultipleUsefulTextLineFiles(pathList: _*).using(new Resources)
-      .foreach('line) { (cres: Resources, line: String) => lineNumber += 1; ingestLine(cres.fw, line) }
+      .foreach('line) { (cres: Resources, line: String) =>
+          lineNumber += 1
+          if (lineNumber > 1 || !skipHeader) {
+            ingestLine(cres.fw, line)
+          }}
   }
 
   // TODO unit test class without having an internal helper method
@@ -142,7 +149,7 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
     }
   }
 
-  def ingestLine(fw: FeatureWriter[SimpleFeatureType, SimpleFeature], line: String): Unit =
+  def ingestLine(fw: FeatureWriter[SimpleFeatureType, SimpleFeature], line: String, skipHeader: Boolean = false): Unit =
     Try {
       ingestDataToFeature(line, fw.next())
       fw.write()
@@ -160,42 +167,77 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
   // Populate the fields of a SimpleFeature with a line of CSV
   def ingestDataToFeature(line: String, feature: SimpleFeature) = {
     val reader = CSVParser.parse(line, delim)
-    val fields: List[String] =
+    val csvFields =
       try {
-        val allFields = reader.getRecords.get(0).toList
-        if (colList.isDefined) colList.map(_.map(allFields(_))).get else allFields
+        reader.getRecords.get(0).toList
       } catch {
-        case e: Exception => throw new Exception(s"Commons CSV could not parse " +
-          s"line number: $lineNumber \n\t with value: $line")
-      } finally {
-        reader.close()
-      }
+        case e: Exception => throw new Exception(s"Could not parse " +
+          s"line number: $lineNumber with value: $line")
+      } finally { reader.close() }
 
-    val id = idBuilder(fields)
+    val sfFields = colList.map(_.map(csvFields(_))).getOrElse(csvFields)
+
+    val id = idBuilder(sfFields)
     feature.getIdentifier.asInstanceOf[FeatureIdImpl].setID(id)
     feature.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
 
     //add data
-    for (idx <- 0 until fields.length) {
+    for (idx <- 0 until sfFields.length) {
       if (isList(sft.getAttributeDescriptors.get(idx))) {
-        feature.setAttribute(idx, toList(fields(idx), listDelimiter, sft.getAttributeDescriptors.get(idx)))
+        feature.setAttribute(idx, toList(sfFields(idx), listDelimiter, sft.getAttributeDescriptors.get(idx)))
+      } else if (isMap(sft.getAttributeDescriptors.get(idx))) {
+        feature.setAttribute(idx, toMap(sfFields(idx), mapDelimiters(0), mapDelimiters(1), sft.getAttributeDescriptors.get(idx)))
       } else {
-        feature.setAttribute(idx, fields(idx))
+        feature.setAttribute(idx, sfFields(idx))
       }
     }
-    //add datetime to feature
-    dtBuilder.foreach { dateBuilder => addDateToFeature(line, fields, feature, dateBuilder) }
 
-    // Support for point data method
-    import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeature
-    val lon = lonField.map(feature.get[Double](_))
-    val lat = latField.map(feature.get[Double](_))
-    (lon, lat) match {
-      case (Some(x), Some(y)) => feature.setDefaultGeometry(geomFactory.createPoint(new Coordinate(x, y)))
-      case _                  =>
+    //add datetime and geometry
+    dtBuilder.foreach { dateBuilder => addDateToFeature(line, sfFields, feature, dateBuilder) }
+    setGeom(csvFields, feature)
+  }
+
+  /**
+   * build a function that takes the list of original delimited values
+   * and the simple feature and sets the geom properly on the feature
+   */
+  def buildGeometrySetter: (Seq[String], SimpleFeature) => Unit = {
+     def lonLatInSft(lon: Option[String], lat: Option[String]) =
+       lonField.isDefined &&
+         latField.isDefined &&
+         sft.indexOf(lonField.get) != -1 &&
+         sft.indexOf(latField.get) != -1
+
+    (lonField, latField) match {
+      case (None, None)  =>
+        logger.info(s"Using wkt geometry from field index ${sft.indexOf(sft.getGeometryDescriptor.getName)}")
+        (_: Seq[String], sf: SimpleFeature) => require(sf.getDefaultGeometry != null)
+
+      case (Some(lon), Some(lat)) if lonLatInSft(lonField, latField) =>
+        logger.info(s"Using lon/lat from simple feature fields $lon/$lat")
+        (_: Seq[String], sf: SimpleFeature) => {
+          import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeature
+          val g = geomFactory.createPoint(new Coordinate(sf.getDouble(lon), sf.getDouble(lat)))
+          sf.setDefaultGeometry(g)
+        }
+
+      case (Some(lon), Some(lat)) =>
+        logger.info(s"Using lon/lat from csv indexes ${lonField.get}/${latField.get}")
+        try {
+          val lonIdx = lon.toInt
+          val latIdx = lat.toInt
+          (allFields: Seq[String], sf: SimpleFeature) => {
+            val g = geomFactory.createPoint(new Coordinate(allFields(lonIdx).toDouble, allFields(latIdx).toDouble))
+            sf.setDefaultGeometry(g)
+          }
+        } catch {
+          case nfe: NumberFormatException =>
+            throw new IllegalArgumentException("Lon/Lat fields must either be integers " +
+              "or field names in the SFT spec", nfe)
+        }
+
+      case _ => throw new IllegalArgumentException("Unable to determine geometry mapping from csv")
     }
-    if ( feature.getDefaultGeometry == null )
-      throw new Exception(s"No valid geometry found for line number: $lineNumber,  With value of: $line")
   }
 
   def addDateToFeature(line: String,
@@ -251,16 +293,37 @@ class ScaldingDelimitedIngestJob(args: Args) extends Job(args) with Logging {
 }
 
 object ScaldingDelimitedIngestJob {
+  import scala.collection.JavaConverters._
+  import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
+
   def isList(ad: AttributeDescriptor) = classOf[java.util.List[_]].isAssignableFrom(ad.getType.getBinding)
 
-  def toList(s: String, delim: Char,  ad: AttributeDescriptor) = {
-    val clazz = SimpleFeatureTypes.getCollectionType(ad).get
+  def toList(s: String, delim: Char,  ad: AttributeDescriptor): JList[_] = {
     if (s.isEmpty) {
-     List()
+      List().asJava
     } else {
+      val clazz = ad.getCollectionType().get
       s.split(delim).map(_.trim).map { value =>
         Converters.convert(value, clazz).asInstanceOf[AnyRef]
-      }.toList
+      }.toList.asJava
+    }
+  }
+
+  def isMap(ad: AttributeDescriptor) = classOf[java.util.Map[_, _]].isAssignableFrom(ad.getType.getBinding)
+
+  def toMap(s: String,
+            delimBetweenKeysAndValues: Char,
+            delimBetweenKeyValuePairs: Char,
+            ad: AttributeDescriptor): JMap[_,_] = {
+    if (s.isEmpty) {
+      Map().asJava
+    } else {
+      val (keyClass, valueClass) = ad.getMapTypes().get
+      s.split(delimBetweenKeyValuePairs)
+        .map(_.split(delimBetweenKeysAndValues).map(_.trim))
+        .map { case Array(key, value) =>
+          (Converters.convert(key, keyClass).asInstanceOf[AnyRef], Converters.convert(value, valueClass).asInstanceOf[AnyRef])
+        }.toMap.asJava
     }
   }
 }

@@ -16,38 +16,85 @@
 
 package org.locationtech.geomesa.utils.geotools
 
-import java.util.{Date, UUID}
+import java.util.{Date, Locale, UUID}
 
+import com.typesafe.config.{Config, ConfigFactory}
 import com.vividsolutions.jts.geom._
 import org.geotools.feature.AttributeTypeBuilder
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
-import org.geotools.referencing.crs.DefaultGeographicCRS
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.SpecParser.{ListAttributeType, MapAttributeType, SimpleAttributeType}
+import org.locationtech.geomesa.utils.stats.Cardinality.Cardinality
+import org.locationtech.geomesa.utils.stats.IndexCoverage.IndexCoverage
+import org.locationtech.geomesa.utils.stats.{Cardinality, IndexCoverage}
 import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 import scala.util.parsing.combinator.JavaTokenParsers
 
 object SimpleFeatureTypes {
 
-  val TABLE_SPLITTER         = "table.splitter.class"
-  val TABLE_SPLITTER_OPTIONS = "table.splitter.options"
-  val DEFAULT_DATE_FIELD     = "geomesa_index_start_time"
+  import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors._
 
-  val OPT_INDEX_VALUE        = "index-value"
-  val OPT_INDEX              = "index"
+  val TABLE_SPLITTER           = "table.splitter.class"
+  val TABLE_SPLITTER_OPTIONS   = "table.splitter.options"
+  val DEFAULT_DATE_FIELD       = "geomesa_index_start_time"
+
+  val OPT_INDEX_VALUE          = "index-value"
+  val OPT_INDEX                = "index"
+  val OPT_CARDINALITY          = "cardinality"
+
+  val USER_DATA_LIST_TYPE      = "subtype"
+  val USER_DATA_MAP_KEY_TYPE   = "keyclass"
+  val USER_DATA_MAP_VALUE_TYPE = "valueclass"
+
+  def createType(conf: Config): SimpleFeatureType = {
+    val nameSpec = conf.getString("type-name")
+    val (namespace, name) = buildTypeName(nameSpec)
+    val specParser = new SpecParser
+
+    val fields = getFieldConfig(conf).map { fc => buildField(fc, specParser) }
+    createType(namespace, name, fields, Seq())
+  }
+
+  def getFieldConfig(conf: Config): Seq[Config] =
+    if(conf.hasPath("fields")) conf.getConfigList("fields")
+    else conf.getConfigList("attributes")
+
+  def buildField(conf: Config, specParser: SpecParser): AttributeSpec = conf.getString("type") match {
+    case t if simpleTypeMap.contains(t)   => SimpleAttributeSpec(conf)
+    case t if geometryTypeMap.contains(t) => GeomAttributeSpec(conf)
+
+    case t if specParser.parse(specParser.listType, t).successful =>
+      ListAttributeSpec(conf)
+
+    case t if specParser.parse(specParser.mapType, t).successful =>
+      MapAttributeSpec(conf)
+  }
 
   def createType(nameSpec: String, spec: String): SimpleFeatureType = {
+    val (namespace, name) = buildTypeName(nameSpec)
+    val FeatureSpec(attributeSpecs, opts) = parse(spec)
+    createType(namespace, name, attributeSpecs, opts)
+  }
+
+  def createType(namespace: String, name: String,spec: String): SimpleFeatureType = {
+    createType(namespace + ":" + name, spec)
+  }
+
+  def buildTypeName(nameSpec: String): (String, String) = {
     val nsIndex = nameSpec.lastIndexOf(':')
     val (namespace, name) = if (nsIndex == -1 || nsIndex == nameSpec.length - 1) {
       (null, nameSpec)
     } else {
       (nameSpec.substring(0, nsIndex), nameSpec.substring(nsIndex + 1))
     }
+    (namespace, name)
+  }
 
-    val FeatureSpec(attributeSpecs, opts) = parse(spec)
-
-    val geomAttributes = attributeSpecs.collect { case g: GeomAttributeSpec => g }
+  def createType(namespace: String, name: String, attributeSpecs: Seq[AttributeSpec], opts: Seq[FeatureOption]): SimpleFeatureType = {
+    val geomAttributes = attributeSpecs.collect { case g: GeomAttributeSpec => g}
     val defaultGeom = geomAttributes.find(_.default).orElse(geomAttributes.headOption)
     val dateAttributes = attributeSpecs.collect {
       case s: SimpleAttributeSpec if s.clazz == classOf[Date] => s
@@ -64,19 +111,11 @@ object SimpleFeatureTypes {
     sft
   }
 
-  def setCollectionType(ad: AttributeDescriptor, typ: Class[_]): Unit =
-    ad.getUserData.put("subtype", typ)
-
-  def getCollectionType(ad: AttributeDescriptor): Option[Class[_]] =
-    Option(ad.getUserData.get("subtype")).map(_.asInstanceOf[Class[_]])
-
   def encodeType(sft: SimpleFeatureType): String =
     sft.getAttributeDescriptors.map { ad => AttributeSpecFactory.fromAttributeDescriptor(sft, ad).toSpec }.mkString(",")
 
   def getSecondaryIndexedAttributes(sft: SimpleFeatureType): Seq[AttributeDescriptor] =
-    sft.getAttributeDescriptors
-      .filter(_.getUserData.getOrElse(OPT_INDEX, false).asInstanceOf[java.lang.Boolean])
-      .filterNot(_.isInstanceOf[GeometryDescriptor])
+    sft.getAttributeDescriptors.filter(ad => ad.isIndexed && !ad.isInstanceOf[GeometryDescriptor])
 
   object AttributeSpecFactory {
     def fromAttributeDescriptor(sft: SimpleFeatureType, ad: AttributeDescriptor) = ad.getType match {
@@ -84,52 +123,71 @@ object SimpleFeatureTypes {
         SimpleAttributeSpec(
           ad.getLocalName,
           ad.getType.getBinding,
-          ad.getUserData.getOrElse(OPT_INDEX, false).asInstanceOf[Boolean],
-          ad.getUserData.getOrElse(OPT_INDEX_VALUE, false).asInstanceOf[Boolean]
+          ad.getIndexCoverage(),
+          ad.isIndexValue(),
+          ad.getCardinality()
         )
 
       case t if geometryTypeMap.contains(t.getBinding.getSimpleName) =>
+        val srid = Option(ad.asInstanceOf[GeometryDescriptor].getCoordinateReferenceSystem)
+            .flatMap(crs => Try(crs.getName.getCode.toInt).toOption)
+            .getOrElse(4326)
         GeomAttributeSpec(
           ad.getLocalName,
           ad.getType.getBinding,
-          ad.getUserData.getOrElse(OPT_INDEX, false).asInstanceOf[Boolean],
-          if (ad.asInstanceOf[GeometryDescriptor].getCoordinateReferenceSystem != null
-              && ad.asInstanceOf[GeometryDescriptor].getCoordinateReferenceSystem.equals(DefaultGeographicCRS.WGS84)) 4326 else -1,
+          srid,
           sft.getGeometryDescriptor.equals(ad)
         )
 
       case t if t.getBinding.equals(classOf[java.util.List[_]]) =>
         ListAttributeSpec(
           ad.getLocalName,
-          ad.getUserData.get("subtype").asInstanceOf[Class[_]],
-          ad.getUserData.getOrElse(OPT_INDEX, false).asInstanceOf[Boolean]
+          ad.getCollectionType().get,
+          ad.getIndexCoverage(),
+          ad.getCardinality()
         )
 
       case t if t.getBinding.equals(classOf[java.util.Map[_, _]]) =>
-        MapAttributeSpec(ad.getLocalName,
-          ad.getUserData.get("keyclass").asInstanceOf[Class[_]],
-          ad.getUserData.get("valueclass").asInstanceOf[Class[_]],
-          ad.getUserData.getOrElse(OPT_INDEX, false).asInstanceOf[Boolean])
+        val Some((keyType, valueType)) = ad.getMapTypes()
+        MapAttributeSpec(
+          ad.getLocalName,
+          keyType,
+          valueType,
+          ad.getIndexCoverage(),
+          ad.getCardinality()
+        )
     }
   }
 
   sealed trait AttributeSpec {
+
     def name: String
 
     def clazz: Class[_]
 
-    def index: Boolean
+    def index: IndexCoverage
 
     def indexValue: Boolean
+
+    def cardinality: Cardinality
 
     def toAttribute: AttributeDescriptor
 
     def toSpec: String
 
     protected def getIndexSpec = {
-      val idx = if (index) s":$OPT_INDEX=$index" else ""
-      val idxValue = if (indexValue) s":$OPT_INDEX_VALUE=$indexValue" else ""
-      idx + idxValue
+      val builder = new StringBuilder()
+      index match {
+        case IndexCoverage.NONE => // don't append
+        case _ => builder.append(s":$OPT_INDEX=$index")
+      }
+      if (indexValue) {
+        builder.append(s":$OPT_INDEX_VALUE=$indexValue")
+      }
+      if (cardinality == Cardinality.LOW || cardinality == Cardinality.HIGH) {
+        builder.append(s":$OPT_CARDINALITY=$cardinality")
+      }
+      builder.toString()
     }
   }
 
@@ -142,22 +200,72 @@ object SimpleFeatureTypes {
     }
   }
 
+  object AttributeSpec {
+    val defaults = Map[String, AnyRef](
+      OPT_INDEX       -> IndexCoverage.NONE.toString,
+      OPT_INDEX_VALUE -> java.lang.Boolean.FALSE,
+      OPT_CARDINALITY -> Cardinality.UNKNOWN.toString,
+      "srid"          -> Integer.valueOf(4326),
+      "default"       -> java.lang.Boolean.FALSE
+    )
+    val fallback = ConfigFactory.parseMap(defaults)
+
+    // back compatible with string or boolean
+    def getIndexCoverage(conf: Config) =
+      Try(conf.getString(OPT_INDEX)).flatMap(o => Try(IndexCoverage.withName(o.toLowerCase(Locale.US))))
+        .orElse(Try(if (conf.getBoolean(OPT_INDEX)) IndexCoverage.JOIN else IndexCoverage.NONE))
+        .getOrElse(IndexCoverage.NONE)
+  }
+
   sealed trait NonGeomAttributeSpec extends AttributeSpec
 
-  case class SimpleAttributeSpec(name: String, clazz: Class[_], index: Boolean, indexValue: Boolean)
-      extends NonGeomAttributeSpec {
-    override def toAttribute: AttributeDescriptor = {
+  object SimpleAttributeSpec {
+    def apply(in: Config): SimpleAttributeSpec = {
+      val conf = in.withFallback(AttributeSpec.fallback)
+
+      val name        = conf.getString("name")
+      val attrType    = conf.getString("type")
+      val index       = AttributeSpec.getIndexCoverage(conf)
+      val indexValue  = conf.getBoolean(OPT_INDEX_VALUE)
+      val cardinality = Cardinality.withName(conf.getString(OPT_CARDINALITY).toLowerCase(Locale.US))
+      SimpleAttributeSpec(name, simpleTypeMap(attrType), index, indexValue, cardinality)
+    }
+  }
+
+  case class SimpleAttributeSpec(name: String,
+                                 clazz: Class[_],
+                                 index: IndexCoverage,
+                                 indexValue: Boolean,
+                                 cardinality: Cardinality) extends NonGeomAttributeSpec {
+
+    override def toAttribute: AttributeDescriptor =
       new AttributeTypeBuilder()
           .binding(clazz)
-          .userData(OPT_INDEX, index)
-          .userData(OPT_INDEX_VALUE, indexValue)
+          .indexCoverage(index)
+          .indexValue(indexValue)
+          .cardinality(cardinality)
           .buildDescriptor(name)
-    }
 
     override def toSpec = s"$name:${typeEncode(clazz)}$getIndexSpec"
   }
 
-  case class ListAttributeSpec(name: String, subClass: Class[_], index: Boolean) extends NonGeomAttributeSpec {
+  object ListAttributeSpec {
+    private val specParser = new SpecParser
+    def apply(in: Config): ListAttributeSpec = {
+      val conf          = in.withFallback(AttributeSpec.fallback)
+      val name          = conf.getString("name")
+      val attributeType = specParser.parse(specParser.listType, conf.getString("type")).getOrElse(ListAttributeType(SimpleAttributeType("string")))
+      val index         = AttributeSpec.getIndexCoverage(conf)
+      val cardinality   = Cardinality.withName(conf.getString(OPT_CARDINALITY).toLowerCase(Locale.US))
+      ListAttributeSpec(name, simpleTypeMap(attributeType.p.t), index, cardinality)
+    }
+  }
+
+  case class ListAttributeSpec(name: String,
+                               subClass: Class[_],
+                               index: IndexCoverage,
+                               cardinality: Cardinality) extends NonGeomAttributeSpec {
+
     val clazz = classOf[java.util.List[_]]
     // currently we only allow simple types in the ST IDX for simplicity - revisit if it becomes a use-case
     val indexValue = false
@@ -165,19 +273,34 @@ object SimpleFeatureTypes {
     override def toAttribute: AttributeDescriptor = {
       new AttributeTypeBuilder()
           .binding(clazz)
-          .userData(OPT_INDEX, index)
-          .userData(OPT_INDEX_VALUE, indexValue)
-          .userData("subtype", subClass)
+          .indexCoverage(index)
+          .indexValue(indexValue)
+          .cardinality(cardinality)
+          .collectionType(subClass)
           .buildDescriptor(name)
     }
 
-    override def toSpec = {
-      s"$name:List[${subClass.getSimpleName}]$getIndexSpec"
+    override def toSpec = s"$name:List[${subClass.getSimpleName}]$getIndexSpec"
+  }
+
+  object MapAttributeSpec {
+    private val specParser = new SpecParser
+    private val defaultType = MapAttributeType(SimpleAttributeType("string"), SimpleAttributeType("string"))
+    def apply(in: Config): MapAttributeSpec = {
+      val conf          = in.withFallback(AttributeSpec.fallback)
+      val name          = conf.getString("name")
+      val attributeType = specParser.parse(specParser.mapType, conf.getString("type")).getOrElse(defaultType)
+      val index         = AttributeSpec.getIndexCoverage(conf)
+      val cardinality   = Cardinality.withName(conf.getString(OPT_CARDINALITY).toLowerCase(Locale.US))
+      MapAttributeSpec(name, simpleTypeMap(attributeType.kt.t), simpleTypeMap(attributeType.vt.t), index, cardinality)
     }
   }
 
-  case class MapAttributeSpec(name: String, keyClass: Class[_], valueClass: Class[_], index: Boolean)
-      extends NonGeomAttributeSpec {
+  case class MapAttributeSpec(name: String,
+                              keyClass: Class[_],
+                              valueClass: Class[_],
+                              index: IndexCoverage,
+                              cardinality: Cardinality) extends NonGeomAttributeSpec {
     val clazz = classOf[java.util.Map[_, _]]
     // currently we only allow simple types in the ST IDX for simplicity - revisit if it becomes a use-case
     val indexValue = false
@@ -185,10 +308,10 @@ object SimpleFeatureTypes {
     override def toAttribute: AttributeDescriptor = {
       new AttributeTypeBuilder()
           .binding(clazz)
-          .userData(OPT_INDEX, index)
-          .userData(OPT_INDEX_VALUE, indexValue)
-          .userData("keyclass", keyClass)
-          .userData("valueclass", valueClass)
+          .indexCoverage(index)
+          .indexValue(indexValue)
+          .cardinality(cardinality)
+          .mapTypes(keyClass, valueClass)
           .buildDescriptor(name)
     }
 
@@ -196,9 +319,23 @@ object SimpleFeatureTypes {
       s"$name:Map[${keyClass.getSimpleName},${valueClass.getSimpleName}]$getIndexSpec"
   }
 
-  case class GeomAttributeSpec(name: String, clazz: Class[_], index: Boolean, srid: Int, default: Boolean)
+  object GeomAttributeSpec {
+    def apply(in: Config): GeomAttributeSpec = {
+      val conf = in.withFallback(AttributeSpec.fallback)
+
+      val name       = conf.getString("name")
+      val attrType   = conf.getString("type")
+      val srid       = conf.getInt("srid")
+      val default    = conf.getBoolean("default")
+      GeomAttributeSpec(name, geometryTypeMap(attrType), srid, default)
+    }
+  }
+
+  case class GeomAttributeSpec(name: String, clazz: Class[_], srid: Int, default: Boolean)
       extends AttributeSpec {
+    val index = if (default) IndexCoverage.FULL else IndexCoverage.NONE
     val indexValue = default
+    val cardinality = Cardinality.UNKNOWN
 
     override def toAttribute: AttributeDescriptor = {
       if (!(srid == 4326 || srid == -1)) {
@@ -206,16 +343,15 @@ object SimpleFeatureTypes {
       }
       val b = new AttributeTypeBuilder()
       b.binding(clazz)
-          .userData(OPT_INDEX, index)
-          .userData(OPT_INDEX_VALUE, indexValue)
-          .crs(DefaultGeographicCRS.WGS84)
+          .indexCoverage(index)
+          .indexValue(indexValue)
+          .cardinality(cardinality)
+          .crs(CRS_EPSG_4326)
           .buildDescriptor(name)
     }
 
     override def toSpec = {
       val star = if (default) "*" else ""
-      val idx = if (index) s":$OPT_INDEX=$index" else ""
-      val stidx = if (indexValue) s":$OPT_INDEX_VALUE=$indexValue" else ""
       s"$star$name:${typeEncode(clazz)}:srid=$srid$getIndexSpec"
     }
   }
@@ -293,20 +429,36 @@ object SimpleFeatureTypes {
     "GeometryCollection" -> classOf[GeometryCollection]
   )
 
-  private class SpecParser extends JavaTokenParsers {
-    /*
-     Valid specs can have attributes that look like the following:
-        "id:Integer:opt1=v1:opt2=v2,*geom:Geometry:srid=4326,ct:List[String]:index=true,mt:Map[String,Double]:index=false"
-     */
+  private val listTypeMap = Seq("list", "List", "java.util.List").map { n => (n, classOf[java.util.List[_]]) }.toMap
+  private val mapTypeMap  = Seq("map", "Map", "java.util.Map").map { n => (n, classOf[java.util.Map[_, _]]) }.toMap
 
-    private val SEP = ":"
-
+  object SpecParser {
     case class Name(s: String, default: Boolean = false)
     sealed trait AttributeType
     case class GeometryAttributeType(t: String) extends AttributeType
     case class SimpleAttributeType(t: String) extends AttributeType
     case class ListAttributeType(p: SimpleAttributeType) extends AttributeType
     case class MapAttributeType(kt: SimpleAttributeType, vt: SimpleAttributeType) extends AttributeType
+
+    def optionToCardinality(options: Map[String, String]) = options.get(OPT_CARDINALITY)
+        .flatMap(c => Try(Cardinality.withName(c.toLowerCase(Locale.US))).toOption)
+        .getOrElse(Cardinality.UNKNOWN)
+
+    def optionToIndexCoverage(options: Map[String, String]) = {
+      val o = options.getOrElse(OPT_INDEX, IndexCoverage.NONE.toString)
+      val fromName = Try(IndexCoverage.withName(o.toLowerCase(Locale.US)))
+      fromName.getOrElse(if (Try(o.toBoolean).getOrElse(false)) IndexCoverage.JOIN else IndexCoverage.NONE)
+    }
+  }
+
+  private class SpecParser extends JavaTokenParsers {
+    import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.SpecParser._
+    /*
+     Valid specs can have attributes that look like the following:
+        "id:Integer:opt1=v1:opt2=v2,*geom:Geometry:srid=4326,ct:List[String]:index=true,mt:Map[String,Double]:index=false"
+     */
+
+    private val SEP = ":"
 
     def nonDefaultAttributeName  = """[^:,]+""".r ^^ { n => Name(n) }  // simple name
     def defaultAttributeName     = ("*" ~ nonDefaultAttributeName) ^^ {         // for *geom
@@ -335,10 +487,10 @@ object SimpleFeatureTypes {
         .reduce(_ | _) ^^ { case g => GeometryAttributeType(g) }
 
     // valid lists
-    def listTypeOuter         = "List" | "list" | "java.util.List"
+    def listTypeOuter: Parser[String]         = listTypeMap.keys.map(literal).reduce(_ | _)
 
     // valid maps
-    def mapTypeOuter          = "Map"  | "map"  | "java.util.Map"
+    def mapTypeOuter: Parser[String]          = mapTypeMap.keys.map(literal).reduce(_ | _)
 
     // list type matches "List[String]" or "List" (which defaults to parameterized type String)
     def listType              = listTypeOuter ~> ("[" ~> simpleType <~ "]").? ^^ {
@@ -375,28 +527,30 @@ object SimpleFeatureTypes {
     // builds a GeometrySpec
     def geometryAttribute     = (name ~ SEP ~ geometryType ~ optionsOrEmptyMap) ^^ {
       case Name(n, default) ~ SEP ~ GeometryAttributeType(t) ~ options =>
-        val indexed = default || options.getOrElse(OPT_INDEX, "false").toBoolean
-        val srid    = options.getOrElse("srid", "4326").toInt
-        GeomAttributeSpec(n, geometryTypeMap(t), indexed, srid, default)
+        val srid = options.getOrElse("srid", "4326").toInt
+        GeomAttributeSpec(n, geometryTypeMap(t), srid, default)
     }
 
     // builds a NonGeomAttributeSpec for primitive types
     def simpleAttribute       = (name ~ SEP ~ simpleType ~ optionsOrEmptyMap) ^^ {
       case Name(n, default) ~ SEP ~ SimpleAttributeType(t) ~ options =>
-        val indexed = options.getOrElse(OPT_INDEX, "false").toBoolean
-        val stIndexed = options.getOrElse(OPT_INDEX_VALUE, "false").toBoolean
-        SimpleAttributeSpec(n, simpleTypeMap(t), indexed, stIndexed)
+        val indexed     = optionToIndexCoverage(options)
+        val stIndexed   = options.getOrElse(OPT_INDEX_VALUE, "false").toBoolean
+        val cardinality = optionToCardinality(options)
+        SimpleAttributeSpec(n, simpleTypeMap(t), indexed, stIndexed, cardinality)
     }
 
     // builds a NonGeomAttributeSpec for complex types
     def complexAttribute      = (name ~ SEP ~ complexType ~ optionsOrEmptyMap) ^^ {
       case Name(n, default) ~ SEP ~ ListAttributeType(SimpleAttributeType(t)) ~ options =>
-        val indexed = options.getOrElse(OPT_INDEX, "false").toBoolean
-        ListAttributeSpec(n, simpleTypeMap(t), indexed)
+        val indexed     = optionToIndexCoverage(options)
+        val cardinality = optionToCardinality(options)
+        ListAttributeSpec(n, simpleTypeMap(t), indexed, cardinality)
 
       case Name(n, default) ~ SEP ~ MapAttributeType(SimpleAttributeType(kt), SimpleAttributeType(vt)) ~ options =>
-        val indexed = options.getOrElse(OPT_INDEX, "false").toBoolean
-        MapAttributeSpec(n, simpleTypeMap(kt), simpleTypeMap(vt), indexed)
+        val indexed     = optionToIndexCoverage(options)
+        val cardinality = optionToCardinality(options)
+        MapAttributeSpec(n, simpleTypeMap(kt), simpleTypeMap(vt), indexed, cardinality)
     }
 
     // any attribute
@@ -422,7 +576,7 @@ object SimpleFeatureTypes {
       case Success(t, r)   if r.atEnd => t
       case Error(msg, r)   if r.atEnd => throw new IllegalArgumentException(msg)
       case Failure(msg, r) if r.atEnd => throw new IllegalArgumentException(msg)
-      case _ => throw new IllegalArgumentException("Malformed attribute")
+      case other => throw new IllegalArgumentException(s"Malformed attribute: $other")
     }
   }
 
