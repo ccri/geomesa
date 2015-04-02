@@ -69,7 +69,7 @@ object GeoMesaSpark {
 
     job.getConfiguration.foreach {println}
 
-    sc.newAPIHadoopRDD(conf, classOf[GeoMesaInputFormat], classOf[Text], classOf[SimpleFeature]).map { case (t, sf) => sf }
+    sc.newAPIHadoopRDD(job.getConfiguration, classOf[GeoMesaInputFormat], classOf[Text], classOf[SimpleFeature]).map { case (t, sf) => sf }
   }
 
   def rddOld(conf: Configuration, sc: SparkContext, ds: AccumuloDataStore, query: Query, useMock: Boolean = false): RDD[SimpleFeature] = {
