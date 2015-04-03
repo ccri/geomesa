@@ -103,12 +103,12 @@ class GeoMesaSparkTest extends Specification with Logging {
 
   val randomSeed = 83
 
-  var sc: SparkContext = null
 
-  @junit.After
-  def shutdown(): Unit = {
-    Option(sc).foreach(_.stop())
-  }
+
+//  @junit.After
+//  def shutdown(): Unit = {
+//    Option(sc).foreach(_.stop())
+//  }
 
   "GeoMesaSpark" should {
     val random = new Random(randomSeed)
@@ -121,20 +121,28 @@ class GeoMesaSparkTest extends Specification with Logging {
           "POINT(-77 38)")
     }
 
-    "Read data" in {
-      val typeName = s"sparktest${UUID.randomUUID().toString}"
-      val sft = createSFT(typeName)
+    val typeName = s"sparktest${UUID.randomUUID().toString}"
+    val sft = createSFT(typeName)
+    ds.createSchema(sft)
 
-      ds.createSchema(sft)
+    val conf = new SparkConf().setMaster("local[2]").setAppName("testSpark")
+    GeoMesaSpark.init(conf, ds)
+    val sc =  new SparkContext(conf)
+
+    "Read data" in {
+//      val typeName = s"sparktest${UUID.randomUUID().toString}"
+//      val sft = createSFT(typeName)
+//
+//      ds.createSchema(sft)
       ds.getSchema(typeName) should not beNull
       val fs = ds.getFeatureSource(typeName).asInstanceOf[SimpleFeatureStore]
       val feats = createFeatures(ds, sft, encodedFeatures)
       fs.addFeatures(DataUtilities.collection(feats.asJava))
       fs.getTransaction.commit()
 
-      val conf = new SparkConf().setMaster("local[2]").setAppName("testSpark")
-      GeoMesaSpark.init(conf, ds)
-      sc =  new SparkContext(conf) // will get shut down by shutdown method
+      //val conf = new SparkConf().setMaster("local[2]").setAppName("testSpark")
+//      GeoMesaSpark.init(conf, ds)
+       // will get shut down by shutdown method
 
       val rdd = GeoMesaSpark.rdd(new Configuration(), sc, ds.asInstanceOf[AccumuloDataStore], new Query(typeName), useMock = true)
 
@@ -143,13 +151,9 @@ class GeoMesaSparkTest extends Specification with Logging {
     }
 
     "Write data" in {
-      val typeName = s"sparktest${UUID.randomUUID().toString}"
-      val sft = createSFT(typeName)
-      ds.createSchema(sft)
 
-      val conf = new SparkConf().setMaster("local[2]").setAppName("testSpark")
-      GeoMesaSpark.init(conf, ds)
-      sc =  new SparkContext(conf) // will get shut down by shutdown method
+
+
       val feats = createFeatures(ds, sft, encodedFeatures)
 
       val rdd = sc.makeRDD(feats)
@@ -157,7 +161,7 @@ class GeoMesaSparkTest extends Specification with Logging {
       GeoMesaSpark.save(rdd, dsParams, typeName)
 
       val coll = ds.getFeatureSource(typeName).getFeatures
-      coll.size() should equalTo(encodedFeatures.length)
+      coll.size() should equalTo(encodedFeatures.length * 2)  // Saved 'em twice
       feats.map(_.getAttribute("id")) should contain(coll.features().next().getAttribute("id"))
     }
   }
