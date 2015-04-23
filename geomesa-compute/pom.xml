@@ -56,10 +56,6 @@
             <version>14.0.1</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>javax.media</groupId>
-            <artifactId>jai_core</artifactId>
-        </dependency>
 
         <!-- test dependencies -->
         <dependency>
