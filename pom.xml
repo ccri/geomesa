@@ -32,14 +32,14 @@
         <module>geomesa-distributed-runtime</module>
         <module>geomesa-jobs</module>
         <module>geomesa-plugin</module>
-        <module>geomesa-kafka</module>
+        <!--<module>geomesa-kafka</module>-->
         <module>geomesa-convert</module>
         <module>geomesa-tools</module>
         <module>geomesa-compute</module>
         <module>geomesa-assemble</module>
         <module>geomesa-web</module>
         <module>geomesa-process</module>
-        <module>geomesa-stream</module>
+        <!--<module>geomesa-stream</module>-->
     </modules>
 
     <properties>
@@ -55,7 +55,7 @@
         <zookeeper.version>3.4.6</zookeeper.version>
         <accumulo.version>1.6.1</accumulo.version>
         <hadoop.version>2.6.0</hadoop.version>
-        <scalding.version>0.11.2</scalding.version>
+        <scalding.version>0.13.1</scalding.version>
 
         <!-- logging properties
              we expect logging jars to be provided -->
@@ -1047,6 +1047,7 @@
                     <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
                     <runOnlyOnce>false</runOnlyOnce>
                     <verbose>true</verbose>
+                    <skip>true</skip>
                     <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
                     <generateGitPropertiesFile>true</generateGitPropertiesFile>
                     <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
