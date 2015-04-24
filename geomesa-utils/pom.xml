@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.locationtech.geomesa</groupId>
         <artifactId>geomesa-accumulo1.6</artifactId>
-        <version>1.0.0-rc.5-SNAPSHOT</version>
+        <version>1.0.0-rc.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -72,6 +72,10 @@
             <artifactId>gt-grid</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-data</artifactId>
+        </dependency>
+        <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
         </dependency>
@@ -90,6 +94,10 @@
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
 
         <!-- test dependencies -->

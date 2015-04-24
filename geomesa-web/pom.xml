@@ -3,7 +3,7 @@
     <parent>
         <artifactId>geomesa-accumulo1.6</artifactId>
         <groupId>org.locationtech.geomesa</groupId>
-        <version>1.0.0-rc.5-SNAPSHOT</version>
+        <version>1.0.0-rc.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -14,6 +14,11 @@
             <dependency>
                 <groupId>org.scalatra</groupId>
                 <artifactId>scalatra_2.10</artifactId>
+                <version>${scalatra.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scalatra</groupId>
+                <artifactId>scalatra-auth_2.10</artifactId>
                 <version>${scalatra.version}</version>
             </dependency>
             <dependency>
@@ -50,6 +55,8 @@
     <modules>
         <module>geomesa-web-core</module>
         <module>geomesa-web-csv</module>
+        <module>geomesa-web-data</module>
+        <module>geomesa-web-security</module>
     </modules>
 
 </project>

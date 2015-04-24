@@ -17,19 +17,16 @@
 package org.locationtech.geomesa.core.index
 
 import java.util
-import java.util.Map.Entry
 
 import com.typesafe.scalalogging.slf4j.Logging
 import org.apache.accumulo.core.data
-import org.apache.accumulo.core.data.{Key, Value}
 import org.geotools.data.Query
-import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.core.data.AccumuloConnectorCreator
 import org.locationtech.geomesa.core.data.tables.RecordTable
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.FilterHelper.filterListAsAnd
+import org.locationtech.geomesa.core.index.Strategy._
 import org.locationtech.geomesa.core.iterators.IteratorTrigger
-import org.locationtech.geomesa.core.util.{SelfClosingBatchScanner, SelfClosingIterator}
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.identity.{FeatureId, Identifier}
 import org.opengis.filter.{Filter, Id}
@@ -37,9 +34,10 @@ import org.opengis.filter.{Filter, Id}
 import scala.collection.JavaConverters._
 
 
-object RecordIdxStrategy {
-  def getRecordIdxStrategy(filter: Filter, sft: SimpleFeatureType): Option[Strategy] =
-    if (filterIsId(filter)) Some(new RecordIdxStrategy) else None
+object RecordIdxStrategy extends StrategyProvider {
+
+  override def getStrategy(filter: Filter, sft: SimpleFeatureType, hints: StrategyHints) =
+    if (filterIsId(filter)) Some(StrategyDecision(new RecordIdxStrategy, -1)) else None
 
   def intersectIDFilters(filters: Seq[Filter]): Option[Id] = filters.size match {
     case 0 => None                                             // empty filter sequence
@@ -57,35 +55,23 @@ object RecordIdxStrategy {
         Some(newFilter)
       }
     }
+
 }
 
 class RecordIdxStrategy extends Strategy with Logging {
 
-  def execute(acc: AccumuloConnectorCreator,
-                       iqp: QueryPlanner,
-                       featureType: SimpleFeatureType,
-                       query: Query,
-                       output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
-    val recordScanner = acc.createRecordScanner(featureType)
-    val qp = buildIDQueryPlan(query, iqp, featureType, output)
-    configureBatchScanner(recordScanner, qp)
-    SelfClosingBatchScanner(recordScanner)
-  }
+  override def getQueryPlan(query: Query, queryPlanner: QueryPlanner, output: ExplainerOutputType) = {
 
-  def buildIDQueryPlan(query: Query,
-                       iqp: QueryPlanner,
-                       featureType: SimpleFeatureType,
-                       output: ExplainerOutputType) = {
-
-    val schema         = iqp.schema
-    val featureEncoding = iqp.featureEncoding
+    val sft = queryPlanner.sft
+    val acc = queryPlanner.acc
+    val featureEncoding = queryPlanner.featureEncoding
 
     output(s"Searching the record table with filter ${query.getFilter}")
 
     val (idFilters, oFilters) =  partitionID(query.getFilter)
 
     // recombine non-ID filters
-    val combinedOFilter = filterListAsAnd(oFilters)
+    val ecql = filterListAsAnd(oFilters)
 
     // Multiple sets of IDs in a ID Filter are ORs. ANDs of these call for the intersection to be taken.
     // intersect together all groups of ID Filters, producing Some[Id] if the intersection returns something
@@ -93,7 +79,7 @@ class RecordIdxStrategy extends Strategy with Logging {
 
     val identifiers: Option[Set[Identifier]] = combinedIDFilter.map ( _.getIdentifiers.asScala.toSet )
 
-    val prefix = getTableSharingPrefix(featureType)
+    val prefix = getTableSharingPrefix(sft)
 
     val rangesAsOption: Option[Set[data.Range]] = identifiers.map {
       aSet => aSet.map {
@@ -106,9 +92,8 @@ class RecordIdxStrategy extends Strategy with Logging {
       case Some(filterSet) if filterSet.nonEmpty => filterSet
       case _ =>
         // TODO: for below instead pass empty query plan (https://geomesa.atlassian.net/browse/GEOMESA-347)
-        // need to log a warning message as the exception will be caught by hasNext in FeatureReaderIterator
-        logger.error(s"Filter ${query.getFilter} results in no valid range for record table")
-        throw new RuntimeException(s"Filter ${query.getFilter} results in no valid range for record table")
+        logger.warn(s"Filter ${query.getFilter} results in no valid range for record table")
+        Seq.empty
     }
 
     output(s"Extracted ID filter: ${combinedIDFilter.get}")
@@ -117,14 +102,11 @@ class RecordIdxStrategy extends Strategy with Logging {
 
     output(s"Setting ${ranges.size} ranges.")
 
-    // this should be done with care, ECQL -> Filter -> CQL is NOT a unitary transform
-    val ecql = combinedOFilter.map { ECQL.toCQL }
-
-    val iteratorConfig = IteratorTrigger.chooseIterator(ecql, query, featureType)
+    val iteratorConfig = IteratorTrigger.chooseIterator(ecql, query, sft)
 
     val cfg = if (iteratorConfig.hasTransformOrFilter) {
       // TODO apply optimization for when transforms cover filter
-      val cfg = configureRecordTableIterator(featureType, featureEncoding, combinedOFilter, query)
+      val cfg = configureRecordTableIterator(sft, featureEncoding, ecql, query)
       output(s"RecordTableIterator: ${cfg.toString }")
       Some(cfg)
     } else {
@@ -136,6 +118,8 @@ class RecordIdxStrategy extends Strategy with Logging {
 
     val iters = Seq(cfg).flatten
 
-    QueryPlan(iters, ranges.toSeq, Seq.empty)
+    val table = acc.getRecordTable(sft)
+    val threads = acc.getSuggestedRecordThreads(sft)
+    BatchScanPlan(table, ranges.toSeq, iters, Seq.empty, threads, false)
   }
 }

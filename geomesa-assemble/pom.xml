@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.locationtech.geomesa</groupId>
         <artifactId>geomesa-accumulo1.6</artifactId>
-        <version>1.0.0-rc.5-SNAPSHOT</version>
+        <version>1.0.0-rc.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
@@ -47,14 +47,26 @@
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-feature-accumulo1.6</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-feature-accumulo1.6</artifactId>
+            <classifier>shaded</classifier>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-tools-accumulo1.6</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-jobs-accumulo1.6</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-process-accumulo1.6</artifactId>
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
@@ -64,6 +76,26 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-plugin-accumulo1.6</artifactId>
             <classifier>geoserver-plugin</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-stream-geoserver-plugin-accumulo1.6</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-web-core-accumulo1.6</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-web-csv-accumulo1.6</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-web-data-accumulo1.6</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-web-security-accumulo1.6</artifactId>
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
@@ -97,6 +129,7 @@
                         <configuration>
                             <attach>true</attach>
                             <finalName>geomesa-${project.version}</finalName>
+                            <tarLongFileMode>gnu</tarLongFileMode>
                             <descriptors>
                                 <descriptor>src/main/assemblies/binary-release.xml</descriptor>
                             </descriptors>

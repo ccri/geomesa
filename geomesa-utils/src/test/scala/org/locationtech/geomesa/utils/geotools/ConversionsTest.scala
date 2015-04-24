@@ -16,14 +16,17 @@
 
 package org.locationtech.geomesa.utils.geotools
 
+import com.vividsolutions.jts.geom.Geometry
 import org.junit.runner.RunWith
+import org.opengis.feature.simple.SimpleFeature
+import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.immutable.HashMap
 
 @RunWith(classOf[JUnitRunner])
-class ConversionsTest extends Specification {
+class ConversionsTest extends Specification with Mockito {
 sequential
   "ScalaCollectionsConverterFactory" should {
     val factory = new ScalaCollectionsConverterFactory
@@ -106,6 +109,33 @@ sequential
     "return null for unhandled class types" >> {
       val converter = factory.createConverter(classOf[String], classOf[Int], null)
       converter must beNull
+    }
+  }
+
+
+  "RichSimpleFeature" should {
+
+    import Conversions.RichSimpleFeature
+
+    val sf = mock[SimpleFeature]
+
+    "support implicit conversion" >> {
+      val rsf: RichSimpleFeature = sf
+      success
+    }
+
+
+    "be able to access default geometry" >> {
+      val geo = mock[Geometry]
+      sf.getDefaultGeometry returns geo
+
+      sf.geometry mustEqual geo
+    }
+
+    "throw exception if defaultgeometry is not a Geometry" >> {
+      sf.getDefaultGeometry returns "not a Geometry!"
+
+      sf.geometry must throwA[ClassCastException]
     }
   }
 }

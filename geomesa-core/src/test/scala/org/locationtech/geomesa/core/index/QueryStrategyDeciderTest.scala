@@ -137,12 +137,6 @@ class QueryStrategyDeciderTest extends Specification {
       getStrategy(fs) must beAnInstanceOf[AttributeIdxRangeStrategy]
     }
 
-    "get the attribute strategy for null" in {
-      val fs = "attr2 IS NULL"
-
-      getStrategy(fs) must beAnInstanceOf[AttributeIdxEqualsStrategy]
-    }
-
     "get the attribute strategy for during" in {
       val fs = "attr2 DURING 2012-01-01T11:00:00.000Z/2014-01-01T12:15:00.000Z"
 
@@ -187,11 +181,6 @@ class QueryStrategyDeciderTest extends Specification {
 
       getStrategy(fs) must beAnInstanceOf[RecordIdxStrategy]
     }
-
-    "get the stidx strategy if not catalog" in {
-      val fs = "IN ('val56')"
-      getStrategy(fs, 0) must beAnInstanceOf[STIdxStrategy]
-    }
   }
 
   "Id and Spatio-temporal filters" should {
@@ -220,13 +209,24 @@ class QueryStrategyDeciderTest extends Specification {
     }
   }
 
+  "IS NOT NULL filters" should {
+    "get the attribute strategy if attribute is indexed" in {
+      val fs = "attr2 IS NOT NULL"
+      getStrategy(fs) must beAnInstanceOf[AttributeIdxRangeStrategy]
+    }
+    "get the stidx strategy if attribute is not indexed" in {
+      val fs = "attr1 IS NOT NULL"
+      getStrategy(fs) must beAnInstanceOf[STIdxStrategy]
+    }
+  }
+
   "Anded Attribute filters" should {
     "get the STIdx strategy with stIdxStrategyPredicates" in {
       forall(stIdxStrategyPredicates) { getStStrategy }
     }
 
-    "get the attribute strategy with attributeAndGeometricPredicates" in {
-      forall(attributeAndGeometricPredicates) { getAttributeIdxStrategy }
+    "get the stidx strategy with attributeAndGeometricPredicates" in {
+      forall(attributeAndGeometricPredicates) { getStStrategy }
     }
 
     "get the attribute strategy with attrIdxStrategyPredicates" in {

@@ -18,7 +18,7 @@
     <parent>
         <artifactId>geomesa-kafka-accumulo1.6</artifactId>
         <groupId>org.locationtech.geomesa</groupId>
-        <version>1.0.0-rc.5-SNAPSHOT</version>
+        <version>1.0.0-rc.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -50,6 +50,10 @@
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-feature-accumulo1.6</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-security-accumulo1.6</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

@@ -19,28 +19,32 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa-accumulo1.6</artifactId>
-    <version>1.0.0-rc.5-SNAPSHOT</version>
+    <version>1.0.0-rc.6-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>GeoMesa - [Accumulo 1.6.x]</name>
 
     <modules>
         <module>geomesa-utils</module>
+        <module>geomesa-security</module>
+        <module>geomesa-feature</module>
+        <module>geomesa-filter</module>
         <module>geomesa-core</module>
         <module>geomesa-distributed-runtime</module>
         <module>geomesa-jobs</module>
         <module>geomesa-plugin</module>
-        <module>geomesa-filter</module>
-        <module>geomesa-feature</module>
         <module>geomesa-kafka</module>
         <module>geomesa-convert</module>
         <module>geomesa-tools</module>
         <module>geomesa-compute</module>
         <module>geomesa-assemble</module>
         <module>geomesa-web</module>
+        <module>geomesa-process</module>
+        <module>geomesa-stream</module>
     </modules>
 
     <properties>
-        <scala.version>2.10.4</scala.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <scala.version>2.10.5</scala.version>
         <geoserver.version>2.5.2</geoserver.version>
         <gt.version>11.2</gt.version>
         <jts.version>1.13</jts.version>
@@ -80,12 +84,6 @@
             <properties>
                 <maven.test.jvmargs>-Xms1g -Xmx2g -XX:MaxPermSize=1024m -XX:-UseGCOverheadLimit -Xrunjdwp:transport=dt_socket,address=5005,server=y,suspend=y</maven.test.jvmargs>
             </properties>
-        </profile>
-        <profile>
-            <id>build-minicluster</id>
-            <modules>
-                <module>geomesa-minicluster</module>
-            </modules>
         </profile>
     </profiles>
 
@@ -514,7 +512,14 @@
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
                 <artifactId>geomesa-tools-accumulo1.6</artifactId>
+                <classifier>shaded</classifier>
                 <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.esotericsoftware</groupId>
+                        <artifactId>kryo-shaded</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
@@ -541,6 +546,7 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>11.0.2</version>
+                <!--<version>14.0.1</version>-->
             </dependency>
             <dependency>
                 <groupId>org.geotools</groupId>
@@ -559,6 +565,11 @@
                 <artifactId>spark-core_2.10</artifactId>
                 <version>1.1.0</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.objenesis</groupId>
+                <artifactId>objenesis</artifactId>
+                <version>1.0</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
@@ -620,11 +631,6 @@
                 <groupId>org.hsqldb</groupId>
                 <artifactId>hsqldb</artifactId>
                 <version>2.3.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.objenesis</groupId>
-                <artifactId>objenesis</artifactId>
-                <version>1.2</version>
             </dependency>
             <dependency>
                 <groupId>com.typesafe</groupId>
@@ -884,6 +890,46 @@
                 <artifactId>config</artifactId>
                 <version>1.2.1</version>
             </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-process-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-web-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-web-csv-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-web-data-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-web-core-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-stream-geoserver-plugin-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-security-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.locationtech.geomesa</groupId>
+                <artifactId>geomesa-web-security-accumulo1.6</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -910,6 +956,10 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>2.3.2</version>
+                    <configuration>
+                        <source>1.7</source>
+                        <target>1.7</target>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -980,6 +1030,28 @@
                 <configuration>
                     <preparationGoals>clean install</preparationGoals>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.1.13</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <runOnlyOnce>false</runOnlyOnce>
+                    <verbose>true</verbose>
+                    <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
                 </configuration>
             </plugin>
         </plugins>

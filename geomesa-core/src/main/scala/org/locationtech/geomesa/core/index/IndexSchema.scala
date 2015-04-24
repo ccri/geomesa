@@ -66,29 +66,6 @@ import scala.util.parsing.combinator.RegexParsers
 //
 // %~#s%999#r%0,4#gh%HHmm#d::%~#s%4,2#gh::%~#s%6,1#gh%yyyyMMdd#d
 
-case class IndexSchema(encoder: IndexEntryEncoder,
-                       decoder: IndexEntryDecoder,
-                       planner: QueryPlanner,
-                       featureType: SimpleFeatureType) extends ExplainingLogging {
-
-  def encode(entry: SimpleFeature, visibility: String = "") = encoder.encode(entry, visibility)
-  def decode(key: Key): SimpleFeature = decoder.decode(key)
-
-
-  // utility method to ask for the maximum allowable shard number
-  def maxShard: Int =
-    encoder.rowf match {
-      case CompositeTextFormatter(Seq(PartitionTextFormatter(numPartitions), xs@_*), sep) => numPartitions
-      case _ => 1  // couldn't find a matching partitioner
-    }
-
-  // TODO not in 1.5
-//  // Writes out an explanation of how a query would be run.
-//  def explainQuery(q: Query, output: ExplainerOutputType = log) = {
-//     planner.getIterator(new ExplainingConnectorCreator(output), featureType, q, output)
-//  }
-}
-
 object IndexSchema extends RegexParsers with Logging {
   val minDateTime = new DateTime(0, 1, 1, 0, 0, 0, DateTimeZone.forID("UTC"))
   val maxDateTime = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeZone.forID("UTC"))
@@ -195,9 +172,9 @@ object IndexSchema extends RegexParsers with Logging {
   }
 
   // builds the encoder from a string representation
-  def buildKeyEncoder(s: String, featureEncoder: SimpleFeatureEncoder): IndexEntryEncoder = {
+  def buildKeyEncoder(sft: SimpleFeatureType, s: String): STIndexEncoder = {
     val (rowf, cff, cqf) = parse(formatter, s).get
-    IndexEntryEncoder(rowf, cff, cqf, featureEncoder)
+    STIndexEncoder(sft, rowf, cff, cqf)
   }
 
   // extracts an entire date encoder from a key part
@@ -298,7 +275,7 @@ object IndexSchema extends RegexParsers with Logging {
   }
 
   def datePlanner: Parser[DatePlanner] = datePattern ^^ {
-    case fmt => DatePlanner(DateTimeFormat.forPattern(fmt))
+    case fmt => DatePlanner(DateTimeFormat.forPattern(fmt).withZoneUTC())
   }
 
   def geohashKeyPlanner: Parser[GeoHashKeyPlanner] = geohashPattern ^^ {
@@ -341,18 +318,13 @@ object IndexSchema extends RegexParsers with Logging {
         true
     }
 
-  // builds a IndexSchema (requiring a feature type)
-  def apply(s: String,
-            featureType: SimpleFeatureType,
-            featureEncoder: SimpleFeatureEncoder): IndexSchema = {
-    val keyEncoder        = buildKeyEncoder(s, featureEncoder)
-    val geohashDecoder    = buildGeohashDecoder(s)
-    val dateDecoder       = buildDateDecoder(s)
-    val keyPlanner        = buildKeyPlanner(s)
-    val cfPlanner         = buildColumnFamilyPlanner(s)
-    val indexEntryDecoder = IndexEntryDecoder(geohashDecoder, dateDecoder)
-    val queryPlanner      = QueryPlanner(s, featureType, featureEncoder.encoding)
-    IndexSchema(keyEncoder, indexEntryDecoder, queryPlanner, featureType)
+  // utility method to ask for the maximum allowable shard number
+  def maxShard(schema: String): Int = {
+    val (rowf, _, _) = parse(formatter, schema).get
+    rowf match {
+      case CompositeTextFormatter(Seq(PartitionTextFormatter(numPartitions), xs@_*), sep) => numPartitions
+      case _ => 1  // couldn't find a matching partitioner
+    }
   }
 
   def getIndexEntryDecoder(s: String) = {

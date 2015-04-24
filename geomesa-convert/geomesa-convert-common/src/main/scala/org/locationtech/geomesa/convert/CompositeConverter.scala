@@ -39,21 +39,39 @@ class CompositeConverterFactory[I] extends SimpleFeatureConverterFactory[I] {
 }
 
 class CompositeConverter[I](val targetSFT: SimpleFeatureType,
-                               converters: Seq[(Predicate, SimpleFeatureConverter[I])])
+                            converters: Seq[(Predicate, SimpleFeatureConverter[I])])
   extends SimpleFeatureConverter[I] {
 
-  override def processInput(is: Iterator[I]): Iterator[SimpleFeature] =
+  val evaluationContexts = List.fill(converters.length)(new EvaluationContext(null, null))
+
+  override def processInput(is: Iterator[I],  gParams: Map[String, Any] = Map.empty): Iterator[SimpleFeature] = {
+    var count = 0
     is.flatMap { input =>
-      converters.view.flatMap { case (pred, conv) =>  processIfValid(input, pred, conv) }.headOption
+      count += 1
+      converters.view.zipWithIndex.flatMap { case ((pred, conv), i) =>
+        implicit val ec = evaluationContexts(i)
+        ec.setCount(count)
+        processIfValid(input, pred, conv, gParams)
+      }.headOption
     }
+  }
 
   // noop
-  override def processSingleInput(i: I): Option[SimpleFeature] = null
+  override def processSingleInput(i: I, gParams: Map[String, Any] = Map.empty)(implicit ec: EvaluationContext): Option[SimpleFeature] = null
 
-  implicit val ec = new EvaluationContext(Map(), Array())
-  def processIfValid(input: I, pred: Predicate, conv: SimpleFeatureConverter[I]) =
-    Try { pred.eval(input) }.toOption.flatMap { v => if(v) conv.processSingleInput(input) else None }
+  private val mutableArray = Array.ofDim[Any](1)
+
+  def processIfValid(input: I,
+                     pred: Predicate,
+                     conv: SimpleFeatureConverter[I],
+                     gParams: Map[String, Any])
+                    (implicit  ec: EvaluationContext) = {
+    val opt =
+      Try {
+        mutableArray(0) = input
+        pred.eval(mutableArray)
+      }.toOption
+
+    opt.flatMap { v => if (v) conv.processSingleInput(input, gParams)(ec) else None }
+  }
 }
-
-
-

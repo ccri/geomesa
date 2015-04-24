@@ -26,7 +26,8 @@ import org.locationtech.geomesa.core._
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.index.QueryHints._
 import org.locationtech.geomesa.core.index._
-import org.locationtech.geomesa.utils.geotools.Conversions.RichAttributeDescriptor
+import org.locationtech.geomesa.utils.geotools.RichAttributeDescriptors.RichAttributeDescriptor
+import org.locationtech.geomesa.utils.stats.IndexCoverage
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.Filter
 import org.opengis.filter.expression.{Function, PropertyName}
@@ -69,14 +70,13 @@ object IteratorTrigger extends Logging {
 
     def attributePresent(attributeKey: String): Boolean = Option(sft.getDescriptor(attributeKey)).isDefined
 
-    def indexAttributeNames = IndexValueEncoder(sft).fields
+    def indexAttributeNames = IndexValueEncoder.getIndexValueFields(sft)
   }
 
   /**
    * Scans the ECQL, query, and sourceSFTspec and determines which Iterators should be configured.
    */
-  def chooseIterator(ecqlPredicate: Option[String], query: Query, sourceSFT: SimpleFeatureType): IteratorConfig = {
-    val filter = ecqlPredicate.map(ECQL.toFilter)
+  def chooseIterator(filter: Option[Filter], query: Query, sourceSFT: SimpleFeatureType): IteratorConfig = {
     val transformsCoverFilter = doTransformsCoverFilters(query)
     if (useIndexOnlyIterator(filter, query, sourceSFT)) {
       // if the transforms cover the filtered attributes, we can decode into the transformed feature
@@ -94,26 +94,30 @@ object IteratorTrigger extends Logging {
    */
   def useIndexOnlyIterator(ecqlPredicate: Option[Filter],
                            query: Query,
-                           sourceSFT: SimpleFeatureType,
-                           indexedAttribute: Option[String] = None): Boolean = {
-    // get transforms if they exist
-    val transformDefs = Option(query.getHints.get(TRANSFORMS)).map(_.asInstanceOf[String])
+                           sft: SimpleFeatureType,
+                           indexedAttribute: Option[String] = None): Boolean =
+    if (useDensityIterator(query)) {
+      // the Density Iterator is run in place of the SFFI. If it is requested we keep the SFFI
+      // config in the stack, and do NOT run the IndexIterator.
+      false
+    } else if (indexedAttribute.exists(a => sft.getDescriptor(a).getIndexCoverage() == IndexCoverage.FULL)) {
+      // the attribute index is a covering index, so we can use the index iterator regardless
+      true
+    } else {
+      // get transforms if they exist
+      val transformDefs = getTransformDefinition(query)
 
-    // if the transforms exist, check if the transform is simple enough to be handled by the IndexIterator
-    // if it does not exist, then set this variable to false
-    val isIndexTransform = transformDefs
-        .map(tDef => isOneToOneIndexTransformation(tDef, sourceSFT, indexedAttribute))
-        .orElse(Some(false))
-    // if the ecql predicate exists, check that it is a trivial filter that does nothing
-    val isPassThroughFilter = ecqlPredicate.map { ecql => passThroughFilter(ecql)}
+      // if the transforms exist, check if the transform is simple enough to be handled by the IndexIterator
+      // if it does not exist, then set this variable to false
+      val isIndexTransform = transformDefs
+          .map(tDef => isOneToOneIndexTransformation(tDef, sft, indexedAttribute))
+          .orElse(Some(false))
+      // if the ecql predicate exists, check that it is a trivial filter that does nothing
+      val isPassThroughFilter = ecqlPredicate.map { ecql => passThroughFilter(ecql)}
 
-    // the Density Iterator is run in place of the SFFI. If it is requested we keep the SFFI config in the stack,
-    // and do NOT run the IndexIterator. Wrap in an Option to keep clean logic below
-    val notDensity = Some(!useDensityIterator(query: Query))
-
-    // require both to be true
-    (isIndexTransform ++ isPassThroughFilter ++ notDensity).forall {_ == true}
-  }
+      // require both to be true
+      (isIndexTransform ++ isPassThroughFilter).forall(_ == true)
+    }
 
   /**
    * Tests whether the attributes being filtered on are a subset of the attribute transforms requested. If so,
@@ -124,7 +128,7 @@ object IteratorTrigger extends Logging {
    * @return
    */
   def doTransformsCoverFilters(query: Query): Boolean =
-    Option(query.getHints.get(TRANSFORMS).asInstanceOf[String]).map { transformString =>
+    getTransformDefinition(query).map { transformString =>
       val filterAttributes = getFilterAttributes(query.getFilter) // attributes we are filtering on
       val transforms: Seq[String] = // names of the attributes the transform contains
         TransformProcess.toDefinition(transformString).asScala
@@ -149,7 +153,7 @@ object IteratorTrigger extends Logging {
    */
   def useSimpleFeatureFilteringIterator(ecqlPredicate: Option[Filter], query: Query): Boolean = {
     // get transforms if they exist
-    val transformDefs = Option(query.getHints.get(TRANSFORMS)).map (_.asInstanceOf[String])
+    val transformDefs = getTransformDefinition(query)
     // if the ecql predicate exists, check that it is a trivial filter that does nothing
     val nonPassThroughFilter = ecqlPredicate.exists { ecql => !passThroughFilter(ecql)}
     // the Density Iterator is run in place of the SFFI. If it is requested we keep the SFFI config in the stack
@@ -167,7 +171,7 @@ object IteratorTrigger extends Logging {
                                     indexedAttribute: Option[String]): Boolean = {
     // convert to a TransformProcess Definition
     val theDefinitions = TransformProcess.toDefinition(transformDefs).asScala
-    val attributeNames = IndexValueEncoder(schema).fields ++ indexedAttribute
+    val attributeNames = IndexValueEncoder.getIndexValueFields(schema) ++ indexedAttribute
     // check that, for each definition, the expression is simply the name of an index attribute in the schema
     // multi-valued attributes only get partially encoded in the index
     theDefinitions.map(_.expression.toString).forall { aDef =>
@@ -200,7 +204,7 @@ object IteratorTrigger extends Logging {
     // if the transforms cover the filtered attributes, we can decode into the transformed feature
     // otherwise, we need to decode into the original feature, apply the filter, and then transform
     if (useIndexOnlyIterator(ecqlPredicate, query, sourceSFT, Some(indexedAttribute))) {
-      IteratorConfig(IndexOnlyIterator, false, doTransformsCoverFilters(query))
+      IteratorConfig(IndexOnlyIterator, false, true)
     } else {
       val hasEcqlOrTransform = useSimpleFeatureFilteringIterator(ecqlPredicate, query)
       val transformsCoverFilter = if (hasEcqlOrTransform) doTransformsCoverFilters(query) else true

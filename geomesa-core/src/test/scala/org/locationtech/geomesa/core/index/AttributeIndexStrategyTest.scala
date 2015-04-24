@@ -25,19 +25,20 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.data.{Range => AccRange}
 import org.apache.accumulo.core.security.Authorizations
 import org.geotools.data._
-import org.geotools.factory.Hints
+import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.filter.text.cql2.CQLException
 import org.geotools.filter.text.ecql.ECQL
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.core.data.tables.AttributeTable
 import org.locationtech.geomesa.core.data.AccumuloDataStore
+import org.locationtech.geomesa.core.data.tables.AttributeTable
 import org.locationtech.geomesa.core.index
-import org.locationtech.geomesa.feature.{SimpleFeatureEncoder, AvroSimpleFeatureFactory}
+import org.locationtech.geomesa.feature.{AvroSimpleFeatureFactory, SimpleFeatureEncoder}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.opengis.filter.Filter
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -104,12 +105,15 @@ class AttributeIndexStrategyTest extends Specification {
   fs.addFeatures(featureCollection)
 
   val featureEncoder = SimpleFeatureEncoder(sft, ds.getFeatureEncoding(sft))
-  val indexSchema = IndexSchema(ds.getIndexSchemaFmt(sftName), sft, featureEncoder)
-  val queryPlanner = indexSchema.planner
+  val indexValueEncoder = IndexValueEncoder(sft, ds.getGeomesaVersion(sft))
+
+  val queryPlanner = new QueryPlanner(sft, ds.getFeatureEncoding(sft), ds.getIndexSchemaFmt(sftName), ds,
+    ds.strategyHints(sft), ds.getGeomesaVersion(sft))
 
   def execute(strategy: AttributeIdxStrategy, filter: String): List[String] = {
     val query = new Query(sftName, ECQL.toFilter(filter))
-    val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+    val plan = strategy.getQueryPlan(query, queryPlanner, ExplainNull)
+    val results = strategy.execute(plan, ds, ExplainNull)
     // adapt iterator no longer de-dupes, add dedupe wrapper
     queryPlanner.adaptIterator(results, query).map(_.getAttribute("name").toString).toSet.toList
   }
@@ -117,7 +121,7 @@ class AttributeIndexStrategyTest extends Specification {
   "AttributeIndexStrategy" should {
     "print values" in {
       skipped("used for debugging")
-      val scanner = connector.createScanner(ds.getAttrIdxTableName(sftName), new Authorizations())
+      val scanner = connector.createScanner(ds.getAttributeTable(sftName), new Authorizations())
       val prefix = AttributeTable.getAttributeIndexRowPrefix(index.getTableSharingPrefix(sft),
         sft.getDescriptor("fingers"))
       scanner.setRange(AccRange.prefix(prefix))
@@ -126,49 +130,101 @@ class AttributeIndexStrategyTest extends Specification {
       success
     }
 
+    "partition a query by selecting the best filter" >> {
+
+      val spec = "name:String:index=true:cardinality=high," +
+        "age:Integer:index=true:cardinality=low," +
+        "weight:Double:index=false," +
+        "height:Float:index=false:cardinality=unknown"
+      val sft = SimpleFeatureTypes.createType(sftName, spec)
+
+      val ff = CommonFactoryFinder.getFilterFactory(null)
+      val ageFilter = ff.equals(ff.property("age"), ff.literal(21))
+      val nameFilter = ff.equals(ff.literal("foo"), ff.property("name"))
+      val heightFilter = ff.equals(ff.property("height"), ff.literal(12.0D))
+      val weightFilter = ff.equals(ff.literal(21.12D), ff.property("weight"))
+
+      "when best is first" >> {
+        val filter = ff.and(Seq[Filter](nameFilter, heightFilter, weightFilter, ageFilter).asJava)
+
+        val query = new Query(sft.getTypeName, filter)
+
+        val expectedQuery = new Query(sft.getTypeName, ff.and(Seq[Filter](heightFilter, weightFilter, ageFilter).asJava))
+
+        val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
+        strippedQuery mustEqual expectedQuery
+        extractedFilter mustEqual nameFilter
+      }
+
+      "when best is in the middle" >> {
+        val filter = ff.and(Seq[Filter](ageFilter, nameFilter, heightFilter, weightFilter).asJava)
+
+        val query = new Query(sft.getTypeName, filter)
+
+        val expectedQuery = new Query(sft.getTypeName, ff.and(Seq[Filter](ageFilter, heightFilter, weightFilter).asJava))
+
+        val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
+        strippedQuery mustEqual expectedQuery
+        extractedFilter mustEqual nameFilter
+      }
+
+      "when best is last" >> {
+        val filter = ff.and(Seq[Filter](ageFilter, heightFilter, weightFilter, nameFilter).asJava)
+
+        val query = new Query(sft.getTypeName, filter)
+
+        val expectedQuery = new Query(sft.getTypeName, ff.and(Seq[Filter](ageFilter, heightFilter, weightFilter).asJava))
+
+        val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
+        strippedQuery mustEqual expectedQuery
+        extractedFilter mustEqual nameFilter
+      }
+    }
+
     "use first indexable attribute if equals" in {
       val filter = ECQL.toFilter("age=21 AND count<5")
       val query = new Query(sft.getTypeName, filter)
       val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(extractedFilter, sft).get must beAnInstanceOf[AttributeIdxEqualsStrategy]
+      AttributeIndexStrategy.getStrategy(extractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxEqualsStrategy]
       val (secondStripped, secondExtractedFilter) = AttributeIndexStrategy.partitionFilter(strippedQuery, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(secondExtractedFilter, sft).get must beAnInstanceOf[AttributeIdxRangeStrategy]
+      AttributeIndexStrategy.getStrategy(secondExtractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxRangeStrategy]
     }
 
     "use first indexable attribute if range" in {
       val filter = ECQL.toFilter("count<5 AND age=21")
       val query = new Query(sft.getTypeName, filter)
       val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(extractedFilter, sft).get must beAnInstanceOf[AttributeIdxRangeStrategy]
+      AttributeIndexStrategy.getStrategy(extractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxRangeStrategy]
       val (secondStripped, secondExtractedFilter) = AttributeIndexStrategy.partitionFilter(strippedQuery, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(secondExtractedFilter, sft).get must beAnInstanceOf[AttributeIdxEqualsStrategy]
+      AttributeIndexStrategy.getStrategy(secondExtractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxEqualsStrategy]
     }
 
     "use first indexable attribute if like" in {
       val filter = ECQL.toFilter("name LIKE 'baddy' AND age=21")
       val query = new Query(sft.getTypeName, filter)
       val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(extractedFilter, sft).get must beAnInstanceOf[AttributeIdxLikeStrategy]
+      AttributeIndexStrategy.getStrategy(extractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxLikeStrategy]
       val (secondStripped, secondExtractedFilter) = AttributeIndexStrategy.partitionFilter(strippedQuery, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(secondExtractedFilter, sft).get must beAnInstanceOf[AttributeIdxEqualsStrategy]
+      AttributeIndexStrategy.getStrategy(secondExtractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxEqualsStrategy]
     }
 
     "use first indexable attribute if like and retain all children for > 2 filters" in {
       val filter = FilterHelper.filterListAsAnd(Seq(ECQL.toFilter("name LIKE 'baddy'"), ECQL.toFilter("age=21"), ECQL.toFilter("count<5"))).get
       val query = new Query(sft.getTypeName, filter)
       val (strippedQuery, extractedFilter) = AttributeIndexStrategy.partitionFilter(query, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(extractedFilter, sft).get must beAnInstanceOf[AttributeIdxLikeStrategy]
+      AttributeIndexStrategy.getStrategy(extractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxLikeStrategy]
       val (secondStripped, secondExtractedFilter) = AttributeIndexStrategy.partitionFilter(strippedQuery, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(secondExtractedFilter, sft).get must beAnInstanceOf[AttributeIdxEqualsStrategy]
+      AttributeIndexStrategy.getStrategy(secondExtractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxEqualsStrategy]
       val (thirdStripped, thirdExtractedFilter) = AttributeIndexStrategy.partitionFilter(secondStripped, sft)
-      AttributeIndexStrategy.getAttributeIndexStrategy(thirdExtractedFilter, sft).get must beAnInstanceOf[AttributeIdxRangeStrategy]
+      AttributeIndexStrategy.getStrategy(thirdExtractedFilter, sft, NoOpHints).get.strategy must beAnInstanceOf[AttributeIdxRangeStrategy]
     }
 
     "all attribute filters should be applied to SFFI" in {
       val strategy = new AttributeIdxLikeStrategy
       val filter = FilterHelper.filterListAsAnd(Seq(ECQL.toFilter("name LIKE 'b%'"), ECQL.toFilter("count<27"), ECQL.toFilter("age<29"))).get
       val query = new Query(sftName, filter)
-      val results = strategy.execute(ds, queryPlanner, sft, query, ExplainNull)
+      val plan = strategy.getQueryPlan(query, queryPlanner, ExplainNull)
+      val results = strategy.execute(plan, ds, ExplainNull)
       val resultNames = queryPlanner.adaptIterator(results, query).map(_.getAttribute("name").toString).toList
       resultNames must have size(1)
       resultNames must contain ("bill")
@@ -179,7 +235,7 @@ class AttributeIndexStrategyTest extends Specification {
     "there are no attribute filters" in {
       val filter = FilterHelper.filterListAsAnd(Seq(ECQL.toFilter("INTERSECTS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))"),
                                                     ECQL.toFilter("INTERSECTS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))"))).get
-      val (extractedFilter, strippedFilters) = FilterHelper.findFirst(AttributeIndexStrategy.getAttributeIndexStrategy(_, sft).isDefined)(filter.asInstanceOf[org.opengis.filter.And].getChildren)
+      val (extractedFilter, strippedFilters) = FilterHelper.findFirst(AttributeIndexStrategy.getStrategy(_, sft, NoOpHints).isDefined)(filter.asInstanceOf[org.opengis.filter.And].getChildren)
       extractedFilter must beEmpty
       strippedFilters must have size(2)
     }
@@ -245,12 +301,6 @@ class AttributeIndexStrategyTest extends Specification {
 
     "correctly query on date strings in standard format" in {
       val features = execute(strategy, "dtg = '2014-01-01T12:30:00.000Z'")
-      features must have size(1)
-      features must contain("charles")
-    }
-
-    "correctly query on nulls" in {
-      val features = execute(strategy, "age is NULL")
       features must have size(1)
       features must contain("charles")
     }
@@ -596,6 +646,12 @@ class AttributeIndexStrategyTest extends Specification {
         features must have size(2)
         features must contain("bill", "bob")
       }
+    }
+
+    "correctly query on not nulls" in {
+      val features = execute(strategy, "age IS NOT NULL")
+      features must have size(3)
+      features must contain("alice", "bill", "bob")
     }
   }
 

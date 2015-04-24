@@ -20,9 +20,9 @@ import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
 import com.vividsolutions.jts.geom.Coordinate
+import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
-import org.apache.accumulo.core.client.{BatchWriterConfig, IteratorSetting}
 import org.apache.accumulo.core.data.{Mutation, Range}
 import org.apache.accumulo.core.iterators.user.VersioningIterator
 import org.apache.accumulo.core.security.Authorizations
@@ -37,16 +37,15 @@ import org.geotools.feature.{DefaultFeatureCollection, NameImpl}
 import org.geotools.filter.text.cql2.CQL
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.geotools.process.vector.TransformProcess
 import org.geotools.referencing.CRS
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.core.index._
 import org.locationtech.geomesa.core.iterators.{IndexIterator, TestData}
-import org.locationtech.geomesa.core.security.{AuthorizationsProvider, DefaultAuthorizationsProvider, FilteringAuthorizationsProvider}
-import org.locationtech.geomesa.core.util.{CloseableIterator, SelfClosingIterator}
+import org.locationtech.geomesa.core.util.{CloseableIterator, GeoMesaBatchWriterConfig, SelfClosingIterator}
 import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
+import org.locationtech.geomesa.security.{AuthorizationsProvider, DefaultAuthorizationsProvider, FilteringAuthorizationsProvider}
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes._
@@ -216,7 +215,7 @@ class AccumuloDataStoreTest extends Specification {
       val sft = SimpleFeatureTypes.createType("customsplit", spec)
       org.locationtech.geomesa.core.index.setTableSharing(sft, false)
       ds.createSchema(sft)
-      val recTable = ds.getRecordTableForType(sft)
+      val recTable = ds.getRecordTable(sft)
       val splits = ds.connector.tableOperations().listSplits(recTable)
       splits.size() mustEqual 100
       splits.head mustEqual new Text("00")
@@ -310,7 +309,7 @@ class AccumuloDataStoreTest extends Specification {
 
       "with the correct schema" >> {
         SimpleFeatureTypes.encodeType(results.getSchema) mustEqual
-            s"name:String,*geom:Point:srid=4326:index=true:$OPT_INDEX_VALUE=true,derived:String"
+            s"name:String,*geom:Point:srid=4326:$OPT_INDEX=full:$OPT_INDEX_VALUE=true,derived:String"
       }
       "with the correct results" >> {
         val features = results.features
@@ -323,6 +322,21 @@ class AccumuloDataStoreTest extends Specification {
     "handle transformations with dtg and geom" in {
       val sftName = "transformtest2"
       val sft = createSchema(sftName)
+
+      addDefaultPoint(sft)
+
+      val query = new Query(sftName, Filter.INCLUDE, List("dtg", "geom").toArray)
+      val results = SelfClosingIterator(CloseableIterator(ds.getFeatureSource(sftName).getFeatures(query).features())).toList
+      results must haveSize(1)
+      results(0).getAttribute("dtg") mustEqual(defaultDtg)
+      results(0).getAttribute("geom") mustEqual(defaultGeom)
+      results(0).getAttribute("name") must beNull
+    }
+
+    "handle back compatible transformations" in {
+      val sftName = "transformtest7"
+      val sft = createSchema(sftName)
+      ds.setGeomesaVersion(sftName, 2)
 
       addDefaultPoint(sft)
 
@@ -370,7 +384,7 @@ class AccumuloDataStoreTest extends Specification {
 
       "with the correct schema" >> {
         SimpleFeatureTypes.encodeType(results.getSchema) mustEqual
-            s"name:String,*geom:Point:srid=4326:index=true:$OPT_INDEX_VALUE=true,derived:String"
+            s"name:String,*geom:Point:srid=4326:$OPT_INDEX=full:$OPT_INDEX_VALUE=true,derived:String"
       }
 
       "with the correct results" >> {
@@ -394,7 +408,7 @@ class AccumuloDataStoreTest extends Specification {
 
       "with the correct schema" >> {
         SimpleFeatureTypes.encodeType(results.getSchema) mustEqual
-            s"name:String,*geom:Point:srid=4326:index=true:$OPT_INDEX_VALUE=true"
+            s"name:String,*geom:Point:srid=4326:$OPT_INDEX=full:$OPT_INDEX_VALUE=true"
       }
       "with the correct results" >> {
         val features = results.features
@@ -621,12 +635,10 @@ class AccumuloDataStoreTest extends Specification {
       val query = new Query(sftName, Filter.INCLUDE)
       val fr = ds.getFeatureReader(sftName)
       fr must not beNull;
-      val explain = {
-        val out = new ExplainString
-        fr.explainQuery(o = out)
-        out.toString()
-      }
-      explain must startWith(s"Running Query")
+      val out = new ExplainString
+      ds.explainQuery(sftName, new Query(sftName, Filter.INCLUDE), out)
+      val explain = out.toString()
+      explain must startWith(s"Planning Query")
     }
 
     "allow secondary attribute indexes" in {
@@ -780,7 +792,7 @@ class AccumuloDataStoreTest extends Specification {
         val connector = instance.getConnector(params("user"), new PasswordToken(params("password").getBytes))
         connector.tableOperations.create(params("tableName"))
 
-        val bw = connector.createBatchWriter(params("tableName"), new BatchWriterConfig)
+        val bw = connector.createBatchWriter(params("tableName"), GeoMesaBatchWriterConfig())
 
         // Insert metadata
         val metadataMutation = new Mutation(s"~METADATA_$sftName")
@@ -939,8 +951,8 @@ class AccumuloDataStoreTest extends Specification {
 
     "update metadata for indexed attributes" in {
       val sftName = "updateMetadataTest"
-      val originalSchema = s"name:String,dtg:Date,*geom:Point:srid=4326:index=true:$OPT_INDEX_VALUE=true"
-      val updatedSchema = s"name:String:index=true,dtg:Date,*geom:Point:srid=4326:index=true:$OPT_INDEX_VALUE=true"
+      val originalSchema = s"name:String,dtg:Date,*geom:Point:srid=4326:$OPT_INDEX=full:$OPT_INDEX_VALUE=true"
+      val updatedSchema = s"name:String:$OPT_INDEX=join,dtg:Date,*geom:Point:srid=4326:$OPT_INDEX=full:$OPT_INDEX_VALUE=true"
 
       val sft = createSchema(sftName, originalSchema)
       ds.updateIndexedAttributes(sftName, updatedSchema)
@@ -950,7 +962,7 @@ class AccumuloDataStoreTest extends Specification {
 
     "prevent changing schema types" in {
       val sftName = "preventSchemaChangeTest"
-      val originalSchema = s"name:String,dtg:Date,*geom:Point:srid=4326:index=true:$OPT_INDEX_VALUE=true"
+      val originalSchema = s"name:String,dtg:Date,*geom:Point:srid=4326:$OPT_INDEX=full:$OPT_INDEX_VALUE=true"
       val sft = createSchema(sftName, originalSchema)
 
       "prevent changing default geometry" in {
@@ -1077,7 +1089,7 @@ class AccumuloDataStoreTest extends Specification {
       // verify that the IndexIterator is getting used with the extra field
       val explain = {
         val out = new ExplainString
-        reader.explainQuery(o = out)
+        ds.explainQuery(sftName, query, out)
         out.toString()
       }
       explain must contain(classOf[IndexIterator].getName)
@@ -1124,7 +1136,7 @@ class AccumuloDataStoreTest extends Specification {
       // verify that the IndexIterator is getting used
       val explain = {
         val out = new ExplainString
-        reader.explainQuery(o = out)
+        ds.explainQuery(sftName, query, out)
         out.toString()
       }
       explain must contain(classOf[IndexIterator].getName)
@@ -1163,7 +1175,7 @@ class AccumuloDataStoreTest extends Specification {
 
       val explain = {
         val o = new ExplainString
-        ds.getFeatureReader(sftName1, query).explainQuery(o = o)
+        ds.explainQuery(sftName1, query, o)
         o.toString()
       }
       println(explain)
@@ -1232,18 +1244,6 @@ class AccumuloDataStoreTest extends Specification {
   }
 
   "AccumuloFeatureStore" should {
-    "compute target schemas from transformation expressions" in {
-      val sftName = "targetSchemaTest"
-      val origSFT = SimpleFeatureTypes.createType(sftName, defaultSchema)
-      origSFT.getUserData.put(SF_PROPERTY_START_TIME, "dtg")
-      val definitions =
-        TransformProcess.toDefinition("name=name;helloName=strConcat('hello', name);geom=geom")
-
-      val result = AccumuloFeatureStore.computeSchema(origSFT, definitions.toSeq)
-      SimpleFeatureTypes.encodeType(result) mustEqual
-        "name:String,helloName:String,*geom:Point:srid=4326:index-value=true"
-    }
-
     "support sorting and handle time bounds" in {
       val sftName = "sortingAndTimeBoundsTest"
       val sft = createSchema(sftName)

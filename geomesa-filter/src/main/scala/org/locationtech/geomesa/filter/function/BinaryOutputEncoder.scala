@@ -20,7 +20,7 @@ import java.io.OutputStream
 import java.util.Date
 
 import com.typesafe.scalalogging.slf4j.Logging
-import com.vividsolutions.jts.geom.{Point, Geometry, LineString}
+import com.vividsolutions.jts.geom.{Geometry, LineString, Point}
 import org.geotools.data.simple.SimpleFeatureCollection
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.ListAttributeSpec
@@ -34,7 +34,7 @@ object BinaryOutputEncoder extends Logging {
   import org.locationtech.geomesa.filter.function.AxisOrder._
   import org.locationtech.geomesa.utils.geotools.Conversions._
 
-  case class ValuesToEncode(lat: Float, lon: Float, dtg: Long, track: Option[String], label: Option[String])
+  case class ValuesToEncode(lat: Float, lon: Float, dtg: Long, track: Option[String], label: Option[Long])
 
   implicit val ordering = new Ordering[ValuesToEncode]() {
     override def compare(x: ValuesToEncode, y: ValuesToEncode) = x.dtg.compareTo(y.dtg)
@@ -63,7 +63,8 @@ object BinaryOutputEncoder extends Logging {
       sort: Boolean = false): Unit = {
 
     val sft = fc.getSchema
-    val isLineString = sft.getGeometryDescriptor.getType.getBinding == classOf[LineString]
+    val isPoint = sft.getGeometryDescriptor.getType.getBinding == classOf[Point]
+    val isLineString = !isPoint && sft.getGeometryDescriptor.getType.getBinding == classOf[LineString]
 
     // validate our input data
     validateDateAttribute(dtgField, sft, isLineString)
@@ -105,8 +106,18 @@ object BinaryOutputEncoder extends Logging {
         // default is to use the geometry
         // depending on srs requested and wfs versions, axis order can be flipped
         axisOrder match {
-          case LatLon => (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint)
-          case LonLat => (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint).swap
+          case LatLon =>
+            if (isPoint) {
+              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Point])
+            } else {
+              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint)
+            }
+          case LonLat =>
+            if (isPoint) {
+              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Point]).swap
+            } else {
+              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint).swap  
+            }
         }
       }
     // for linestrings, we return each point - use an array so we get constant-time lookup
@@ -136,11 +147,11 @@ object BinaryOutputEncoder extends Logging {
     }
 
     // gets the label from a feature
-    val getLabel: (SimpleFeature) => Option[String] = labelField match {
-      case Some(label) if (label == "id") => (f) => Some(f.getID)
+    val getLabel: (SimpleFeature) => Option[Long] = labelField match {
       case Some(label) =>
         val labelIndex = sft.indexOf(label)
-        (f) => Option(f.getAttribute(labelIndex)).map(_.toString)
+        (f) => Option(f.getAttribute(labelIndex).asInstanceOf[Long])
+
       case None => (_) => None
     }
 

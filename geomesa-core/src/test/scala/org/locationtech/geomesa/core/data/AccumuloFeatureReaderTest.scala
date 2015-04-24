@@ -28,7 +28,6 @@ import org.specs2.runner.JUnitRunner
 class AccumuloFeatureReaderTest extends Specification with TestWithDataStore {
 
   override def spec = s"foo:String,baz:Date,dtg:Date,*geom:Geometry"
-  override def getTestFeatures() = Seq.empty
 
   "AccumuloFeatureReader" should {
 
@@ -39,8 +38,7 @@ class AccumuloFeatureReaderTest extends Specification with TestWithDataStore {
       query.setFilter(f)
 
       val out = new ExplainString()
-      val reader = ds.getFeatureReader(sftName, query)
-      reader.explainQuery(out)
+      ds.explainQuery(sftName, query, out)
 
       val explanation = out.toString()
       explanation must not be null

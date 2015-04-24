@@ -16,11 +16,18 @@
 
 package org.locationtech.geomesa.jobs
 
+import java.util.Properties
+
 import cascading.scheme.Scheme
 import cascading.tap.Tap
+import com.twitter.scalding.Args
 import org.apache.accumulo.core.data.{Key, Mutation, Value}
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.mapred.{JobConf, OutputCollector, RecordReader, RecordWriter}
+import org.locationtech.geomesa.core.data.AccumuloDataStoreFactory.params._
+import org.opengis.feature.simple.SimpleFeature
+
+import scala.collection.JavaConverters._
 
 package object scalding {
   type GenericRecordReader = RecordReader[_, _]
@@ -33,19 +40,70 @@ package object scalding {
   type MutOutputCollector = OutputCollector[Text, Mutation]
   type AccTap = Tap[JobConf, KVRecordReader, MutOutputCollector]
   type AccScheme = Scheme[JobConf, KVRecordReader, MutOutputCollector, Array[Any], Array[Any]]
+  type AccLocalTap = Tap[Properties, KVRecordReader, MutOutputCollector]
+  type AccLocalScheme = Scheme[Properties, KVRecordReader, MutOutputCollector, Array[Any], Array[Any]]
+
+  type GMRecordReader = RecordReader[Text, SimpleFeature]
+  type GMRecordWriter = RecordWriter[Text, SimpleFeature]
+  type GMOutputCollector = OutputCollector[Text, SimpleFeature]
+  type GMTap = Tap[JobConf, GMRecordReader, GMOutputCollector]
+  type GMScheme = Scheme[JobConf, GMRecordReader, GMOutputCollector, Array[Any], Array[Any]]
+  type GMLocalTap = Tap[Properties, GMRecordReader, GMOutputCollector]
+  type GMLocalScheme = Scheme[Properties, GMRecordReader, GMOutputCollector, Array[Any], Array[Any]]
 
   object ConnectionParams {
-    val ACCUMULO_INSTANCE   = "geomesa.accumulo.instance"
-    val ZOOKEEPERS          = "geomesa.accumulo.zookeepers"
-    val ACCUMULO_USER       = "geomesa.accumulo.user"
-    val ACCUMULO_PASSWORD   = "geomesa.accumulo.password"
-    val AUTHORIZATIONS      = "geomesa.accumulo.authorizations"
-    val VISIBILITIES        = "geomesa.accumulo.visibilities"
-    val FEATURE_NAME        = "geomesa.feature.name"
-    val CATALOG_TABLE       = "geomesa.feature.tables.catalog"
-    val RECORD_TABLE        = "geomesa.feature.tables.record"
-    val ATTRIBUTE_TABLE     = "geomesa.feature.tables.attribute"
-    val ST_INDEX_TABLE      = "geomesa.feature.tables.stindex"
-    val SCAN_RANGES         = "geomesa.scan.ranges"
+
+    private val IN_PREFIX  = "geomesa.input."
+    private val OUT_PREFIX = "geomesa.output."
+
+    val CQL_IN       = s"${IN_PREFIX}cql"
+    val TRANSFORM_IN = s"${IN_PREFIX}transform"
+    val FEATURE_IN   = s"${IN_PREFIX}feature"
+    val FEATURE_OUT  = s"${OUT_PREFIX}feature"
+
+    private val params = Seq(instanceIdParam, zookeepersParam, userParam, passwordParam, authsParam,
+      visibilityParam, tableNameParam, mockParam)
+
+    /**
+     * Gets a data store connection map based on the configured input
+     */
+    def toDataStoreInParams(args: Args): Map[String, String] = toDataStoreParams(args, IN_PREFIX)
+
+    /**
+     * Gets a data store connection map based on the configured output
+     */
+    def toDataStoreOutParams(args: Args): Map[String, String] = toDataStoreParams(args, OUT_PREFIX)
+
+    /**
+     * Converts our arg strings into the map needed for DataStoreFinder
+     */
+    private def toDataStoreParams(args: Args, prefix: String): Map[String, String] =
+      args.m.map { case (key, value) =>
+        if (key.startsWith(prefix)) {
+          key.substring(prefix.length) -> value.headOption.getOrElse("")
+        } else {
+          "" -> ""
+        }
+      }.filter { case (k, v) => !v.isEmpty }
+
+    /**
+     * Converts a data store connection map into a configured input source
+     */
+    def toInArgs(dsParams: Map[String, String]): Map[String, List[String]] = toArgs(dsParams, IN_PREFIX)
+
+    /**
+     * Converts a data store connection map into a configured output sink
+     */
+    def toOutArgs(dsParams: Map[String, String]): Map[String, List[String]] = toArgs(dsParams, OUT_PREFIX)
+
+    /**
+     * Converts a DataStoreFinder map into args for a scalding job
+     */
+    private def toArgs(dsParams: Map[String, String], prefix: String): Map[String, List[String]] = {
+      val jParams = dsParams.asJava
+      params.map(p => s"$prefix${p.getName}" -> Option(p.lookUp(jParams).asInstanceOf[String]).toList)
+          .filter { case (k, v) => !v.isEmpty }
+          .toMap
+    }
   }
 }

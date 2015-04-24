@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapred.JobConf
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.jobs.scalding._
+import org.locationtech.geomesa.jobs.scalding.taps.{AccumuloScheme, AccumuloTap}
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.collection.JavaConverters._
@@ -34,19 +35,22 @@ class AccumuloSourceTest extends Specification {
   val connector = instance.getConnector("user", new PasswordToken("pwd"))
   Seq("table_in", "table_out").foreach(t => connector.tableOperations().create(t))
 
-  val options = AccumuloSourceOptions(instance.getInstanceName,
-                                       instance.getZooKeepers,
-                                       "user",
-                                       "pwd",
-                                       AccumuloInputOptions("table_in"),
-                                       AccumuloOutputOptions("table_out"))
+  val input = AccumuloInputOptions(instance.getInstanceName,
+                                   instance.getZooKeepers,
+                                   "user",
+                                   "pwd",
+                                   "table_in")
+  val output = AccumuloOutputOptions(instance.getInstanceName,
+                                     instance.getZooKeepers,
+                                     "user",
+                                     "pwd",
+                                     "table_out")
 
   "AccumuloSource" should {
     "create read and write taps" in {
       implicit val mode = Hdfs(true, new Configuration())
-      val source = AccumuloSource(options)
-      val readTap = source.createTap(Read)
-      val writeTap = source.createTap(Write)
+      val readTap = AccumuloSource(input).createTap(Read)
+      val writeTap = AccumuloSource(output).createTap(Write)
       readTap must haveClass[AccumuloTap]
       writeTap must haveClass[AccumuloTap]
       readTap.getIdentifier mustNotEqual(writeTap.getIdentifier)
@@ -57,16 +61,17 @@ class AccumuloSourceTest extends Specification {
     "create tables and check their existence" in {
       skipped("this doesn't work with mock accumulo - revisit if we start using mini accumulo")
 
-      val scheme = new AccumuloScheme(options.copy(input = AccumuloInputOptions("test_create_in"),
-                                                   output = AccumuloOutputOptions("test_create_out")))
+      val inScheme = new AccumuloScheme(input.copy(table = "test_create_in"))
+      val outScheme = new AccumuloScheme(output.copy(table = "test_create_out"))
+
       val conf = new JobConf()
-      val readTap = new AccumuloTap(Read, scheme)
+      val readTap = new AccumuloTap(Read, inScheme)
       readTap.resourceExists(conf) mustEqual(false)
       readTap.createResource(conf)
       readTap.resourceExists(conf) mustEqual(true)
       connector.tableOperations().exists("test_create_in") mustEqual(true)
 
-      val writeTap = new AccumuloTap(Write, scheme)
+      val writeTap = new AccumuloTap(Write, outScheme)
       writeTap.resourceExists(conf) mustEqual(false)
       writeTap.createResource(conf)
       writeTap.resourceExists(conf) mustEqual(true)

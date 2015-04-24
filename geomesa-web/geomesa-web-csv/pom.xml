@@ -3,7 +3,7 @@
     <parent>
         <artifactId>geomesa-web-accumulo1.6</artifactId>
         <groupId>org.locationtech.geomesa</groupId>
-        <version>1.0.0-rc.5-SNAPSHOT</version>
+        <version>1.0.0-rc.6-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -12,6 +12,10 @@
     <description>Processes a CSV for ingest</description>
 
     <dependencies>
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra_2.10</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-web-core-accumulo1.6</artifactId>

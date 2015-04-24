@@ -20,9 +20,12 @@ import java.util.Map.Entry
 
 import org.apache.accumulo.core.data.{Key, Mutation, Value}
 import org.geotools.factory.Hints
+import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.index.QueryHints._
 import org.opengis.filter.Filter
+
+import scala.util.Try
 
 /**
  * Class for capturing query-related stats
@@ -97,7 +100,7 @@ object QueryStatTransform extends StatTransform[QueryStat] {
    * @param filter
    * @return
    */
-  def filterToString(filter: Filter): String = filter.toString
+  def filterToString(filter: Filter): String = Try(ECQL.toCQL(filter)).getOrElse(filter.toString)
 
   // list of query hints we want to persist
   val QUERY_HINTS = List[Hints.Key](TRANSFORMS,
@@ -105,7 +108,10 @@ object QueryStatTransform extends StatTransform[QueryStat] {
                                     DENSITY_KEY,
                                     BBOX_KEY,
                                     WIDTH_KEY,
-                                    HEIGHT_KEY)
+                                    HEIGHT_KEY,
+                                    TEMPORAL_DENSITY_KEY,
+                                    TIME_INTERVAL_KEY,
+                                    TIME_BUCKETS_KEY)
 
   /**
    * Converts a query hints object to a string for persisting
@@ -127,12 +133,16 @@ object QueryStatTransform extends StatTransform[QueryStat] {
    */
   private def getString(key: Hints.Key) =
     key match {
-      case TRANSFORMS => "TRANSFORMS"
-      case TRANSFORM_SCHEMA => "TRANSFORM_SCHEMA"
-      case DENSITY_KEY => "DENSITY_KEY"
-      case BBOX_KEY => "BBOX_KEY"
-      case WIDTH_KEY => "WIDTH_KEY"
-      case HEIGHT_KEY => "HEIGHT_KEY"
-      case _ => "unknown_hint"
+      case TRANSFORMS           => "TRANSFORMS"
+      case TRANSFORM_SCHEMA     => "TRANSFORM_SCHEMA"
+      case DENSITY_KEY          => "DENSITY_KEY"
+      case TEMPORAL_DENSITY_KEY => "TEMPORAL_DENSITY_KEY"
+      case TIME_INTERVAL_KEY    => "TIME_INTERVAL_KEY"
+      case RETURN_ENCODED       => "RETURN_ENCODED"
+      case TIME_BUCKETS_KEY     => "TIME_BUCKETS_KEY"
+      case BBOX_KEY             => "BBOX_KEY"
+      case WIDTH_KEY            => "WIDTH_KEY"
+      case HEIGHT_KEY           => "HEIGHT_KEY"
+      case _                    => "unknown_hint"
     }
 }

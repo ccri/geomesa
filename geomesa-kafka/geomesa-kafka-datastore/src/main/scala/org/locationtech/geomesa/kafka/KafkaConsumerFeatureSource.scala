@@ -19,18 +19,18 @@ package org.locationtech.geomesa.kafka
 import java.nio.charset.StandardCharsets
 import java.util
 import java.util.Properties
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, TimeUnit}
 
-import com.google.common.collect.Maps
+import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
 import com.google.common.eventbus.{EventBus, Subscribe}
 import com.vividsolutions.jts.geom.{Envelope, Geometry}
-import com.vividsolutions.jts.index.quadtree.Quadtree
 import kafka.consumer.{Consumer, ConsumerConfig, Whitelist}
 import kafka.producer.KeyedMessage
 import kafka.serializer.DefaultDecoder
+import org.apache.commons.lang3.RandomStringUtils
 import org.geotools.data.collection.DelegateFeatureReader
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
-import org.geotools.data.{FeatureReader, FilteringFeatureReader, Query}
+import org.geotools.data.{FilteringFeatureReader, Query}
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.feature.collection.DelegateFeatureIterator
 import org.geotools.filter.FidFilterImpl
@@ -38,7 +38,11 @@ import org.geotools.filter.identity.FeatureIdImpl
 import org.geotools.geometry.jts.{JTS, ReferencedEnvelope}
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.geomesa.feature.AvroFeatureDecoder
+import org.locationtech.geomesa.feature.EncodingOption.EncodingOptions
+import org.locationtech.geomesa.security.ContentFeatureSourceSecuritySupport
+import org.locationtech.geomesa.utils.geotools.ContentFeatureSourceReTypingSupport
 import org.locationtech.geomesa.utils.geotools.Conversions._
+import org.locationtech.geomesa.utils.index.SynchronizedQuadtree
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.expression.{Literal, PropertyName}
 import org.opengis.filter.identity.FeatureId
@@ -50,11 +54,21 @@ import scala.collection.JavaConversions._
 class KafkaConsumerFeatureSource(entry: ContentEntry,
                                  schema: SimpleFeatureType,
                                  eb: EventBus,
-                                 query: Query)
-  extends ContentFeatureStore(entry, query) {
+                                 query: Query,
+                                 topic: String,
+                                 zookeepers: String,
+                                 expiry: Boolean,
+                                 expirationPeriod: Long)
+  extends ContentFeatureStore(entry, query)
+  with ContentFeatureSourceSecuritySupport
+  with ContentFeatureSourceReTypingSupport {
 
-  type FR = FeatureReader[SimpleFeatureType, SimpleFeature]
-  var qt = new Quadtree
+  var qt = new SynchronizedQuadtree
+
+  val groupId = RandomStringUtils.randomAlphanumeric(5)
+  val decoder = new AvroFeatureDecoder(schema, EncodingOptions.withUserData)
+  // create a producer that reads from kafka and sends to the event bus
+  new KafkaFeatureConsumer(topic, zookeepers, groupId, decoder, eb)
 
   case class FeatureHolder(sf: SimpleFeature, env: Envelope) {
     override def hashCode(): Int = sf.hashCode()
@@ -65,7 +79,20 @@ class KafkaConsumerFeatureSource(entry: ContentEntry,
     }
   }
 
-  val features = Maps.newConcurrentMap[String, FeatureHolder]()
+  val cb = CacheBuilder.newBuilder()
+
+  if (expiry) {
+    cb.expireAfterWrite(expirationPeriod, TimeUnit.MILLISECONDS)
+      .removalListener(
+        new RemovalListener[String, FeatureHolder] {
+          def onRemoval(removal: RemovalNotification[String, FeatureHolder]) = {
+            qt.remove(removal.getValue.env, removal.getValue.sf)
+          }
+        }
+      )
+  }
+
+  val features: Cache[String, FeatureHolder] = cb.build()
 
   eb.register(this)
 
@@ -80,21 +107,21 @@ class KafkaConsumerFeatureSource(entry: ContentEntry,
   def processNewFeatures(update: CreateOrUpdate): Unit = {
     val sf = update.f
     val id = update.id
-    Option(features.get(id)).foreach {  old => qt.remove(old.env, old.sf) }
+    Option(features.getIfPresent(id)).foreach { old => qt.remove(old.env, old.sf) }
     val env = sf.geometry.getEnvelopeInternal
     qt.insert(env, sf)
     features.put(sf.getID, FeatureHolder(sf, env))
   }
 
   def removeFeature(toDelete: Delete): Unit = {
-    Option(features.remove(toDelete.id)).foreach { holder =>
-      qt.remove(holder.env, holder.sf)
-    }
+    val id = toDelete.id
+    Option(features.getIfPresent(id)).foreach { old => qt.remove(old.env, old.sf) }
+    features.invalidate(toDelete.id)
   }
 
   def clear(): Unit = {
-    features.clear()
-    qt = new Quadtree
+    features.invalidateAll()
+    qt = new SynchronizedQuadtree
   }
 
   override def getBoundsInternal(query: Query) =
@@ -105,7 +132,7 @@ class KafkaConsumerFeatureSource(entry: ContentEntry,
   override def getCountInternal(query: Query): Int =
     getReaderInternal(query).getIterator.size
 
-  override def getReaderInternal(query: Query): FR = getReaderForFilter(query.getFilter)
+  override def getReaderInternal(query: Query): FR = addSupport(query, getReaderForFilter(query.getFilter))
 
   def getReaderForFilter(f: Filter): FR =
     f match {
@@ -122,10 +149,10 @@ class KafkaConsumerFeatureSource(entry: ContentEntry,
   type DFR = DelegateFeatureReader[SimpleFeatureType, SimpleFeature]
   type DFI = DelegateFeatureIterator[SimpleFeature]
 
-  def include(i: IncludeFilter) = new DFR(schema, new DFI(features.valuesIterator.map(_.sf)))
+  def include(i: IncludeFilter) = new DFR(schema, new DFI(features.asMap().valuesIterator.map(_.sf)))
 
   def fid(ids: FidFilterImpl): FR = {
-    val iter = ids.getIDs.flatMap(id => Option(features.get(id.toString)).map(_.sf)).iterator
+    val iter = ids.getIDs.flatMap(id => Option(features.getIfPresent(id.toString)).map(_.sf)).iterator
     new DFR(schema, new DFI(iter))
   }
 
@@ -193,8 +220,8 @@ trait FeatureProducer {
   def clear(): Unit = eventBus.post(Clear)
 }
 
-class KafkaFeatureConsumer(topic: String, 
-                           zookeepers: String, 
+class KafkaFeatureConsumer(topic: String,
+                           zookeepers: String,
                            groupId: String,
                            featureDecoder: AvroFeatureDecoder,
                            override val eventBus: EventBus) extends FeatureProducer {

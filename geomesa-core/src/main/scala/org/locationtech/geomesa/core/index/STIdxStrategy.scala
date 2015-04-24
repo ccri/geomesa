@@ -16,84 +16,56 @@
 
 package org.locationtech.geomesa.core.index
 
-import java.util.Map.Entry
-
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Geometry, GeometryCollection}
 import org.apache.accumulo.core.client.IteratorSetting
-import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.iterators.user.RegExFilter
 import org.apache.hadoop.io.Text
 import org.geotools.data.Query
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.core.GEOMESA_ITERATORS_IS_DENSITY_TYPE
-import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.filter._
 import org.locationtech.geomesa.core.index.FilterHelper._
 import org.locationtech.geomesa.core.index.QueryHints._
 import org.locationtech.geomesa.core.index.QueryPlanner._
+import org.locationtech.geomesa.core.index.Strategy._
 import org.locationtech.geomesa.core.iterators._
-import org.locationtech.geomesa.core.util.{SelfClosingBatchScanner, SelfClosingIterator}
 import org.locationtech.geomesa.feature.FeatureEncoding.FeatureEncoding
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.Filter
-import org.opengis.filter.expression.{Expression, Literal, PropertyName}
+import org.opengis.filter.expression.Literal
 import org.opengis.filter.spatial.{BBOX, BinarySpatialOperator}
-
-import scala.util.Try
 
 class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
 
-  def execute(acc: AccumuloConnectorCreator,
-              iqp: QueryPlanner,
-              featureType: SimpleFeatureType,
-              query: Query,
-              output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]] = {
-    val tryScanner = Try {
-      val bs = acc.createSTIdxScanner(featureType)
-      val qp = buildSTIdxQueryPlan(query, iqp, featureType, output)
-      configureBatchScanner(bs, qp)
-      // NB: Since we are (potentially) gluing multiple batch scanner iterators together,
-      //  we wrap our calls in a SelfClosingBatchScanner.
-      SelfClosingBatchScanner(bs)
-    }
-    val scanner = tryScanner.recover {
-      case e: Throwable =>
-        logger.warn(s"Error in creating scanner: $e", e)
-        // since GeoTools would eat the error and return no records anyway,
-        // there's no harm in returning an empty iterator.
-        SelfClosingIterator[Entry[Key, Value]](Iterator.empty)
-    }
-    scanner.get
-  }
+  override def getQueryPlan(query: Query, queryPlanner: QueryPlanner, output: ExplainerOutputType) = {
 
-  def buildSTIdxQueryPlan(query: Query,
-                          iqp: QueryPlanner,
-                          featureType: SimpleFeatureType,
-                          output: ExplainerOutputType) = {
-    val schema          = iqp.schema
-    val featureEncoding = iqp.featureEncoding
-    val keyPlanner      = IndexSchema.buildKeyPlanner(iqp.schema)
-    val cfPlanner       = IndexSchema.buildColumnFamilyPlanner(iqp.schema)
+    val sft             = queryPlanner.sft
+    val acc             = queryPlanner.acc
+    val version         = queryPlanner.version
+    val schema          = queryPlanner.stSchema
+    val featureEncoding = queryPlanner.featureEncoding
+    val keyPlanner      = IndexSchema.buildKeyPlanner(schema)
+    val cfPlanner       = IndexSchema.buildColumnFamilyPlanner(schema)
 
-    output(s"Scanning ST index table for feature type ${featureType.getTypeName}")
+    output(s"Scanning ST index table for feature type ${sft.getTypeName}")
     output(s"Filter: ${query.getFilter}")
 
-     val dtgField = getDtgFieldName(featureType)
+     val dtgField = getDtgFieldName(sft)
 
     // TODO: Select only the geometry filters which involve the indexed geometry type.
     // https://geomesa.atlassian.net/browse/GEOMESA-200
     // Simiarly, we should only extract temporal filters for the index date field.
-    val (geomFilters, otherFilters) = partitionGeom(query.getFilter)
+    val (geomFilters, otherFilters) = partitionGeom(query.getFilter, sft)
     val (temporalFilters, ecqlFilters) = partitionTemporal(otherFilters, dtgField)
 
-    val ecql = filterListAsAnd(ecqlFilters).map(ECQL.toCQL)
+    val ecql = filterListAsAnd(ecqlFilters)
 
     output(s"Geometry filters: $geomFilters")
     output(s"Temporal filters: $temporalFilters")
     output(s"Other filters: $ecqlFilters")
 
-    val tweakedGeoms = geomFilters.map(updateTopologicalFilters(_, featureType))
+    val tweakedGeoms = geomFilters.map(updateTopologicalFilters(_, sft))
 
     output(s"Tweaked geom filters are $tweakedGeoms")
 
@@ -120,7 +92,9 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
     output(s"GeomsToCover: $geomsToCover")
 
     val ofilter = filterListAsAnd(tweakedGeoms ++ temporalFilters)
-    if (ofilter.isEmpty) logger.warn(s"Querying Accumulo without ST filter.")
+    if (ofilter.isEmpty) {
+      logger.warn(s"Querying Accumulo without SpatioTemporal filter.")
+    }
 
     val oint  = IndexSchema.somewhen(interval)
 
@@ -128,30 +102,38 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
     output(s"Interval:  ${oint.getOrElse("No interval")}")
     output(s"Filter: ${Option(filter).getOrElse("No Filter")}")
 
-    val iteratorConfig = IteratorTrigger.chooseIterator(ecql, query, featureType)
+    val iteratorConfig = IteratorTrigger.chooseIterator(ecql, query, sft)
 
-    val stiiIterCfg = getSTIIIterCfg(iteratorConfig, query, featureType, ofilter, ecql, featureEncoding)
+    val stiiIterCfg =
+      getSTIIIterCfg(iteratorConfig, query, sft, ofilter, ecql, featureEncoding, version)
 
-    val densityIterCfg = getDensityIterCfg(query, geometryToCover, schema, featureEncoding, featureType)
+    val densityIterCfg = getDensityIterCfg(query, geometryToCover, schema, featureEncoding, sft)
 
     // set up row ranges and regular expression filter
     val qp = planQuery(filter, iteratorConfig.iterator, output, keyPlanner, cfPlanner)
 
-    qp.copy(iterators = qp.iterators ++ List(Some(stiiIterCfg), densityIterCfg).flatten)
+    val table = acc.getSpatioTemporalTable(sft)
+    val iterators = qp.iterators ++ List(Some(stiiIterCfg), densityIterCfg).flatten
+    val numThreads = acc.getSuggestedSpatioTemporalThreads(sft)
+    val hasDupes = IndexSchema.mayContainDuplicates(sft)
+    qp.copy(table = table, iterators = iterators, numThreads = numThreads, hasDuplicates = hasDupes)
   }
 
   def getSTIIIterCfg(iteratorConfig: IteratorConfig,
                      query: Query,
                      featureType: SimpleFeatureType,
                      stFilter: Option[Filter],
-                     ecqlFilter: Option[String],
-                     featureEncoding: FeatureEncoding): IteratorSetting = {
+                     ecqlFilter: Option[Filter],
+                     featureEncoding: FeatureEncoding,
+                     version: Int): IteratorSetting = {
     iteratorConfig.iterator match {
       case IndexOnlyIterator =>
-        configureIndexIterator(featureType, query, featureEncoding, stFilter, iteratorConfig.transformCoversFilter)
+        configureIndexIterator(featureType, query, featureEncoding, stFilter,
+          iteratorConfig.transformCoversFilter, version)
       case SpatioTemporalIterator =>
         val isDensity = query.getHints.containsKey(DENSITY_KEY)
-        configureSpatioTemporalIntersectingIterator(featureType, query, featureEncoding, stFilter, ecqlFilter, isDensity)
+        configureSpatioTemporalIntersectingIterator(featureType, query, featureEncoding, stFilter,
+          ecqlFilter, isDensity)
     }
   }
 
@@ -174,16 +156,17 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
       query: Query,
       featureEncoding: FeatureEncoding,
       filter: Option[Filter],
-      transformsCoverFilter: Boolean): IteratorSetting = {
+      transformsCoverFilter: Boolean,
+      version: Int): IteratorSetting = {
 
     val cfg = new IteratorSetting(iteratorPriority_SpatioTemporalIterator,
       "within-" + randomPrintableString(5),classOf[IndexIterator])
 
     configureStFilter(cfg, filter)
+    configureVersion(cfg, version)
     if (transformsCoverFilter) {
       // apply the transform directly to the index iterator
-      val testType = query.getHints.get(TRANSFORM_SCHEMA).asInstanceOf[SimpleFeatureType]
-      configureFeatureType(cfg, testType)
+      getTransformSchema(query).foreach(testType => configureFeatureType(cfg, testType))
     } else {
       // we need to evaluate the original feature before transforming
       // transforms are applied afterwards
@@ -203,17 +186,24 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
       query: Query,
       featureEncoding: FeatureEncoding,
       stFilter: Option[Filter],
-      ecqlFilter: Option[String],
+      ecqlFilter: Option[Filter],
       isDensity: Boolean): IteratorSetting = {
     val cfg = new IteratorSetting(iteratorPriority_SpatioTemporalIterator,
       "within-" + randomPrintableString(5),
       classOf[SpatioTemporalIntersectingIterator])
-    configureStFilter(cfg, stFilter)
+    val combinedFilter = (stFilter, ecqlFilter) match {
+      case (Some(st), Some(ecql)) => filterListAsAnd(Seq(st, ecql))
+      case (Some(_), None)        => stFilter
+      case (None, Some(_))        => ecqlFilter
+      case (None, None)           => None
+    }
     configureFeatureType(cfg, featureType)
     configureFeatureEncoding(cfg, featureEncoding)
     configureTransforms(cfg, query)
-    configureEcqlFilter(cfg, ecqlFilter)
-    if (isDensity) cfg.addOption(GEOMESA_ITERATORS_IS_DENSITY_TYPE, "isDensity")
+    configureEcqlFilter(cfg, combinedFilter.map(ECQL.toCQL))
+    if (isDensity) {
+      cfg.addOption(GEOMESA_ITERATORS_IS_DENSITY_TYPE, "isDensity")
+    }
     cfg
   }
 
@@ -251,8 +241,7 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
                 iter: IteratorChoice,
                 output: ExplainerOutputType,
                 keyPlanner: KeyPlanner,
-                cfPlanner: ColumnFamilyPlanner): QueryPlan = {
-
+                cfPlanner: ColumnFamilyPlanner): BatchScanPlan = {
     output(s"Planning query")
 
     val indexOnly = iter match {
@@ -270,8 +259,6 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
       case _ => Seq(new org.apache.accumulo.core.data.Range())
     }
 
-    output(s"Total ranges: ${accRanges.size} - ${accRanges.take(5)}")
-
     // always try to set a RowID regular expression
     //@TODO this is broken/disabled as a result of the KeyTier
     val iters =
@@ -282,47 +269,24 @@ class STIdxStrategy extends Strategy with Logging with IndexFilterHelpers {
 
     // if you have a list of distinct column-family entries, fetch them
     val cf = columnFamilies match {
-      case KeyList(keys) =>
-        output(s"ColumnFamily Planner: ${keys.size} : ${keys.take(20)}")
-        keys.map { cf => new Text(cf) }
-
-      case _ =>
-        Seq()
+      case KeyList(keys) => keys.map { cf => new Text(cf) }
+      case _             => Seq()
     }
 
-    QueryPlan(iters, accRanges, cf)
+    // partially fill in, rest will be filled in later
+    BatchScanPlan(null, accRanges, iters, cf, -1, false)
   }
 }
 
-object STIdxStrategy {
+object STIdxStrategy extends StrategyProvider {
 
-  import org.locationtech.geomesa.core.filter.spatialFilters
-  import org.locationtech.geomesa.utils.geotools.Conversions._
-
-  def getSTIdxStrategy(filter: Filter, sft: SimpleFeatureType): Option[Strategy] =
-    if(!spatialFilters(filter)) None
-    else {
+  override def getStrategy(filter: Filter, sft: SimpleFeatureType, hints: StrategyHints) =
+    if (spatialFilters(filter)) {
+      val geom = sft.getGeometryDescriptor.getLocalName
       val e1 = filter.asInstanceOf[BinarySpatialOperator].getExpression1
       val e2 = filter.asInstanceOf[BinarySpatialOperator].getExpression2
-      if(isValidSTIdxFilter(sft, e1, e2)) Some(new STIdxStrategy) else None
+      checkOrder(e1, e2).filter(_.name == geom).map(_ => StrategyDecision(new STIdxStrategy, -1))
+    } else {
+      None
     }
-
-  /**
-   * Ensures the following conditions:
-   *   - there is exactly one 'property name' expression
-   *   - the property is indexed by GeoMesa
-   *   - all other expressions are literals
-   *
-   * @param sft
-   * @param exp
-   * @return
-   */
-  private def isValidSTIdxFilter(sft: SimpleFeatureType, exp: Expression*): Boolean = {
-    val (props, lits) = exp.partition(_.isInstanceOf[PropertyName])
-
-    props.length == 1 &&
-      props.map(_.asInstanceOf[PropertyName].getPropertyName).forall(sft.getDescriptor(_).isIndexed) &&
-      lits.forall(_.isInstanceOf[Literal])
-  }
-
 }

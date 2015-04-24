@@ -20,18 +20,19 @@ import javax.imageio.spi.ServiceRegistry
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
+import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.convert.Transformers.{EvaluationContext, Expr, FieldLookup, FunctionExpr}
-import org.locationtech.geomesa.feature.AvroSimpleFeatureFactory
-import org.opengis.feature.`type`.AttributeDescriptor
+import org.locationtech.geomesa.feature.AvroSimpleFeature
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 trait Field {
   def name: String
   def transform: Transformers.Expr
-  def eval(args: Any*)(implicit ec: EvaluationContext): Any = transform.eval(args: _*)
+  def eval(args: Array[Any])(implicit ec: EvaluationContext): Any = transform.eval(args)
 }
 
 case class SimpleField(name: String, transform: Transformers.Expr) extends Field
@@ -69,8 +70,8 @@ object SimpleFeatureConverters {
 
 trait SimpleFeatureConverter[I] {
   def targetSFT: SimpleFeatureType
-  def processInput(is: Iterator[I]): Iterator[SimpleFeature]
-  def processSingleInput(i: I): Option[SimpleFeature]
+  def processInput(is: Iterator[I], globalParams: Map[String, Any] = Map.empty): Iterator[SimpleFeature]
+  def processSingleInput(i: I, globalParams: Map[String, Any] = Map.empty)(implicit ec: EvaluationContext): Option[SimpleFeature]
   def close(): Unit = {}
 }
 
@@ -83,7 +84,7 @@ trait ToSimpleFeatureConverter[I] extends SimpleFeatureConverter[I] with Logging
   val fieldNameMap = inputFields.map { f => (f.name, f) }.toMap
 
   def dependenciesOf(e: Expr): Seq[String] = e match {
-    case FieldLookup(i)         => Seq(i) ++ dependenciesOf(fieldNameMap(i).transform)
+    case FieldLookup(i)         => Seq(i) ++ dependenciesOf(fieldNameMap.get(i).map(_.transform).orNull)
     case FunctionExpr(_, args)  => args.flatMap { arg => dependenciesOf(arg) }
     case _                      => Seq()
   }
@@ -99,10 +100,8 @@ trait ToSimpleFeatureConverter[I] extends SimpleFeatureConverter[I] with Logging
     }.toSet
 
   val idDependencies = dependenciesOf(idBuilder)
-  val requiredFieldsNames = attrRequiredFieldsNames ++ idDependencies
+  val requiredFieldsNames: Set[String] = attrRequiredFieldsNames ++ idDependencies
   val requiredFields = inputFields.filter { f => requiredFieldsNames.contains(f.name) }
-
-  val featureFactory = new AvroSimpleFeatureFactory
   val nfields = requiredFields.length
 
   val indexes =
@@ -116,49 +115,51 @@ trait ToSimpleFeatureConverter[I] extends SimpleFeatureConverter[I] with Logging
 
     }.toIndexedSeq
 
-  val inputFieldIndexes = requiredFields.map(_.name).zipWithIndex.toMap
-  val nattributes = indexes.length
+  val inputFieldIndexes =
+    mutable.HashMap.empty[String, Int] ++= requiredFields.map(_.name).zipWithIndex.toMap
 
-  implicit val ctx = new EvaluationContext(inputFieldIndexes, null)
-
-  def convert(t: Array[Any], reuse: Array[Any], sfAttrReuse: Array[Any]): SimpleFeature = {
+  var reuse: Array[Any] = null
+  def convert(t: Array[Any], reuse: Array[Any])(implicit ctx: EvaluationContext): SimpleFeature = {
     import spire.syntax.cfor._
-
-    val attributes =
-      if(reuse == null) Array.ofDim[Any](requiredFields.length)
-      else reuse
-    ctx.computedFields = attributes
+    ctx.computedFields = reuse
 
     cfor(0)(_ < nfields, _ + 1) { i =>
-      attributes(i) = requiredFields(i).eval(t: _*)
+      reuse(i) = requiredFields(i).eval(t)
     }
 
-    val sfAttributes =
-      if(sfAttrReuse == null) Array.ofDim[Any](targetSFT.getAttributeCount)
-      else sfAttrReuse
-
-    cfor(0)(_ < nattributes, _ + 1) { i =>
-      val (targetIdx, inputIdx) = indexes(i)
-      sfAttributes(targetIdx) = attributes(inputIdx)
+    val id = idBuilder.eval(t).asInstanceOf[String]
+    val sf = new AvroSimpleFeature(new FeatureIdImpl(id), targetSFT)
+    for((sftIdx, arrIdx) <- indexes) {
+      sf.setAttributeNoConvert(sftIdx, reuse(arrIdx).asInstanceOf[Object])
     }
-
-    val id = idBuilder.eval(t: _*).asInstanceOf[String]
-    featureFactory.createSimpleFeature(sfAttributes.asInstanceOf[Array[AnyRef]], targetSFT, id)
+    sf
   }
 
-  val reuse = Array.ofDim[Any](requiredFields.length)
-  val sfAttrReuse = Array.ofDim[Any](targetSFT.getAttributeCount)
-
-  def processSingleInput(i: I): Option[SimpleFeature] =
-    Try { convert(fromInputType(i), reuse, sfAttrReuse) } match {
+  def processSingleInput(i: I, gParams: Map[String, Any])(implicit ec: EvaluationContext): Option[SimpleFeature] = {
+    if(reuse == null || ec.fieldNameMap == null) {
+      // initialize reuse and ec
+      ec.fieldNameMap = inputFieldIndexes
+      reuse = Array.ofDim[Any](nfields + gParams.size)
+      gParams.zipWithIndex.foreach { case ((k, v), idx) =>
+        val shiftedIdx = nfields + idx
+        reuse(shiftedIdx) = v
+        ec.fieldNameMap(k) = shiftedIdx
+      }
+    }
+    Try { convert(fromInputType(i), reuse) } match {
       case Success(s) => Some(s)
       case Failure(t) =>
-        logger.debug("Failed to parse input", t)
+        logger.warn("Failed to parse input", t)
         None
     }
+  }
 
-  def processInput(is: Iterator[I]): Iterator[SimpleFeature] =
-    is.flatMap { s => processSingleInput(s) }
-
+  def processInput(is: Iterator[I], gParams: Map[String, Any] = Map.empty): Iterator[SimpleFeature] = {
+    implicit val ctx = new EvaluationContext(inputFieldIndexes, null)
+    is.flatMap { s =>
+      ctx.incrementCount()
+      processSingleInput(s, gParams)
+    }
+  }
 
 }

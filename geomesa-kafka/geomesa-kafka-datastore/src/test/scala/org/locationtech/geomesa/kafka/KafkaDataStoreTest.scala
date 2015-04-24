@@ -50,28 +50,32 @@ class KafkaDataStoreTest extends Specification with Logging {
   val host = brokerConf.getProperty("host.name")
   val port = brokerConf.getProperty("port").toInt
   val ff = CommonFactoryFinder.getFilterFactory2
+  val consumerParams = Map(
+    "brokers"    -> s"$host:$port",
+    "zookeepers" -> zkConnect,
+    "zkPath"     -> "/geomesa/kafka/testds",
+    "isProducer" -> false)
+
+
+  val producerParams = Map(
+    "brokers"    -> s"$host:$port",
+    "zookeepers" -> zkConnect,
+    "zkPath"     -> "/geomesa/kafka/testds",
+    "isProducer" -> true)
+
+  val gf = JTSFactoryFinder.getGeometryFactory
 
   "KafkaDataSource" should {
-    val consumerParams = Map(
-      "brokers"    -> s"$host:$port",
-      "zookeepers" -> zkConnect,
-      "zkPath"     -> "/geomesa/kafka/testds",
-      "isProducer" -> false)
+    import org.locationtech.geomesa.security._
 
     val consumerDS = DataStoreFinder.getDataStore(consumerParams)
-
-    val producerParams = Map(
-      "brokers"    -> s"$host:$port",
-      "zookeepers" -> zkConnect,
-      "zkPath"     -> "/geomesa/kafka/testds",
-      "isProducer" -> true)
-
     val producerDS = DataStoreFinder.getDataStore(producerParams)
 
     "consumerDS must not be null" >> { consumerDS must not beNull }
     "producerDS must not be null" >> { producerDS must not beNull }
 
     val schema = SimpleFeatureTypes.createType("test", "name:String,age:Int,dtg:Date,*geom:Point:srid=4326")
+
     "allow schemas to be created" >> {
       producerDS.createSchema(schema)
 
@@ -80,8 +84,8 @@ class KafkaDataStoreTest extends Specification with Logging {
       }
     }
 
-    val gf = JTSFactoryFinder.getGeometryFactory
     "allow features to be written" >> {
+
       // create the consumerFC first so that it is ready to receive features from the producer
       val consumerFC = consumerDS.getFeatureSource("test")
 
@@ -90,6 +94,7 @@ class KafkaDataStoreTest extends Specification with Logging {
       val sf = fw.next()
       sf.setAttributes(Array("smith", 30, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
       sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
+      sf.visibility = "USER|ADMIN"
       fw.write()
       Thread.sleep(2000)
 
@@ -100,7 +105,7 @@ class KafkaDataStoreTest extends Specification with Logging {
         val readSF = features.next()
         sf.getID must be equalTo readSF.getID
         sf.getAttribute("dtg") must be equalTo readSF.getAttribute("dtg")
-
+        sf.visibility mustEqual Some("USER|ADMIN")
         store.removeFeatures(ff.id(ff.featureId("1")))
         Thread.sleep(500) // ensure FC has seen the delete
         consumerFC.getCount(Query.ALL) must be equalTo 0
@@ -111,6 +116,7 @@ class KafkaDataStoreTest extends Specification with Logging {
         val updated = sf
         updated.setAttribute("name", "jones")
         updated.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
+        updated.visibility = "ADMIN"
         store.addFeatures(DataUtilities.collection(updated))
 
         Thread.sleep(500)
@@ -119,6 +125,7 @@ class KafkaDataStoreTest extends Specification with Logging {
         featureCollection.size() must be equalTo 1
         val res = featureCollection.features().next()
         res.getAttribute("name") must be equalTo "jones"
+        res.visibility mustEqual Some("ADMIN")
       }
 
       // AND CLEARED
@@ -141,12 +148,15 @@ class KafkaDataStoreTest extends Specification with Logging {
         val sf = fw.next()
         sf.setAttributes(Array("jones", 60, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
         sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
+        sf.visibility = "USER"
         fw.write()
 
         Thread.sleep(500)
         var res = consumerFC.getFeatures(ff.equals(ff.property("name"), ff.literal("jones")))
         res.size() must be equalTo 1
-        res.features().next().getAttribute("name") must be equalTo "jones"
+        val resSF = res.features().next()
+        resSF.getAttribute("name") must be equalTo "jones"
+        resSF.visibility mustEqual Some("USER")
 
         res = consumerFC.getFeatures(ff.greater(ff.property("age"), ff.literal(50)))
         res.size() must be equalTo 1
@@ -166,6 +176,50 @@ class KafkaDataStoreTest extends Specification with Logging {
       val factory = new KafkaDataStoreFactory
       factory.canProcess(Map.empty[String, Serializable]) must beFalse
       factory.canProcess(Map(KAFKA_BROKER_PARAM.key -> "test", ZOOKEEPERS_PARAM.key -> "test")) must beTrue
+    }
+  }
+
+  "KafkaDataStore with cachedConsumer" should {
+    "expire messages correctly when expirationPeriod is set" >> {
+      val cachedConsumerParams = Map(
+        "brokers"          -> s"$host:$port",
+        "zookeepers"       -> zkConnect,
+        "zkPath"           -> "/geomesa/kafka/cachedtestds",
+        "isProducer"       -> false,
+        "expiry"           -> true,
+        "expirationPeriod" -> 2000L)
+
+      val producerParams = Map(
+        "brokers"    -> s"$host:$port",
+        "zookeepers" -> zkConnect,
+        "zkPath"     -> "/geomesa/kafka/cachedtestds",
+        "isProducer" -> true)
+
+      //Setup datastores and schema
+      val cachedConsumerDS = DataStoreFinder.getDataStore(cachedConsumerParams)
+      val producerDS = DataStoreFinder.getDataStore(producerParams)
+      val schemaExpiration = SimpleFeatureTypes.createType("testExpiration", "name:String,age:Int,dtg:Date,*geom:Point:srid=4326")
+      producerDS.createSchema(schemaExpiration)
+
+      //Setup consumer prior to writing feature so the feature will be written to the cache once the producer writes
+      val cachedConsumerFS = cachedConsumerDS.getFeatureSource("testExpiration").asInstanceOf[KafkaConsumerFeatureSource]
+      val featureCache = cachedConsumerFS.features
+      cachedConsumerFS.qt.size() must be equalTo 0
+
+      //Write test feature
+      val fw = producerDS.getFeatureWriter("testExpiration", null, Transaction.AUTO_COMMIT)
+      val sf = fw.next()
+      sf.setAttributes(Array("jones", 30, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
+      sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
+      fw.write()
+
+      featureCache.size() must eventually(10, 500.millis)(beEqualTo(1))
+      cachedConsumerFS.qt.size() must eventually(10, 500.millis)(beEqualTo(1))
+      Thread.sleep(2000) //sleep enough time to reach the expirationPeriod
+
+      featureCache.cleanUp() //remove old entries now that the TTL has passed
+      featureCache.size() must be equalTo 0
+      cachedConsumerFS.qt.size() must eventually(10, 500.millis)(beEqualTo(0))
     }
   }
 

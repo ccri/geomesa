@@ -18,8 +18,9 @@ package org.locationtech.geomesa.core.index
 
 import java.util.Map.Entry
 
+import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Geometry, Polygon}
-import org.apache.accumulo.core.client.{BatchScanner, IteratorSetting}
+import org.apache.accumulo.core.client.{BatchScanner, IteratorSetting, Scanner}
 import org.apache.accumulo.core.data.{Key, Value}
 import org.geotools.data.Query
 import org.geotools.filter.text.ecql.ECQL
@@ -28,8 +29,9 @@ import org.locationtech.geomesa.core._
 import org.locationtech.geomesa.core.data._
 import org.locationtech.geomesa.core.index.QueryHints._
 import org.locationtech.geomesa.core.index.QueryPlanner._
+import org.locationtech.geomesa.core.index.Strategy._
 import org.locationtech.geomesa.core.iterators.{FEATURE_ENCODING, _}
-import org.locationtech.geomesa.core.util.SelfClosingIterator
+import org.locationtech.geomesa.core.util.{CloseableIterator, BatchMultiScanner, SelfClosingIterator}
 import org.locationtech.geomesa.feature.FeatureEncoding.FeatureEncoding
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.SimpleFeatureType
@@ -38,17 +40,78 @@ import org.opengis.filter.Filter
 import scala.collection.JavaConversions._
 import scala.util.Random
 
-trait Strategy {
-  def execute(acc: AccumuloConnectorCreator,
-              iqp: QueryPlanner,
-              featureType: SimpleFeatureType,
-              query: Query,
-              output: ExplainerOutputType): SelfClosingIterator[Entry[Key, Value]]
+trait Strategy extends Logging {
+
+  /**
+   * Plans the query - strategy implementations need to define this
+   */
+  def getQueryPlan(query: Query, queryPlanner: QueryPlanner, output: ExplainerOutputType): QueryPlan
+
+  /**
+   * Execute a query against this strategy
+   */
+  def execute(plan: QueryPlan, acc: AccumuloConnectorCreator, output: ExplainerOutputType): KVIter = {
+    try {
+      SelfClosingIterator(getScanner(plan, acc))
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error in creating scanner: $e", e)
+        // since GeoTools would eat the error and return no records anyway,
+        // there's no harm in returning an empty iterator.
+        Iterator.empty
+    }
+  }
+
+  /**
+   * Creates a scanner based on a query plan
+   */
+  private def getScanner(queryPlan: QueryPlan, acc: AccumuloConnectorCreator): KVIter =
+    queryPlan match {
+      case qp: ScanPlan =>
+        val scanner = acc.getScanner(qp.table)
+        configureScanner(scanner, qp)
+        SelfClosingIterator(scanner)
+      case qp: BatchScanPlan =>
+        if (qp.ranges.isEmpty) {
+          logger.warn("Query plan resulted in no valid ranges - nothing will be returned.")
+          CloseableIterator(Iterator.empty)
+        } else {
+          val batchScanner = acc.getBatchScanner(qp.table, qp.numThreads)
+          configureBatchScanner(batchScanner, qp)
+          SelfClosingIterator(batchScanner)
+        }
+      case qp: JoinPlan =>
+        val primary = if (qp.ranges.length == 1) {
+          val scanner = acc.getScanner(qp.table)
+          configureScanner(scanner, qp)
+          scanner
+        } else {
+          val batchScanner = acc.getBatchScanner(qp.table, qp.numThreads)
+          configureBatchScanner(batchScanner, qp)
+          batchScanner
+        }
+        val jqp = qp.joinQuery
+        val secondary = acc.getBatchScanner(jqp.table, jqp.numThreads)
+        configureBatchScanner(secondary, jqp)
+
+        val bms = new BatchMultiScanner(primary, secondary, qp.joinFunction)
+        SelfClosingIterator(bms.iterator, () => bms.close())
+    }
+}
+
+
+object Strategy {
 
   def configureBatchScanner(bs: BatchScanner, qp: QueryPlan) {
     qp.iterators.foreach { i => bs.addScanIterator(i) }
     bs.setRanges(qp.ranges)
-    qp.cf.foreach { c => bs.fetchColumnFamily(c) }
+    qp.columnFamilies.foreach { c => bs.fetchColumnFamily(c) }
+  }
+
+  def configureScanner(scanner: Scanner, qp: QueryPlan) {
+    qp.iterators.foreach { i => scanner.addScanIterator(i) }
+    qp.ranges.headOption.foreach(scanner.setRange)
+    qp.columnFamilies.foreach { c => scanner.fetchColumnFamily(c) }
   }
 
   def configureFeatureEncoding(cfg: IteratorSetting, featureEncoding: FeatureEncoding) {
@@ -58,6 +121,9 @@ trait Strategy {
   def configureStFilter(cfg: IteratorSetting, filter: Option[Filter]) = {
     filter.foreach { f => cfg.addOption(ST_FILTER_PROPERTY_NAME, ECQL.toCQL(f)) }
   }
+
+  def configureVersion(cfg: IteratorSetting, version: Int) =
+    cfg.addOption(GEOMESA_ITERATORS_VERSION, version.toString)
 
   def configureFeatureType(cfg: IteratorSetting, featureType: SimpleFeatureType) = {
     val encodedSimpleFeatureType = SimpleFeatureTypes.encodeType(featureType)
@@ -73,24 +139,16 @@ trait Strategy {
     cfg.addOption(GEOMESA_ITERATORS_SFT_INDEX_VALUE, encodedSimpleFeatureType)
   }
 
-  def configureAttributeName(cfg: IteratorSetting, attributeName: String) =
-    cfg.addOption(GEOMESA_ITERATORS_ATTRIBUTE_NAME, attributeName)
-
   def configureEcqlFilter(cfg: IteratorSetting, ecql: Option[String]) =
     ecql.foreach(filter => cfg.addOption(GEOMESA_ITERATORS_ECQL_FILTER, filter))
-
-  // returns the SimpleFeatureType for the query's transform
-  def transformedSimpleFeatureType(query: Query): Option[SimpleFeatureType] = {
-    Option(query.getHints.get(TRANSFORM_SCHEMA)).map {_.asInstanceOf[SimpleFeatureType]}
-  }
 
   // store transform information into an Iterator's settings
   def configureTransforms(cfg: IteratorSetting, query:Query) =
     for {
-      transformOpt  <- Option(query.getHints.get(TRANSFORMS))
+      transformOpt  <- org.locationtech.geomesa.core.index.getTransformDefinition(query)
       transform     = transformOpt.asInstanceOf[String]
       _             = cfg.addOption(GEOMESA_ITERATORS_TRANSFORM, transform)
-      sfType        <- transformedSimpleFeatureType(query)
+      sfType        <- org.locationtech.geomesa.core.index.getTransformSchema(query)
       encodedSFType = SimpleFeatureTypes.encodeType(sfType)
       _             = cfg.addOption(GEOMESA_ITERATORS_TRANSFORM_SCHEMA, encodedSFType)
     } yield Unit
@@ -174,3 +232,17 @@ trait Strategy {
     case _ => None
   }
 }
+
+trait StrategyProvider {
+
+  /**
+   * Returns details on a potential strategy if the filter is valid for this strategy.
+   *
+   * @param filter
+   * @param sft
+   * @return
+   */
+  def getStrategy(filter: Filter, sft: SimpleFeatureType, hints: StrategyHints): Option[StrategyDecision]
+}
+
+case class StrategyDecision(strategy: Strategy, cost: Long)
