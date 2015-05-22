@@ -10,15 +10,13 @@ import com.google.common.primitives.{Bytes, Longs, Shorts}
 import com.vividsolutions.jts.geom.Point
 import org.apache.accumulo.core.client.BatchDeleter
 import org.apache.accumulo.core.client.admin.TableOperations
-import org.apache.accumulo.core.data.{Key, Mutation, Value}
-import org.apache.accumulo.core.data.{Range => aRange}
+import org.apache.accumulo.core.data.{Key, Mutation, Range => aRange, Value}
 import org.apache.hadoop.io.Text
 import org.joda.time.{DateTime, Seconds, Weeks}
 import org.locationtech.geomesa.accumulo.data.AccumuloFeatureWriter.{FeatureToMutations, FeatureToWrite}
 import org.locationtech.geomesa.accumulo.index
 import org.locationtech.geomesa.accumulo.index.QueryPlanners._
 import org.locationtech.geomesa.curve.Z3SFC
-import org.locationtech.geomesa.feature.nio.AttributeAccessor
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.features.nio.{AttributeAccessor, LazySimpleFeature}
 import org.locationtech.geomesa.utils.geotools.Conversions._
