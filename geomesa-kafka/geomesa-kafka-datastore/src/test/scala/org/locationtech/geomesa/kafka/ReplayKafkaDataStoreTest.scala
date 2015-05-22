@@ -18,7 +18,6 @@ package org.locationtech.geomesa.kafka
 import java.io.Serializable
 import java.{util => ju}
 
-import com.typesafe.scalalogging.slf4j.Logging
 import kafka.admin.AdminUtils
 import kafka.producer.{Producer, ProducerConfig}
 import org.I0Itec.zkclient.ZkClient
@@ -34,27 +33,56 @@ import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
 
+/** An integration test for the [[KafkaDataStore]] replay functionality.  There is no separate
+  * ReplayKafkaDataStore.
+  *
+  */
 @RunWith(classOf[JUnitRunner])
 class ReplayKafkaDataStoreTest
   extends Specification
   with HasEmbeddedZookeeper
-  with SimpleFeatureMatchers
-  with Logging {
+  with SimpleFeatureMatchers {
 
   import KafkaConsumerTestData._
 
   val zkPath = "/kafkaDS/test"
   val sftName = sft.getTypeName
 
-  // lazy initialization to avoid blowing up test framework if initialization fails
-  lazy val dataStore = createDataStore
-  lazy val liveSFT = {
-    val result = createLiveSFT
-    sendMessages(result)
-    result
+  var dataStore: DataStore = null
+  var liveSFT: SimpleFeatureType = null
+
+  "KafkaDataStore" should {
+    // this is not the focus of this test, just the setup
+    // the KafkaDataStoreTest covers SFT creation and sending in more detail
+    "allowCreation of SFT and sending of messages" >> {
+
+      dataStore = createDataStore
+      liveSFT = KafkaDataStoreHelper.prepareForLive(sft, zkPath)
+
+      dataStore.createSchema(liveSFT)
+
+      val topic = KafkaDataStoreHelper.extractTopic(liveSFT)
+      topic must beSome(contain(liveSFT.getTypeName))
+
+      val zkClient = new ZkClient(zkConnect)
+      try {
+        AdminUtils.topicExists(zkClient, topic.get) must beTrue
+      } finally {
+        zkClient.close()
+      }
+
+      sendMessages(liveSFT)
+
+      success
+    }
   }
 
-  "replay" should {
+  step {
+    // wait for above test to complete before moving on
+    success("setup complete")
+  }
+
+  "KafkaDataStore via a replay consumer" should {
 
     "select the most recent version within the replay window when no message time is given" in
       new ReplayContext {
@@ -104,10 +132,56 @@ class ReplayKafkaDataStoreTest
       features must haveSize(3)
       features must containFeatures(expect(replayType, 12000L, track0v1, track1v0, track3v2))
     }
+
+    "handle the case where there is no data" >> {
+
+      "because the window is before all data" in new ReplayContext {
+        val (replayType, fs) = createReplayFeatureSource(5000, 7000, 1000)
+
+        val features = featuresToList(fs.getFeatures)
+        features must haveSize(0)
+      }
+
+      "because the window is after all data" in new ReplayContext {
+        val (replayType, fs) = createReplayFeatureSource(25000, 27000, 1000)
+
+        val features = featuresToList(fs.getFeatures)
+        features must haveSize(0)
+      }
+
+      "because there is no data at the requested time" in new ReplayContext {
+        val (replayType, fs) = createReplayFeatureSource(10000, 20000, 500)
+
+        val filter = ReplayTimeHelper.toFilter(new Instant(12500))
+        val features = featuresToList(fs.getFeatures(filter))
+
+        features must haveSize(0)
+      }
+    }
+  }
+
+  step {
+    // wait for above test to complete before moving on
+    success("main tests complete")
+  }
+
+  "KafkaDataStore" should {
+
+    "allow simple feature types to be cleaned up" >> {
+      val names = dataStore.getTypeNames
+      names must haveSize(1)
+      names.head mustEqual liveSFT.getTypeName
+
+      dataStore.removeSchema(liveSFT.getTypeName)
+      dataStore.getTypeNames must haveSize(0)
+
+      dataStore.getSchema(liveSFT.getTypeName) must throwA[Exception]
+    }
   }
 
   step {
     shutdown()
+    success("shutdown complete")
   }
 
   def featuresToList(sfc: SimpleFeatureCollection): List[SimpleFeature] = {
@@ -128,23 +202,6 @@ class ReplayKafkaDataStoreTest
     new KafkaDataStoreFactory().createDataStore(props)
   }
 
-  def createLiveSFT: SimpleFeatureType = {
-    val prepped = KafkaDataStoreHelper.prepareForLive(sft, zkPath)
-    dataStore.createSchema(prepped)
-
-    val topic = KafkaDataStoreHelper.extractTopic(prepped)
-    topic must beSome
-
-    val zkClient = new ZkClient(zkConnect)
-    try {
-      AdminUtils.topicExists(zkClient, topic.get) must beTrue
-    } finally {
-      zkClient.close()
-    }
-
-    prepped
-  }
-
   def sendMessages(sft: SimpleFeatureType): Unit = {
     val props = new ju.Properties()
     props.put("metadata.broker.list", brokerConnect)
@@ -154,12 +211,7 @@ class ReplayKafkaDataStoreTest
     val encoder = new KafkaGeoMessageEncoder(sft)
     val topic = KafkaFeatureConfig(sft).topic
 
-    logger.info("Sending {} messages to Kafka (zoo={}) (topic={})",
-      messages.size.asInstanceOf[AnyRef], zkConnect, topic)
-
     messages.foreach(msg => kafkaProducer.send(encoder.encodeMessage(topic, msg)))
-
-    logger.info("Completed message send", messages.size.asInstanceOf[AnyRef], zkConnect)
   }
 
   trait ReplayContext extends After {
