@@ -40,7 +40,7 @@ import scala.collection.JavaConversions._
 @RunWith(classOf[JUnitRunner])
 class ReplayKafkaDataStoreTest
   extends Specification
-  with HasEmbeddedZookeeper
+  with HasEmbeddedKafka
   with SimpleFeatureMatchers {
 
   import KafkaConsumerTestData._
