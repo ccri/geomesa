@@ -16,12 +16,12 @@ import kafka.message.Message
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.HasEmbeddedZookeeper
+import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, HasEmbeddedZookeeper}
 import org.specs2.mutable.Specification
 import org.specs2.runner
 
 @RunWith(classOf[runner.JUnitRunner])
-class OffsetManagerTest extends Specification with HasEmbeddedZookeeper {
+class OffsetManagerTest extends Specification with HasEmbeddedKafka {
 
   sequential // this doesn't really need to be sequential, but we're trying to reduce zk load
 
