@@ -16,7 +16,7 @@ import kafka.message.Message
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.HasEmbeddedZookeeper
+import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, HasEmbeddedZookeeper}
 import org.locationtech.geomesa.kafka.consumer.offsets._
 import org.specs2.mutable.Specification
 import org.specs2.runner
@@ -24,7 +24,7 @@ import org.specs2.runner
 import scala.collection.mutable.ArrayBuffer
 
 @RunWith(classOf[runner.JUnitRunner])
-class KafkaConsumerTest extends Specification with HasEmbeddedZookeeper {
+class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
 
   sequential
 

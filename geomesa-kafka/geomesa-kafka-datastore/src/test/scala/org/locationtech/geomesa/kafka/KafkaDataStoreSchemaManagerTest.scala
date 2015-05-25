@@ -35,7 +35,7 @@ import scala.util.Try
 @RunWith(classOf[JUnitRunner])
 class KafkaDataStoreSchemaManagerTest
   extends Specification
-  with HasEmbeddedZookeeper {
+  with HasEmbeddedKafka {
 
   // todo: missing tests -
   // todo    test general exception handling (use zk mock for this?)
@@ -282,10 +282,10 @@ class KafkaDataStoreSchemaManagerTest
     datastore.createSchema(livePrepped)
 
     datastore.getLiveFeatureType(livePrepped) must beNone
+  }
 
-    step {
-      shutdown()
-    }
+  step {
+    shutdown()
   }
 }
 
