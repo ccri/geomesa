@@ -74,12 +74,7 @@ class KafkaDataStoreFactory extends DataStoreFactorySpi {
   override def createDataStore(params: ju.Map[String, Serializable]): DataStore = {
     val broker   = KAFKA_BROKER_PARAM.lookUp(params).asInstanceOf[String]
     val zk       = ZOOKEEPERS_PARAM.lookUp(params).asInstanceOf[String]
-    val zkPath   = Option(ZK_PATH.lookUp(params).asInstanceOf[String])
-                     .map(_.trim)
-                     .filterNot(_.isEmpty)
-                     .map(p => if (p.startsWith("/")) p else "/" + p)
-                     .map(p => if (p.endsWith("/")) p.substring(0, p.length - 1) else p)
-                     .getOrElse("/geomesa/ds/kafka")
+    val zkPath   = KafkaDataStoreHelper.cleanZkPath(ZK_PATH.lookUp(params).asInstanceOf[String])
 
     val partitions       = Option(TOPIC_PARTITIONS.lookUp(params)).map(_.toString.toInt).getOrElse(1)
     val replication      = Option(TOPIC_REPLICATION.lookUp(params)).map(_.toString.toInt).getOrElse(1)
