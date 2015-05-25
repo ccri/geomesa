@@ -223,5 +223,42 @@ class KafkaDataStoreHelperTest extends Specification {
       KafkaDataStoreHelper.isPreparedForReplay(live) must beFalse
       KafkaDataStoreHelper.isPreparedForReplay(replay) must beTrue
     }
+
+    "cleanZkPath handles works as advertised"  >> {
+
+      // a well formed path starts with a / and does not end with a /
+      val wellFormed = "/this/is/well/formed"
+      KafkaDataStoreHelper.cleanZkPath(wellFormed) mustEqual wellFormed
+
+      //check trailing slash
+      val withTrailing = "/this/has/trailing/slash/"
+      KafkaDataStoreHelper.cleanZkPath(withTrailing) mustEqual "/this/has/trailing/slash"
+
+      //check no leading slash
+      val withNoLeading = "this/has/no/leading/slash"
+      KafkaDataStoreHelper.cleanZkPath(withNoLeading) mustEqual "/this/has/no/leading/slash"
+
+      //check both no leading and with trailing
+      val noLeadWithTrail = "no/leading/with/trailing/"
+      KafkaDataStoreHelper.cleanZkPath(noLeadWithTrail) mustEqual "/no/leading/with/trailing"
+
+      //check single slash (should be ok)
+      val singleSlash = "/"
+      KafkaDataStoreHelper.cleanZkPath(singleSlash) mustEqual singleSlash
+
+      // check empty string
+      val empty = ""
+      KafkaDataStoreHelper.cleanZkPath(empty) mustEqual KafkaDataStoreHelper.DefaultZkPath
+      KafkaDataStoreHelper.cleanZkPath(empty,"mydefault") mustEqual "mydefault"
+
+      // check null string
+      val nullString = null
+      KafkaDataStoreHelper.cleanZkPath(nullString) mustEqual KafkaDataStoreHelper.DefaultZkPath
+      KafkaDataStoreHelper.cleanZkPath(nullString,"mydefault2") mustEqual "mydefault2"
+
+      // check // string
+      val doubleSlash = "//"
+      KafkaDataStoreHelper.cleanZkPath(doubleSlash) mustEqual "/"
+    }
   }
 }

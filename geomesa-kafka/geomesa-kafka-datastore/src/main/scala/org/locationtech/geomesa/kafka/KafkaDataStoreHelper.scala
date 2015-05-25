@@ -73,6 +73,21 @@ object KafkaDataStoreHelper {
 
   def isPreparedForReplay(sft: SimpleFeatureType): Boolean = sft.getUserData.containsKey(ReplayConfigKey)
 
+  final val DefaultZkPath: String = "/geomesa/ds/kafka"
+
+  /** Cleans up a zk path parameter - trims, prepends with "/" if needed, strips trailing "/" if needed.
+    * Defaults to "/geomesa/ds/kafka" if rawPath is null or empty.
+    * @param rawPath
+    * @return
+    */
+  def cleanZkPath(rawPath: String, default: String = DefaultZkPath): String = {
+    Option(rawPath).map(_.trim)  // handle null
+      .filterNot(_.isEmpty)  // handle empty string
+      .map(p => if (p.startsWith("/")) p else "/" + p)  // leading '/'
+      .map(p => if (p.endsWith("/") && (p.length > 1)) p.substring(0, p.length - 1) else p)  // trailing '/'
+      .getOrElse(default) // default case
+  }
+
   private[kafka] def buildTopicName(zkPath: String, sft: SimpleFeatureType): String = {
     sft.getTypeName + "_" + zkPath.replaceAll("/","-")  //kafka doesn't like slashes
   }
