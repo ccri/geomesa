@@ -19,8 +19,8 @@ import kafka.consumer.ConsumerConfig
 import kafka.network.BlockingChannel
 import kafka.utils.ZKStringSerializer
 import org.I0Itec.zkclient.ZkClient
-import org.locationtech.geomesa.kafka.consumer.{WrappedConsumer, Broker, Brokers, KafkaConsumer}
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumer._
+import org.locationtech.geomesa.kafka.consumer._
 import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset.MessagePredicate
 
 import scala.annotation.tailrec
@@ -29,7 +29,8 @@ import scala.util.{Failure, Success}
 /**
  * Manages storing and retrieving of offsets for a consumer group
  */
-class OffsetManager(val config: ConsumerConfig) extends Closeable with Logging {
+class OffsetManager(val config: ConsumerConfig)
+  extends Fetcher with Closeable with Logging {
 
   import OffsetManager._
 
@@ -46,7 +47,7 @@ class OffsetManager(val config: ConsumerConfig) extends Closeable with Logging {
    * @param when what offset to get (latest, earliest, etc)
    */
   def getOffsets(topic: String, when: RequestedOffset): Offsets = {
-    val partitions = KafkaConsumer.findPartitions(topic, config)
+    val partitions = findPartitions(topic, config)
     assert(partitions.nonEmpty, s"Topic $topic does not exist in brokers ${Brokers(config).mkString(",")}")
     getOffsets(topic, partitions, when)
   }
@@ -82,6 +83,87 @@ class OffsetManager(val config: ConsumerConfig) extends Closeable with Logging {
       result ++ getOffsets(topic, remaining, LatestOffset)
     } else {
       throw new RuntimeException(s"Could not find a valid offset for partitions ${partitions.mkString(",")}")
+    }
+  }
+
+  /**
+   * Find an offset based on a message predicate - messages are assumed to be sorted according to the predicate
+   */
+  def findOffsets(topic: String,
+                  partitions: Seq[PartitionMetadata],
+                  predicate: MessagePredicate,
+                  config: ConsumerConfig): Offsets = {
+    partitions.flatMap { partition =>
+      val tap = TopicAndPartition(topic, partition.partitionId)
+      val leader = partition.leader.map(Broker.apply).getOrElse(findNewLeader(tap, None, config))
+      val consumer = WrappedConsumer(createConsumer(leader.host, leader.port, config, "offsetLookup"), tap, config)
+      try {
+        val consumerId = Request.OrdinaryConsumerId
+        val earliest = consumer.consumer.earliestOrLatestOffset(tap, OffsetRequest.EarliestTime, consumerId)
+        val latest = consumer.consumer.earliestOrLatestOffset(tap, OffsetRequest.LatestTime, consumerId)
+        binaryOffsetSearch(consumer, predicate, (earliest, latest)).map(tap -> _)
+      } finally {
+        consumer.consumer.close()
+      }
+    }.toMap
+  }
+
+  @tailrec
+  private[kafka] final def binaryOffsetSearch(consumer: WrappedConsumer,
+                                 predicate: MessagePredicate,
+                                 bounds: (Long, Long)): Option[Long] = {
+
+    val (start, end) = bounds
+    val offset = (start + end) / 2
+    val maxBytes = consumer.config.fetchMessageMaxBytes
+
+    val result = fetch(consumer.consumer, consumer.tap.topic, consumer.tap.partition, offset, maxBytes) match {
+      case Success(messageSet) if messageSet.nonEmpty =>
+        logger.debug(s"checking $bounds found ${messageSet.map(_.offset).mkString(",")}")
+        val messages = messageSet.toSeq
+
+        val head = messages.head
+        val headCheck = predicate(head.message)
+        lazy val last = messages.last
+        lazy val lastCheck = predicate(last.message)
+        lazy val count = messages.length
+
+        if (headCheck == 0) {
+          Right(head.offset)
+        } else if (headCheck > 0) {
+          // look left
+          if (start == end || start == offset) {
+            // no more ranges left to check
+            Right(head.offset)
+          } else {
+            Left((start, offset))
+          }
+        } else if (lastCheck == 0) {
+          Right(last.offset)
+        } else if (lastCheck < 0) {
+          // look right
+          if (start == end || start == offset || offset + count >= end) {
+            // no more ranges left to check
+            Right(last.offset)
+          } else {
+            Left((offset + count, end))
+          }
+        } else {
+          // it's in this block
+          Right(messages.tail.find(m => predicate(m.message) >= 0).map(_.offset).get)
+        }
+
+      case Success(messageSet) => Right(-1L) // no messages found
+
+      case Failure(e) =>
+        logger.warn("Error fetching messages to find offsets", e)
+        throw e
+    }
+
+    result match {
+      case Right(found) if found != -1 => Some(found)
+      case Right(found)                => None
+      case Left(nextBounds)            => binaryOffsetSearch(consumer, predicate, nextBounds)
     }
   }
 
@@ -189,87 +271,6 @@ object OffsetManager extends Logging {
         consumer.close()
       }
     }.toMap
-  }
-
-  /**
-   * Find an offset based on a message predicate - messages are assumed to be sorted according to the predicate
-   */
-  def findOffsets(topic: String,
-                 partitions: Seq[PartitionMetadata],
-                 predicate: MessagePredicate,
-                 config: ConsumerConfig): Offsets = {
-    partitions.flatMap { partition =>
-      val tap = TopicAndPartition(topic, partition.partitionId)
-      val leader = partition.leader.map(Broker.apply).getOrElse(findNewLeader(tap, None, config))
-      val consumer = WrappedConsumer(createConsumer(leader.host, leader.port, config, "offsetLookup"), tap, config)
-      try {
-        val consumerId = Request.OrdinaryConsumerId
-        val earliest = consumer.consumer.earliestOrLatestOffset(tap, OffsetRequest.EarliestTime, consumerId)
-        val latest = consumer.consumer.earliestOrLatestOffset(tap, OffsetRequest.LatestTime, consumerId)
-        binaryOffsetSearch(consumer, predicate, (earliest, latest)).map(tap -> _)
-      } finally {
-        consumer.consumer.close()
-      }
-    }.toMap
-  }
-
-  @tailrec
-  private def binaryOffsetSearch(consumer: WrappedConsumer,
-                                 predicate: MessagePredicate,
-                                 bounds: (Long, Long)): Option[Long] = {
-
-    val (start, end) = bounds
-    val offset = (start + end) / 2
-    val maxBytes = consumer.config.fetchMessageMaxBytes
-
-    val result = fetch(consumer.consumer, consumer.tap.topic, consumer.tap.partition, offset, maxBytes) match {
-      case Success(messageSet) if messageSet.nonEmpty =>
-        logger.debug(s"checking $bounds found ${messageSet.map(_.offset).mkString(",")}")
-        val messages = messageSet.toSeq
-
-        val head = messages.head
-        val headCheck = predicate(head.message)
-        lazy val last = messages.last
-        lazy val lastCheck = predicate(last.message)
-        lazy val count = messages.length
-
-        if (headCheck == 0) {
-          Right(head.offset)
-        } else if (headCheck > 0) {
-          // look left
-          if (start == end || start == offset) {
-            // no more ranges left to check
-            Right(head.offset)
-          } else {
-            Left((start, offset))
-          }
-        } else if (lastCheck == 0) {
-          Right(last.offset)
-        } else if (lastCheck < 0) {
-          // look right
-          if (start == end || start == offset || offset + count >= end) {
-            // no more ranges left to check
-            Right(last.offset)
-          } else {
-            Left((offset + count, end))
-          }
-        } else {
-          // it's in this block
-          Right(messages.tail.find(m => predicate(m.message) >= 0).map(_.offset).get)
-        }
-
-      case Success(messageSet) => Right(-1L) // no messages found
-
-      case Failure(e) =>
-        logger.warn("Error fetching messages to find offsets", e)
-        throw e
-    }
-
-    result match {
-      case Right(found) if found != -1 => Some(found)
-      case Right(found)                => None
-      case Left(nextBounds)            => binaryOffsetSearch(consumer, predicate, nextBounds)
-    }
   }
 
   private def handleOffsetErrors(codes: Iterable[Short]): Unit =

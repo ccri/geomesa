@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.locationtech.geomesa.kafka
+package org.locationtech.geomesa.kafka.consumer
 
 import java.util.Properties
 
 import kafka.consumer._
 import kafka.serializer.{Decoder, DefaultDecoder}
 import org.apache.commons.lang3.RandomStringUtils
-import org.locationtech.geomesa.kafka.KafkaConsumerFactory.{RawKafkaConsumer, RawKafkaStream}
-import org.locationtech.geomesa.kafka.consumer.KafkaConsumer
 import org.locationtech.geomesa.kafka.consumer.offsets.OffsetManager
 
-import scala.collection.Seq
 import scala.collection.JavaConverters._
+import scala.collection.Seq
 import scala.language.implicitConversions
 
 /** @param brokers a comma separated list of broker host names and ports
   * @param zookeepers the zookeeper connection string
   */
 class KafkaConsumerFactory(brokers: String, zookeepers: String) {
+
+  import KafkaConsumerFactory._
 
   private val props = {
     val groupId = RandomStringUtils.randomAlphanumeric(5)

@@ -254,7 +254,8 @@ case class KafkaConsumer[K, V](topic: String,
   class FetchRunnable(consumer: WrappedConsumer,
                       tap: TopicAndPartition,
                       var offset: Long,
-                      val queue: BlockingQueue[FetchedDataChunk]) extends Runnable with Logging {
+                      val queue: BlockingQueue[FetchedDataChunk])
+    extends Fetcher with Runnable with Logging {
 
     private val topic = tap.topic
     private val partition = tap.partition
@@ -288,6 +289,31 @@ case class KafkaConsumer[K, V](topic: String,
           consumer.disconnect()
           executor.schedule(this, fetchBackoff, TimeUnit.MILLISECONDS)
       }
+    }
+  }
+}
+
+trait Fetcher extends Logging {
+
+  /**
+   * Fetch messages
+   */
+  def fetch(consumer: SimpleConsumer,
+            topic: String,
+            partition: Int,
+            offset: Long,
+            maxBytes: Int): Try[ByteBufferMessageSet] = {
+
+    val requestBuilder = new FetchRequestBuilder().clientId(consumer.clientId)
+    val request = requestBuilder.addFetch(topic, partition, offset, maxBytes).build()
+    val response = consumer.fetch(request)
+    if (response.hasError) {
+      val code = response.errorCode(topic, partition)
+      logger.error(s"Error fetching data from the broker [${consumer.host}:${consumer.port}] - " +
+        s"reason: ${ErrorMapping.exceptionFor(code)}")
+      Failure(ErrorMapping.exceptionFor(code))
+    } else {
+      Success(response.messageSet(topic, partition))
     }
   }
 }
@@ -375,27 +401,6 @@ object KafkaConsumer extends Logging {
         } else {
           throw new RuntimeException(s"Could not find new leader for topic and partition $tap")
         }
-    }
-  }
-
-  /**
-   * Fetch messages
-   */
-  def fetch(consumer: SimpleConsumer,
-            topic: String,
-            partition: Int,
-            offset: Long,
-            maxBytes: Int): Try[ByteBufferMessageSet] = {
-    val requestBuilder = new FetchRequestBuilder().clientId(consumer.clientId)
-    val request = requestBuilder.addFetch(topic, partition, offset, maxBytes).build()
-    val response = consumer.fetch(request)
-    if (response.hasError) {
-      val code = response.errorCode(topic, partition)
-      logger.error(s"Error fetching data from the broker [${consumer.host}:${consumer.port}] - " +
-          s"reason: ${ErrorMapping.exceptionFor(code)}")
-      Failure(ErrorMapping.exceptionFor(code))
-    } else {
-      Success(response.messageSet(topic, partition))
     }
   }
 }

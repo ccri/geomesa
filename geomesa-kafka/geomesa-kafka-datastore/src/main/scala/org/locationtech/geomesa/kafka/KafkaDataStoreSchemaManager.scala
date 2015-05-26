@@ -28,6 +28,7 @@ import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.`type`.Name
 import org.opengis.feature.simple.SimpleFeatureType
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 trait KafkaDataStoreSchemaManager extends DataStore  {
 
@@ -77,12 +78,9 @@ trait KafkaDataStoreSchemaManager extends DataStore  {
     */
   def getLiveFeatureType(replayType: SimpleFeatureType): Option[SimpleFeatureType] = {
 
-    try {
+    Try {
       KafkaDataStoreHelper.extractLiveTypeName(replayType).map(schemaCache.get(_).sft)
-    }
-    catch {
-      case _ => None
-    }
+    }.getOrElse(None)
   }
 
   override def getNames: util.List[Name] = zkClient.getChildren(zkPath).asScala.map(
@@ -183,5 +181,3 @@ private[kafka] case class KafkaFeatureConfig(sft: SimpleFeatureType) extends Any
   override def toString: String =
     s"KafkaSimpleFeatureType: typeName=${sft.getTypeName}; topic=$topic; replayConfig=$replayConfig"
 }
-
-

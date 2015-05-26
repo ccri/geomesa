@@ -15,16 +15,16 @@
  */
 package org.locationtech.geomesa.kafka
 
-import java.util.Properties
+import java.util.concurrent.atomic.AtomicLong
 
 import kafka.api._
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
-import kafka.consumer.{ConsumerTimeoutException, ConsumerConfig}
-import kafka.message.{Message, MessageAndMetadata, MessageAndOffset}
+import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException, SimpleConsumer}
+import kafka.message._
 import kafka.producer.KeyedMessage
 import kafka.serializer.Decoder
 import org.locationtech.geomesa.kafka.consumer._
-import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset._
+import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset.MessagePredicate
 import org.locationtech.geomesa.kafka.consumer.offsets.OffsetManager._
 import org.locationtech.geomesa.kafka.consumer.offsets._
 import org.mockito.Matchers._
@@ -32,9 +32,8 @@ import org.mockito.Mockito._
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 
-import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
+import scala.util.{Success, Try}
 
 class MockKafka {
 
@@ -44,7 +43,6 @@ class MockKafka {
   def latestOffset(tap: TopicAndPartition): Long = data.get(tap).map(_.size : Long).getOrElse(0L)
 
   val kafkaConsumerFactory = new MockKafkaConsumerFactory(this)
-  val consumerConfig = kafkaConsumerFactory.config
 
   /** Simulate sending a message to a producer
     */
@@ -100,7 +98,8 @@ class MockKafkaConsumerFactory(val mk: MockKafka)
   override def kafkaConsumer(topic: String, extraConfig: Map[String, String] = Map.empty) =
     MockKafkaConsumer[Array[Byte], Array[Byte]](mk, topic, defaultDecoder, defaultDecoder, extraConfig)
 
-  override val offsetManager = new MockOffsetManager(mk)
+  // must pass config directly - it cannot be accessed through mk because mk isn't fully initialized yet
+  override val offsetManager = new MockOffsetManager(mk, config)
 }
 
 object MockKafkaStream {
@@ -201,7 +200,7 @@ object MockKafkaConsumer {
   }
 }
 
-class MockOffsetManager(mk: MockKafka) extends OffsetManager(mk.consumerConfig) {
+class MockOffsetManager(mk: MockKafka, consumerConfig: ConsumerConfig) extends OffsetManager(consumerConfig) {
 
 
   def findPartitions(topic: String): Seq[PartitionMetadata] =
@@ -240,7 +239,7 @@ class MockOffsetManager(mk: MockKafka) extends OffsetManager(mk.consumerConfig) 
       Map(new TopicAndPartition(topic, 0) -> 0L)
     }
 
-  def findOffsets(topic: String,
+  override def findOffsets(topic: String,
                   partitions: Seq[PartitionMetadata],
                   predicate: MessagePredicate,
                   config: ConsumerConfig): Offsets =
@@ -248,62 +247,20 @@ class MockOffsetManager(mk: MockKafka) extends OffsetManager(mk.consumerConfig) 
     partitions.flatMap { partition =>
       val tap = TopicAndPartition(topic, partition.partitionId)
       val bounds = (0L, mk.data.get(tap).map(_.size : Long).getOrElse(0L))
-      binaryOffsetSearch(tap, predicate, bounds).map(tap -> _)
+      val consumer = WrappedConsumer(null, tap, config)
+
+      binaryOffsetSearch(consumer, predicate, bounds).map(tap -> _)
     }.toMap
 
-  @tailrec
-  private def binaryOffsetSearch(tap: TopicAndPartition,
-                                 predicate: MessagePredicate,
-                                 bounds: (Long, Long)): Option[Long] = {
+  override def fetch(consumer: SimpleConsumer,
+                     topic: String,
+                     partition: Int,
+                     offset: Long,
+                     maxBytes: Int): Try[ByteBufferMessageSet] = {
 
-    val (start, end) = bounds
-    val offset = (start + end) / 2
-    val maxBytes = mk.consumerConfig.fetchMessageMaxBytes
+    val offsetCounter = new AtomicLong(offset)
+    val msgs = mk.fetch(new TopicAndPartition(topic, partition), offset, maxBytes).map(_.message).toArray
 
-    val result = mk.fetch(tap, offset, maxBytes) match {
-      case messageSet if messageSet.nonEmpty =>
-        logger.debug(s"checking $bounds found ${messageSet.map(_.offset).mkString(",")}")
-        val messages = messageSet.toSeq
-
-        val head = messages.head
-        val headCheck = predicate(head.message)
-        lazy val last = messages.last
-        lazy val lastCheck = predicate(last.message)
-        lazy val count = messages.length
-
-        if (headCheck == 0) {
-          Right(head.offset)
-        } else if (headCheck > 0) {
-          // look left
-          if (start == end || start == offset) {
-            // no more ranges left to check
-            Right(head.offset)
-          } else {
-            Left((start, offset))
-          }
-        } else if (lastCheck == 0) {
-          Right(last.offset)
-        } else if (lastCheck < 0) {
-          // look right
-          if (start == end || start == offset || offset + count >= end) {
-            // no more ranges left to check
-            Right(last.offset)
-          } else {
-            Left((offset + count, end))
-          }
-        } else {
-          // it's in this block
-          Right(messages.tail.find(m => predicate(m.message) >= 0).map(_.offset).get)
-        }
-
-      case _ => Right(-1L) // no messages found
-    }
-
-    result match {
-      case Right(found) if found != -1 => Some(found)
-      case Right(found)                => None
-      case Left(nextBounds)            => binaryOffsetSearch(tap, predicate, nextBounds)
-    }
+    Success(new ByteBufferMessageSet(NoCompressionCodec, offsetCounter, msgs: _*))
   }
-
 }
