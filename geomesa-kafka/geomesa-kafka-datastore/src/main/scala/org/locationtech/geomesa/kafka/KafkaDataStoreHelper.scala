@@ -51,7 +51,7 @@ object KafkaDataStoreHelper {
   def extractReplayConfig(sft: SimpleFeatureType) : Option[ReplayConfig] =
     sft.userData[String](ReplayConfigKey).flatMap(ReplayConfig.decode)
 
-  /** Extracts the name of the prepared-for-live [[SimpleFeatureType]] which the given prepared-for-replay
+  /** Extracts the name of the prepared--for-live [[SimpleFeatureType]] which the given prepared-for-replay
     * ``replayType`` is based on.
     *
     * @param replayType a [[SimpleFeatureType]] that has been prepared for replay
@@ -90,6 +90,7 @@ object KafkaDataStoreHelper {
 
   private[kafka] def buildTopicName(zkPath: String, sft: SimpleFeatureType): String = {
     sft.getTypeName + "_" + zkPath.replaceAll("/","-")  //kafka doesn't like slashes
+    zkPath.replaceAll("/","-") + "-"+  sft.getTypeName
   }
 
   private val replayIdentifier = "-REPLAY-"
