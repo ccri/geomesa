@@ -96,8 +96,12 @@ class ReplayKafkaDataStoreProcess(val catalog: Catalog) extends GeomesaKafkaProc
   private def createVolatileSFT(features: SimpleFeatureCollection,
                                 storeInfo: DataStoreInfo,
                                 rConfig: ReplayConfig): SimpleFeatureType = {
+
     val ds = storeInfo.getDataStore(null).asInstanceOf[ContentDataStore]
-    val extantSFT: SimpleFeatureType = features.getSchema
+
+    // go back to the DS to get the schema to ensure that it contains all required user data
+    val extantSFT: SimpleFeatureType = ds.getSchema(features.getSchema.getTypeName)
+
     val replaySFT: SimpleFeatureType = KafkaDataStoreHelper.prepareForReplay(extantSFT, rConfig)
     ds.createSchema(replaySFT)
     injectAge(storeInfo, replaySFT)
