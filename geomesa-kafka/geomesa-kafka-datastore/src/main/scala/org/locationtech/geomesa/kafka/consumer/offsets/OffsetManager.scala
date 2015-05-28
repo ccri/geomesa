@@ -16,6 +16,7 @@ import kafka.client.ClientUtils
 import kafka.common.ErrorMapping._
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.ConsumerConfig
+import kafka.message.{ByteBufferMessageSet, MessageAndOffset}
 import kafka.network.BlockingChannel
 import kafka.utils.ZKStringSerializer
 import org.I0Itec.zkclient.ZkClient
@@ -113,47 +114,58 @@ class OffsetManager(val config: ConsumerConfig)
                                  predicate: MessagePredicate,
                                  bounds: (Long, Long)): Option[Long] = {
 
+    // end is exclusive
     val (start, end) = bounds
+    if (start == end) return Some(end)
+
     val offset = (start + end) / 2
     val maxBytes = consumer.config.fetchMessageMaxBytes
 
     val result = fetch(consumer.consumer, consumer.tap.topic, consumer.tap.partition, offset, maxBytes) match {
       case Success(messageSet) if messageSet.nonEmpty =>
-        logger.debug(s"checking $bounds found ${messageSet.map(_.offset).mkString(",")}")
-        val messages = messageSet.toSeq
+        logger.debug(s"checking $bounds found (${messageSet.head.offset},${messageSet.last.offset})")
 
-        val head = messages.head
+        val head = messageSet.head
         val headCheck = predicate(head.message)
+
+        lazy val messages = trim(messageSet, end)
         lazy val last = messages.last
         lazy val lastCheck = predicate(last.message)
-        lazy val count = messages.length
 
         if (headCheck == 0) {
+          logger.trace(s"found offset = ${head.offset} (head)")
           Right(head.offset)
         } else if (headCheck > 0) {
           // look left
-          if (start == end || start == offset) {
-            // no more ranges left to check
+          if (offset == start) {
+            logger.trace(s"no more ranges to check.  using ${head.offset} (head)")
             Right(head.offset)
           } else {
+            logger.trace(s"need to look left (headCheck > 0)")
             Left((start, offset))
           }
         } else if (lastCheck == 0) {
+          logger.trace(s"found offset = ${last.offset} (last)")
           Right(last.offset)
         } else if (lastCheck < 0) {
           // look right
-          if (start == end || start == offset || offset + count >= end) {
-            // no more ranges left to check
-            Right(last.offset)
+          if (last.offset + 1 == end) {
+            logger.trace(s"no more ranges to check.  using ${last.offset} (last)")
+            Right(last.offset + 1)
           } else {
-            Left((offset + count, end))
+            logger.trace(s"need to look right (lastCheck < 0)")
+            Left((last.offset + 1, end))
           }
         } else {
           // it's in this block
-          Right(messages.tail.find(m => predicate(m.message) >= 0).map(_.offset).get)
+          val offset = messages.tail.find(m => predicate(m.message) >= 0).map(_.offset).get
+          logger.trace(s"found offset = $offset (in block)")
+          Right(offset)
         }
 
-      case Success(messageSet) => Right(-1L) // no messages found
+      case Success(messageSet) =>
+        logger.debug(s"checking $bounds found no messages")
+        Right(-1L) // no messages found
 
       case Failure(e) =>
         logger.warn("Error fetching messages to find offsets", e)
@@ -167,6 +179,11 @@ class OffsetManager(val config: ConsumerConfig)
     }
   }
 
+  // `messageSet` may contain data at or beyond end, if so trim
+  private[kafka] def trim(messageSet: ByteBufferMessageSet, end: Long): Array[MessageAndOffset] =
+    // use an array to allow direct access to the last element
+    messageSet.takeWhile(msg => msg.offset < end).toArray
+
   @tailrec
   private def retryOffsets(function: () => Offsets, tries: Int): Offsets =
     try {
@@ -174,6 +191,7 @@ class OffsetManager(val config: ConsumerConfig)
     } catch {
       case e: Exception =>
         if (tries < config.offsetsCommitMaxRetries) {
+          logger.debug("Error getting offsets.  Retrying.")
           Thread.sleep(config.offsetsChannelBackoffMs * tries)
           retryOffsets(function, tries + 1)
         } else {

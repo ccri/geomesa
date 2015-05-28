@@ -28,6 +28,7 @@ import org.locationtech.geomesa.kafka.consumer.offsets.{GroupOffset, OffsetManag
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -132,8 +133,8 @@ case class KafkaConsumer[K, V](topic: String,
     } catch {
       case e: ZkNodeExistsException =>
         // Offsets have already been set up by another consumer - we don't need to do anything
-      case e: Exception =>
-        logger.error("Error committing initial offsets - consumers will fall back to group offsets")
+      case NonFatal(e) =>
+        logger.error("Error committing initial offsets - consumers will fall back to group offsets", e)
     }
   }
 

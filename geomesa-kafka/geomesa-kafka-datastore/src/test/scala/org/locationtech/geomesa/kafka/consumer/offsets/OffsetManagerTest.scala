@@ -1,73 +1,292 @@
 /*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
+ * Copyright 2015 Commonwealth Computer Research, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.locationtech.geomesa.kafka.consumer.offsets
 
 import java.util.Properties
+import java.util.concurrent.atomic.AtomicLong
 
-import kafka.common.{OffsetAndMetadata, TopicAndPartition}
-import kafka.consumer.ConsumerConfig
-import kafka.message.Message
-import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
-import kafka.serializer.StringDecoder
+import kafka.common.TopicAndPartition
+import kafka.consumer.{ConsumerConfig, SimpleConsumer}
+import kafka.message.{ByteBufferMessageSet, Message, NoCompressionCodec}
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, HasEmbeddedZookeeper}
+import org.locationtech.geomesa.kafka.consumer.WrappedConsumer
+import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset.MessagePredicate
+import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
-import org.specs2.runner
+import org.specs2.runner.JUnitRunner
 
-@RunWith(classOf[runner.JUnitRunner])
-class OffsetManagerTest extends Specification with HasEmbeddedKafka {
+import scala.util.{Failure, Success, Try}
 
-  sequential // this doesn't really need to be sequential, but we're trying to reduce zk load
+@RunWith(classOf[JUnitRunner])
+class OffsetTest extends Specification with Mockito {
+
+  import OffsetTest._
 
   "OffsetManager" should {
-    "find offsets" >> {
-      val props = new Properties
-      props.put("group.id", "mygroup")
-      props.put("metadata.broker.list", brokerConnect)
-      props.put("zookeeper.connect", zkConnect)
-      val config = new ConsumerConfig(props)
-      val offsetManager = new OffsetManager(config)
 
-      val topic = "test"
+    val properties = new Properties()
+    properties.put("zookeeper.connect", "mockZoo")
+    properties.put("group.id", "offsetTest")
 
-      val producerProps = new Properties()
-      producerProps.put("metadata.broker.list", brokerConnect)
-      producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
-      val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
-      for (i <- 0 until 10) {
-        producer.send(new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
-      }
-      producer.close()
+    val config = new ConsumerConfig(properties)
 
-      "by earliest" >> {
-        offsetManager.getOffsets(topic, EarliestOffset) mustEqual Map(TopicAndPartition(topic, 0) -> 0)
+    val consumer = mock[WrappedConsumer]
+    consumer.config returns config
+
+    val tap = new TopicAndPartition("offsetTest", 0)
+    consumer.tap returns tap
+
+    def keys(range: Range): Array[Byte] = range.map(_.toByte).toArray
+
+    def offsetManager(messagesPerSet: Int, keys: Array[Byte]) =
+      new OffsetManagerWithTestFetch(config, messagesPerSet, keys)
+
+    
+    "be able to binary search for a MessagePredicate" >> {
+
+      "when start equal end" >> {
+        val om = offsetManager(3, keys(0 until 15))
+        val predicate = findKey(7)
+        val bounds = (11L, 11L)
+
+        val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+        result must beOffset(11)
+        om.fetchCount mustEqual 0
       }
-      "by latest" >> {
-        offsetManager.getOffsets(topic, LatestOffset) mustEqual Map(TopicAndPartition(topic, 0) -> 10)
+
+      "when the target is the head of the message set (i.e. the midpoint of the range)" >> {
+        val om = offsetManager(3, keys(0 until 15))
+        val predicate = findKey(7)
+        val bounds = (0L, 15L)
+
+        val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+        result must beOffset(7)
+        om.fetchCount mustEqual 1
       }
-      "by group" >> {
-        offsetManager.commitOffsets(Map(TopicAndPartition(topic, 0) -> OffsetAndMetadata(5)))
-        offsetManager.getOffsets(topic, GroupOffset) mustEqual Map(TopicAndPartition(topic, 0) -> 5)
+
+      "when the target is before the head of the message set" >> {
+
+        "and the search is exhausted" >> {
+          val om = offsetManager(3, keys(0 until 16 by 2))
+          val predicate = findKey(7)
+          val bounds = (4L, 5L)
+
+          val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+          result must beOffset(4)
+          om.fetchCount mustEqual 1
+        }
+
+        "and the search is not exhausted" >> {
+          val om = offsetManager(3, keys(0 until 30 by 2))
+          val predicate = findKey(8)
+          val bounds = (0L, 15L)
+
+          val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+          result must beOffset(4)
+          om.fetchCount mustEqual 2 // in message set from second fetch
+        }
       }
-      "by binary search" >> {
-        val decoder = new StringDecoder()
-        val offset = FindOffset((m: Message) => {
-          val bb = Array.ofDim[Byte](m.payload.remaining())
-          m.payload.get(bb)
-          decoder.fromBytes(bb).substring(5).toInt.compareTo(7)
-        })
-        offsetManager.getOffsets(topic, offset) mustEqual Map(TopicAndPartition(topic, 0) -> 7)
+
+      "when the target is the last of the message set" >> {
+        val om = offsetManager(3, keys (0 until 15))
+        val predicate = findKey(9)
+        val bounds = (0L, 15L)
+
+        val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+        result must beOffset(9)
+        om.fetchCount mustEqual 1
+      }
+      
+      "when the target is after the last of the message set" >> {
+
+        "and the search is exhausted" >> {
+          val om = offsetManager(4, keys(0 until 16 by 2))
+          val predicate = findKey(11)
+          val bounds = (4L, 6L)
+
+          val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+          result must beOffset(6)
+          om.fetchCount mustEqual 1
+        }
+
+        "and the search is not exhausted" >> {
+          val om = offsetManager(3, keys(0 until 30 by 2))
+          val predicate = findKey(26)
+          val bounds = (4L, 15L)
+
+          val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+          result must beOffset(13)
+          om.fetchCount mustEqual 2 // in message set from second fetch
+        }
+      }
+
+      "when the target is in the message set" >> {
+        val om = offsetManager(3, keys(0 until 15))
+        val predicate = findKey(11)
+        val bounds = (10L, 12L)
+
+        val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+        result must beOffset(11)
+        om.fetchCount mustEqual 1
+      }
+
+      "when the target is bounded by the message set" >> {
+        val om = offsetManager(3, keys(0 until 30 by 2))
+        val predicate = findKey(11)
+        val bounds = (5L, 6L)
+
+        val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+        result must beOffset(6)
+        om.fetchCount mustEqual 1
+      }
+
+      "when no messages are returned" >> {
+        val om = offsetManager(3, Array.empty[Byte])
+        val predicate = findKey(5)
+        val bounds = (0L, 11L)
+
+        val result = om.binaryOffsetSearch(consumer, predicate, bounds)
+        result must beNone
+        om.fetchCount mustEqual 1
+      }
+
+      "when fetch fails" >> {
+        val om = new OffsetManagerWithFailingFetch(config)
+        val predicate = findKey(5)
+        val bounds = (0L, 11L)
+
+        om.binaryOffsetSearch(consumer, predicate, bounds) must throwA[Exception]
+      }
+    }
+
+    "be able to trim MessageSet" >> {
+
+      def messages(range: Range) = messageSet(range.head, keys(range).map(toMessage))
+
+      "when end is after the message set" >> {
+        val msgs = messages(5 to 7)
+        val end = 10
+
+        val om = new OffsetManager(config)
+        val result = om.trim(msgs, end)
+
+        result.map(_.offset) mustEqual Array(5, 6, 7)
+      }
+
+      "when end one more than the last message offset in the set" >> {
+        val msgs = messages(5 to 7)
+        val end = 8
+
+        val om = new OffsetManager(config)
+        val result = om.trim(msgs, end)
+
+        result.map(_.offset) mustEqual Array(5, 6, 7)
+      }
+
+      "when end is the last message offset in the set" >> {
+        val msgs = messages(5 to 7)
+        val end = 7
+
+        val om = new OffsetManager(config)
+        val result = om.trim(msgs, end)
+
+        // end is exclusive so 7 must be trimmed
+        result.map(_.offset) mustEqual Array(5, 6)
+      }
+
+      "when end is within the message set" >> {
+        val msgs = messages(5 to 7)
+        val end = 6
+
+        val om = new OffsetManager(config)
+        val result = om.trim(msgs, end)
+
+        result.map(_.offset) mustEqual Array(5)
+      }
+
+      "when end is the first message offset in the set" >> {
+        val msgs = messages(5 to 7)
+        val end = 5
+
+        val om = new OffsetManager(config)
+        val result = om.trim(msgs, end)
+
+        result.map(_.offset) mustEqual Array.empty[Long]
+      }
+
+      "when end is before the first message offset in the set" >> {
+        val msgs = messages(5 to 7)
+        val end = 4
+
+        val om = new OffsetManager(config)
+        val result = om.trim(msgs, end)
+
+        result.map(_.offset) mustEqual Array.empty[Long]
       }
     }
   }
 
-  step { shutdown() }
+  def findKey(target: Int): MessagePredicate = msg => msg.key.get() - target
+
+  def beOffset(o: Long) = beSome(o)
 }
 
+object OffsetTest {
 
+  def toMessage(key: Byte): Message = new Message(Array.empty[Byte], Array(key))
+
+  def messageSet(offset: Long, msgs: Array[Message]): ByteBufferMessageSet = {
+    val offsetCounter = new AtomicLong(offset)
+    new ByteBufferMessageSet(NoCompressionCodec, offsetCounter, msgs: _*)
+  }
+}
+
+class OffsetManagerWithTestFetch(config: ConsumerConfig, messagesPerSet: Int, keys: Array[Byte])
+  extends OffsetManager(config) {
+
+  import OffsetTest._
+
+  var fetchCount = 0
+
+  override def fetch(consumer: SimpleConsumer,
+                     topic: String,
+                     partition: Int,
+                     offset: Long,
+                     maxBytes: Int): Try[ByteBufferMessageSet] = {
+
+    fetchCount += 1
+
+    val msgs = keys.slice(offset.toInt, offset.toInt + messagesPerSet).map(toMessage)
+    Success(messageSet(offset, msgs))
+  }
+}
+
+class OffsetManagerWithFailingFetch(config: ConsumerConfig)
+  extends OffsetManager(config) {
+
+  var fetchCount = 0
+
+  override def fetch(consumer: SimpleConsumer,
+                     topic: String,
+                     partition: Int,
+                     offset: Long,
+                     maxBytes: Int): Try[ByteBufferMessageSet] = {
+
+    fetchCount += 1
+
+    new Failure(new RuntimeException())
+  }
+}
