@@ -47,6 +47,7 @@ trait AccumuloDataStoreDefaults {
     "password"          -> "mypassword",
     "tableName"         -> defaultTable,
     "useMock"           -> "true",
+    "caching"           -> "true",
     "featureEncoding"   -> "avro")).asInstanceOf[AccumuloDataStore]
 
   /**

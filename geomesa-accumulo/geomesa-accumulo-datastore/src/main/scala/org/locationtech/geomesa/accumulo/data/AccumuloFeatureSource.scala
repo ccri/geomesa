@@ -163,7 +163,10 @@ trait CachingFeatureSource extends AccumuloAbstractFeatureSource {
     CacheBuilder.newBuilder().build(
       new CacheLoader[Query, SimpleFeatureCollection] {
         override def load(query: Query): SimpleFeatureCollection =
+        {
+          org.locationtech.geomesa.accumulo.index.setQueryTransforms(query, getSchema)
           new CachingAccumuloFeatureCollection(self, query)
+        }
       })
 
   override def getFeatures(query: Query): SimpleFeatureCollection = {
