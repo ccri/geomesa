@@ -78,11 +78,7 @@ case class QueryPlanner(sft: SimpleFeatureType,
    */
   def executePlans(query: Query, strategyPlans: Seq[StrategyPlan], deduplicate: Boolean): SFIter = {
     val features = strategyPlans.iterator.ciFlatMap { sp =>
-      val kvs = sp.strategy.execute(sp.plan, acc, log)
-      sp.plan.kvsToFeatures match {
-        case Left(oneToOne)   => kvs.map(oneToOne)
-        case Right(oneToMany) => CloseableIterator(kvs.flatMap(oneToMany), kvs.close())
-      }
+      sp.strategy.execute(sp.plan, acc, log).map(sp.plan.kvsToFeatures)
     }
 
     val dedupedFeatures = if (deduplicate) new DeDuplicatingIterator(features) else features
@@ -140,12 +136,11 @@ case class QueryPlanner(sft: SimpleFeatureType,
     // Perform a projecting decode of the simple feature
     val returnSFT = getReturnSFT(query)
     val deserializer = SimpleFeatureDeserializers(returnSFT, featureEncoding)
-    val fn = (kv: Entry[Key, Value]) => {
+    (kv: Entry[Key, Value]) => {
       val sf = deserializer.deserialize(kv.getValue.get)
       applyVisibility(sf, kv.getKey)
       sf
     }
-    Left(fn)
   }
 
   def adaptIterator(query: Query, features: SFIter): SFIter = {

@@ -98,7 +98,7 @@ object Z3Table extends GeoMesaTable {
 
   def adaptZ3Iterator(sft: SimpleFeatureType): FeatureFunction = {
     val accessors = AttributeAccessor.buildSimpleFeatureTypeAttributeAccessors(sft)
-    val fn = (e: Entry[Key, Value]) => {
+    (e: Entry[Key, Value]) => {
       val k = e.getKey
       val row = k.getRow.getBytes
       val idbytes = row.slice(10, Int.MaxValue)
@@ -106,50 +106,17 @@ object Z3Table extends GeoMesaTable {
       new LazySimpleFeature(id, sft, accessors, ByteBuffer.wrap(e.getValue.get()))
       // TODO visibility
     }
-    Left(fn)
   }
 
   def adaptZ3KryoIterator(sft: SimpleFeatureType): FeatureFunction = {
     val kryo = new KryoFeatureSerializer(sft)
-    val fn = (e: Entry[Key, Value]) => {
+    (e: Entry[Key, Value]) => {
       // TODO lazy features if we know it's read-only?
       kryo.deserialize(e.getValue.get())
     }
-    Left(fn)
   }
-
-  /*
-  private val Z3CURVE = new Z3SFC
-  private val gt = JTSFactoryFinder.getGeometryFactory
-  def adaptZ3Iterator(iter: KVIter, query: Query): SFIter = {
-    val ft = SimpleFeatureTypes.createType(query.getTypeName, "dtg:Date,geom:Point:srid=4326")
-    val builder = new SimpleFeatureBuilder(ft)
-    iter.map { e =>
-      val k = e.getKey
-      val row = k.getRow.getBytes
-      val weekBytes = row.slice(0, 2)
-      val zbytes = row.slice(2, 10)
-      val idbytes = row.slice(10, Int.MaxValue)
-
-      val id = new String(idbytes)
-      val zvalue = Longs.fromByteArray(zbytes)
-      val z = Z3(zvalue)
-      val (x, y, t) = Z3CURVE.invert(z)
-      val pt = gt.createPoint(new Coordinate(x, y))
-      val week = Shorts.fromByteArray(weekBytes)
-      val seconds = week * Weeks.ONE.toStandardSeconds.getSeconds + Seconds.seconds(t.toInt).getSeconds
-
-      val dtg = new DateTime(seconds * 1000L)
-      builder.reset()
-      builder.addAll(Array[AnyRef](dtg, pt))
-      builder.buildFeature(id)
-    }
-  }
-*/
 
   def configureTable(sft: SimpleFeatureType, z3Table: String, tableOps: TableOperations): Unit = {
-    import scala.collection.JavaConversions._
-
     val indexedAttributes = getAttributesToIndex(sft)
     val localityGroups: Map[Text, Text] =
       indexedAttributes.map { case (name, _) => (name, name) }.toMap.+((BIN_CF, BIN_CF)).+((FULL_CF, FULL_CF))
