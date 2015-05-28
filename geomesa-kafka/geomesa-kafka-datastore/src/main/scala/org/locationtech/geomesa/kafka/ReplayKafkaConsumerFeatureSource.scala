@@ -24,13 +24,13 @@ import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuild
 import org.joda.time.{Duration, Instant}
 import org.locationtech.geomesa.filter._
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumerFactory
+import org.locationtech.geomesa.kafka.consumer.KafkaStreamLike.KafkaStreamLikeIterator
 import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.FR
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter._
 import org.opengis.filter.expression.PropertyName
-import org.locationtech.geomesa.kafka.consumer.KafkaStreamLike.KafkaStreamLikeIterator
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -132,6 +132,9 @@ class ReplayKafkaConsumerFeatureSource(entry: ContentEntry,
 
   private def readMessages(): Array[GeoMessage] = {
 
+    logger.debug("Begin reading messages from {} using {}", topic, replayConfig)
+    val readStart = System.currentTimeMillis()
+
     // don't want to block waiting for more messages so specify  a timeout
     val kafkaConsumer = kf.kafkaConsumer(topic, Map("consumer.timeout.ms" -> "250"))
 
@@ -157,8 +160,9 @@ class ReplayKafkaConsumerFeatureSource(entry: ContentEntry,
       .foldLeft(List.empty[GeoMessage])((seq, elem) => elem :: seq)
       .toArray
 
-    logger.debug("Read {} messages from {} using {}",
-      msgs.length.asInstanceOf[AnyRef], topic, replayConfig)
+    val readTime = (System.currentTimeMillis() - readStart).asInstanceOf[AnyRef]
+    logger.debug("Read {} messages in {}ms from {} using {}",
+      msgs.length.asInstanceOf[AnyRef], readTime, topic, replayConfig)
 
     msgs
   }
