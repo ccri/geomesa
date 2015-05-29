@@ -130,6 +130,8 @@ case class QueryPlanner(sft: SimpleFeatureType,
 
   // This function decodes/transforms that Iterator of Accumulo Key-Values into an Iterator of SimpleFeatures.
   def adaptIterator(accumuloIterator: KVIter, query: Query): SFIter = {
+
+    println(s"AdaptIterator: ${query.getHints}")
     // Perform a projecting decode of the simple feature
     val returnSFT = getReturnSFT(query)
     val decoder = SimpleFeatureDecoder(returnSFT, featureEncoding)
@@ -177,6 +179,8 @@ case class QueryPlanner(sft: SimpleFeatureType,
       decoder.decode(kv.getValue.get)
     }
 
+    println("In adapt iterator")
+
     var scannedBytes: Long = 0
     var scannedRecords: Long = 0
     var resultBytes: Long = 0
@@ -193,6 +197,8 @@ case class QueryPlanner(sft: SimpleFeatureType,
     featureBuilder.set(QuerySizeIterator.SCAN_RECORDS_ATTRIBUTE, scannedRecords)
     featureBuilder.set(QuerySizeIterator.RESULT_BYTES_ATTRIBUTE, resultBytes)
     featureBuilder.set(QuerySizeIterator.RESULT_RECORDS_ATTRIBUTE, resultRecords)
+
+    println("Computed value")
 
     CloseableIterator(Iterator(featureBuilder.buildFeature("resultFeature")))
   }
@@ -258,6 +264,7 @@ case class QueryPlanner(sft: SimpleFeatureType,
       val spec = MapAggregatingIterator.projectedSFTDef(mapAggregationAttribute, sft)
       SimpleFeatureTypes.createType(sft.getTypeName, spec)
     } else if (query.getHints.containsKey(QUERY_SIZE_KEY)) {
+      println("Using Query size SFT")
       val spec = QuerySizeIterator.QUERY_SIZE_FEATURE_SFT_STRING
       SimpleFeatureTypes.createType(sft.getTypeName, spec)
     } else {

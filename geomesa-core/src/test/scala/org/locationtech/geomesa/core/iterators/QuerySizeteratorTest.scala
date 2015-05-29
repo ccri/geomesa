@@ -41,14 +41,16 @@ class QuerySizeteratorTest extends Specification with TestWithDataStore {
 
   sequential
 
-  override def spec = "dtg:Date,geom:Point:srid=4326"
+  println("Constructor")
 
-  val testData : Map[String,String] = {
-    val source = Source.fromInputStream(getClass.getResourceAsStream("/test-lines.tsv"))
-    val map = source.getLines().toList.map(_.split("\t")).map(l => (l(0) -> l(1))).toMap
-    source.close()
-    map
-  }
+  override def spec = "dtg:Date,geom:Point:srid=4326"
+//
+//  val testData : Map[String,String] = {
+//    val source = Source.fromInputStream(getClass.getResourceAsStream("/test-lines.tsv"))
+//    val map = source.getLines().toList.map(_.split("\t")).map(l => (l(0) -> l(1))).toMap
+//    source.close()
+//    map
+//  }
 
   def getQuery(query: String): Query = {
     val q = new Query(sftName, ECQL.toFilter(query))
@@ -62,6 +64,8 @@ class QuerySizeteratorTest extends Specification with TestWithDataStore {
 
     "calculate correct aggregated totals" in {
       val random = new Random(randomSeed)
+
+      println("In test")
 
       val feats = (0 until 150).map { i =>
         val id = i.toString

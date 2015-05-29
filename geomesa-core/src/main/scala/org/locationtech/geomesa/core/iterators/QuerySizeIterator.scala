@@ -49,6 +49,8 @@ class QuerySizeIterator extends GeomesaFilteringIterator with HasFeatureDecoder 
   // Could rewrite this to automatically scan to the next top, aggregating results as it goes.
   override def setTopConditionally() = {
 
+    println("In set top conditionally")
+
     featureBuilder.reset()
     topKey = new Key(source.getTopKey)
 
