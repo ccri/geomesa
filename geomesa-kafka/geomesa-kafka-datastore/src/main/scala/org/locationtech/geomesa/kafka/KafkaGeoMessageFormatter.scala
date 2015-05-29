@@ -26,6 +26,19 @@ import kafka.utils.CommandLineUtils
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.SimpleFeatureType
 
+/** A [[MessageFormatter]] that can be used with the kafka-console-consumer to format the internal log
+  * messages of the [[KafkaDataStore]]
+  *
+  * To use add arguments:
+  *   --formatter org.locationtech.geomesa.kafka.KafkaGeoMessageFormatter
+  *   --property sft.name={sftName}
+  *   --property sft.spec={sftSpec}
+  *
+  * In order to pass the spec via a command argument all "=" characters must be replaced by "%61".  Any
+  * "%" characters that exist prior to replacement of "=" must be replaced by "%37".
+  *
+  * @see KafkaDataStoreLogViewer for an alternative to kafka-console-consumer
+  */
 class KafkaGeoMessageFormatter extends MessageFormatter {
 
   import KafkaGeoMessageFormatter._
@@ -44,7 +57,7 @@ class KafkaGeoMessageFormatter extends MessageFormatter {
     val name = props.getProperty(sftNameKey)
     val spec = props.getProperty(sftSpecKey)
 
-    val sft = KafkaGeoMessageConsoleConsumer.decodeSFT(name, spec)
+    val sft = KafkaDataStoreLogViewer.decodeSFT(name, spec)
     decoder = new KafkaGeoMessageDecoder(sft)
   }
 
@@ -60,14 +73,15 @@ class KafkaGeoMessageFormatter extends MessageFormatter {
   }
 }
 
-object KafkaGeoMessageFormatter {
-  private[kafka] val sftNameKey = "sft.name"
-  private[kafka] val sftSpecKey = "sft.spec"
-
-  val lineSeparator = "\n".getBytes(StandardCharsets.UTF_8)
-}
-
-object KafkaGeoMessageConsoleConsumer extends Logging {
+/** An alternative to the kafka-console-consumer providing options specific to viewing the log messages
+  * internal to the [[KafkaDataStore]].
+  *
+  * To run, first copy the geomesa-kafka-geoserver-plugin.jar to $KAFKA_HOME/libs.  Then create a copy of
+  * $KAFKA_HOME/bin/kafka-console-consumer.sh called "kafka-ds-log-viewer" and in the copy replace the
+  * classname in the exec command at the end of the script with
+  * org.locationtech.geomesa.kafka.KafkaDataStoreLogViewer.
+  */
+object KafkaDataStoreLogViewer extends Logging {
 
   import ConsoleConsumer._
   import KafkaGeoMessageFormatter._
@@ -94,6 +108,12 @@ object KafkaGeoMessageConsoleConsumer extends Logging {
       .describedAs("string")
       .ofType(classOf[String])
 
+    val fromOpt = parser.accepts("from",
+      "OPTIONAL: Where to start reading from.  Defaults to oldest.")
+      .withOptionalArg
+      .describedAs("oldest|newest")
+      .ofType(classOf[String])
+
     val options: OptionSet = tryParse(parser, args)
     CommandLineUtils.checkRequiredArgs(parser, options, zkConnectOpt, zkPathOpt, sftNameOpt)
 
@@ -101,23 +121,43 @@ object KafkaGeoMessageConsoleConsumer extends Logging {
     val zkPath = options.valueOf(zkPathOpt)
     val sftName = options.valueOf(sftNameOpt)
 
-    run(zookeepers, zkPath, sftName)
+    // TODO support from oldest+n, oldest+t, newest-n, newest-t, time=t, offset=o
+    val fromBeginning = {
+      if (options.has(fromOpt)) {
+        val from = options.valueOf(fromOpt)
+        if ("oldest".equalsIgnoreCase(from)) {
+          true
+        } else if ("newest".equalsIgnoreCase(from)) {
+          false
+        } else {
+          throw new IllegalArgumentException("Invalid 'from' option.  Legal values are 'oldest' and 'newest'")
+        }
+      } else {
+        true // default
+      }
+    }
+
+    run(zookeepers, zkPath, sftName, fromBeginning)
   }
 
-  def run(zookeeper: String, zkPath: String, sftName: String): Unit = {
+  def run(zookeeper: String, zkPath: String, sftName: String, fromBeginning: Boolean): Unit = {
     val featureConfig = new KafkaDataStore(zookeeper, zkPath, 1, 1, null).getFeatureConfig(sftName)
 
     val formatter = classOf[KafkaGeoMessageFormatter].getName
     val sftSpec = encodeSFT(featureConfig.sft)
 
-    val ccArgs = Array("--topic", featureConfig.topic,
+    var ccArgs = Seq("--topic", featureConfig.topic,
                        "--zookeeper", zookeeper,
                        "--formatter", formatter,
                        "--property", s"$sftNameKey=$sftName",
                        "--property", s"$sftSpecKey=$sftSpec")
 
+    if (fromBeginning) {
+      ccArgs :+= "--from-beginning"
+    }
+
     val ccClass = Class.forName("kafka.tools.ConsoleConsumer")
-    ConsoleConsumer.main(ccArgs)
+    ConsoleConsumer.main(ccArgs.toArray)
   }
 
   // double encode so that spec can be passed via command line
@@ -126,4 +166,11 @@ object KafkaGeoMessageConsoleConsumer extends Logging {
 
   def decodeSFT(name: String, spec: String): SimpleFeatureType =
     SimpleFeatureTypes.createType(name, spec.replaceAll("%61", "=").replaceAll("%37", "%"))
+}
+
+object KafkaGeoMessageFormatter {
+  private[kafka] val sftNameKey = "sft.name"
+  private[kafka] val sftSpecKey = "sft.spec"
+
+  val lineSeparator = "\n".getBytes(StandardCharsets.UTF_8)
 }
