@@ -30,11 +30,11 @@
         <module>geomesa-filter</module>
         <module>geomesa-core</module>
         <module>geomesa-distributed-runtime</module>
-        <module>geomesa-jobs</module>
+        <!--<module>geomesa-jobs</module>-->
         <module>geomesa-plugin</module>
         <module>geomesa-kafka</module>
         <module>geomesa-convert</module>
-        <module>geomesa-tools</module>
+        <!--<module>geomesa-tools</module>-->
         <module>geomesa-compute</module>
         <module>geomesa-assemble</module>
         <module>geomesa-web</module>
@@ -631,20 +631,20 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
-                <artifactId>accumulo-server</artifactId>
+                <artifactId>accumulo-server-base</artifactId>
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
-                <artifactId>accumulo-server</artifactId>
+                <artifactId>accumulo-server-base</artifactId>
                 <version>${accumulo.version}</version>
                 <classifier>source</classifier>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
-                <artifactId>accumulo-server-base</artifactId>
+                <artifactId>accumulo-server-base-base</artifactId>
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
             </dependency>

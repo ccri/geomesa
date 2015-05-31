@@ -55,7 +55,8 @@
     <modules>
         <module>geomesa-web-core</module>
         <module>geomesa-web-csv</module>
-        <module>geomesa-web-data</module>
+
+        <!--JNH: Restore once tools are fixed.. <module>geomesa-web-data</module>-->
         <module>geomesa-web-security</module>
     </modules>
 

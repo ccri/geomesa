@@ -59,16 +59,16 @@
                 </exclusion>
             </exclusions>
         </dependency>
-      <dependency>
-          <groupId>org.locationtech.geomesa</groupId>
-          <artifactId>geomesa-jobs-accumulo1.7</artifactId>
-          <exclusions>
-              <exclusion>
-                  <groupId>org.geotools</groupId>
-                  <artifactId>*</artifactId>
-              </exclusion>
-          </exclusions>
-      </dependency>
+      <!--<dependency>-->
+          <!--<groupId>org.locationtech.geomesa</groupId>-->
+          <!--<artifactId>geomesa-jobs-accumulo1.7</artifactId>-->
+          <!--<exclusions>-->
+              <!--<exclusion>-->
+                  <!--<groupId>org.geotools</groupId>-->
+                  <!--<artifactId>*</artifactId>-->
+              <!--</exclusion>-->
+          <!--</exclusions>-->
+      <!--</dependency>-->
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>

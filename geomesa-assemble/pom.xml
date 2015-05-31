@@ -48,14 +48,14 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-feature-accumulo1.7</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools-accumulo1.7</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-jobs-accumulo1.7</artifactId>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.locationtech.geomesa</groupId>-->
+            <!--<artifactId>geomesa-tools-accumulo1.7</artifactId>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+            <!--<groupId>org.locationtech.geomesa</groupId>-->
+            <!--<artifactId>geomesa-jobs-accumulo1.7</artifactId>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-distributed-runtime-accumulo1.7</artifactId>
@@ -77,10 +77,10 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-web-csv-accumulo1.7</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-web-data-accumulo1.7</artifactId>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.locationtech.geomesa</groupId>-->
+            <!--<artifactId>geomesa-web-data-accumulo1.7</artifactId>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-web-security-accumulo1.7</artifactId>

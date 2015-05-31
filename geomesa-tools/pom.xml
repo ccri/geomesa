@@ -104,7 +104,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.accumulo</groupId>
-            <artifactId>accumulo-server-base</artifactId>
+            <artifactId>accumulo-server-base-base</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.accumulo</groupId>
