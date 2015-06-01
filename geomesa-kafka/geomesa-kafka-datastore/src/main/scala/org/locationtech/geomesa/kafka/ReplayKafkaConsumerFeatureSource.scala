@@ -15,6 +15,8 @@
  */
 package org.locationtech.geomesa.kafka
 
+import java.util.Date
+
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.index.quadtree.Quadtree
 import org.geotools.data.store.ContentEntry
@@ -172,19 +174,19 @@ object ReplayTimeHelper {
 
   private[kafka] val ff = CommonFactoryFinder.getFilterFactory2
 
-  val AttributeName: String = "KafkaReplayTimestamp"
+  val AttributeName: String = "KafkaLogTime"
   val AttributeProp: PropertyName = ff.property(AttributeName)
 
   def addReplayTimeAttribute(builder: SimpleFeatureTypeBuilder): Unit =
-    builder.add(AttributeName, classOf[java.lang.Long])
+    builder.add(AttributeName, classOf[Date])
   
   def toFilter(time: Instant): Filter =
-    ff.equals(AttributeProp, ff.literal(time.getMillis))
+    ff.equals(AttributeProp, ff.literal(time.toDate))
 
   def fromFilter(filter: PropertyIsEqualTo): Option[Long] = {
     checkOrder(filter.getExpression1, filter.getExpression2)
-      .filter(pl => pl.name == AttributeName && pl.literal.getValue.isInstanceOf[java.lang.Long])
-      .map(_.literal.getValue.asInstanceOf[Long])
+      .filter(pl => pl.name == AttributeName && pl.literal.getValue.isInstanceOf[Date])
+      .map(pl => new Instant(pl.literal.getValue.asInstanceOf[Date]).getMillis)
   }
 }
 
@@ -194,13 +196,16 @@ object ReplayTimeHelper {
 class ReplayTimeHelper(sft: SimpleFeatureType, replayTime: Long) {
   import ReplayTimeHelper._
 
-  lazy val builder = new SimpleFeatureBuilder(sft)
-  lazy val attrIndex = sft.indexOf(AttributeName)
+  private val replayDate = new java.util.Date(replayTime)
+  private val builder = new SimpleFeatureBuilder(sft)
+  private val attrIndex = sft.indexOf(AttributeName)
+
+  require(attrIndex >= 0, s"Invalid SFT.  The $AttributeName attribute is missing.")
 
   /** Copy the given ``sf`` and add a value for the replay time attribute. */
   def addReplayTime(sf: SimpleFeature): SimpleFeature = {
     builder.init(sf)
-    builder.set(attrIndex, replayTime)
+    builder.set(attrIndex, replayDate)
     builder.buildFeature(sf.getID)
   }
 }

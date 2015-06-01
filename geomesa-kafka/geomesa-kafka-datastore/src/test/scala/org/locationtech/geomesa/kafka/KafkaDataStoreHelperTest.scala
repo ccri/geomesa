@@ -16,6 +16,8 @@
 
 package org.locationtech.geomesa.kafka
 
+import java.util.Date
+
 import org.geotools.feature.AttributeTypeBuilder
 import org.joda.time.{Duration, Instant}
 import org.junit.runner.RunWith
@@ -169,7 +171,7 @@ class KafkaDataStoreHelperTest extends Specification {
 
       val (expectedAttribType, expectedAttribute) = {
         val builder = new AttributeTypeBuilder()
-        builder.setBinding(classOf[java.lang.Long])
+        builder.setBinding(classOf[Date])
         builder.setName(ReplayTimeHelper.AttributeName)
 
         val attribType = builder.buildType
