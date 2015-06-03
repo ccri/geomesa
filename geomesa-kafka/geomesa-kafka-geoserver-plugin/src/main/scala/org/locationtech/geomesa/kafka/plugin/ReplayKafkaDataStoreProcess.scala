@@ -91,7 +91,7 @@ class ReplayKafkaDataStoreProcess(val catalog: Catalog) extends GeomesaKafkaProc
     // go back to the DS to get the schema to ensure that it contains all required user data
     val extantSFT: SimpleFeatureType = ds.getSchema(features.getSchema.getTypeName)
 
-    val replaySFT: SimpleFeatureType = KafkaDataStoreHelper.prepareForReplay(extantSFT, rConfig)
+    val replaySFT: SimpleFeatureType = KafkaDataStoreHelper.createReplaySFT(extantSFT, rConfig)
 
     // check for existing layer
     if (checkForLayer(storeInfo.getWorkspace.getName, replaySFT.getTypeName)) {

@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-
 package org.locationtech.geomesa.kafka.plugin
 
 import com.typesafe.scalalogging.slf4j.Logging
+import org.geoserver.catalog.event._
 import org.geoserver.catalog.{Catalog, FeatureTypeInfo, LayerInfo}
 import org.geotools.data.DataStore
 import org.geotools.process.factory.{DescribeProcess, DescribeResult}
 import org.joda.time.{Duration, Instant}
+import org.locationtech.geomesa.kafka.plugin.ReplayKafkaDataStoreProcess._
 
 import scala.collection.JavaConversions._
 import scala.util.Try
+import scala.util.control.NonFatal
 
 @DescribeProcess(
   title = "GeoMesa Replay Kafka Layer Reaper",
@@ -33,13 +35,20 @@ import scala.util.Try
 )
 class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
   extends GeomesaKafkaProcess with Logging with Runnable {
-  import org.locationtech.geomesa.kafka.plugin.ReplayKafkaDataStoreProcess._
 
-  @DescribeResult(name = "result", description = "If removal was successful, true.")
+  import ReplayKafkaLayerReaper._
+
+  // register a listener to handle user deletion of replay layers
+  catalog.addListener(new ReplayKafkaLayerCatalogListener())
+
+  @DescribeResult(name = "result",
+                  description = "If all eligible layers were removed successfully, true, otherwise false.")
   def execute(): Boolean = {
     Try {
       val currentTime: Instant = long2Long(System.currentTimeMillis())
       val ageLimit: Instant = currentTime.minus(Duration.standardHours(hours))
+
+      var error = false
 
       for {
         layer <- catalog.getLayers
@@ -48,23 +57,65 @@ class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
         sftName <- getSftName(layer)
         ds <- getDataStore(layer)
       } {
-        catalog.remove(layer)
-        ds.removeSchema(sftName)
+        try {
+          logger.debug(s"Cleaning up replay layer $layer for simple feature type $sftName")
+          catalog.remove(layer)
+          ds.removeSchema(sftName)
+        } catch {
+          case NonFatal(e) =>
+            logger.error(s"Error cleaning up replay layer $layer for simple feature type $sftName", e)
+            error = true
+        }
       }
-    }.isSuccess
-  }
 
-  private def getDataStore(layerInfo: LayerInfo): Option[DataStore] = layerInfo.getResource match {
-    case fti: FeatureTypeInfo => Some(fti.getStore.getDataStore(null).asInstanceOf[DataStore])
-    case _ => None
+      error
+    }.getOrElse(false)
   }
-
-  private def isOldReplayLayer(l: LayerInfo, s: String): Boolean = l.getMetadata.containsValue(s)
 
   private val message = "Running Replay Kafka Layer Cleaner"
 
   override def run(): Unit = {
     logger.info(message)
     execute()
+  }
+}
+
+class ReplayKafkaLayerCatalogListener extends CatalogListener with Logging {
+
+  import ReplayKafkaLayerReaper._
+
+  override def handleRemoveEvent(event: CatalogRemoveEvent): Unit = event.getSource match {
+    case layer: LayerInfo =>
+      Try {
+        for {
+          sftName <- getSftName(layer)
+          ds <- getDataStore(layer)
+        } {
+          try {
+            logger.debug(s"Cleaning up replay layer $layer for simple feature type $sftName")
+            ds.removeSchema(sftName)
+          } catch {
+            case NonFatal(e) =>
+              logger.error(s"Error cleaning up replay layer $layer for simple feature type $sftName", e)
+          }
+        }
+      }
+    case _ =>
+  }
+
+  override def reloaded(): Unit = {}
+
+  override def handleAddEvent(event: CatalogAddEvent): Unit = {}
+
+  override def handlePostModifyEvent(event: CatalogPostModifyEvent): Unit = {}
+
+  override def handleModifyEvent(event: CatalogModifyEvent): Unit = {}
+}
+
+object ReplayKafkaLayerReaper extends Logging {
+
+  def getDataStore(layerInfo: LayerInfo): Option[DataStore] = layerInfo.getResource match {
+    case fti: FeatureTypeInfo => Some(fti.getStore.getDataStore(null).asInstanceOf[DataStore])
+    case _ => None
   }
 }
