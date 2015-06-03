@@ -18,9 +18,10 @@
 package org.locationtech.geomesa.kafka.plugin
 
 import com.typesafe.scalalogging.slf4j.Logging
-import org.geoserver.catalog.{Catalog, DataStoreInfo, LayerInfo}
+import org.geoserver.catalog.{Catalog, FeatureTypeInfo, LayerInfo}
+import org.geotools.data.DataStore
 import org.geotools.process.factory.{DescribeProcess, DescribeResult}
-import org.joda.time.{Instant, Duration}
+import org.joda.time.{Duration, Instant}
 
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -40,29 +41,22 @@ class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
       val currentTime: Instant = long2Long(System.currentTimeMillis())
       val ageLimit: Instant = currentTime.minus(Duration.standardHours(hours))
 
-      // Get DataStoreInfo Schema pairs for old Schemas
-      val oldOnly = for {
-        dsi <- catalog.getDataStores
-        schema <- getReplaySchemaNames(dsi)
-        age <- getVolatileAge(dsi, schema)
-        if age.isBefore(ageLimit)
-      } yield (dsi, schema)
-
       for {
         layer <- catalog.getLayers
-        ds <- oldOnly.map(_._1.getDataStore(null))
-        oldSchema <- oldOnly.map(_._2)
-        oldName <- ds.getNames.filter(_.getLocalPart.contains(oldSchema))
-        if isOldReplayLayer(layer, oldName.getLocalPart)
+        age <- getVolatileAge(layer)
+        if age.isBefore(ageLimit)
+        sftName <- getSftName(layer)
+        ds <- getDataStore(layer)
       } {
         catalog.remove(layer)
-        ds.removeSchema(oldName)
+        ds.removeSchema(sftName)
       }
     }.isSuccess
   }
 
-  private def getReplaySchemaNames(dsi: DataStoreInfo): List[String] = {
-    dsi.getMetadata.keysIterator.flatMap(getSftFromKey).toList
+  private def getDataStore(layerInfo: LayerInfo): Option[DataStore] = layerInfo.getResource match {
+    case fti: FeatureTypeInfo => Some(fti.getStore.getDataStore(null).asInstanceOf[DataStore])
+    case _ => None
   }
 
   private def isOldReplayLayer(l: LayerInfo, s: String): Boolean = l.getMetadata.containsValue(s)
