@@ -36,9 +36,8 @@ import scala.util.control.NonFatal
 class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
   extends GeomesaKafkaProcess with Logging with Runnable {
 
-  import ReplayKafkaLayerReaper._
-
-  // register a listener to handle user deletion of replay layers
+  // register a listener to remove the schema when a replay layer is deleted
+  // this will be triggered by both a user deleting a layer and the reaper process
   catalog.addListener(new ReplayKafkaLayerCatalogListener())
 
   @DescribeResult(name = "result",
@@ -54,16 +53,13 @@ class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
         layer <- catalog.getLayers
         age <- getVolatileAge(layer)
         if age.isBefore(ageLimit)
-        sftName <- getSftName(layer)
-        ds <- getDataStore(layer)
       } {
         try {
-          logger.debug(s"Cleaning up replay layer $layer for simple feature type $sftName")
+          logger.debug(s"Deleting old replay layer $layer.")
           catalog.remove(layer)
-          ds.removeSchema(sftName)
         } catch {
           case NonFatal(e) =>
-            logger.error(s"Error cleaning up replay layer $layer for simple feature type $sftName", e)
+            logger.error(s"Error deleting old replay layer $layer.", e)
             error = true
         }
       }
@@ -82,8 +78,6 @@ class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
 
 class ReplayKafkaLayerCatalogListener extends CatalogListener with Logging {
 
-  import ReplayKafkaLayerReaper._
-
   override def handleRemoveEvent(event: CatalogRemoveEvent): Unit = event.getSource match {
     case layer: LayerInfo =>
       Try {
@@ -92,11 +86,11 @@ class ReplayKafkaLayerCatalogListener extends CatalogListener with Logging {
           ds <- getDataStore(layer)
         } {
           try {
-            logger.debug(s"Cleaning up replay layer $layer for simple feature type $sftName")
+            logger.debug(s"Deleting Replay SFT $sftName from layer $layer.")
             ds.removeSchema(sftName)
           } catch {
             case NonFatal(e) =>
-              logger.error(s"Error cleaning up replay layer $layer for simple feature type $sftName", e)
+              logger.error(s"Error deleting Replay SFT $sftName from layer $layer.", e)
           }
         }
       }
@@ -110,11 +104,8 @@ class ReplayKafkaLayerCatalogListener extends CatalogListener with Logging {
   override def handlePostModifyEvent(event: CatalogPostModifyEvent): Unit = {}
 
   override def handleModifyEvent(event: CatalogModifyEvent): Unit = {}
-}
 
-object ReplayKafkaLayerReaper extends Logging {
-
-  def getDataStore(layerInfo: LayerInfo): Option[DataStore] = layerInfo.getResource match {
+  private def getDataStore(layerInfo: LayerInfo): Option[DataStore] = layerInfo.getResource match {
     case fti: FeatureTypeInfo => Some(fti.getStore.getDataStore(null).asInstanceOf[DataStore])
     case _ => None
   }
