@@ -16,7 +16,7 @@ class DateToLong
     )
   ) {
 
-  override def evaluate(feature: SimpleFeature): jl.Object =
+  def evaluate(feature: SimpleFeature): jl.Object =
     jl.Long.valueOf(getExpression(0).evaluate(feature).asInstanceOf[java.util.Date].getTime)
 
   override def evaluate(o: jl.Object): jl.Object =
