@@ -41,6 +41,7 @@
     <!-- The cleanup WPS that removes outdated replay layers and schemas.-->
     <bean id="replayKafkaLayerReaper" class="org.locationtech.geomesa.kafka.plugin.ReplayKafkaLayerReaperProcess">
         <constructor-arg index="0" ref="catalog"/>
+        <!--arg1: Number of hours after creation to delete -->
         <constructor-arg index="1" value="1"/>
     </bean>
 
