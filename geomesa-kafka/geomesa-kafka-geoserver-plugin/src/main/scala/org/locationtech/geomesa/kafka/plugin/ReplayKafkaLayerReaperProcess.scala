@@ -18,11 +18,11 @@ package org.locationtech.geomesa.kafka.plugin
 
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geoserver.catalog.event._
-import org.geoserver.catalog.{Catalog, FeatureTypeInfo, LayerInfo}
+import org.geoserver.catalog.{Catalog, LayerInfo}
 import org.geotools.data.DataStore
 import org.geotools.process.factory.{DescribeProcess, DescribeResult}
 import org.joda.time.{Duration, Instant}
-import org.locationtech.geomesa.kafka.plugin.ReplayKafkaDataStoreProcess._
+import org.locationtech.geomesa.kafka.plugin.VolatileLayer._
 
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -44,7 +44,7 @@ class ReplayKafkaLayerReaperProcess(val catalog: Catalog, val hours: Int)
                   description = "If all eligible layers were removed successfully, true, otherwise false.")
   def execute(): Boolean = {
     Try {
-      val currentTime: Instant = long2Long(System.currentTimeMillis())
+      val currentTime: Instant = new Instant(System.currentTimeMillis())
       val ageLimit: Instant = currentTime.minus(Duration.standardHours(hours))
 
       var error = false
@@ -105,8 +105,11 @@ class ReplayKafkaLayerCatalogListener extends CatalogListener with Logging {
 
   override def handleModifyEvent(event: CatalogModifyEvent): Unit = {}
 
-  private def getDataStore(layerInfo: LayerInfo): Option[DataStore] = layerInfo.getResource match {
-    case fti: FeatureTypeInfo => Some(fti.getStore.getDataStore(null).asInstanceOf[DataStore])
-    case _ => None
-  }
+  private def getDataStore(layerInfo: LayerInfo): Option[DataStore] =
+    for {
+      fti <- GeoServerUtils.getFeatureTypeInfo(layerInfo)
+      ds <- GeoServerUtils.getDataStore(fti.getStore)
+    } yield {
+      ds
+    }
 }

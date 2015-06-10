@@ -21,11 +21,11 @@ import java.lang.{Long => JLong}
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geoserver.catalog._
 import org.geotools.data.DataStore
-import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.process.ProcessException
 import org.geotools.process.factory.{DescribeParameter, DescribeProcess, DescribeResult}
 import org.joda.time.{Duration, Instant}
 import org.locationtech.geomesa.kafka.{KafkaDataStoreHelper, ReplayConfig}
+import org.opengis.feature.`type`.Name
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.language.implicitConversions
@@ -36,62 +36,88 @@ import scala.language.implicitConversions
   version = "1.0.0"
 )
 class ReplayKafkaDataStoreProcess(val catalog: Catalog) extends GeomesaKafkaProcess with Logging {
-  import org.locationtech.geomesa.kafka.plugin.ReplayKafkaDataStoreProcess._
+
+  import org.locationtech.geomesa.kafka.plugin.VolatileLayer._
+
   @DescribeResult(name = "result", description = "Name of the Layer created for the Kafka Window")
   def execute(
-              @DescribeParameter(name = "features", description = "Source GeoServer Feature Collection, used for SFT.")
-              features: SimpleFeatureCollection,
-              @DescribeParameter(name = "workspace", description = "Workspace of Store.")
+              @DescribeParameter(name = "workspace", description = "Workspace containing the live layer.  The replay layer will be added here.")
               workspace: String,
-              @DescribeParameter(name = "store", description = "Store of features")
-              store: String,
-              @DescribeParameter(name = "startTime", description = "POSIX Start Time of the replay window (in milliseconds).")
-              startTime: java.lang.Long,
-              @DescribeParameter(name = "endTime", description = "POSIX End Time of the replay window (in milliseconds).")
-              endTime: java.lang.Long,
+              @DescribeParameter(name = "layer", description = "Source live layer.")
+              layer: String,
+              @DescribeParameter(name = "startTime", description = "Start Time of the replay window (UTC).")
+              startTime: java.util.Date,
+              @DescribeParameter(name = "endTime", description = "End Time of the replay window (UTC).")
+              endTime: java.util.Date,
               @DescribeParameter(name = "readBehind", description = "The amount of time to pre-read in milliseconds.")
               readBehind: java.lang.Long
               ): String = {
 
-    val storeInfo: DataStoreInfo = getDataStoreInfo(workspace, store)
-    val workspaceInfo: WorkspaceInfo = storeInfo.getWorkspace
+    val workspaceInfo = getWorkspaceInfo(workspace)
+    val layerInfo = getLayerInfo(workspaceInfo, layer)
+
+    val replayConfig = new ReplayConfig(
+      new Instant(startTime.getTime), new Instant(endTime.getTime), Duration.millis(readBehind))
+
+    execute(workspaceInfo, layerInfo, replayConfig)
+  }
+
+  def execute(workspaceInfo: WorkspaceInfo, layerInfo: LayerInfo, replayConfig: ReplayConfig): String = {
+
+    val featureInfo = getFeatureInfo(layerInfo)
+    val storeInfo = featureInfo.getStore
+
+    val sftName = featureInfo.getQualifiedNativeName
+
+    // create replay SFT
+    val replaySFT = createReplaySFT(storeInfo, sftName, replayConfig)
 
     // set the catalogBuilder to our store
     val catalogBuilder = new CatalogBuilder(catalog)
     catalogBuilder.setWorkspace(workspaceInfo)
     catalogBuilder.setStore(storeInfo)
+    
+    // build the feature type info
+    val replayFeatureInfo = catalogBuilder.buildFeatureType(replaySFT.getName)
+    catalogBuilder.setupBounds(replayFeatureInfo)
 
-    // parse time parameters and make Replay Config
-    val replayConfig = new ReplayConfig(startTime, endTime, readBehind)
-
-    // create volatile SFT
-    val volatileSFT = createVolatileSFT(storeInfo, features, replayConfig)
-
-    // build the type info
-    val volatileTypeInfo = catalogBuilder.buildFeatureType(volatileSFT.getName)
-    catalogBuilder.setupBounds(volatileTypeInfo)
-
-    // build the layer and mark as volatile
-    val volatileLayerInfo = catalogBuilder.buildLayer(volatileTypeInfo)
-    injectMetadata(volatileLayerInfo, volatileSFT)
+    // build the layer info and mark as volatile
+    val replayLayerInfo = catalogBuilder.buildLayer(replayFeatureInfo)
+    injectMetadata(replayLayerInfo, replaySFT)
 
     // add new layer with hints to GeoServer
-    catalog.add(volatileTypeInfo)
-    catalog.add(volatileLayerInfo)
+    catalog.add(replayFeatureInfo)
+    catalog.add(replayLayerInfo)
 
-    s"created layer: ${volatileLayerInfo.getName}"
+    s"created layer: ${replayLayerInfo.getName}"
   }
 
-  private def createVolatileSFT(storeInfo: DataStoreInfo,
-                                features: SimpleFeatureCollection,
-                                rConfig: ReplayConfig): SimpleFeatureType = {
+  private def getWorkspaceInfo(workspaceName: String): WorkspaceInfo =
+    Option(catalog.getWorkspaceByName(workspaceName)).getOrElse {
+      throw new ProcessException(s"Unable to find workspace $workspaceName.")
+    }
 
-    val ds = storeInfo.getDataStore(null).asInstanceOf[DataStore]
+  private def getLayerInfo(wi: WorkspaceInfo, layerName: String): LayerInfo = {
+    val workspaceName = wi.getName
+    Option(catalog.getLayerByName(s"$workspaceName:$layerName")).getOrElse {
+      throw new ProcessException(s"Unable to find layer $layerName in workspace $workspaceName.")
+    }
+  }
 
-    // go back to the DS to get the schema to ensure that it contains all required user data
-    val extantSFT: SimpleFeatureType = ds.getSchema(features.getSchema.getTypeName)
+  private def getFeatureInfo(li: LayerInfo): FeatureTypeInfo =
+    GeoServerUtils.getFeatureTypeInfo(li).getOrElse {
+      throw new ProcessException(s"Unable to get feature info from layer ${li.getName}.")
+    }
 
-    val replaySFT: SimpleFeatureType = KafkaDataStoreHelper.createReplaySFT(extantSFT, rConfig)
+  private def createReplaySFT(storeInfo: DataStoreInfo,
+                              liveSftName: Name,
+                              config: ReplayConfig): SimpleFeatureType = {
+
+    val ds = GeoServerUtils.getDataStore(storeInfo).getOrElse(throw new ProcessException(
+      s"Store '${storeInfo.getName}' is not a DataStore."))
+
+    val liveSFT = ds.getSchema(liveSftName)
+    val replaySFT = KafkaDataStoreHelper.createReplaySFT(liveSFT, config)
 
     // check for existing layer
     if (checkForLayer(storeInfo.getWorkspace.getName, replaySFT.getTypeName)) {
@@ -104,14 +130,6 @@ class ReplayKafkaDataStoreProcess(val catalog: Catalog) extends GeomesaKafkaProc
     ds.getSchema(replaySFT.getName)
   }
 
-  private def getDataStoreInfo(workspace: String, dataStore: String): DataStoreInfo = {
-    val wsInfo = Option(catalog.getWorkspaceByName(workspace)).getOrElse(catalog.getDefaultWorkspace)
-
-    Option(catalog.getDataStoreByName(wsInfo.getName, dataStore)).getOrElse {
-      throw new ProcessException(s"Unable to find store $dataStore in source workspace ${wsInfo.getName}")
-    }
-  }
-
   private def checkForLayer(workspace: String, sftTypeName: String): Boolean = {
     val layerName = s"$workspace:$sftTypeName"
     catalog.getLayerByName(layerName) != null
@@ -119,12 +137,30 @@ class ReplayKafkaDataStoreProcess(val catalog: Catalog) extends GeomesaKafkaProc
 
 }
 
-object ReplayKafkaDataStoreProcess {
-  val volatileLayerSftHint: String = "kafka.geomesa.volatile.layer.sft"
-  val volatileLayerAgeHint: String = "kafka.geomesa.volatile.layer.age"
+/** General purpose utils, not specific to replay layers.
+  * 
+  */
+object GeoServerUtils {
 
-  implicit def longToInstant(l: JLong): Instant = new Instant(l)
-  implicit def longToDuration(l: JLong): Duration = new Duration(l)
+  def getFeatureTypeInfo(li: LayerInfo): Option[FeatureTypeInfo] = li.getResource match {
+    case fti: FeatureTypeInfo => Some(fti)
+    case _ => None
+  }
+
+  def getSimpleFeatureType(fti: FeatureTypeInfo): Option[SimpleFeatureType] = fti.getFeatureType match {
+    case sft: SimpleFeatureType => Some(sft)
+    case _ => None
+  }
+
+  def getDataStore(dsi: DataStoreInfo): Option[DataStore] = dsi.getDataStore(null) match {
+    case ds: DataStore => Some(ds)
+    case _ => None
+  }
+}
+
+object VolatileLayer {
+  val volatileLayerSftHint: String = "geomesa.volatile.layer.sft"
+  val volatileLayerAgeHint: String = "geomesa.volatile.layer.age"
 
   def injectMetadata(info: LayerInfo, sft: SimpleFeatureType): Unit = {
     info.getMetadata.put(volatileLayerSftHint, sft.getTypeName)
@@ -135,5 +171,5 @@ object ReplayKafkaDataStoreProcess {
     Option(info.getMetadata.get(volatileLayerSftHint, classOf[String]))
 
   def getVolatileAge(info: LayerInfo): Option[Instant] =
-    Option(info.getMetadata.get(volatileLayerAgeHint, classOf[JLong]))
+    Option(new Instant(info.getMetadata.get(volatileLayerAgeHint, classOf[JLong])))
 }
