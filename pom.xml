@@ -45,7 +45,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scala.version>2.10.5</scala.version>
         <geoserver.version>2.5.2</geoserver.version>
-        <gt.version>14-SNAPSHOT</gt.version>
+        <gt.version>14-M0</gt.version>
         <jts.version>1.13</jts.version>
         <jackson.codehaus.version>1.9.3</jackson.codehaus.version>
 
