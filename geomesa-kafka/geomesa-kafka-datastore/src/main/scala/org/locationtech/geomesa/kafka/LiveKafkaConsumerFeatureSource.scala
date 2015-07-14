@@ -21,6 +21,7 @@ import org.locationtech.geomesa.utils.geotools.FR
 import org.locationtech.geomesa.utils.index.{BucketIndex, SpatialIndex}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
+import org.opengis.filter.spatial.{BBOX, Within}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -163,6 +164,20 @@ class LiveFeatureCache(override val sft: SimpleFeatureType,
       spatialIndex.remove(old.env, old.sf)
       cache.invalidate(id)
     }
+  }
+
+  def cleanUp(): Unit = {
+    cache.cleanUp()
+  }
+
+  override def within(w: Within): FR = {
+    cleanUp()
+    super.within(w)
+  }
+
+  override def bbox(b: BBOX): FR = {
+    cleanUp()
+    super.bbox(b)
   }
 
   def clear(): Unit = {
