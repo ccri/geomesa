@@ -14,13 +14,15 @@ import com.google.common.base.Ticker
 import com.google.common.cache._
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geotools.data.Query
+import org.geotools.data.collection.DelegateFeatureReader
 import org.geotools.data.store.ContentEntry
+import org.geotools.feature.collection.DelegateFeatureIterator
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumerFactory
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.FR
 import org.locationtech.geomesa.utils.index.{BucketIndex, SpatialIndex}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.filter.Filter
+import org.opengis.filter.{IncludeFilter, Filter}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -142,7 +144,7 @@ class LiveFeatureCache(override val sft: SimpleFeatureType,
     cb.build()
   }
 
-  override val features: mutable.Map[String, FeatureHolder] = cache.asMap().asScala
+  override def features: mutable.Map[String, FeatureHolder] = cache.asMap().asScala
 
   def createOrUpdateFeature(update: CreateOrUpdate): Unit = {
     val sf = update.feature
@@ -160,8 +162,8 @@ class LiveFeatureCache(override val sft: SimpleFeatureType,
     val id = toDelete.id
     val old = cache.getIfPresent(id)
     if (old != null) {
-      spatialIndex.remove(old.env, old.sf)
       cache.invalidate(id)
+      spatialIndex.remove(old.env, old.sf)
     }
   }
 
@@ -169,6 +171,12 @@ class LiveFeatureCache(override val sft: SimpleFeatureType,
     cache.invalidateAll()
     spatialIndex = newSpatialIndex()
   }
+//
+//  import org.locationtech.geomesa.utils.geotools._
+//  import scala.collection.JavaConversions._
+//
+//  override def include(i: IncludeFilter) = new DFR(sft, new DFI(features.valuesIterator.map(_.sf)))
+//
 
   private def newSpatialIndex() = new BucketIndex[SimpleFeature]
 }
