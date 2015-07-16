@@ -166,18 +166,9 @@ class LiveFeatureCache(override val sft: SimpleFeatureType,
     }
   }
 
-  def cleanUp(): Unit = {
+  override def getReaderForFilter(f: Filter): FR = {
     cache.cleanUp()
-  }
-
-  override def within(w: Within): FR = {
-    cleanUp()
-    super.within(w)
-  }
-
-  override def bbox(b: BBOX): FR = {
-    cleanUp()
-    super.bbox(b)
+    super.getReaderForFilter(f)
   }
 
   def clear(): Unit = {
