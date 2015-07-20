@@ -11,8 +11,6 @@ package org.locationtech.geomesa.plugin.ui
 import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.client.{Connector, IsolatedScanner}
 import org.apache.accumulo.core.data.KeyExtent
-import org.apache.accumulo.core.metadata.MetadataTable
-import org.apache.accumulo.core.metadata.schema.MetadataSchema
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.io.Text
 import org.apache.wicket.markup.html.internal.HtmlHeaderContainer
@@ -218,9 +216,10 @@ object GeoMesaDataStoresPage {
   def getTableMetadata(connector: Connector, featureName: String, tableName: String, tableId: String, displayName: String): TableMetadata = {
     // TODO move this to core utility class where it can be re-used
 
+    import org.locationtech.geomesa.accumulo.metadata.Metadata._
 
-    val scanner = new IsolatedScanner(connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)
+    val scanner = new IsolatedScanner(connector.createScanner(AccumuloMetadataTableName, EmptyAuths))
+    scanner.fetchColumnFamily(AccumuloMetadataCF)
     scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange)
 
     var fileSize:Long = 0

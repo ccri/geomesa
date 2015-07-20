@@ -12,7 +12,7 @@ import java.io.{DataInput, DataOutput}
 import java.lang.Float.isNaN
 
 import com.typesafe.scalalogging.slf4j.Logging
-import org.apache.accumulo.core.client.mapred.{AbstractInputFormat, AccumuloInputFormat, InputFormatBase, RangeInputSplit}
+import org.apache.accumulo.core.client.mapred.{AccumuloInputFormat, InputFormatBase, RangeInputSplit}
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.security.Authorizations
