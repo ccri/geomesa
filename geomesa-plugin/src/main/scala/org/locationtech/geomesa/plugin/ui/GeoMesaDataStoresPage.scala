@@ -8,18 +8,16 @@
 
 package org.locationtech.geomesa.plugin.ui
 
-import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.client.{Connector, IsolatedScanner}
 import org.apache.accumulo.core.data.KeyExtent
-import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.io.Text
 import org.apache.wicket.markup.html.internal.HtmlHeaderContainer
 import org.apache.wicket.markup.html.list.{ListItem, ListView}
 import org.geoserver.catalog.StoreInfo
 import org.geoserver.web.data.store.{StorePanel, StoreProvider}
 import org.geotools.data.{DataStoreFinder, Query}
-import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStore}
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStoreFactory.params._
+import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreFactory}
 import org.locationtech.geomesa.plugin.ui.components.DataStoreInfoPanel
 
 import scala.collection.JavaConverters._
