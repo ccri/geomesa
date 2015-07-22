@@ -218,8 +218,10 @@ object GeoMesaDataStoresPage {
   def getTableMetadata(connector: Connector, featureName: String, tableName: String, tableId: String, displayName: String): TableMetadata = {
     // TODO move this to core utility class where it can be re-used
 
-    val scanner = new IsolatedScanner(connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS))
-    scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY)
+    import org.locationtech.geomesa.accumulo.AccumuloVersion._
+
+    val scanner = new IsolatedScanner(connector.createScanner(AccumuloMetadataTableName, EmptyAuths))
+    scanner.fetchColumnFamily(AccumuloMetadataCF)
     scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange())
 
     var fileSize:Long = 0
@@ -227,17 +229,19 @@ object GeoMesaDataStoresPage {
     var numSplits:Long = 0
     var numTablets:Long = 0
 
-    var lastTablet = ""
+    //var lastTablet = ""
 
     scanner.asScala.foreach {
       case entry =>
+        println(s"Entry: $entry")
         //  example cq: /t-0005bta/F0005bum.rf
         val cq = entry.getKey.getColumnQualifier.toString
-        val tablet = cq.split("/")(1)
-        if (lastTablet != tablet) {
-          numTablets = numTablets + 1
-          lastTablet = tablet
-        }
+        //val tablet = cq.split("/")(1)
+        numTablets = numTablets + 1
+//        if (lastTablet != tablet) {
+//          numTablets = numTablets + 1
+//          lastTablet = tablet
+//        }
         // example value: 79362732,2171839
         val components = entry.getValue.toString.split(",")
         fileSize = fileSize + components(0).toLong
