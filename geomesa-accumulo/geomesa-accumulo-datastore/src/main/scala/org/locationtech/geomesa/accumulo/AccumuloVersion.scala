@@ -16,19 +16,17 @@ object AccumuloVersion extends Enumeration {
       throw new Exception(s"GeoMesa does not currently support Accumulo ${Constants.VERSION}.")
     }
   }
-
   def announceVersion(v: String) = {
     println("*****************")
     println(s"VERSION: $v detected")
-    println(s"AMTN: $AccumuloMetadataTableName")
-    println(s"AMCF: $AccumuloMetadataCF")
-    println(s"Empty $EmptyAuths")
     println("*****************")
   }
 
-  lazy val AccumuloMetadataTableName = getMetadataTable
-  lazy val AccumuloMetadataCF = getMetadataColumnFamily
-  lazy val EmptyAuths: Authorizations = getEmptyAuths
+  lazy val AccumuloMetadataTableName = printVal("AccumuloMetaTableName", getMetadataTable)
+  lazy val AccumuloMetadataCF = printVal("MetaCF", getMetadataColumnFamily)
+  lazy val EmptyAuths: Authorizations = printVal("Empty", getEmptyAuths)
+
+  def printVal[T](s: String, v: T): T = {println(s"***$s: $v"); v}
 
   def getMetadataTable: String = {
     accumuloVersion match {
