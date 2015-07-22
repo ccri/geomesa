@@ -4,7 +4,8 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.mapreduce.Job
-import org.locationtech.geomesa.jobs.AccumuloVersion._
+import org.locationtech.geomesa.accumulo.AccumuloVersion
+import AccumuloVersion._
 
 object InputFormatBaseAdapter {
 

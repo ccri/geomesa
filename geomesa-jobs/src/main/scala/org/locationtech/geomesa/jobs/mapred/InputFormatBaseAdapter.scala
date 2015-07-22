@@ -6,7 +6,8 @@ import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.mapreduce.Job
 import org.apache.log4j.Level
-import org.locationtech.geomesa.jobs.AccumuloVersion._
+import org.locationtech.geomesa.accumulo.AccumuloVersion
+import AccumuloVersion._
 
 object InputFormatBaseAdapter {
 

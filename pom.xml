@@ -677,6 +677,7 @@
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
             </dependency>
+<!--
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
                 <artifactId>accumulo-server</artifactId>
@@ -690,6 +691,7 @@
                 <classifier>source</classifier>
                 <scope>provided</scope>
             </dependency>
+-->
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
                 <artifactId>cloudtrace</artifactId>
