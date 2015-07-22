@@ -9,7 +9,7 @@ object AccumuloVersion extends Enumeration {
   val V15, V16, V17 = Value
 
   lazy val accumuloVersion: AccumuloVersion = {
-    if (Constants.VERSION.startsWith("1.5")) V15
+    if      (Constants.VERSION.startsWith("1.5")) V15
     else if (Constants.VERSION.startsWith("1.6")) V16
     else if (Constants.VERSION.startsWith("1.7")) V17
     else {
@@ -25,7 +25,7 @@ object AccumuloVersion extends Enumeration {
 
   lazy val AccumuloMetadataTableName = getMetadataTable
   lazy val AccumuloMetadataCF = getMetadataColumnFamily
-  lazy val EmptyAuths = Authorizations.EMPTY
+  lazy val EmptyAuths: Authorizations = Authorizations.EMPTY
 
   def getMetadataTable: String = {
     accumuloVersion match {
@@ -39,20 +39,35 @@ object AccumuloVersion extends Enumeration {
   def getMetadataColumnFamily: Text = {
     accumuloVersion match {
       case V15 =>
-        getStringFromText("org.apache.accumulo.core.Constants", "METADATA_DATAFILE_COLUMN_FAMILY")
+        getTextFromString("org.apache.accumulo.core.Constants", "METADATA_DATAFILE_COLUMN_FAMILY")
       case V16 =>
-        getStringFromText("org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily", "NAME")
+        getTextFromString("org.apache.accumulo.core.metadata.schema.MetadataSchema$TabletsSection$DataFileColumnFamily", "NAME")
     }
   }
+
+  def getEmptyAuths: Authorizations = {
+    accumuloVersion match {
+      case V15 =>
+        getAuthsFromClass("org.apache.accumulo.core.Constants", "NO_AUTHS")
+      case V16 =>
+        getAuthsFromClass("org.apache.accumulo.core.security.Authorizations", "EMPTY")
+    }
+  }
+
 
   def getStringFromClass(className: String, field: String): String = {
     val clazz = Class.forName(className)
     clazz.getDeclaredField(field).get(classOf[String]).asInstanceOf[String]
   }
 
-  def getStringFromText(className: String, field: String): Text = {
+  def getTextFromString(className: String, field: String): Text = {
     val clazz = Class.forName(className)
     clazz.getDeclaredField(field).get(classOf[Text]).asInstanceOf[Text]
+  }
+
+  def getAuthsFromClass(className: String, field: String): Authorizations = {
+    val clazz = Class.forName(className)
+    clazz.getDeclaredField(field).get(classOf[Text]).asInstanceOf[Authorizations]
   }
 
 
