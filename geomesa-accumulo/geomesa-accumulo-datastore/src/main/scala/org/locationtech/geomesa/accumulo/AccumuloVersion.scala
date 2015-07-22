@@ -25,7 +25,7 @@ object AccumuloVersion extends Enumeration {
 
   lazy val AccumuloMetadataTableName = getMetadataTable
   lazy val AccumuloMetadataCF = getMetadataColumnFamily
-  lazy val EmptyAuths: Authorizations = Authorizations.EMPTY
+  lazy val EmptyAuths: Authorizations = getEmptyAuths
 
   def getMetadataTable: String = {
     accumuloVersion match {
