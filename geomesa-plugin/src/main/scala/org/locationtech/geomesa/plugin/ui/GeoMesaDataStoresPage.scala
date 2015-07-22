@@ -226,17 +226,19 @@ object GeoMesaDataStoresPage {
     var numSplits:Long = 0
     var numTablets:Long = 0
 
-    var lastTablet = ""
+    //var lastTablet = ""
 
     scanner.asScala.foreach {
       case entry =>
+        println(s"Entry: $entry")
         //  example cq: /t-0005bta/F0005bum.rf
         val cq = entry.getKey.getColumnQualifier.toString
-        val tablet = cq.split("/")(1)
-        if (lastTablet != tablet) {
-          numTablets = numTablets + 1
-          lastTablet = tablet
-        }
+        //val tablet = cq.split("/")(1)
+        numTablets = numTablets + 1
+//        if (lastTablet != tablet) {
+//          numTablets = numTablets + 1
+//          lastTablet = tablet
+//        }
         // example value: 79362732,2171839
         val components = entry.getValue.toString.split(",")
         fileSize = fileSize + components(0).toLong
