@@ -1,22 +1,25 @@
 package org.locationtech.geomesa.accumulo
 
-import org.apache.accumulo.core.client.IteratorSetting
-import org.apache.accumulo.core.client.mapred.AccumuloInputFormat
+import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.io.Text
-import org.apache.hadoop.mapreduce.Job
-
-import scala.util.{Failure, Success, Try}
 
 object AccumuloVersion extends Enumeration {
   type AccumuloVersion = Value
   val V15, V16, V17 = Value
 
   lazy val accumuloVersion: AccumuloVersion = {
-    Try(classOf[AccumuloInputFormat].getMethod("addIterator", classOf[Job], classOf[IteratorSetting])) match {
-      case Failure(t: NoSuchMethodException) => V15
-      case Success(m)                        => V16
-    }
+    if      (Constants.VERSION.startsWith("1.5")) V15
+    else if (Constants.VERSION.startsWith("1.6")) V16
+    else if (Constants.VERSION.startsWith("1.7")) V17
+    else {
+      throw new Exception(s"GeoMesa does not currently support Accumulo ${Constants.VERSION}.")
+  }
+
+  def announceVersion(v: String) = {
+    println("*****************")
+    println(s"VERSION: $v detected")
+    println("*****************")
   }
 
   lazy val AccumuloMetadataTableName = getMetadataTable
