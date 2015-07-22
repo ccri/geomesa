@@ -4,6 +4,8 @@ import org.apache.accumulo.core.Constants
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.io.Text
 
+import scala.reflect.ClassTag
+
 object AccumuloVersion extends Enumeration {
   type AccumuloVersion = Value
   val V15, V16, V17 = Value
@@ -48,8 +50,8 @@ object AccumuloVersion extends Enumeration {
     }
   }
 
-  def getTypeFromClass[T](className: String, field: String): T = {
+  def getTypeFromClass[T: ClassTag](className: String, field: String): T = {
     val clazz = Class.forName(className)
-    clazz.getDeclaredField(field).get(classOf[T]).asInstanceOf[T]
+    clazz.getDeclaredField(field).get(null).asInstanceOf[T]
   }
 }
