@@ -9,9 +9,9 @@ object AccumuloVersion extends Enumeration {
   val V15, V16, V17 = Value
 
   lazy val accumuloVersion: AccumuloVersion = {
-    if      (Constants.VERSION.startsWith("1.5")) V15
-    else if (Constants.VERSION.startsWith("1.6")) V16
-    else if (Constants.VERSION.startsWith("1.7")) V17
+    if      (Constants.VERSION.startsWith("1.5")) { announceVersion("1.5"); V15 }
+    else if (Constants.VERSION.startsWith("1.6")) { announceVersion("1.6"); V16 }
+    else if (Constants.VERSION.startsWith("1.7")) { announceVersion("1.7"); V17 }
     else {
       throw new Exception(s"GeoMesa does not currently support Accumulo ${Constants.VERSION}.")
     }
@@ -20,6 +20,9 @@ object AccumuloVersion extends Enumeration {
   def announceVersion(v: String) = {
     println("*****************")
     println(s"VERSION: $v detected")
+    println(s"AMTN: $AccumuloMetadataTableName")
+    println(s"AMCF: $AccumuloMetadataCF")
+    println(s"Empty $EmptyAuths")
     println("*****************")
   }
 

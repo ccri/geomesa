@@ -217,7 +217,7 @@ object GeoMesaDataStoresPage {
 
     import org.locationtech.geomesa.accumulo.AccumuloVersion._
 
-    val scanner = new IsolatedScanner(connector.createScanner(AccumuloMetadataTableName, Constants.NO_AUTHS))
+    val scanner = new IsolatedScanner(connector.createScanner(AccumuloMetadataTableName, EmptyAuths))
     scanner.fetchColumnFamily(AccumuloMetadataCF)
     scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange())
 
