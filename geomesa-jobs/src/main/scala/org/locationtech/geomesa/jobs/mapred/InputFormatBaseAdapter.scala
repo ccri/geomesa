@@ -12,7 +12,7 @@ import AccumuloVersion._
 object InputFormatBaseAdapter {
   def setConnectorInfo(job: JobConf, user: String, token: PasswordToken) = accumuloVersion match {
     case V15 => setConnectorInfo15(job, user, token)
-    case V16 => setConnectorInfo16(job, user, token)
+    case _ => setConnectorInfo16(job, user, token)
   }
 
   def setConnectorInfo15(job: JobConf, user: String, token: PasswordToken) = {
@@ -27,7 +27,7 @@ object InputFormatBaseAdapter {
 
   def setZooKeeperInstance(job: JobConf, instance: String, zookeepers: String) = accumuloVersion match {
     case V15 => setZooKeeperInstance15(job, instance, zookeepers)
-    case V16 => setZooKeeperInstance16(job, instance, zookeepers)
+    case _ => setZooKeeperInstance16(job, instance, zookeepers)
   }
 
   def setZooKeeperInstance15(job: JobConf, instance: String, zookeepers: String) = {
@@ -42,7 +42,7 @@ object InputFormatBaseAdapter {
 
   def setScanAuthorizations(job: JobConf, authorizations: Authorizations): Unit = accumuloVersion match {
     case V15 => setScanAuthorizations15(job, authorizations)
-    case V16 => setScanAuthorizations16(job, authorizations)
+    case _ => setScanAuthorizations16(job, authorizations)
   }
 
   def setScanAuthorizations15(job: JobConf, authorizations: Authorizations): Unit = {
@@ -57,7 +57,7 @@ object InputFormatBaseAdapter {
 
   def setLogLevel(job: JobConf, level: Level) = accumuloVersion match {
     case V15 => setLogLevel15(job, level)
-    case V16 => setLogLevel16(job, level)
+    case _ => setLogLevel16(job, level)
   }
 
   def setLogLevel15(job: JobConf, level: Level) = {

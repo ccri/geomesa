@@ -14,8 +14,9 @@ import org.apache.accumulo.core.client.mock.MockConnector
 import org.apache.accumulo.core.data.{Mutation, Range, Value}
 import org.apache.accumulo.core.security.ColumnVisibility
 import org.apache.accumulo.core.security.thrift.TCredentials
-import org.apache.accumulo.trace.instrument.Tracer
+//import org.apache.accumulo.trace.instrument.Tracer
 import org.apache.hadoop.io.Text
+import org.apache.htrace.Tracer
 import org.locationtech.geomesa.accumulo.data.AccumuloBackedMetadata._
 import org.locationtech.geomesa.accumulo.util.{GeoMesaBatchWriterConfig, SelfClosingIterator}
 import org.locationtech.geomesa.security.AuthorizationsProvider
@@ -213,20 +214,20 @@ class AccumuloBackedMetadata(connector: Connector,
   }
 
   // This lazily computed function helps shortcut getCount from scanning entire tables.
-  lazy val retrieveTableSize: (String) => Long =
-    if (connector.isInstanceOf[MockConnector]) {
-      (tableName: String) => -1
-    } else {
-      val masterClient = MasterClient.getConnection(connector.getInstance())
-      val tc = new TCredentials()
-      val mmi = masterClient.getMasterStats(Tracer.traceInfo(), tc)
-
-      (tableName: String) => {
-        val tableId = Tables.getTableId(connector.getInstance(), tableName)
-        val v = mmi.getTableMap.get(tableId)
-        v.getRecs
-      }
-    }
+  lazy val retrieveTableSize: (String) => Long = string => -1
+//    if (connector.isInstanceOf[MockConnector]) {
+//      (tableName: String) => -1
+//    } else {
+//      val masterClient = MasterClient.getConnection(connector.getInstance())
+//      val tc = new TCredentials()
+//      val mmi = masterClient.getMasterStats(Tracer.traceInfo(), tc)
+//
+//      (tableName: String) => {
+//        val tableId = Tables.getTableId(connector.getInstance(), tableName)
+//        val v = mmi.getTableMap.get(tableId)
+//        v.getRecs
+//      }
+//    }
 
   override def getTableSize(tableName: String): Long = {
     retrieveTableSize(tableName)

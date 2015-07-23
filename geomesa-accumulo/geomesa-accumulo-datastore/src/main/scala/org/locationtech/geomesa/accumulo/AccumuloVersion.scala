@@ -29,6 +29,8 @@ object AccumuloVersion extends Enumeration {
         getTypeFromClass("org.apache.accumulo.core.Constants", "METADATA_TABLE_NAME")
       case V16 =>
         getTypeFromClass("org.apache.accumulo.core.metadata.MetadataTable", "NAME")
+      case V17 =>
+        getTypeFromClass("org.apache.accumulo.core.metadata.MetadataTable", "NAME")
     }
   }
 
@@ -36,7 +38,7 @@ object AccumuloVersion extends Enumeration {
     accumuloVersion match {
       case V15 =>
         getTypeFromClass("org.apache.accumulo.core.Constants", "METADATA_DATAFILE_COLUMN_FAMILY")
-      case V16 =>
+      case _ =>
         getTypeFromClass("org.apache.accumulo.core.metadata.schema.MetadataSchema$TabletsSection$DataFileColumnFamily", "NAME")
     }
   }
@@ -45,7 +47,7 @@ object AccumuloVersion extends Enumeration {
     accumuloVersion match {
       case V15 =>
         getTypeFromClass("org.apache.accumulo.core.Constants", "NO_AUTHS")
-      case V16 =>
+      case _ =>
         getTypeFromClass("org.apache.accumulo.core.security.Authorizations", "EMPTY")
     }
   }
