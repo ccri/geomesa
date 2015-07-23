@@ -1,20 +1,17 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+  * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0 which
+  * accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  *************************************************************************/
 
 package org.locationtech.geomesa.accumulo.data
 
 import org.apache.accumulo.core.client.Connector
-import org.apache.accumulo.core.client.impl.{MasterClient, Tables}
-import org.apache.accumulo.core.client.mock.MockConnector
 import org.apache.accumulo.core.data.{Mutation, Range, Value}
 import org.apache.accumulo.core.security.ColumnVisibility
-import org.apache.accumulo.core.security.thrift.TCredentials
-import org.apache.accumulo.trace.instrument.Tracer
+import org.locationtech.geomesa.accumulo.AccumuloVersion._
 import org.apache.hadoop.io.Text
 import org.locationtech.geomesa.accumulo.data.AccumuloBackedMetadata._
 import org.locationtech.geomesa.accumulo.util.{GeoMesaBatchWriterConfig, SelfClosingIterator}
@@ -106,9 +103,9 @@ class AccumuloBackedMetadata(connector: Connector,
   override def delete(featureName: String, numThreads: Int): Unit = {
     val range = new Range(getMetadataRowKey(featureName))
     val deleter = connector.createBatchDeleter(catalogTable,
-                                               authorizationsProvider.getAuthorizations,
-                                               numThreads,
-                                               metadataBWConfig)
+      authorizationsProvider.getAuthorizations,
+      numThreads,
+      metadataBWConfig)
     deleter.setRanges(List(range))
     deleter.delete()
     deleter.close()
@@ -212,24 +209,8 @@ class AccumuloBackedMetadata(connector: Connector,
     featureName
   }
 
-  // This lazily computed function helps shortcut getCount from scanning entire tables.
-  lazy val retrieveTableSize: (String) => Long =
-    if (connector.isInstanceOf[MockConnector]) {
-      (tableName: String) => -1
-    } else {
-      val masterClient = MasterClient.getConnection(connector.getInstance())
-      val tc = new TCredentials()
-      val mmi = masterClient.getMasterStats(Tracer.traceInfo(), tc)
-
-      (tableName: String) => {
-        val tableId = Tables.getTableId(connector.getInstance(), tableName)
-        val v = mmi.getTableMap.get(tableId)
-        v.getRecs
-      }
-    }
-
   override def getTableSize(tableName: String): Long = {
-    retrieveTableSize(tableName)
+    calculateTableSize(connector, tableName)
   }
 }
 

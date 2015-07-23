@@ -241,6 +241,12 @@
           <groupId>org.apache.accumulo</groupId>
           <artifactId>accumulo-test</artifactId>
         </dependency>
+        <dependency>
+            <!-- marked provided due to license issues -->
+            <groupId>jline</groupId>
+            <artifactId>jline</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 
