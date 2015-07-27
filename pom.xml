@@ -78,7 +78,6 @@
         <profile>
             <id>Accumulo 1.6</id>
             <activation>
-                <property><name>!accumulo</name></property>
                 <property><name>accumulo</name><value>1.6</value></property>
             </activation>
             <properties>
@@ -748,11 +747,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.accumulo</groupId>
-<<<<<<< HEAD
                 <artifactId>cloudtrace</artifactId>
-=======
-                <artifactId>accumulo-trace</artifactId>
->>>>>>> fcr_acc15-16-17
                 <version>${accumulo.version}</version>
                 <scope>provided</scope>
             </dependency>
