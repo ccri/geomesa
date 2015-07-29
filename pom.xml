@@ -1120,12 +1120,11 @@
     </build>
 
     <scm>
-        <connection>scm:git:git@github.com:locationtech/geomesa.git</connection>
-        <developerConnection>scm:git:git@github.com:locationtech/geomesa.git</developerConnection>
-        <url>https://github.com/locationtech/geomesa</url>
-        <tag>HEAD</tag>
-    </scm>
-
+        <connection>scm:git:git@github.com:ccri/${project.artifactId}.git</connection>
+        <developerConnection>scm:git:git@github.com:ccri/${project.artifactId}.git</developerConnection>
+        <url>https://github.com/ccri/${project.artifactId}</url>
+  </scm>
+    
     <repositories>
         <repository>
             <id>central</id>
