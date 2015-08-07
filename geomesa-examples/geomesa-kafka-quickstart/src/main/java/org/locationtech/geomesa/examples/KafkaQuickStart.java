@@ -108,12 +108,15 @@ public class KafkaQuickStart {
             builder.add((int) Math.round(random.nextDouble()*110)); // age
             builder.add(MIN_DATE.plusSeconds((int) Math.round(random.nextDouble() * SECONDS_PER_YEAR)).toDate()); // dtg
             builder.add(WKTUtils$.MODULE$.read("POINT(" + (MIN_X + DX * i) + " " + (MIN_Y + DY * i) + ")")); // geom
+            builder.add(477655200l);
             SimpleFeature feature1 = builder.buildFeature("1");
+
 
             builder.add(PEOPLE_NAMES[(i+1) % PEOPLE_NAMES.length]); // name
             builder.add((int) Math.round(random.nextDouble()*110)); // age
             builder.add(MIN_DATE.plusSeconds((int) Math.round(random.nextDouble() * SECONDS_PER_YEAR)).toDate()); // dtg
             builder.add(WKTUtils$.MODULE$.read("POINT(" + (MIN_X + DX * i) + " " + (MAX_Y - DY * i) + ")")); // geom
+            builder.add(366813530l);
             SimpleFeature feature2 = builder.buildFeature("2");
 
             // write the SimpleFeatures to Kafka
@@ -162,8 +165,8 @@ public class KafkaQuickStart {
 
         // create the schema which creates a topic in Kafka
         // (only needs to be done once)
-        final String sftName = "KafkaQuickStart";
-        final String sftSchema = "name:String,age:Int,dtg:Date,*geom:Point:srid=4326";
+        final String sftName = "KafkaQuickStart-AIS2";
+        final String sftSchema = "name:String,age:Int,dtg:Date,*geom:Point:srid=4326,mmsi:Long";
         SimpleFeatureType sft = SimpleFeatureTypes.createType(sftName, sftSchema);
         // set zkPath to default if not specified
         String zkPath = (dsConf.get(ZK_PATH) == null) ? "/geomesa/ds/kafka" : dsConf.get(ZK_PATH);
