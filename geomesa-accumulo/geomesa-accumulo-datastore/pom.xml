@@ -23,6 +23,11 @@
     </properties>
 
     <dependencies>
+	<dependency>
+		<groupId>org.geotools</groupId>
+		<artifactId>gt-wfs</artifactId>
+		<version>${gt.version}</version>
+	</dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-utils</artifactId>

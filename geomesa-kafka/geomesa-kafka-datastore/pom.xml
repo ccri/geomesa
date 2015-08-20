@@ -19,6 +19,17 @@
 
     <dependencies>
         <dependency>
+            <groupId>tactical-cloud-dfa</groupId>
+            <artifactId>dpf-utility</artifactId>
+            <version>0.5.0-RC2</version>
+        </dependency>
+        <dependency>
+            <groupId>tactical-cloud-dfa</groupId>
+            <artifactId>dpf-input-model</artifactId>
+            <version>0.5.0-RC2</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
         </dependency>
