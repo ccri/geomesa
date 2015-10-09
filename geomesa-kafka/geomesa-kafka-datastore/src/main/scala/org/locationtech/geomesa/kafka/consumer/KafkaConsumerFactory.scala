@@ -36,6 +36,8 @@ class KafkaConsumerFactory(brokers: String, zookeepers: String) {
     props.put("zookeeper.sync.time.ms", "1000")
     props.put("auto.commit.interval.ms", "1000")
 
+    props.put("refresh.leader.backoff.ms", "10000")
+
     props
   }
 
