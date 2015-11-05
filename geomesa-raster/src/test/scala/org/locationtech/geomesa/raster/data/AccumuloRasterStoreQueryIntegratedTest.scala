@@ -143,10 +143,22 @@ class AccumuloRasterStoreQueryIntegratedTest extends Specification {
     "Properly filter out a raster via a query bbox" in {
       val tableName = getNewIteration()
       val rasterStore = createMockRasterStore(tableName)
+      val rasterStore2 = createMockRasterStore(tableName + "2")
 
       // general setup
-      val testRaster = generateTestRasterFromGeoHash(GeoHash("d"))
+      val testRaster: Raster = generateTestRasterFromGeoHash(GeoHash("d"))
+      testRaster.metadata.id
+      val md = testRaster.metadata.copy(id = "testRaster2")
+      val testRaster2 = testRaster.asInstanceOf[RenderedImageRaster].copy(metadata = md)
+
       rasterStore.putRaster(testRaster)
+      rasterStore.putRaster(testRaster2)
+
+      rasterStore2.putRaster(testRaster)
+      rasterStore2.putRaster(testRaster2)
+
+
+      rasterStore.getAvailableGeoHashLengths
 
       //generate query
       val query = generateQuery(0, 45, 0, 45)
