@@ -61,17 +61,162 @@ Currently supported transformation functions are listed below.
  * ```toString```
  
 ### Date functions
- * ```now``` - Current time at ingest
- * ```date``` - custom date parser
- * ```isodate``` - 
+ * ```now```
+ * ```date```
+ * ```datetime```
+ * ```isodate``` 
  * ```isodatetime```
  * ```basicDateTimeNoMillis```
  * ```dateHourMinuteSecondMillis```
  * ```millisToDate```
+
+### Geometry functions
+  * ```point```
+  * ```linestring```
+  * ```polygon```
+  * ```geometry```
+  
+### ID Functions
+ * ```string2bytes```
+ * ```md5```
+ * ```uuid```
+ * ```base64```
  
+### Data Casting
+ * ```::int```
+ * ```::long```
+ * ```::float```
+ * ```::double```
+ * ```::boolean```
+
+### List and Map Parsing
+ * ```parseList```
+ * ```parseMap```
+ 
+### JSON/Avro Transformations
+
+See Parsing Json and Parsing Avro sections
+  
+## Transformation Function Usage
+
+### String functions
+#### ```stripQuotes``` - Remove double quotes from a string
+
+Usage: ```stripQuotes($1)```
+
+Example: ```stripQuotes('fo"o') = foo```
+
+#### ```strlen``` - Returns length of a string
+
+Usage: ```strlen($1)```
+
+Example: ```strlen('foo') = 3```
+
+#### ```trim``` - Trim whitespace from around a string
+
+Usage: ```trim($1)```
+
+Example: ```trim('  foo ') = foo```
+
+#### ```capitalize``` - Capitalize a string
+
+Usage: ```capitalize($1)```
+
+Example: ```capitalize('foo') = Foo```
+
+#### ```lowercase``` - Lowercase a string
+
+Usage: ```lowercase($1)```
+
+Example: ```lowercase('Foo') = foo```
+
+#### ```uppercase``` - Uppercase a string
+
+Usage: ```lowercase($1)```
+
+Example: ```lowercase('Foo') = foo```
+
+#### ```regexReplace``` - Replace a given pattern with a target pattern in a string
+
+Usage: ```regexReplace($pattern, $replacement, $1)```
+
+Example: ```regexReplace('foo'::r, 'bar', 'foobar') = barbar```
+
+#### ```concat``` - Concatenate two strings
+
+Usage: ```concat($0, $1)```
+
+Example: ```concat('foo', 'bar') = foobar```
+
+#### ```substr``` - Return the substring of a string
+
+Usage: ```substr($1, $startIndex, $endIndex)```
+
+Example: ```substr('foobarbaz', 2, 5) = oba```
+
+#### ```toString``` - Convert another datatype to a string
+
+Usage: ```toString($0)```
+
+Example: ```concat(toString(5), toString(6)) = '56'```
+ 
+### Date functions
+
+#### ```now``` - Use the current system time
+
+Usage: ```now()```
+
+
+#### ```date``` - Custom date parser
+
+Usage: ```date($format, $1)```
+
+Example: ```date('YYYY-MM-dd\'T\'HH:mm:ss.SSSSSS', '2015-01-01T00:00:00.000000')```
+  
+  
+#### ```datetime``` - A strict ISO 8601 Date parser for format yyyy-MM-dd'T'HH:mm:ss.SSSZZ
+ 
+Usage: ```datetime($1)```
+
+Example: ```datetime('2015-01-01T00:00:00.000Z')```
+
+#### ```isodate``` -  A basic date format for yyyyMMdd
+
+Usage: ```isodate($1)```
+
+Example: ```isodate('20150101')```
+
+#### ```isodatetime``` -  A basic format that combines a basic date and time for format yyyyMMdd'T'HHmmss.SSSZ
+
+Usage: ```isodatetime($1)```
+
+Example: ```isodatetime('20150101T000000.000Z')```
+
+#### ```basicDateTimeNoMillis``` - A basic format that combines a basic date and time with no millis for format yyyyMMdd'T'HHmmssZ
+
+Usage: ```basicDateTimeNoMillis($1)```
+
+Example: ```basicDateTimeNoMillis('20150101T000000Z')```
+
+#### ```dateHourMinuteSecondMillis``` - Formatter for full date, and time keeping the first 3 fractional seconds for format yyyy-MM-dd'T'HH:mm:ss.SSS
+
+Usage: ```dateHourMinuteSecondMillis($1)```
+
+Example: ```dateHourMinuteSecondMillis('2015-01-01T00:00:00.000')``` 
+
+#### ```millisToDate``` - Create a new date from as long representing millis since 1970
+
+Usage: ```millisToDate($1)```
+
+Example: ```millisToDate(1449675054462::long)``` 
+
 ### Geometry functions
 
-Geometry functions can transform WKT strings, lat/lon pairs, and GeoJSON geometry objects:
+#### ```point``` - Parse a Point geometry from lat/lon or WKT
+
+Usage: ```point($lat, $lon)``` or ```point($wkt)```
+
+Example: Parsing lat/lon from JSON:
 
 Parsing lat/lon
 
@@ -85,17 +230,40 @@ Parsing lat/lon
         "lat": 23.9,
         "lon": 24.2,
     }
-     
-Parsing lat/lon without creating lat/lon variables
-        
+    
+Example: Parsing lat/lon from text without creating lat/lon fields:
+
     # config
     { name = "geom", transform="point($2::double, $3::double)"
     
     # data
     id,lat,lon,date
     identity1,23.9,24.2,2015-02-03
+    
+Example: Parsing WKT as a point
 
-Parsing WKT
+    # config
+    { name = "geom", transform="point($2)" }
+    
+    # data 
+    ID,wkt,date
+    1,POINT(2 3),2015-01-02
+
+#### ```linestring``` - Parse a linestring from a WKT string
+
+Usage: ```linestring($0)```
+
+Example: ```linestring('LINESTRING(102 0, 103 1, 104 0, 105 1)')```
+
+#### ```polygon``` - Parse a polygon from a WKT string
+
+Usage: ```polygon($0)```
+
+Example: ```polygon('polygon((100 0, 101 0, 101 1, 100 1, 100 0))')```
+  
+#### ```geometry``` - Parse a geometry from a WKT string or GeoJson
+  
+Example: Parsing WKT as a geometry
 
     # config
     { name = "geom", transform="geometry($2)" }
@@ -103,8 +271,8 @@ Parsing WKT
     # data 
     ID,wkt,date
     1,POINT(2 3),2015-01-02
-       
-Parsing Json geometry
+    
+Example: Parsing GeoJson geometry
 
     # config
     { name = "geom", json-type = "geometry", path = "$.geometry" }
@@ -115,31 +283,24 @@ Parsing Json geometry
         number: 123,
         color: "red",
         "geometry": {"type": "Point", "coordinates": [55, 56]}
-     },
+    }
     
-Available transforms are:
-
- * ```point```
- * ```linestring```
- * ```polygon```
- * ```geometry```
- 
 ### ID Functions
  * ```string2bytes```
  * ```md5```
  * ```uuid```
  * ```base64```
  
-## Data Casting
-Data can be cast into various numerical types using the following operators:
- 
+### Data Casting
  * ```::int```
  * ```::long```
  * ```::float```
  * ```::double```
  * ```::boolean```
+
+### List and Map Parsing
+#### ```parseList``` - Parse a List[T] type from a string
  
-## Parsing Lists and Maps
 If your SimpleFeatureType config contains a list or map you can easily configure a transform function to parse it using
 the ```parseList``` function which takes either 2 or 3 args
 
@@ -161,7 +322,9 @@ For example, an SFT may specific a field:
 And a transform to parse the quoted CSV field:
 
     {name = "friends", transform = "parseList('string', $5)"}
-    
+
+#### ```parseMap```
+
 Parsing Maps is similar. Take for example this CSV data with a quoted map field:
 
     1,"1 -> a,2->b,3->c,4->d",2013-07-17,-90.368732,35.3155
@@ -179,11 +342,59 @@ Then we specify a transform:
 Optionally we can also provide custom list/record and key-value delimiters for a map:
  
       { name = "numbers", transform = "parseMap('int -> string', $2, ',', '->')"}
-    
 
-### Avro Path functions
- * ```avroPath```
+## Parsing JSON
 
+The JSON converter defines the path to a list of features as well as json-types of each field:
+
+    converter = {
+      type         = "json"
+      id-field     = "$id"
+      feature-path = "$.Features[*]"
+      fields = [
+        { name = "id",     json-type = "integer",  path = "$.id",               transform = "toString($0)"      }
+        { name = "number", json-type = "integer",  path = "$.number",                                           }
+        { name = "color",  json-type = "string",   path = "$.color",            transform = "trim($0)"          }
+        { name = "weight", json-type = "double",   path = "$.physical.weight",                                  }
+        { name = "geom",   json-type = "geometry", path = "$.geometry",                                       }
+      ]
+    }
+
+#### JSON Geometries
+
+Geometry objects can be represented as either WKT or GeoJSON and parsed with the same config:
+
+Config:
+
+     { name = "geom",    json-type = "geometry", path = "$.geometry", transform = "point($0)"     }
+
+Data:
+
+    {
+       DataSource: { name: "myjson" },
+       Features: [
+         {
+           id: 1,
+           number: 123,
+           color: "red",
+           geometry: { "type": "Point", "coordinates": [55, 56] }
+         },
+         {
+           id: 2,
+           number: 456,
+           color: "blue",
+           geometry: "Point (101 102)"
+         }
+       ]
+    }
+
+Remember to use the most general Geometry type as your ```json-type``` or SimpleFeatureType field type. Defining a type
+```Geometry``` allows for polygons, points, and linestrings, but specifying a specific geometry like point will only
+ allow for parsing of points.
+ 
+## Parsing Avro
+ * ```avroPath``` 
+ 
 ## Extending the converter library
 
 There are two ways to extend the converter library - adding new transformation functions and adding new data formats.
@@ -216,7 +427,7 @@ To add new data formats, implement the ```SimpleFeatureConverterFactory``` and `
 and register them in ```META-INF/services``` appropriately.  See 
 ```org.locationtech.geomesa.convert.avro.Avro2SimpleFeatureConverter``` for an example.
 
-## Full Example Using GeoMesa Tools
+## Example Using GeoMesa Tools
 
 The following example can be used with geomesa tools:
 
