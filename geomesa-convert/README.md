@@ -31,7 +31,7 @@ appropriate converter for taking this csv data and transforming it into our ```S
 
      converter = { 
       type         = "delimited-text",
-      format       = "DEFAULT",
+      format       = "CSV",
       id-field     = "md5($0)",
       fields = [
         { name = "phrase", transform = "concat($1, $2)" },
@@ -47,7 +47,7 @@ and the other fields are formed from appropriate transforms.
 
 ## Transformation functions
 
-Currently supported transformation functions are listed below.
+Provided transformation functions are listed below.
 
 ### String functions
  * ```stripQuotes```
@@ -88,6 +88,7 @@ Currently supported transformation functions are listed below.
  * ```::float```
  * ```::double```
  * ```::boolean```
+ * ```::r```
 
 ### List and Map Parsing
  * ```parseList```
@@ -128,17 +129,17 @@ Example: ```capitalize('foo') = Foo```
 
 Usage: ```lowercase($1)```
 
-Example: ```lowercase('Foo') = foo```
+Example: ```lowercase('FOO') = foo```
 
 #### ```uppercase``` - Uppercase a string
 
-Usage: ```lowercase($1)```
+Usage: ```uppercase($1)```
 
-Example: ```lowercase('Foo') = foo```
+Example: ```uppercase('foo') = FOO```
 
 #### ```regexReplace``` - Replace a given pattern with a target pattern in a string
 
-Usage: ```regexReplace($pattern, $replacement, $1)```
+Usage: ```regexReplace($regex, $replacement, $1)```
 
 Example: ```regexReplace('foo'::r, 'bar', 'foobar') = barbar```
 
@@ -286,10 +287,24 @@ Example: Parsing GeoJson geometry
     }
     
 ### ID Functions
- * ```string2bytes```
- * ```md5```
- * ```uuid```
- * ```base64```
+
+#### ```string2bytes``` - Converts a string to a UTF-8 byte array
+
+#### ```md5``` - Creates an MD5 hash from a byte array
+
+Usage: ```md5($0)```
+
+Example: ```md5(string2bytes('row,of,data'))```
+
+#### ```uuid``` - Generates a random UUID
+
+Usage: ```uuid()```
+
+#### ```base64``` - Encodes a byte array as a base-64 string
+
+Usage; ```base64($0)```
+
+Example: ```base64(string2bytes('foo'))```
  
 ### Data Casting
  * ```::int```
@@ -297,6 +312,7 @@ Example: Parsing GeoJson geometry
  * ```::float```
  * ```::double```
  * ```::boolean```
+ * ```::r``` - Converts a string to a Regex object
 
 ### List and Map Parsing
 #### ```parseList``` - Parse a List[T] type from a string
@@ -317,31 +333,31 @@ Here's some sample CSV data:
 
 For example, an SFT may specific a field:
 
-    {name = "friends", type = "List[String]", index = true}
+    { name = "friends", type = "List[String]" }
 
 And a transform to parse the quoted CSV field:
 
-    {name = "friends", transform = "parseList('string', $5)"}
+    { name = "friends", transform = "parseList('string', $5)" }
 
 #### ```parseMap```
 
 Parsing Maps is similar. Take for example this CSV data with a quoted map field:
 
-    1,"1 -> a,2->b,3->c,4->d",2013-07-17,-90.368732,35.3155
+    1,"1->a,2->b,3->c,4->d",2013-07-17,-90.368732,35.3155
     2,"5->e,6->f,7->g,8->h",2013-07-17,-70.970585,42.36211
     3,"9->i,10->j",2013-07-17,-97.599004,30.50901
-    
+
 Our field type is:
 
     numbers:Map[Integer,String]
-    
+
 Then we specify a transform:
 
-    { name = "numbers", transform = "parseMap('int -> string', $2)"}
+    { name = "numbers", transform = "parseMap('int -> string', $2)" }
 
 Optionally we can also provide custom list/record and key-value delimiters for a map:
- 
-      { name = "numbers", transform = "parseMap('int -> string', $2, ',', '->')"}
+
+      { name = "numbers", transform = "parseMap('int -> string', $2, ',', '->')" }
 
 ## Parsing JSON
 
@@ -352,11 +368,11 @@ The JSON converter defines the path to a list of features as well as json-types 
       id-field     = "$id"
       feature-path = "$.Features[*]"
       fields = [
-        { name = "id",     json-type = "integer",  path = "$.id",               transform = "toString($0)"      }
-        { name = "number", json-type = "integer",  path = "$.number",                                           }
-        { name = "color",  json-type = "string",   path = "$.color",            transform = "trim($0)"          }
-        { name = "weight", json-type = "double",   path = "$.physical.weight",                                  }
-        { name = "geom",   json-type = "geometry", path = "$.geometry",                                       }
+        { name = "id",     json-type = "integer",  path = "$.id",               transform = "toString($0)" }
+        { name = "number", json-type = "integer",  path = "$.number",                                      }
+        { name = "color",  json-type = "string",   path = "$.color",            transform = "trim($0)"     }
+        { name = "weight", json-type = "double",   path = "$.physical.weight",                             }
+        { name = "geom",   json-type = "geometry", path = "$.geometry",                                    }
       ]
     }
 
@@ -366,7 +382,7 @@ Geometry objects can be represented as either WKT or GeoJSON and parsed with the
 
 Config:
 
-     { name = "geom",    json-type = "geometry", path = "$.geometry", transform = "point($0)"     }
+     { name = "geom", json-type = "geometry", path = "$.geometry", transform = "point($0)" }
 
 Data:
 
@@ -406,18 +422,22 @@ To add new transformation functions, create a ```TransformationFunctionFactory``
 a new transformation function that computes a SHA-256 hash.
 
 ```scala
+import org.locationtech.geomesa.convert.TransformerFunctionFactory
+import org.locationtech.geomesa.convert.TransformerFn
+
 class SHAFunctionFactory extends TransformerFunctionFactory {
-  override def functions = Seq(sha256)
-  val sha256fn = TransformerFn("sha256") { args => Hashing.sha256().hashBytes(args(0).asInstanceOf[Array[Byte]]) }
+  override def functions = Seq(sha256fn)
+  val sha256fn = TransformerFn("sha256") { args =>
+    Hashing.sha256().hashBytes(args(0).asInstanceOf[Array[Byte]])
+  }
 }
 ```
 
 The ```sha256``` function can then be used in a field as shown.
 
 ```
-   ...
    fields: [
-      { name = "hash", transform = "sha256($0)" }
+      { name = "hash", transform = "sha256(string2bytes($0))" }
    ]
 ```
 
@@ -445,12 +465,12 @@ A config file: ```example.conf```
     sft = {
       type-name = "renegades"
       attributes = [
-        {name = "id", type = "Integer", index = false},
-        {name = "name", type = "String", index = true},
-        {name = "age", type = "Integer", index = false},
-        {name = "lastseen", type = "Date", index = true},
-        {name = "friends", type = "List[String]", index = true},
-        {name = "geom", type = "Point", index = true, srid = 4326, default = true}
+        { name = "id", type = "Integer", index = false },
+        { name = "name", type = "String", index = true },
+        { name = "age", type = "Integer", index = false },
+        { name = "lastseen", type = "Date", index = true },
+        { name = "friends", type = "List[String]", index = true },
+        { name = "geom", type = "Point", index = true, srid = 4326, default = true }
       ]
     },
     converter = {
@@ -461,13 +481,13 @@ A config file: ```example.conf```
       },
       id-field = "toString($id)",
       fields = [
-        {name = "id", transform = "$1::int"},
-        {name = "name", transform = "$2::string"},
-        {name = "age", transform = "$3::int"},
-        {name = "lastseen", transform = "$4::date"},
-        {name = "friends", transform = "parseList('string', $5)"},
-        {name = "lon", transform = "$6::double"},
-        {name = "lat", transform = "$7::double"},
-        {name = "geom", transform = "point($lon, $lat)"}
+        { name = "id", transform = "$1::int" },
+        { name = "name", transform = "$2::string" },
+        { name = "age", transform = "$3::int" },
+        { name = "lastseen", transform = "$4::date" },
+        { name = "friends", transform = "parseList('string', $5)" },
+        { name = "lon", transform = "$6::double" },
+        { name = "lat", transform = "$7::double" },
+        { name = "geom", transform = "point($lon, $lat)" }
       ]
     }
