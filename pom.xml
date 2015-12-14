@@ -56,11 +56,11 @@
 
         <!-- environment-dependent versions -->
         <thrift.version>0.9.1</thrift.version>
-        <zookeeper.version>3.4.5</zookeeper.version>
-        <hadoop.version>2.2.0</hadoop.version>
+        <zookeeper.version>3.4.5-cdh5.3.4</zookeeper.version>
+        <hadoop.version>2.5.0-cdh5.3.4</hadoop.version>
         <thrift.version>0.9.1</thrift.version>
         <scalding.version>0.13.1</scalding.version>
-        <spark.version>1.5.0</spark.version>
+        <spark.version>1.5.2</spark.version>
 
         <!-- logging properties - we expect logging jars to be provided -->
         <!-- 1.7.x is for hadoop 2 and accumulo 1.5.x -->
@@ -90,7 +90,7 @@
                 <property><name>!accumulo-1.5</name></property>
             </activation>
             <properties>
-                <accumulo.version>1.6.2</accumulo.version>
+                <accumulo.version>1.6.4</accumulo.version>
             </properties>
             <dependencyManagement>
                 <dependencies>
@@ -1206,9 +1206,9 @@
     </build>
 
     <scm>
-        <connection>scm:git:git@github.com:locationtech/geomesa.git</connection>
-        <developerConnection>scm:git:git@github.com:locationtech/geomesa.git</developerConnection>
-        <url>https://github.com/locationtech/geomesa</url>
+        <connection>scm:git:git@github.com:ccri/${project.artifactId}.git</connection>
+        <developerConnection>scm:git:git@github.com:ccri/${project.artifactId}.git</developerConnection>
+        <url>https://github.com/ccri/${project.artifactId}</url>
         <tag>HEAD</tag>
     </scm>
 
