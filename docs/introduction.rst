@@ -1,36 +1,35 @@
 Introduction
 ============
 
-About
------
+What is GeoMesa?
+----------------
 
-GeoMesa is an open-source, distributed, spatio-temporal database built on top
-of the Apache Accumulo (http://accumulo.apache.org/) column family store. GeoMesa implements standard
-Geotools (http://geotools.org/) interfaces to provide geospatial functionality over very large data
-sets to application developers.  GeoMesa provides plugins for exposing
-geospatial data stored in Accumulo via standards-based OGC HTTP services and
-cluster monitoring and management tools within the GeoServer administrative
-interface. 
+GeoMesa is an open-source, distributed, spatio-temporal database and suite of tools built on top
+of the Apache Accumulo (http://accumulo.apache.org/) column family store. It lets users quickly store, index, and query both stored and streaming geospatial data at scale. 
 
-Features
---------
+GeoMesa is specifically built to manage large spatio-temporal datasets such as tracks, social media, IoT, and other location data from major mobile applications. Through standards-based interfaces, it can drive a map user interface and also serve data up for analytics such as queries, histograms, heat maps, and time series analysis.
 
-TODO
+GeoMesa can: 
 
-Supported Data Stores
----------------------
+* Store gigabytes to petabytes of spatial data (tens of billions of points or more)
+* Serve up tens of millions of points in seconds
+* Ingest data faster than 10,000 records per second per node
+* Scale horizontally easily (add more servers to add more capacity)
+* Support Spark analytics
+* Drive a map through GeoServer or other OGC Clients
 
-TODO
+In addition to Accumulo, GeoMesa can also use Apache HBase and Google Cloud Bigtable for storage.
 
-Geohashing and Z-curves
------------------------
+.. according to https://en.wikipedia.org/wiki/GeoMesa
 
-TODO
+Why use GeoMesa? 
 
-Data Structure
---------------
-
-TODO - or maybe under developing?
+* You have Big Spatial Data sets and you are reaching performance limitations of relational database systems. Perhaps you are looking at sharding strategies and wondering if now is the time to look for a new solution.
+* You have very high velocity data and need high read and write speeds.
+* Your analytics operate in the cloud. Perhaps your analytic runs in Spark and you want to enable spatial analytics.
+* You are looking for a supported open-source alternative to expensive proprietary solutions.
+* You are looking for a Platform as a Service (PaaS) Database where you can store Big Spatial Data.
+* Filter data using the rich Common Query Language defined by the OGC.
 
 Community and Support
 ---------------------

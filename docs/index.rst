@@ -10,6 +10,7 @@ GeoMesa |version|
    :maxdepth: 3
    
    introduction
+   architecture
    getting_started
    commandline_tools
    developing
