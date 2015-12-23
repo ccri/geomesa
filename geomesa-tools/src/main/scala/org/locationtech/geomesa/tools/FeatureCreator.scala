@@ -18,10 +18,10 @@ import org.opengis.feature.simple.SimpleFeatureType
 object FeatureCreator extends Logging {
 
   def createFeature(params: CreateFeatureParams, convert: String = null): Unit = {
-    val ds = new DataStoreHelper(params).getOrCreateDs()
+    val ds = new DataStoreHelper(params).getDataStore()
     createFeature(
       ds,
-      SftArgParser.getSft(params.spec, params.featureName, convert),
+      SftArgParser.getSft(params.spec, params.featureName),
       params.featureName,
       Option(params.dtgField),
       Option(params.useSharedTables),
@@ -30,7 +30,7 @@ object FeatureCreator extends Logging {
 
 
   def createFeature(params: GeoMesaParams, sft: SimpleFeatureType): Unit =
-    new DataStoreHelper(params).getOrCreateDs().createSchema(sft)
+    new DataStoreHelper(params).getDataStore().createSchema(sft)
 
   def createFeature(ds: AccumuloDataStore,
                     sft: SimpleFeatureType,

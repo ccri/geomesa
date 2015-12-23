@@ -26,28 +26,24 @@ class IngestCommand(parent: JCommander) extends Command(parent) with Logging {
   override def execute(): Unit = {
     val fmt = Option(params.format).getOrElse(getFileExtension(params.files(0)))
     if (fmt == SHP) {
-      val ds = new DataStoreHelper(params).getOrCreateDs()
+      val ds = new DataStoreHelper(params).getDataStore()
       GeneralShapefileIngest.shpToDataStore(params.files(0), ds, params.featureName)
     } else {
       new DelimitedIngest(params).run()
     }
   }
-
 }
 
 object IngestCommand {
   @Parameters(commandDescription = "Ingest/convert various file formats into GeoMesa")
   class IngestParameters extends OptionalFeatureParams {
-    @Parameter(names = Array("-s", "--spec"), description = "SimpleFeatureType specification as a GeoTools spec string, SFT config, or file with either")
+    @Parameter(names = Array("-s", "--spec"), description = "SimpleFeatureType specification as a GeoTools spec, SFT config, or name of an available type")
     var spec: String = null
 
-    @Parameter(names = Array("-conf", "--conf"), description = "GeoMesa configuration file for SFT and/or converter config")
+    @Parameter(names = Array("-C", "--converter"), description = "GeoMesa converter specification as a config string or name of an available converter")
     var config: String = null
 
-    @Parameter(names = Array("-is", "--index-schema"), description = "GeoMesa index schema format string")
-    var indexSchema: String = null
-
-    @Parameter(names = Array("-fmt", "--format"), description = "indicate non-converter ingest (shp)")
+    @Parameter(names = Array("-F", "--format"), description = "indicate non-converter ingest (shp)")
     var format: String = null
 
     @Parameter(description = "<file>...", required = true)

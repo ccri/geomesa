@@ -110,13 +110,13 @@ object TableConfCommand {
     @Parameter(names = Array("-t", "--table-suffix"), description = "Table suffix to operate on (attr_idx, st_idx, or records)", required = true)
     var tableSuffix: String = null
 
-    lazy val ds = new DataStoreHelper(this).getExistingStore
+    lazy val ds = new DataStoreHelper(this).getDataStore()
     lazy val tableName = getTableName(ds, this)
   }
 
   @Parameters(commandDescription = "Describe a given configuration parameter for a table")
   class DescribeParams extends ListParams {
-    @Parameter(names = Array("--param"), description = "Accumulo table configuration param name (e.g. table.bloom.enabled)", required = true)
+    @Parameter(names = Array("-P", "--param"), description = "Accumulo table configuration param name (e.g. table.bloom.enabled)", required = true)
     var param: String = null
   }
 
