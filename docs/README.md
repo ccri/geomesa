@@ -67,7 +67,14 @@ To include an image, copy it into ``_static/img`` and use the following:
 ```
 .. image:: _static/img/name-of-file
 ```
-You can also specify options for how to use the 
 
+You can also specify options for how to use the various directives. For
+example, this adds line numbers to a code block:
+```
+.. code-block:: scala
+    :linenos:
+
+    val ds = new DataStore()
+```
 
 See the [Sphinx reStructuredText Primer](http://sphinx-doc.org/rest.html) for more information.
