@@ -63,14 +63,18 @@ author = u'GeoMesa'
 # built documents.
 #
 # The short X.Y version.
-version = '1.1.0-rc.6'
+version = '1.1.0-rc.7'
 # The full version, including alpha/beta/rc tags.
-release = '1.1.0-rc.6'
+release = '1.1.0-rc.7'
 
 # RST appended to every file. Used for global substitions.
 rst_epilog = """
 
-.. |development| replace:: 1.1.0-rc.7-SNAPSHOT
+.. |release_tarball| replace:: http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/1.1.0-rc.7/geomesa-assemble-1.1.0-rc.7-bin.tar.gz
+
+.. |release_source_tarball| replace:: https://github.com/locationtech/geomesa/archive/geomesa-1.1.0-rc.7.tar.gz
+
+.. |development| replace:: 1.2.0-SNAPSHOT
 
 .. |maven_version| replace:: 3.2.2 or better
 

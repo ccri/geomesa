@@ -33,8 +33,8 @@ Versions and Downloads
 
 .. TODO: substitutions don't work in some kinds of markup, including URLs
 
-* Release tarball: http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/1.1.0-rc.6/geomesa-assemble-1.1.0-rc.6-bin.tar.gz
-* Source: https://github.com/locationtech/geomesa/archive/geomesa-1.1.0-rc.6.tar.gz
+* Release tarball: |release_tarball|
+* Source: |release_source_tarball|
 
 **Development version (source only)**: |development|
 
@@ -150,18 +150,18 @@ of the tools, cd into the ``bin`` directory of the binary distribution and execu
 
 .. code-block:: bash
 
-    $ cd ~/tools/geomesa-$VERSION/bin
+    $ cd /path/to/geomesa-$VERSION/bin
     $ ./geomesa configure
-    Warning: GEOMESA_HOME is not set, using ~/tools/geomesa-1.1.0-rc.6
-    Using GEOMESA_HOME as set: ~/tools/geomesa-1.1.0-rc.6
+    Warning: GEOMESA_HOME is not set, using /path/to/geomesa-$VERSION
+    Using GEOMESA_HOME as set: /path/to/geomesa-$VERSION
     Is this intentional? Y\n Y
     Warning: GEOMESA_LIB already set, probably by a prior configuration.
-    Current value is ~/tools/geomesa-1.1.0-rc.6/lib.
+    Current value is /path/to/geomesa-$VERSION/lib.
 
     Is this intentional? Y\n Y
 
     To persist the configuration please update your bashrc file to include: 
-    export GEOMESA_HOME=/tools/geomesa-1.1.0-rc.6
+    export GEOMESA_HOME=/path/to/geomesa-$VERSION
     export PATH=${GEOMESA_HOME}/bin:$PATH
 
 Update and re-source your ``~/.bashrc`` file to include the $GEOMESA_HOME and $PATH updates.
@@ -186,7 +186,7 @@ Test the GeoMesa Tools:
 .. code-block:: bash
 
     $ geomesa
-    Using GEOMESA_HOME = /path/to/geomesa-1.1.0-rc.6
+    Using GEOMESA_HOME = /path/to/geomesa-$VERSION
     Usage: geomesa [command] [command options]
       Commands:
         create           Create a feature definition in a GeoMesa catalog
