@@ -39,11 +39,11 @@ BigQuery <https://cloud.google.com/products/bigquery/>`__. The details
 involved for signing up can be found at their website, and the following
 `google blog
 post <http://googlecloudplatform.blogspot.com/2014/05/worlds-largest-event-dataset-now-publicly-available-in-google-bigquery.html>`__
-is also a good resource. Once you have set up your account, run the
-following query to compile every protest in the Ukraine from November 1,
-2013 to March 31, 2014 and download the data as a CSV. This will cover
-the Euromaidan through the 2014 Ukrainian revolution and the annexation
-of the Crimean Peninsula.
+is also a good resource. Once you have set up your account, from the GDELT `events table details page <https://bigquery.cloud.google.com/table/gdelt-bq:full.events>`__ click ``Query
+Table`` and run the following query to compile every protest in the Ukraine
+from November 1, 2013 to March 31, 2014 and download the data as a CSV. This
+will cover the Euromaidan through the 2014 Ukrainian revolution and the
+annexation of the Crimean Peninsula.
 
 .. code-block:: sql
 
@@ -63,8 +63,7 @@ INGESTING FEATURES
 
 The ingest command currently supports three formats: CSV, TSV, and SHP.
 
-The ``ingest`` command takes several has the following required flags in
-addition to Accumulo user and password:
+The ``ingest`` command has the following required flags:
 
 -  ``-u`` or ``--user``: the Accumulo user
 -  ``-p`` or ``--password``: the Accumulo password (will prompt if
@@ -79,8 +78,7 @@ parameters for Accumulo:
 -  ``-i`` or ``--instance``: the Accumulo instance
 -  ``-z`` or ``--zookeepers``: a comma-separated list of Zookeeper hosts
 
-Additionally for CSV/TSV ingest there are several optional parameters
-that can be used:
+For CSV and TSV ingest, there are several additional optional parameters available:
 
 -  ``-s`` or ``--spec``: The name of the ``SimpleFeatureType`` of the
    CSV or TSV file. Each column in the file must have a corresponding
@@ -136,22 +134,19 @@ can be directly referenced in the SFT as the default geometry. e.g.:
 RUNNING AN INGEST
 -----------------
 
-*If you have not already downloaded the sample set of GDELT data as
-described above, please do so now.*
-
-Now that we know a little about the ingest tool, and have a set of data,
-we are going to construct the parameters needed to ingest the data. To
-start, we need to determine the ``SimpleFeatureType`` for the GDELT
-data, looking at the query above and the file itself we can construct
-the following simple feature type.
+Now that we know a little about the ingest tool and have the
+``ukraineNovToMar.csv`` dataset downloaded above, we will construct
+the parameters needed to ingest the data. To start, we need to determine the
+``SimpleFeatureType`` for the GDELT data. Looking at the query above and the
+file itself we can construct the following simple feature type.
 
 .. code-block:: bash
 
     GLOBALEVENTID:Integer,SQLDATE:Date,EventCode:String,Actor1Name:String,Actor1Type1Code:String,Actor2Name:String,
     Actor2Type1Code:String,ActionGeo_Long:Float,ActionGeo_Lat:Float,ActionGeo_FullName:String,*geom:Point:srid=4326
 
-Again note the extra ``*geom:Point:srid=4326`` at the end of the
-``SimpleFeatureType`` schema string. Since we are constructing a default
+ Note the extra ``*geom:Point:srid=4326`` at the end of the
+``SimpleFeatureType`` schema string--since we are constructing a default
 geometry from the latitude and longitude coordinates, we must give the
 feature a geometry attribute. The SQLDATE column contains the date of
 each event, and in this column the date time format is simply "yyyyMMdd"
