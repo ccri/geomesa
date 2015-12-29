@@ -145,13 +145,13 @@ file itself we can construct the following simple feature type.
     GLOBALEVENTID:Integer,SQLDATE:Date,EventCode:String,Actor1Name:String,Actor1Type1Code:String,Actor2Name:String,
     Actor2Type1Code:String,ActionGeo_Long:Float,ActionGeo_Lat:Float,ActionGeo_FullName:String,*geom:Point:srid=4326
 
- Note the extra ``*geom:Point:srid=4326`` at the end of the
+Note the extra ``*geom:Point:srid=4326`` at the end of the
 ``SimpleFeatureType`` schema string--since we are constructing a default
-geometry from the latitude and longitude coordinates, we must give the
-feature a geometry attribute. The SQLDATE column contains the date of
-each event, and in this column the date time format is simply "yyyyMMdd"
-(for the syntax of the date format strings please refer to the `JODA
-documentation <http://joda-time.sourceforge.net/apidocs/org/joda/time/format/DateTimeFormat.html>`__):
+geometry from the latitude and longitude coordinates, we must give the feature
+a geometry attribute. The SQLDATE column contains the date of each event, and
+in this column the date time format is simply "yyyyMMdd" (for the syntax of
+the date format strings please refer to the `JODA documentation
+<http://joda-time.sourceforge.net/apidocs/org/joda/time/format/DateTimeFormat.html>`__):
 
 .. code-block:: bash
 
