@@ -1,4 +1,4 @@
-<project name="docs">
+<project name="docs" default="html">
 	<target name="init">
 		<property environment="env"></property>
 
