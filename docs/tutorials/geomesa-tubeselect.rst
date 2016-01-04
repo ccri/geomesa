@@ -66,7 +66,7 @@ Builder <http://docs.geoserver.org/stable/en/user/extensions/wps/requestbuilder.
 which is found under the *Demos* link in the menu bar on the left side
 of the GeoServer web adminstration interface.
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-tubeselect/wps_builder1.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/wps_builder1.png
    :alt: "geomesa:TubeSelect WPS plugin"
 
    "geomesa:TubeSelect WPS plugin"
@@ -290,7 +290,7 @@ point to perform a tube select. Entering the values we want and clicking
 the "Generate XML" button produces the request document that we'll save
 as ``tube-select.xml`` for use later.
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-tubeselect/generate_xml.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/generate_xml.png
    :alt: "Generating XML from inputs"
 
    "Generating XML from inputs"
@@ -318,7 +318,7 @@ defines the "tube" geometry for our query. Using the ``maxSpeed`` of 25
 m/s and a ``maxTime`` of 120s we will create a space/time query tube.
 Here's a GeoServer rendering of a possible track:
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-tubeselect/tube_features.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/tube_features.png
    :alt: "Tube Features"
 
    "Tube Features"
@@ -411,7 +411,7 @@ layers are **mapproxy:globe.osm.toner**, **accumulo:njtrack**, and
 
     http://localhost:8081/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=mapproxy:globe.osm.toner,accumulo:njtrack,accumulo:nj120&styles=&bbox=-75.62390877,39.65103897,-74.81563784,40.04023423&width=1440&height=960&srs=EPSG:4326&format=application/openlayers
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-tubeselect/tube-25-120.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/tube-25-120.png
    :alt: "Tube Result at 25m/s 120s"
 
    "Tube Result at 25m/s 120s"
@@ -435,7 +435,7 @@ like to account for that possibility. Once again, a chained
 
     http://localhost:8081/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=mapproxy:globe.osm.toner,accumulo:njtrack,accumulo:nj240&styles=&bbox=-75.62390877,39.65103897,-74.81563784,40.04023423&width=1440&height=960&srs=EPSG:4326&format=application/openlayers
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-tubeselect/tube-25-240.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/tube-25-240.png
    :alt: "Tube Result at 25m/s 240s"
 
    "Tube Result at 25m/s 240s"

@@ -238,7 +238,7 @@ documentation <http://docs.geoserver.org/latest/en/user/services/wms/time.html>`
 Once you press <Enter>, the display will update, and you should see a
 collection of red dots similar to the following image.
 
-.. figure:: ../_static/img/tutorials/2014-04-10-geomesa-quickstart/geoserver-layer-preview.png
+.. figure:: _static/img/tutorials/2014-04-10-geomesa-quickstart/geoserver-layer-preview.png
    :alt: "Visualizing quick-start data"
 
    Visualizing quick-start data

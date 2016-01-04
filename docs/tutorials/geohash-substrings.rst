@@ -89,7 +89,7 @@ three dimensions. The visual selection of cells and their locations in
 both the global list of keys as well as the sharded lists of keys are
 depicted in this image:
 
-.. figure:: ../_static/img/tutorials/2014-08-05-geohash-substrings/sel-x4y4t8-11.png
+.. figure:: _static/img/tutorials/2014-08-05-geohash-substrings/sel-x4y4t8-11.png
    :alt: "Animation of Covering Geohashes"
 
    "Animation of Covering Geohashes"
@@ -154,7 +154,7 @@ roughly approximates the continential USA, this algorithm steps through
 identifying Geohash prefixes whose precision is less than or equal to 10
 bits:
 
-.. figure:: ../_static/img/tutorials/2014-08-05-geohash-substrings/usa.gif
+.. figure:: _static/img/tutorials/2014-08-05-geohash-substrings/usa.gif
    :alt: "Animation of Covering Geohashes"
 
    "Animation of Covering Geohashes"
@@ -188,5 +188,5 @@ background:
 -  `Hilbert curve <http://en.wikipedia.org/wiki/Hilbert_curve>`__
 -  `GeoWave <https://github.com/ngageoint/geowave>`__
 
-.. |"Animation of Covering Geohashes"| image:: ../_static/img/tutorials/2014-08-05-geohash-substrings/sel-XXYYTT-11.png
-   :target: ../_static/img/tutorials/2014-08-05-geohash-substrings/progression.ogv
+.. |"Animation of Covering Geohashes"| image:: _static/img/tutorials/2014-08-05-geohash-substrings/sel-XXYYTT-11.png
+   :target: _static/img/tutorials/2014-08-05-geohash-substrings/progression.ogv

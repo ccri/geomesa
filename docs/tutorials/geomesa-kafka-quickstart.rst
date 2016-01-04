@@ -104,7 +104,7 @@ Note: If you left out the zkPath command line argument when running the
 quickstart program, you can leave the zkPath connection parameter in
 GeoServer empty.
 
-.. figure:: ../_static/img/tutorials/2015-06-09-geomesa-kafka-quickstart/kafkadatastore1.png
+.. figure:: _static/img/tutorials/2015-06-09-geomesa-kafka-quickstart/kafkadatastore1.png
    :alt: "Inputting parameters into geoserver"
 
    "Inputting parameters into geoserver"
@@ -159,7 +159,7 @@ gradually move to the right side while crossing each other in the
 middle, as the page is refreshed. As the two ``SimpleFeature``\ s get
 updated, the older ``SimpleFeature``\ s disappear from the display.
 
-.. figure:: ../_static/img/tutorials/2015-06-09-geomesa-kafka-quickstart/kafkadatastore2.png
+.. figure:: _static/img/tutorials/2015-06-09-geomesa-kafka-quickstart/kafkadatastore2.png
    :alt: "GeoServer view"
 
    "GeoServer view"

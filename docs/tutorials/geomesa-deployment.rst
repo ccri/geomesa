@@ -374,4 +374,4 @@ For massive queries, the standard 60 second timeout may be too short.
 
 |"Disable limits"|
 
-.. |"Disable limits"| image:: ../_static/img/tutorials/2014-05-16-geomesa-tubeselect/wms_limits.png
+.. |"Disable limits"| image:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/wms_limits.png

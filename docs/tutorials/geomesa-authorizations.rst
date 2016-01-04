@@ -561,7 +561,7 @@ In order to do that, we will use Apache Directory Studio.
 4. **Restart ApacheDS.** Otherwise the partition will not be available
    and the LDIF import will fail.
 5. Load the LDIF file
-   :download:`spring-security-rod.ldif </_static/assets/tutorials/2014-06-04-geomesa-authorizations/spring-security-rod.ldif>`,
+   :download:`spring-security-rod.ldif <_static/assets/tutorials/2014-06-04-geomesa-authorizations/spring-security-rod.ldif>`,
    which will create the Spring Security OU and the 'rod' user:
 
    -  Right-click the 'Root DSE' node in the LDAP browser, and select
@@ -681,7 +681,7 @@ When prompted, select the 'rod' certificate.
 You should see the normal data come back, with many red points
 indicating the data:
 
-.. figure:: ../_static/img/tutorials/2014-06-04-geomesa-authorizations/Ukraine_Unfiltered.png
+.. figure:: _static/img/tutorials/2014-06-04-geomesa-authorizations/Ukraine_Unfiltered.png
    :alt: Authorized Results
 
    Authorized Results
@@ -800,4 +800,4 @@ connects to GeoServer through WFS. Once you have obtained the data
 store, you can query it just like any other data store, and the
 implementation details will be transparent.
 
-.. |ApacheDS Partition| image:: ../_static/img/tutorials/2014-06-04-geomesa-authorizations/apache-ds-partition.png
+.. |ApacheDS Partition| image:: _static/img/tutorials/2014-06-04-geomesa-authorizations/apache-ds-partition.png

@@ -193,7 +193,7 @@ it ``quickstart-feature-level-visibility-admin``. Fill in the correct
 connection parameters to make contact with GeoMesa/Accumulo, but be sure
 to use ``admin`` for the "user" parameter.
 
-.. figure:: ../_static/img/tutorials/2015-03-30-geomesa-feature-level-visibility/admin-config.png
+.. figure:: _static/img/tutorials/2015-03-30-geomesa-feature-level-visibility/admin-config.png
    :alt: "GeoMesa DataStore configuration with "admin" user"
 
    "GeoMesa DataStore configuration with "admin" user"
@@ -206,7 +206,7 @@ Repeat the above steps one more time to add an additional ``DataStore``
 with the same parameters, but this time, use ``user`` for the "user"
 parameter.
 
-.. figure:: ../_static/img/tutorials/2015-03-30-geomesa-feature-level-visibility/user-config.png
+.. figure:: _static/img/tutorials/2015-03-30-geomesa-feature-level-visibility/user-config.png
    :alt: "GeoMesa DataStore configuration with "user" user"
 
    "GeoMesa DataStore configuration with "user" user"

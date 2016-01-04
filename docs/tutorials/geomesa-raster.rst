@@ -119,5 +119,5 @@ configuration.
 This will return a GeoTIFF of the extension requested. As in the WMS
 open layers viewer, the tiles are concatenated together into a mosaic.
 
-.. |"GeoMesa Coverage Format configuration example"| image:: ../_static/img/tutorials/2015-06-18-geomesa-raster/geomesa_coverage_format_1.png
-.. |"GeoMesa Raster WMS example"| image:: ../_static/img/tutorials/2015-06-18-geomesa-raster/geomesa_raster_wms.png
+.. |"GeoMesa Coverage Format configuration example"| image:: _static/img/tutorials/2015-06-18-geomesa-raster/geomesa_coverage_format_1.png
+.. |"GeoMesa Raster WMS example"| image:: _static/img/tutorials/2015-06-18-geomesa-raster/geomesa_raster_wms.png

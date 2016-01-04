@@ -227,7 +227,7 @@ Click "Stores" and "Add new Store". If you do not see the Accumulo
 Feature Data Store listed under Vector Data Sources, ensure the plugin
 is in the right directory and restart GeoServer.
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Accumulo_Feature_Data_Store.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Accumulo_Feature_Data_Store.png
    :alt: "Registering new Data Store"
 
    "Registering new Data Store"
@@ -237,7 +237,7 @@ specified in the command line above. (If you use a workspace:layer name
 other than "geomesa:gdelt", you will need to change the WMS requests
 that follow.)
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Geoserver_Accumulo_Store_Registration.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Geoserver_Accumulo_Store_Registration.png
    :alt: "Registering new Accumulo Feature Data Store"
 
    "Registering new Accumulo Feature Data Store"
@@ -251,7 +251,7 @@ bounding boxes. For the whole world, use [-180,-90,180,90]. In the
 Dimensions pane, enable Time and select the SQLDATE field. You will also
 need to specify a presentation for time - use List as a default.
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Edit_Layer_Enable_Time.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Edit_Layer_Enable_Time.png
    :alt: "Enable Time for the Layer"
 
    "Enable Time for the Layer"
@@ -267,7 +267,7 @@ data.
 
     http://localhost:8080/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=geomesa:gdelt&styles=&bbox=31.6,44,37.4,47.75&width=1200&height=600&srs=EPSG:4326&format=application/openlayers&TIME=2013-01-01T00:00:00.000Z/2014-04-30T23:00:00.000Z
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Ukraine_Unfiltered.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Ukraine_Unfiltered.png
    :alt: "Showing all GDELT events from Jan 1, 2013 to April 30, 2014"
 
    "Showing all GDELT events from Jan 1, 2013 to April 30, 2014"
@@ -288,12 +288,12 @@ codes. The CAMEO code for events of type 'THREATEN' starts with '13'. We
 can filter down to these events using the drop down in GeoServer's
 OpenLayers preview.
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Geoserver_Toggle_Options_Toolbar.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Geoserver_Toggle_Options_Toolbar.png
    :alt: "Open GeoServer Toggle Options Toolbar"
 
    "Open GeoServer Toggle Options Toolbar"
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Geoserver_Layer_Preview_Drop_Down.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Geoserver_Layer_Preview_Drop_Down.png
    :alt: "Enter CQL Filter into Toolbar"
 
    "Enter CQL Filter into Toolbar"
@@ -301,7 +301,7 @@ OpenLayers preview.
 Let's use a custom icon to display THREATEN events, by adding an `SLD
 style <http://docs.geoserver.org/latest/en/user/styling/index.html>`__
 to the layer. Add the SLD file
-:download:`threat.sld <../_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/threat.sld>`
+:download:`threat.sld <_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/threat.sld>`
 to GeoServer (See the GeoServer
 documentation for `more information about adding SLD
 files <http://docs.geoserver.org/latest/en/user/styling/sld-working.html>`__).
@@ -312,7 +312,7 @@ specified location in your GeoServer installation.
 
     http://localhost:8080/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=geomesa:gdelt&CQL_FILTER=EventRootCode=13&styles=threat&bbox=31.6,44,37.4,47.75&width=1200&height=600&srs=EPSG:4326&format=application/openlayers&TIME=2013-01-01T00:00:00.000Z/2014-04-30T23:00:00.000Z
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Ukraine_Event_RootCode_Threaten.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Ukraine_Event_RootCode_Threaten.png
    :alt: "Showing GDELT events with CAMEO root code THREATEN from Jan 1, 2013 to April 30, 2014"
 
    "Showing GDELT events with CAMEO root code THREATEN from Jan 1, 2013
@@ -323,7 +323,7 @@ Heatmaps
 
 Use a heatmap to more clearly visualize multiple events in the same
 location or high volume of data in general. Add the SLD file
-:download:`heatmap.sld <../_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/heatmap.sld>`
+:download:`heatmap.sld <_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/heatmap.sld>`
 to GeoServer.
 
 In the request below, the heatmap is before the points layer so that the
@@ -335,7 +335,7 @@ and will replace the default value assigned in the SLD.
 
     http://localhost:8080/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=geomesa:gdelt,geomesa:gdelt&CQL_FILTER=include;EventRootCode=13&styles=heatmap,threat&bbox=31.6,44,37.4,47.75&width=1200&height=600&srs=EPSG:4326&format=application/openlayers&TIME=2013-01-01T00:00:00.000Z/2014-04-30T23:00:00.000Z&env=radiusPixels:30
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Heatmap_Ukraine_EventRootCode_Threaten.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Heatmap_Ukraine_EventRootCode_Threaten.png
    :alt: "Showing heatmap with event overlay of GDELT events with CAMEO root code THREATEN from Jan 1, 2013 to April 30, 2014"
 
    "Showing heatmap with event overlay of GDELT events with CAMEO root

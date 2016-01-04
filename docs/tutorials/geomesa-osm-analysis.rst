@@ -232,7 +232,7 @@ Click "Stores" and "Add new Store". If you do not see the Accumulo
 Feature Data Store listed under Vector Data Sources, ensure the plugin
 is in the right directory and restart Geoserver.
 
-.. figure:: ../_static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Accumulo_Feature_Data_Store.png
+.. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Accumulo_Feature_Data_Store.png
    :alt: "Registering new Data Store"
 
    "Registering new Data Store"
@@ -242,7 +242,7 @@ specified in the command line above. (If you use a workspace:layer name
 other than geomesa:gdelt, you will need to change the WMS requests that
 follow.)
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-osm-analysis/GeoserverAccumuloStoreRegistration.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-osm-analysis/GeoserverAccumuloStoreRegistration.png
    :alt: "Registering new Accumulo Feature Data Store"
 
    "Registering new Accumulo Feature Data Store"
@@ -259,14 +259,14 @@ QUERY
 
 Let's look at events in Chicago. The default point style is a red square
 that does not suit our purposes. Add the SLD file 
-:download:`OSMPoint.sld <../_static/assets/tutorials/2014-05-16-geomesa-osm-analysis/OSMPoint.sld>`
+:download:`OSMPoint.sld <_static/assets/tutorials/2014-05-16-geomesa-osm-analysis/OSMPoint.sld>`
 to Geoserver.
 
 .. code-block:: bash
 
     http://localhost:8080/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=geomesa:OSM&styles=OSMPoint&bbox=-87.63,41.88,-87.61,41.9&width=1400&height=600&srs=EPSG:4326&format=application/openlayers
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-osm-analysis/ChicagoPoint.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-osm-analysis/ChicagoPoint.png
    :alt: "Showing all OSM events in Chicago before Mar 12, 2012"
 
    "Showing all OSM events in Chicago before Mar 12, 2012"
@@ -276,14 +276,14 @@ HEATMAPS
 
 Use a heatmap to more clearly visualize multiple events in the same
 location or high volume of data in general. Add the SLD file
-:download:`heatmap.sld <../_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/heatmap.sld>`
+:download:`heatmap.sld <_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/heatmap.sld>`
 to Geoserver.
 
 .. code-block:: bash
 
     http://localhost:8080/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=geomesa:OSM&styles=heatmap&bbox=-87.63,41.88,-87.61,41.9&width=1400&height=600&srs=EPSG:4326&format=application/openlayers
 
-.. figure:: ../_static/img/tutorials/2014-05-16-geomesa-osm-analysis/ChicagoDensity.png
+.. figure:: _static/img/tutorials/2014-05-16-geomesa-osm-analysis/ChicagoDensity.png
    :alt: "Showing heatmap of OSM events in Chicago before Mar 12, 2012"
 
    "Showing heatmap of OSM events in Chicago before Mar 12, 2012"
