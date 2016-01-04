@@ -17,46 +17,61 @@
 		</delete>
 	</target>
 	
-	<target name="all" depends="user,developer,tutorials">
+	<target name="html" depends="user-html,developer-html,tutorials-html">
 	</target>
 
-	<target name="user" depends="init">
-		<antcall target="sphinx-module">
+	<target name="latex" depends="user-latex,developer-latex,tutorials-latex">
+	</target>
+
+	<target name="user-html" depends="init">
+		<antcall target="sphinx">
 			<param name="id" value="user" />
 			<param name="build" value="html" />
 		</antcall>
 	</target>
 
-	<target name="developer" depends="init">
-		<antcall target="sphinx-module">
+	<target name="developer-html" depends="init">
+		<antcall target="sphinx">
 			<param name="id" value="developer" />
 			<param name="build" value="html" />
 		</antcall>
 	</target>
 
-	<target name="tutorials" depends="init">
-		<antcall target="sphinx-module">
+	<target name="tutorials-html" depends="init">
+		<antcall target="sphinx">
 			<param name="id" value="tutorials" />
 			<param name="build" value="html" />
 		</antcall>
 	</target>
 
-	<target name="html" depends="init">
-		<exec executable="sphinx-build" failonerror="true" dir="${basedir}">
-			<arg line="-b html -d &quot;${build.directory}/doctrees&quot; . &quot;${build.directory}/html&quot;" />
-		</exec>
-	</target>
-	
-	<target name="latex" depends="init">
-		<exec executable="sphinx-build" failonerror="true" dir="${basedir}">
-			<arg line="-b latex -d &quot;${build.directory}/doctrees&quot; . &quot;${build.directory}/latex&quot;" />
-		</exec>
+	<target name="user-latex" depends="init">
+		<antcall target="sphinx-latex">
+			<param name="id" value="user" />
+		</antcall>
 	</target>
 
-	<target name="sphinx-module" depends="init">
+	<target name="developer-latex" depends="init">
+		<antcall target="sphinx-latex">
+			<param name="id" value="developer" />
+		</antcall>
+	</target>
+
+	<target name="tutorials-latex" depends="init">
+		<antcall target="sphinx-latex">
+			<param name="id" value="tutorials" />
+		</antcall>
+	</target>
+
+	<target name="sphinx">
 		<exec executable="sphinx-build" failonerror="true" dir="${basedir}/${id}">
 			<arg line="-b ${build} -d &quot;${build.directory}/${id}/doctrees&quot; . &quot;${build.directory}/${id}/${build}&quot;" />
 		</exec>
 	</target>
 	
+	<target name="sphinx-latex">
+		<exec executable="sphinx-build" failonerror="true" dir="${basedir}/${id}">
+			<arg line="-b latex -d &quot;${build.directory}/${id}/doctrees&quot; . &quot;${build.directory}/${id}/latex&quot;" />
+		</exec>
+	</target>
+
 </project>

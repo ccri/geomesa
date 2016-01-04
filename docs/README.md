@@ -18,7 +18,7 @@ Alternatively use ``sudo`` with the ``pip`` command to install the packages in t
     $ sudo pip install sphinx
     $ sudo pip install recommonmark
 
-You also need ``make``.
+You will also need ``ant``.
 
 Optional:  if you want to build the PDF version of the manual, install LaTeX:
 
@@ -26,24 +26,39 @@ Optional:  if you want to build the PDF version of the manual, install LaTeX:
     $ sudo apt-get install texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended
 
 The LaTeX distribution is pretty big, so you can skip it if you're just interested in the HTML docs.
+You will also need ``make``.
 
 ## Building
 
-To build an HTML version of the manual:
+To build HTML versions of the manuals:
 
-    $ make html
+    $ ant html
 
-To build a PDF version:
+To build an HTML version of a particular manual:
 
-    $ make latexpdf
-
-There are a lot of other formats too, type ``make`` to list them. 
+    $ ant user-html
+    $ ant developer-html
+    $ ant tutorials-html
 
 The outputted files are written to the ``_build`` directory. 
 
+To build PDF versions:
+
+    $ ant user-latex
+    $ cd _build/latex/user
+    $ make
+
+To clean up (delete the ``_build`` directory):
+
+    $ ant clean 
+
 ## About
 
-The root page of the documentation is ``index.rst``. Any static files included go in the ``_static`` directory. 
+There are currently three main manuals: the User Manual (``user``), the Developer Manual (``developer``),
+and Tutorials (``tutorials``).
+
+In each manual, the root page of the documentation is ``index.rst``. Any static files included go in
+the ``_static`` directory. 
 
 The files themselves are written in [reStructuredText](http://docutils.sourceforge.net/rst.html) (RST) and have ``*.rst``
 extensions. Markdown files are also supported but do not support any of Docutils or Sphinx's special directives
