@@ -1,8 +1,8 @@
 .. GeoMesa documentation master file, created by
    sphinx-quickstart on Mon Dec  7 10:39:14 2015.
 
-GeoMesa |version|
-=================
+GeoMesa |release| User Manual
+=============================
 
 .. image:: _static/img/geomesa-2x.png
 
@@ -13,16 +13,9 @@ GeoMesa |version|
    architecture
    installation_and_configuration
    commandline_tools
-   developing
-   ingest_export
-   querying
-   analysis
-   security
 
+Index
+=====
 
-Indices and tables
-==================
-
-* :ref:`genindex`
 * :ref:`search`
 

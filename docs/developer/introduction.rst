@@ -1,5 +1,5 @@
-Developing with GeoMesa
-=======================
+Introduction
+============
 
 Project Structure
 -----------------
@@ -63,24 +63,3 @@ WPS
 ---
 
 TODO
-
-Modules
--------
-
-.. toctree::
-
-    developing/geomesa-accumulo-datastore
-    developing/geomesa-compute
-    developing/geomesa-convert
-    developing/geomesa-jobs
-    developing/geomesa-kafka-datastore
-    developing/geomesa-kafka-geoserver-plugin
-    developing/geomesa-plugin
-    developing/geomesa-process
-    developing/geomesa-raster
-    developing/geomesa-stream
-    developing/geomesa-utils
-    developing/geomesa-web-csv
-    developing/geomesa-web-data
-    developing/geomesa-web-security
-
