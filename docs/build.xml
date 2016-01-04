@@ -1,0 +1,31 @@
+<project name="docs">
+	<target name="init">
+		<property environment="env"></property>
+
+		<condition property="build.directory" value="${build.directory}" else="${basedir}/_build">
+			<isset property="build.directory" />
+		</condition>
+
+		<echo message="Build directory: ${build.directory}" />
+	</target>
+
+	<target name="clean" depends="init">
+		<delete includeemptydirs="true">
+			<fileset dir="${build.directory}" defaultexcludes="false">
+				<include name="**/"></include>
+			</fileset>
+		</delete>
+	</target>
+
+	<target name="html" depends="init">
+		<exec executable="sphinx-build" failonerror="true" dir="${basedir}">
+			<arg line="-b html -d &quot;${build.directory}/doctrees&quot; . &quot;${build.directory}/html&quot;" />
+		</exec>
+	</target>
+
+	<target name="latex" depends="init">
+		<exec executable="sphinx-build" failonerror="true" dir="${basedir}">
+			<arg line="-b latex -d &quot;${build.directory}/doctrees&quot; . &quot;${build.directory}/latex&quot;" />
+		</exec>
+	</target>
+</project>
