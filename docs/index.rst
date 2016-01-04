@@ -11,7 +11,7 @@ GeoMesa |version|
    
    introduction
    architecture
-   getting_started
+   installation_and_configuration
    commandline_tools
    developing
    ingest_export

@@ -1,5 +1,5 @@
-Getting Started
-===============
+Installation and Configuration
+==============================
 
 Prerequisites and Platform
 --------------------------
