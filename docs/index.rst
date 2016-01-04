@@ -18,7 +18,6 @@ GeoMesa |version|
    querying
    analysis
    security
-   tutorials
 
 
 Indices and tables
