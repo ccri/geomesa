@@ -35,7 +35,7 @@ TODO
 Using Maven
 -----------
 
-TODO
+The GeoMesa project uses `Apache Maven <https://maven.apache.org/>`_ as a build tool. The Maven project's `Maven in 5 Minutes <https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html>`_ provides a quick introduction to getting started with its `mvn` executable.
 
 Using the Scala Console
 -----------------------
@@ -57,9 +57,20 @@ TODO
 The GeoTools DataStore API
 --------------------------
 
-TODO
+`DataStore <http://docs.geotools.org/latest/userguide/library/api/datastore.html>`_ is the key class in the GeoTools API for accessing data from a source such as GeoMesa. 
 
 WPS
 ---
 
-TODO
+As described by the Open Geospatial Consortium's page on WPS, 
+
+    The OpenGIS® Web Map Service Interface Standard (WMS) provides a simple HTTP
+    interface for requesting geo-registered map images from one or more
+    distributed geospatial databases. A WMS request defines the geographic
+    layer(s) and area of interest to be processed. The response to the request is
+    one or more geo-registered map images (returned as JPEG, PNG, etc) that can be
+    displayed in a browser application. The interface also supports the ability to
+    specify whether the returned images should be transparent so that layers from
+    multiple servers can be combined or not.
+
+A tool like GeoServer (once its WPS plugin has been installed) uses WPS to retrieve data from GeoMesa. WPS processes can be chained, letting you use additional WPS requests to build on the results of earlier ones. The `Web Processing Services (WPS) Tube Select <../../tutorials/html/geomesa-tubeselect.html>`_ tutorial describes how to assemble an application that does this. 

@@ -189,7 +189,7 @@ Then, group by grid cell and count the number of features per cell.
 
 The resulting density plot is visualized below.
 
-.. figure:: ../_static/img/tutorials/2014-08-05-spark/gdelt-global-density.png
+.. figure:: _static/img/tutorials/2014-08-05-spark/gdelt-global-density.png
    :alt: "Registering new Data Store"
 
    "Registering new Data Store"

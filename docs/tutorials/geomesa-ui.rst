@@ -7,7 +7,7 @@ BACKGROUND
 When you install the GeoMesa plugin for GeoServer, you get access to the
 GeoMesa User Interface. The GeoMesa UI shows the status of your GeoMesa
 data stores and will eventually provide additional features such as the
-abillity to build indices on your data and calculate statistics on your common
+ability to build indices on your data and calculate statistics on your common
 queries.
 
 This section outlines some of the features currently available through the
