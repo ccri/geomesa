@@ -33,7 +33,6 @@
         <module>geomesa-web</module>
         <module>geomesa-process</module>
         <module>geomesa-stream</module>
-        <module>geomesa-examples</module>
         <module>geomesa-z3</module>
         <module>geomesa-accumulo</module>
         <module>geomesa-hbase</module>
@@ -550,7 +549,7 @@
             <dependency>
                 <groupId>commons-pool</groupId>
                 <artifactId>commons-pool</artifactId>
-                <version>1.5.3</version>
+                <version>1.6</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
