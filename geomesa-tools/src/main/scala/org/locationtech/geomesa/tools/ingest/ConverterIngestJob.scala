@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.Connector
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.io.Text
+import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.{Counter, Job, Mapper}
 import org.geotools.data.DataStoreFinder
@@ -77,9 +77,9 @@ object ConverterIngestJob extends LazyLogging {
       () => ClassPathUtils.getJarsFromClasspath(classOf[Connector]))
 }
 
-class ConverterMapper extends Mapper[Text, Text, Text, SimpleFeature] {
+class ConverterMapper extends Mapper[LongWritable, Text, Text, SimpleFeature] {
 
-  type Context = Mapper[Text, Text, Text, SimpleFeature]#Context
+  type Context = Mapper[LongWritable, Text, Text, SimpleFeature]#Context
 
   private val text: Text = new Text
   private var written: Counter = null
@@ -108,7 +108,7 @@ class ConverterMapper extends Mapper[Text, Text, Text, SimpleFeature] {
     failed.increment(ec.counter.getFailure)
   }
 
-  override def map(key: Text, value: Text, context: Context): Unit = {
+  override def map(key: LongWritable, value: Text, context: Context): Unit = {
     converter.processInput(Iterator(value.toString), ec).foreach { sf =>
       context.write(text, sf)
       written.increment(1)

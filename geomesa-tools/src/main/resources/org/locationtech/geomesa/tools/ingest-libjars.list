@@ -10,8 +10,12 @@ curator-client
 curator-framework
 curator-recipes
 geomesa
+gson
 gt
 joda
+json-path
+json-simple
+json-smart
 jsr
 jts
 kryo
