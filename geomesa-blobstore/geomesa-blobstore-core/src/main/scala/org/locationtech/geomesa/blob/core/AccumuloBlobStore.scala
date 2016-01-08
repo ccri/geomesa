@@ -11,8 +11,6 @@ package org.locationtech.geomesa.blob.core
 import java.io.File
 
 import com.google.common.io.{ByteStreams, Files}
-import org.apache.accumulo.core.client.admin.TimeType
-import org.apache.accumulo.core.client.{Scanner, TableExistsException}
 import org.apache.accumulo.core.data.{Key, Mutation, Range, Value}
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.hadoop.io.Text
@@ -40,7 +38,8 @@ class AccumuloBlobStore(ds: AccumuloDataStore) {
 
   AccumuloVersion.ensureTableExists(connector, blobTableName)
   ds.createSchema(sft)
-  val bw = connector.createBatchWriter(blobTableName, GeoMesaBatchWriterConfig())
+  val bwc = GeoMesaBatchWriterConfig()
+  val bw = connector.createBatchWriter(blobTableName, bwc)
   val fs = ds.getFeatureSource(blobFeatureTypeName).asInstanceOf[SimpleFeatureStore]
 
   def put(file: File, params: Map[String, String]): Option[String] = {
@@ -78,6 +77,17 @@ class AccumuloBlobStore(ds: AccumuloDataStore) {
     }
   }
 
+  def delete(id: String): Unit = {
+    // TODO: Get Authorizations using AuthorizationsProvider interface
+    // https://geomesa.atlassian.net/browse/GEOMESA-986
+    val bd = connector.createBatchDeleter(blobTableName, new Authorizations(), bwc.getMaxWriteThreads, bwc)
+    bd.setRanges(List(new Range(new Text(id))))
+    bd.delete()
+    bd.close()
+    // TODO: remove the feature from the geomesa table
+    // https://geomesa.atlassian.net/browse/GEOMESA-959
+  }
+
   private def buildReturn(entry: java.util.Map.Entry[Key, Value]): (Array[Byte], String) = {
     val key = entry.getKey
     val value = entry.getValue
@@ -89,7 +99,7 @@ class AccumuloBlobStore(ds: AccumuloDataStore) {
 
   private def putInternal(file: File, id: String) {
     val localName = file.getName
-    val bytes =  ByteStreams.toByteArray(Files.newInputStreamSupplier(file))
+    val bytes = ByteStreams.toByteArray(Files.asByteSource(file).openBufferedStream())
 
     val m = new Mutation(id)
 

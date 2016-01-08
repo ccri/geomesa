@@ -8,16 +8,27 @@
 
 package org.locationtech.geomesa.blob.api
 
+import java.io.File
+
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.io.FilenameUtils
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreFactory}
 import org.locationtech.geomesa.blob.core.AccumuloBlobStore
 import org.locationtech.geomesa.web.core.GeoMesaScalatraServlet
-import org.scalatra.{NotFound, Ok}
+import org.scalatra.servlet.{FileUploadSupport, MultipartConfig, SizeConstraintExceededException}
+import org.scalatra._
 
 import scala.collection.JavaConversions._
+import scala.util.control.NonFatal
 
-class BlobstoreServlet extends GeoMesaScalatraServlet with LazyLogging {
+class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport with LazyLogging {
   override def root: String = "blob"
+
+  // caps blob size at 10MB
+  configureMultipartHandling(MultipartConfig(maxFileSize = Some(10*1024*1024), fileSizeThreshold = Some(1*1024*1024)))
+  error {
+    case e: SizeConstraintExceededException => RequestEntityTooLarge("Uploaded file too large!")
+  }
 
   var abs: AccumuloBlobStore = null
 
@@ -34,17 +45,16 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with LazyLogging {
     if (ds == null) {
       NotFound(reason = "Could not load data store using the provided parameters.")
     } else {
-      // TODO: Synchronize Blobstore creation
-      // https://geomesa.atlassian.net/browse/GEOMESA-985
-      abs = new AccumuloBlobStore(ds)
+      this.synchronized {
+        abs = new AccumuloBlobStore(ds)
+      }
       Ok()
     }
   }
 
   get("/:id") {
     val id = params("id")
-    logger.debug(s"In ID method, trying to retrieve id $id")
-
+    logger.debug("In ID method, trying to retrieve id {}", id)
     if (abs == null) {
       NotFound(reason = "AccumuloBlobStore is not initialized.")
     } else {
@@ -59,4 +69,34 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with LazyLogging {
       }
     }
   }
+
+  post("/") {
+    try {
+      logger.debug("In file upload post method")
+      if (abs == null) {
+        NotFound(reason = "AccumuloBlobStore is not initialized.")
+      } else {
+        fileParams.get("file") match {
+          case None       =>
+            BadRequest(reason = "no file parameter in request")
+          case Some(file) =>
+            val otherParams = multiParams.toMap.map { case (s, p) => s -> p.head }
+            val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), FilenameUtils.getExtension(file.name))
+            val actRes: ActionResult = abs.put(tempFile, otherParams) match {
+              case Some(id) =>
+                Created(body = id, headers = Map("Location" -> s"${request.getRequestURL append id}"))
+              case None     =>
+                UnprocessableEntity(reason = s"Unable to process file: ${file.name}")
+            }
+            tempFile.delete()
+            actRes
+        }
+      }
+    } catch {
+      case NonFatal(ex) =>
+        logger.error("Error uploading file", ex)
+        UnprocessableEntity(reason = ex.getMessage)
+    }
+  }
+
 }
