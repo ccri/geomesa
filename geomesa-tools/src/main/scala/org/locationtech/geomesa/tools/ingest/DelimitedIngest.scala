@@ -27,6 +27,7 @@ class DelimitedIngest(dsParams: Map[String, String], sft: SimpleFeatureType, con
 
   override def run(): Unit = {
     // create schema for the feature prior to Ingest job
+    logger.info(s"Creating schema ${sft.getTypeName}")
     ds.createSchema(sft)
 
     if (inputs.head.toLowerCase.startsWith("hdfs://")) {

@@ -2,10 +2,7 @@ accumulo-core
 accumulo-fate
 accumulo-start
 accumulo-trace
-algebird
 avro
-cascading
-chill
 commons-csv
 commons-pool
 config
@@ -14,7 +11,6 @@ curator-framework
 curator-recipes
 geomesa
 gt
-jgrapht
 joda
 jsr
 jts
@@ -23,4 +19,3 @@ libthrift
 mango
 minlog
 scala
-scalding
