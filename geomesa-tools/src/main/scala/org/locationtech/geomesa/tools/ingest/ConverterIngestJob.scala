@@ -39,6 +39,7 @@ object ConverterIngestJob extends LazyLogging {
 
     JobUtils.setLibJars(job.getConfiguration, libJars = ingestLibJars, searchPath = ingestJarSearchPath)
 
+    // TODO use whole file input format if converter type is xml
     job.setJarByClass(ConverterIngestJob.getClass)
     job.setMapperClass(classOf[ConverterMapper])
     job.setInputFormatClass(classOf[TextInputFormat])
