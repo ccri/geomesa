@@ -15,8 +15,8 @@ import org.apache.commons.io.FilenameUtils
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreFactory}
 import org.locationtech.geomesa.blob.core.AccumuloBlobStore
 import org.locationtech.geomesa.web.core.GeoMesaScalatraServlet
-import org.scalatra.servlet.{FileUploadSupport, MultipartConfig, SizeConstraintExceededException}
 import org.scalatra._
+import org.scalatra.servlet.{FileUploadSupport, MultipartConfig, SizeConstraintExceededException}
 
 import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
@@ -31,6 +31,36 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
   }
 
   var abs: AccumuloBlobStore = null
+
+  // scalatra routes bottom up, so we want the ds post to be checked first
+  post("/") {
+    try {
+      logger.debug("In file upload post method")
+      if (abs == null) {
+        NotFound(reason = "AccumuloBlobStore is not initialized.")
+      } else {
+        fileParams.get("file") match {
+          case None       =>
+            BadRequest(reason = "no file parameter in request")
+          case Some(file) =>
+            val otherParams = multiParams.toMap.map { case (s, p) => s -> p.head }
+            val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), FilenameUtils.getExtension(file.name))
+            val actRes: ActionResult = abs.put(tempFile, otherParams) match {
+              case Some(id) =>
+                Created(body = id, headers = Map("Location" -> s"${request.getRequestURL append id}"))
+              case None     =>
+                UnprocessableEntity(reason = s"Unable to process file: ${file.name}")
+            }
+            tempFile.delete()
+            actRes
+        }
+      }
+    } catch {
+      case NonFatal(ex) =>
+        logger.error("Error uploading file", ex)
+        UnprocessableEntity(reason = ex.getMessage)
+    }
+  }
 
   // TODO: Revisit configuration and persistence of configuration.
   // https://geomesa.atlassian.net/browse/GEOMESA-958
@@ -67,35 +97,6 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
 
         Ok(returnBytes)
       }
-    }
-  }
-
-  post("/") {
-    try {
-      logger.debug("In file upload post method")
-      if (abs == null) {
-        NotFound(reason = "AccumuloBlobStore is not initialized.")
-      } else {
-        fileParams.get("file") match {
-          case None       =>
-            BadRequest(reason = "no file parameter in request")
-          case Some(file) =>
-            val otherParams = multiParams.toMap.map { case (s, p) => s -> p.head }
-            val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), FilenameUtils.getExtension(file.name))
-            val actRes: ActionResult = abs.put(tempFile, otherParams) match {
-              case Some(id) =>
-                Created(body = id, headers = Map("Location" -> s"${request.getRequestURL append id}"))
-              case None     =>
-                UnprocessableEntity(reason = s"Unable to process file: ${file.name}")
-            }
-            tempFile.delete()
-            actRes
-        }
-      }
-    } catch {
-      case NonFatal(ex) =>
-        logger.error("Error uploading file", ex)
-        UnprocessableEntity(reason = ex.getMessage)
     }
   }
 
