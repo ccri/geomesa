@@ -25,7 +25,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
   override def root: String = "blob"
 
   // caps blob size at 10MB
-  configureMultipartHandling(MultipartConfig(maxFileSize = Some(10*1024*1024), fileSizeThreshold = Some(1*1024*1024)))
+  configureMultipartHandling(MultipartConfig(maxFileSize = Some(10*1024*1024)))
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge("Uploaded file too large!")
   }
@@ -33,7 +33,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
   var abs: AccumuloBlobStore = null
 
   // scalatra routes bottom up, so we want the ds post to be checked first
-  post("/") {
+  post("/upload") {
     try {
       logger.debug("In file upload post method")
       if (abs == null) {
