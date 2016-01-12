@@ -31,7 +31,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
 
   var abs: AccumuloBlobStore = null
 
-  get("/:id") {
+  get("/get/:id") {
     val id = params("id")
     logger.debug("In ID method, trying to retrieve id {}", id)
     if (abs == null) {
@@ -69,24 +69,23 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
     }
   }
 
-
   // scalatra routes bottom up, so we want the ds post to be checked first
-  post("/upload") {
+  post("/") {
     try {
       logger.debug("In file upload post method")
       if (abs == null) {
         NotFound(reason = "AccumuloBlobStore is not initialized.")
       } else {
         fileParams.get("file") match {
-          case None       =>
+          case None =>
             halt(400, reason = "no file parameter in request")
           case Some(file) =>
             val otherParams = multiParams.toMap.map { case (s, p) => s -> p.head }
-            val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), FilenameUtils.getExtension(file.name))
+            val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), "." + FilenameUtils.getExtension(file.name))
             val actRes: ActionResult = abs.put(tempFile, otherParams) match {
               case Some(id) =>
                 Created(body = id, headers = Map("Location" -> s"${request.getRequestURL append id}"))
-              case None     =>
+              case None =>
                 UnprocessableEntity(reason = s"Unable to process file: ${file.name}")
             }
             tempFile.delete()
