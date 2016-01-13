@@ -82,6 +82,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
           case Some(file) =>
             val otherParams = multiParams.toMap.map { case (s, p) => s -> p.head }
             val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), "." + FilenameUtils.getExtension(file.name))
+            file.write(tempFile)
             val actRes: ActionResult = abs.put(tempFile, otherParams) match {
               case Some(id) =>
                 Created(body = id, headers = Map("Location" -> s"${request.getRequestURL append id}"))
