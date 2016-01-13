@@ -41,7 +41,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
 
   val tempDir = Files.createTempDirectory("blobs", BlobstoreServlet.permissions)
 
-  get("/:id") {
+  get("/:id/?") {
     val id = params("id")
     logger.debug("In ID method, trying to retrieve id {}", id)
     if (abs == null) {
@@ -62,7 +62,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
   // TODO: Revisit configuration and persistence of configuration.
   // https://geomesa.atlassian.net/browse/GEOMESA-958
   // https://geomesa.atlassian.net/browse/GEOMESA-984
-  post("/ds") {
+  post("/ds/?") {
     logger.debug("In ds registration method")
 
     val dsParams = datastoreParams
@@ -113,6 +113,5 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport wit
 }
 
 object BlobstoreServlet {
-  val permissions  = PosixFilePermissions.asFileAttribute(Set(OWNER_READ, OWNER_WRITE, GROUP_READ, GROUP_WRITE))
-
+  val permissions  = PosixFilePermissions.asFileAttribute(Set(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE, GROUP_READ, GROUP_WRITE))
 }
