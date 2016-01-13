@@ -8,9 +8,11 @@
 
 package org.locationtech.geomesa.blob.api
 
-import java.io.File
+import java.io.{IOException, File}
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission._
+import java.nio.file.attribute.PosixFilePermissions
 
-import org.apache.commons.io.FilenameUtils
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreFactory}
 import org.locationtech.geomesa.blob.core.AccumuloBlobStore
 import org.locationtech.geomesa.web.core.GeoMesaScalatraServlet
@@ -20,18 +22,26 @@ import org.scalatra.servlet.{FileUploadSupport, MultipartConfig, SizeConstraintE
 import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
 
-class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
+class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport with GZipSupport {
   override def root: String = "blob"
 
   // caps blob size at 10MB
-  configureMultipartHandling(MultipartConfig(maxFileSize = Some(100*1024*1024)))
+  configureMultipartHandling(
+    MultipartConfig(
+      maxFileSize = Some(50*1024*1024),
+      maxRequestSize = Some(100*1024*1024)
+    )
+  )
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge("Uploaded file too large!")
+    case e: IOException => halt(500, "IO Exception on server")
   }
 
   var abs: AccumuloBlobStore = null
 
-  get("/get/:id") {
+  val tempDir = Files.createTempDirectory("blobs", BlobstoreServlet.permissions)
+
+  get("/:id") {
     val id = params("id")
     logger.debug("In ID method, trying to retrieve id {}", id)
     if (abs == null) {
@@ -42,7 +52,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
         NotFound(reason = s"Unknown ID $id")
       } else {
         contentType = "application/octet-stream"
-        response.setHeader("Content-Disposition", "attachment; filename=" + filename)
+        response.setHeader("Content-Disposition", "attachment;filename=" + filename)
 
         Ok(returnBytes)
       }
@@ -53,7 +63,6 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
   // https://geomesa.atlassian.net/browse/GEOMESA-958
   // https://geomesa.atlassian.net/browse/GEOMESA-984
   post("/ds") {
-
     logger.debug("In ds registration method")
 
     val dsParams = datastoreParams
@@ -65,7 +74,8 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
       this.synchronized {
         abs = new AccumuloBlobStore(ds)
       }
-      Ok()
+      //see https://httpstatuses.com/204
+      NoContent()
     }
   }
 
@@ -81,7 +91,7 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
             halt(400, reason = "no file parameter in request")
           case Some(file) =>
             val otherParams = multiParams.toMap.map { case (s, p) => s -> p.head }
-            val tempFile = File.createTempFile(FilenameUtils.removeExtension(file.name), "." + FilenameUtils.getExtension(file.name))
+            val tempFile = new File(tempDir.toString + '/' + file.getName)
             file.write(tempFile)
             val actRes: ActionResult = abs.put(tempFile, otherParams) match {
               case Some(id) =>
@@ -99,5 +109,10 @@ class BlobstoreServlet extends GeoMesaScalatraServlet with FileUploadSupport {
         UnprocessableEntity(reason = ex.getMessage)
     }
   }
+
+}
+
+object BlobstoreServlet {
+  val permissions  = PosixFilePermissions.asFileAttribute(Set(OWNER_READ, OWNER_WRITE, GROUP_READ, GROUP_WRITE))
 
 }
