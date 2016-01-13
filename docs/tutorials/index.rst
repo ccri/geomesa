@@ -7,7 +7,6 @@ Getting Started
 .. toctree::
     :maxdepth: 1
 
-    geomesa-deployment
     geomesa-quickstart
     geomesa-kafka-quickstart
     geomesa-ui
