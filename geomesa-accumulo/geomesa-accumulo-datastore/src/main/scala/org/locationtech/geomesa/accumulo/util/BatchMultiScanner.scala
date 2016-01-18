@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{Executors, TimeUnit}
 
 import com.google.common.collect.Queues
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.{BatchScanner, ScannerBase}
 import org.apache.accumulo.core.data.{Key, Range => AccRange, Value}
 
@@ -22,7 +22,7 @@ class BatchMultiScanner(in: ScannerBase,
                         out: BatchScanner,
                         joinFn: java.util.Map.Entry[Key, Value] => AccRange,
                         batchSize: Int = 32768)
-  extends Iterable[java.util.Map.Entry[Key, Value]] with AutoCloseable with Logging {
+  extends Iterable[java.util.Map.Entry[Key, Value]] with AutoCloseable with LazyLogging {
 
   if(batchSize < 1) {
     throw new IllegalArgumentException(f"Illegal batchSize($batchSize%d). Value must be > 0")

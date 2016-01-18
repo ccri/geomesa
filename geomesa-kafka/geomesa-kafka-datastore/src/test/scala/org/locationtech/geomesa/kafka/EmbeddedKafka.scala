@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -10,7 +10,7 @@ package org.locationtech.geomesa.kafka
 
 import java.net.InetSocketAddress
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import kafka.server.KafkaConfig
 import kafka.utils.{TestUtils, Utils}
 import org.apache.zookeeper.server.{NIOServerCnxnFactory, ZooKeeperServer}
@@ -26,7 +26,7 @@ trait HasEmbeddedKafka {
   def shutdown(): Unit = EmbeddedKafka.shutdown()
 }
 
-trait EmbeddedServiceManager[S <: EmbeddedService[C], C] extends Logging {
+trait EmbeddedServiceManager[S <: EmbeddedService[C], C] extends LazyLogging {
 
   private var count = 0
   private var service: S = null.asInstanceOf[S]

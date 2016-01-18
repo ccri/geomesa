@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -10,7 +10,7 @@ package org.locationtech.geomesa.tools
 
 import java.io.{BufferedReader, File, InputStreamReader}
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.server.client.HdfsZooInstance
 import org.apache.commons.compress.compressors.bzip2.BZip2Utils
 import org.apache.commons.compress.compressors.gzip.GzipUtils
@@ -126,7 +126,7 @@ trait GetPassword {
  * Loads accumulo properties for instance and zookeepers from the accumulo installation found via
  * the system path in ACCUMULO_HOME in the case that command line parameters are not provided
  */
-trait AccumuloProperties extends GetPassword with Logging {
+trait AccumuloProperties extends GetPassword with LazyLogging {
   lazy val accumuloConf = {
     val conf = Option(System.getProperty("geomesa.tools.accumulo.site.xml"))
       .getOrElse(s"${System.getenv("ACCUMULO_HOME")}/conf/accumulo-site.xml")

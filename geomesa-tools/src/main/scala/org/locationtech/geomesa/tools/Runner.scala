@@ -1,22 +1,35 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
+
 package org.locationtech.geomesa.tools
 
 import com.beust.jcommander.{JCommander, ParameterException}
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.locationtech.geomesa.tools.commands._
 import org.locationtech.geomesa.tools.commands.convert.GeoMesaIStringConverterFactory
 
 import scala.collection.JavaConversions._
 
-object Runner extends Logging {
+object Runner extends LazyLogging {
 
   def main(args: Array[String]): Unit = {
+    val command = createCommand(args)
+    try {
+      command.execute()
+    } catch {
+      case e: Exception =>
+        logger.error(e.getMessage, e)
+        sys.exit(-1)
+    }
+    sys.exit(0)
+  }
+
+  def createCommand(args: Array[String]): Command = {
     val jc = new JCommander()
     jc.setProgramName("geomesa")
     jc.addConverterFactory(new GeoMesaIStringConverterFactory)
@@ -52,15 +65,7 @@ object Runner extends Logging {
         sys.exit(-1)
     }
 
-    val command: Command = commandMap.getOrElse(jc.getParsedCommand, new DefaultCommand(jc))
-
-    try {
-      command.execute()
-    } catch {
-      case e: Exception =>
-        logger.error(e.getMessage, e)
-        sys.exit(-1)
-    }
+    commandMap.getOrElse(jc.getParsedCommand, new DefaultCommand(jc))
   }
 
   def mkSubCommand(parent: JCommander, name: String, obj: Object): JCommander = {

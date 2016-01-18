@@ -20,25 +20,8 @@
             <id>bigtable</id>
             <modules>
                 <module>geomesa-bigtable-datastore</module>
-                <module>geomesa-bigtable-geoserver-plugin</module>
             </modules>
         </profile>
     </profiles>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-hbase-datastore</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-
-    <properties>
-        <hbase.version>1.0.0</hbase.version>
-        <hbase.hadoop.version>2.4.1</hbase.hadoop.version>
-    </properties>
-
 
 </project>

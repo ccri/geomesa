@@ -1,15 +1,16 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
+
 package org.locationtech.geomesa.kafka
 
 import java.{util => ju}
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Envelope
 import kafka.producer.{Producer, ProducerConfig}
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
@@ -33,7 +34,7 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
                                 broker: String,
                                 producer: Producer[Array[Byte], Array[Byte]],
                                 query: Query = null)
-  extends ContentFeatureStore(entry, query) with Logging {
+  extends ContentFeatureStore(entry, query) with LazyLogging {
 
   override def getBoundsInternal(query: Query) =
     ReferencedEnvelope.create(new Envelope(-180, 180, -90, 90), CRS_EPSG_4326)
@@ -74,7 +75,7 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
   override def getWriterInternal(query: Query, flags: Int) =
     new ModifyingFeatureWriter(query)
 
-  class ModifyingFeatureWriter(query: Query) extends FW with Logging {
+  class ModifyingFeatureWriter(query: Query) extends FW with LazyLogging {
 
     val msgEncoder = new KafkaGeoMessageEncoder(sft)
     val reuse = new ScalaSimpleFeature("", sft)

@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -48,10 +48,11 @@ public class GeoMesaOutputFormat implements OutputFormat<Text, SimpleFeature> {
         delegate.checkOutputSpecs(ignored, job);
     }
 
+    @SuppressWarnings("unchecked")
     public static void configureDataStore(JobConf job, Map<String, String> dataStoreParams) {
+        Object m = JavaConverters.mapAsScalaMapConverter(dataStoreParams).asScala();
         scala.collection.immutable.Map<String, String> scalaParams =
-                JavaConverters.asScalaMapConverter(dataStoreParams).asScala()
-                              .toMap(Predef.<Tuple2<String, String>>conforms());
+                ((scala.collection.mutable.Map<String, String>) m).toMap(Predef.<Tuple2<String, String>>conforms());
         GeoMesaOutputFormat$.MODULE$.configureDataStore(job, scalaParams);
     }
 

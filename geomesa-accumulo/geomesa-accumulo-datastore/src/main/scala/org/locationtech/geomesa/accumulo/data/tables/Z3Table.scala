@@ -1,10 +1,11 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
+
 package org.locationtech.geomesa.accumulo.data.tables
 
 import java.nio.ByteBuffer
@@ -51,9 +52,7 @@ object Z3Table extends GeoMesaTable {
   def epochWeeks(dtg: DateTime) = Weeks.weeksBetween(EPOCH, new DateTime(dtg))
 
   override def supports(sft: SimpleFeatureType): Boolean =
-    sft.getSchemaVersion > 4 &&
-      sft.getGeometryDescriptor.getType.getBinding == classOf[Point] &&
-      sft.getDtgField.isDefined
+    sft.getSchemaVersion > 4 && sft.isPoints && sft.getDtgField.isDefined
 
   override val suffix: String = "z3"
 

@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.process.temporalDensity
 
 import java.util.Date
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.Query
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
 import org.geotools.data.store.ReTypingFeatureCollection
@@ -28,7 +28,7 @@ import org.opengis.feature.simple.SimpleFeature
   title = "Temporal Density Process",
   description = "Returns a histogram of how many data points fall in different time buckets within an interval."
 )
-class TemporalDensityProcess extends Logging {
+class TemporalDensityProcess extends LazyLogging {
 
   @DescribeResult(description = "Output feature collection")
   def execute(
@@ -70,7 +70,7 @@ class TemporalDensityProcess extends Logging {
 }
 
 class TemporalDensityVisitor(features: SimpleFeatureCollection, interval: Interval, buckets: Int)
-  extends FeatureCalc with Logging {
+  extends FeatureCalc with LazyLogging {
 
   val retType = createFeatureType(features.getSchema())
   val manualVisitResults = new DefaultFeatureCollection(null, retType)
