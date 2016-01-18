@@ -1,7 +1,7 @@
 Feature Level Visibility & Security
 ===================================
 
-INTRODUCTION
+Introduction
 ------------
 
 Feature visibility is a new and important feature recently supported by
@@ -23,7 +23,7 @@ In this tutorial, you'll be guided through ingesting data with varying
 levels of visibility and querying that data as different users through
 GeoServer.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. warning::    
@@ -49,7 +49,7 @@ Syntax <https://accumulo.apache.org/1.5/accumulo_user_manual.html#_security_labe
 which we make use of when writing a visibility label to features in
 GeoMesa.
 
-DOWNLOADING AND BUILDING TUTORIAL CODE
+Downloading and Building Tutorial Code
 --------------------------------------
 
 Clone the **geomesa-quickstart** project:
@@ -69,7 +69,7 @@ Maven:
     $ git checkout feature_level_visibility
     $ mvn clean install
 
-UNDERSTANDING THE CODE
+Understanding The Code
 ----------------------
 
 If you inspect the code, you'll notice only a few changes from the
@@ -124,7 +124,7 @@ are explicitly granted permissions to read these tables and read
 features with that level of authorization, we cannot visualize the data
 in a meaningful way. Let's add new Accumulo users to do just that.
 
-ADDING NEW ACCUMULO USERS
+Adding New Accumulo Users
 -------------------------
 
 In this part of the tutorial, we'll get familiar with the Accumulo
@@ -180,7 +180,7 @@ authorizations, meaning they can only view features of visibility
 
 Let's move to GeoServer to visualize feature level visibility.
 
-GEOSERVER VISUALIZATION
+Geoserver Visualization
 -----------------------
 
 Assuming you have already set up GeoServer (see the `Deployment
@@ -229,7 +229,7 @@ granted permission to view features with the ``user`` visibility, only
 those 500 records are returned. However, the ``admin`` user is granted
 permission to see both ``admin`` and ``user`` visibilities.
 
-EXPANDING THE CONCEPT
+Expanding The Concept
 ---------------------
 
 In this very simple example, you wrote features of two different
@@ -264,7 +264,7 @@ To learn more about PKI or LDAP authorizations, see `the GeoMesa
 Authorizations tutorial
 here <http://www.geomesa.org/2014/06/04/geomesa-authorizations/#applying-authorizations-and-visibilities-to-geoserver-using-pkis-and-ldap>`__.
 
-CONCLUSION
+Conclusion
 ----------
 
 In this tutorial, you learned about feature level visibility and

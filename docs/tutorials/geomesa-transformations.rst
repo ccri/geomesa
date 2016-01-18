@@ -1,18 +1,15 @@
 GeoMesa Transformations
 =======================
 
-This tutorial will show you how to:
------------------------------------
+This tutorial will show you how to write custom Java code using GeoMesa to do the following:
 
-Write custom Java code using GeoMesa to do the following:
-
-1. query previously-ingested data,
-2. apply `relational
+1. Query previously-ingested data.
+2. Apply `relational
    projections <http://en.wikipedia.org/wiki/Projection_%28relational_algebra%29>`__
-   to your query results, and
-3. apply transformations to your query results.
+   to your query results.
+3. Apply transformations to your query results.
 
-BACKGROUND
+Background
 ----------
 
 GeoMesa allows users to perform `relational
@@ -44,7 +41,7 @@ projections can also modify an attribute's value, in this tutorial we
 will refer to such modifications as "transformations" to keep things
 clearer.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. raw:: html
@@ -80,7 +77,7 @@ You will also need:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-DOWNLOAD AND BUILD TUTORIAL CODE
+Download and Build Tutorial Code
 --------------------------------
 
 Clone the geomesa project and build it, if you haven't already:
@@ -121,7 +118,7 @@ From within the root of the cloned tutorial, run:
 When this is complete, it will have built a JAR file that contains all
 of the code you need to run the tutorial in the ``target`` subdirectory.
 
-RUN THE TUTORIAL
+Run the Tutorial
 ----------------
 
 You will need to have ingested some GDELT data using GeoMesa;
@@ -159,8 +156,8 @@ where you provide the following arguments:
 You should see several queries run and the results printed out to your
 console.
 
-INSIGHT INTO HOW THE TUTORIAL WORKS
------------------------------------
+Looking Closer at the Code
+--------------------------
 
 The code for querying and projections is available in the class
 ``geomesa.tutorial.QueryTutorial``. The source code is meant to be
@@ -192,7 +189,7 @@ Additionally, there are two helper classes included in the tutorial:
 -  ``geomesa.tutorial.SetupUtil`` - Handles reading command-line
    arguments.
 
-SAMPLE CODE AND OUTPUT
+Sample Code and Output
 ----------------------
 
 The following code snippets show the basic aspects of creating queries

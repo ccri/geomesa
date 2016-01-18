@@ -1,7 +1,7 @@
 Geohash Ranges
 ==============
 
-OVERVIEW
+Overview
 --------
 
 Encoding a (geometry, date-time) pair is only useful when those encoded
@@ -10,7 +10,7 @@ this post, we present one challenge the query planner in GeoMesa has to
 overcome: How to identify the Geohash prefixes that cover a query
 polygon.
 
-INDEXING GEO-TIME DATA
+Indexing Geo-Time Data
 ~~~~~~~~~~~~~~~~~~~~~~
 
 `Accumulo <http://accumulo.apache.org>`__ -- GeoMesa's primary backing

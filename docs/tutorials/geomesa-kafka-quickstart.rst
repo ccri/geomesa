@@ -1,8 +1,7 @@
 GeoMesa Kafka Quick Start
 =========================
 
-This tutorial will introduce how to:
-------------------------------------
+This tutorial will show you how to:
 
 1. Write custom Java code to produce and consume messages in `Apache
    Kafka <http://kafka.apache.org/>`__ using GeoMesa.
@@ -10,7 +9,7 @@ This tutorial will introduce how to:
    earlier state.
 3. Visualize the changes being made in Kafka with GeoServer.
 
-BACKGROUND
+Background
 ----------
 
 `Apache Kafka <http://kafka.apache.org/>`__ is "publish-subscribe
@@ -20,7 +19,7 @@ data. Interaction with Kafka in GeoMesa occurs with the KafkaDataStore
 which implements the `GeoTools DataStore
 interface <http://docs.geotools.org/latest/userguide/library/data/datastore.html>`__.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 You should go through the `GeoMesa Deployment
@@ -39,7 +38,7 @@ scroll down for the Kafka deployment section.
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-RUN THE CODE
+Run the Code
 ------------
 
 Ensure your Kafka and Zookeeper instances are running. You can use
@@ -72,7 +71,7 @@ The program will create some metadata in Zookeeper and an associated
 topic in your Kafka instance, and pause execution to let you add the
 newly created ``KafkaDataStore`` to GeoServer.
 
-VISUALIZE WITH GEOSERVER
+Visualize with Geoserver
 ------------------------
 
 Register the GeoMesa store with GeoServer
@@ -134,7 +133,7 @@ Once you see your layer, click on the "OpenLayers" link, which will open
 a new tab. At this point, there are no messages in Kafka so nothing will
 be shown.
 
-PRODUCE SOME SIMPLEFEATURES
+Produce Some SimpleFeatures
 ---------------------------
 
 Resume the program's execution by inputting <Enter> in the terminal now
@@ -181,7 +180,7 @@ The ``ReplayKafkaConsumerFeatureSource`` allows users to specify any
 range of time in order to obtain the state of SimpleFeatures from any
 previous moment.
 
-VIEW THE CONSUMER OUTPUT
+View the Consumer Output
 ------------------------
 
 The program will construct the live and replay consumers and log
@@ -210,7 +209,7 @@ querying for when ``KafkaLogTime`` equals *x*.
     fid:2 | name:John | age:52 | dtg:Thu May 21 21:27:19 EDT 2015 | geom:POINT (132 -66) | KafkaLogTime:Tue Jun 09 13:33:47 EDT 2015
     fid:1 | name:James | age:59 | dtg:Sat Jan 24 06:26:44 EST 2015 | geom:POINT (132 66) | KafkaLogTime:Tue Jun 09 13:33:47 EDT 2015
 
-CONCLUSION
+Conclusion
 ----------
 
 Since the source code for this quickstart is accessible, it is advised

@@ -1,7 +1,7 @@
 GeoMesa GeoServer UI
 ====================
 
-BACKGROUND
+Background
 ----------
 
 When you install the GeoMesa plugin for GeoServer, you get access to the
@@ -17,7 +17,7 @@ Instructions for installing the GeoMesa plugin in GeoServer are
 available `here </geomesa-deployment/>`__, under 'Deploy GeoMesa
 Accumulo Plugin to GeoServer'.
 
-ACCESS TO THE USER INTERFACE
+Access to the User Interface
 ----------------------------
 
 You can reach the GeoServer main screen by sending a browser to ``http://127.0.0.1:8080/geoserver`` and logging in with a username of ``admin`` and a password of  ``geoserver``. (This URL and password are default values and may be different at your own installation.) 
@@ -27,7 +27,7 @@ Once you have installed the GeoMesa plugin, the GeoServer administration interfa
 .. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-menu.png
    :alt: "GeoMesa Menu"
 
-DATA STORE SUMMARY
+Data Store Summary
 ------------------
 
 Any GeoMesa data stores that you have added to GeoServer can be examined
@@ -50,7 +50,7 @@ whether they are indexed for querying.
 .. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-datastores.png
    :alt: "Hadoop Status"
 
-CONFIGURATION
+Configuration
 -------------
 
 To use certain UI features you'll need to first set the appropriate
@@ -63,7 +63,7 @@ hadoop configuration files directly to the page. To do this, use the
 .. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-config.png
    :alt: "GeoMesa Configuration"
 
-HADOOP STATUS
+Hadoop Status
 -------------
 
 Once the configuration is done, you can monitor the Hadoop cluster

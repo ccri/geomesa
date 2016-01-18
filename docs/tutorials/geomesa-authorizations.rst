@@ -2,17 +2,16 @@ GeoMesa Authorizations
 ======================
 
 This tutorial will show you how to:
------------------------------------
 
-1. Set visibilities on your data during ingestion through GeoMesa
-2. Apply authorizations to your queries through GeoMesa
+1. Set visibilities on your data during ingestion through GeoMesa.
+2. Apply authorizations to your queries through GeoMesa.
 3. Implement user authorizations through the GeoMesa GeoServer plugin,
    using PKI certs to authenticate with GeoServer and LDAP to store
-   authorizations
+   authorizations.
 4. Query GeoServer over WFS using a Java client using PKI certs for
-   authentication
+   authentication.
 
-BACKGROUND
+Background
 ----------
 
 Visibilities and Authorizations
@@ -51,7 +50,7 @@ PKI solves the issue of **authentication** (*who* a user is) but not
 **authorization** (*what* a user can do). For this tutorial,
 authorization is provided by an LDAP server.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. warning::
@@ -70,7 +69,7 @@ You will also need:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-VISIBILITIES IN GEOMESA
+Visibilities in GeoMesa
 -----------------------
 
 Currently GeoMesa supports applying a single set of visibilities to all
@@ -90,7 +89,7 @@ Any data written by this ``DataStore`` will have the visibilities
 Future versions of GeoMesa will allow visibilities to be applied at a
 more granular level.
 
-AUTHORIZATIONS IN GEOMESA
+Authorizations In GeoMesa
 -------------------------
 
 When performing a query, GeoMesa delegates the retrieval of
@@ -162,7 +161,7 @@ the authorizations associated with the Accumulo connection (i.e. the
 In addition, please note that the authorizations used in any scenario
 cannot exceed the authorizations of the Accumulo connection.
 
-INGEST GDELT DATA WITH VISIBILITIES
+Ingest GDELT Data with Visibilities
 -----------------------------------
 
 The rest of this tutorial will use the GDELT data set, described in the
@@ -239,7 +238,7 @@ the Accumulo shell:
     myuser@mycloud gdelt_auths_gdelt_st_idx> scan
     00~gdelt~04e~20080125 169881494:SimpleFeatureAttribute [user]    \x02\x12169881494\x00\xAC\xBE...
 
-DOWNLOAD AND BUILD THE TUTORIAL CODE
+Download and Build the Tutorial Code
 ------------------------------------
 
 Clone the tutorial code:
@@ -267,7 +266,7 @@ From within the root of the cloned tutorial, run:
 When this is complete, it will have built a JAR file that contains all
 of the code you need to run the tutorial.
 
-RUN THE TUTORIAL
+Run the Tutorial
 ----------------
 
 On the command-line, run:
@@ -314,8 +313,8 @@ console. You should see output similar to the following:
 The first query should return 1 or more results. The second query should
 return 0 results, since they are hidden by visibilities.
 
-INSIGHT INTO HOW THE TUTORIAL WORKS
------------------------------------
+Looking Closer at the Code
+--------------------------
 
 The code for querying with authorizations is available in the class
 ``geomesa.tutorial.AuthorizationsTutorial``.
@@ -373,7 +372,7 @@ Additionally, there are two helper classes included in the tutorial:
 -  ``geomesa.tutorial.SetupUtil`` - Handles reading command-line
    arguments
 
-APPLYING AUTHORIZATIONS AND VISIBILITIES TO GEOSERVER USING PKIS AND LDAP
+Applying Authorizations and Visibilities to GeoServer Using PKIs And LDAP
 -------------------------------------------------------------------------
 
 This section will show you how to configure GeoServer to authenticate
@@ -770,8 +769,8 @@ you should get no results:
     INFO: Cached XML schema: https://localhost:8443/geoserver/wfs?service=WFS&version=1.0.0&request=DescribeFeatureType&typeName=geomesa%3Agdelt
     No results
 
-INSIGHT INTO HOW THE TUTORIAL WORKS
------------------------------------
+Looking Closer at the Code
+--------------------------
 
 The code for querying through WFS is available in the class
 ``geomesa.tutorial.GeoServerAuthorizationsTutorial``. The interesting

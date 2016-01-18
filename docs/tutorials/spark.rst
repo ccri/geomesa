@@ -1,15 +1,14 @@
 Apache Spark Analysis
 =====================
 
-This tutorial will introduce how to:
-------------------------------------
+This tutorial will show you how to:
 
 1. Use GeoMesa with `Apache Spark <http://spark.apache.org/>`__.
 2. Write custom Scala code for GeoMesa to generate histograms and
    spatial densities of `GDELT <http://www.gdeltproject.org/>`__ event
    data.
 
-BACKGROUND
+Background
 ----------
 
 `Apache Spark <http://spark.apache.org>`__ is a "fast and general engine
@@ -29,7 +28,7 @@ resolution to compute a time series of spatial data, and second,
 aggregating by grid cell to rapidly generate density plots. Apache Spark
 enables us to express these transformations easily and succinctly.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. raw:: html
@@ -66,7 +65,7 @@ You will also need:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-SET UP TUTORIAL CODE
+Set Up Tutorial Code
 --------------------
 
 Clone the geomesa project and build it, if you haven't already:
@@ -92,7 +91,7 @@ classpath, by running:
 
     $ mvn scala:console
 
-COUNT EVENTS BY DAY OF YEAR
+Count Events by Day of Year
 ---------------------------
 
 You will need to have ingested some
@@ -149,7 +148,7 @@ group.
     val countByDay = groupedByDay.map { case (date, iter) => (date, iter.size) }
     countByDay.collect.foreach(println)
 
-PARALLEL COMPUTATION OF SPATIAL EVENT DENSITIES
+Parallel Computation of Spatial Event Densities
 -----------------------------------------------
 
 In the second demonstration, we compute densities of our feature by

@@ -8,7 +8,7 @@ This tutorial shows how to:
    GeoMesa Accumulo table via a Hadoop Map/Reduce job.
 2. Leverage GeoServer to query and visualize the data.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. warning::
@@ -24,7 +24,7 @@ You will also need:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-INGEST
+Ingest
 ------
 
 Obtaining GDELT data
@@ -168,7 +168,7 @@ Finally, we create the new feature type in GeoMesa as follows.
 
     ds.createSchema(featureType);
 
-MAPPER
+Mapper
 ------
 
 In the ``setup`` method of the Mapper class, we grab the connection
@@ -211,7 +211,7 @@ automatically into the specified class need to be explicitly set on the
         featureWriter.write();
     }
 
-ANALYZE
+Analyze
 -------
 
 GeoServer Setup

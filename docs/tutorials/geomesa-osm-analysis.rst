@@ -1,14 +1,13 @@
 Streaming Ingest
 ================
 
-This tutorial shows how to:
----------------------------
+This tutorial shows you how to:
 
 1. Quickly and easily ingest big OSM (Open Street Map) data files into a
    GeoMesa Accumulo table via a Kafka/Storm stream.
 2. Leverage Geoserver to query and visualize the data.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. warning::
@@ -31,7 +30,7 @@ Several tools should also be installed and configured:
 -  `Apache Maven <http://maven.apache.org>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-INGEST
+Ingest
 ------
 
 Obtaining OSM data
@@ -92,7 +91,7 @@ We create the new feature type in GeoMesa as follows.
 
     ds.createSchema(featureType);
 
-SETTING UP THE INGEST TOPOLOGY
+Setting Up the Ingest Topology
 ------------------------------
 
 Use ``storm jar`` to submit the topology built
@@ -114,7 +113,7 @@ Note that authorizations are optional. Unless you know that your table
 already exists with explicit authorizations, or that it will be created
 with default authorizations, you probably want to omit this parameter.
 
-SETTING UP THE KAFKA TOPIC
+Setting Up the Kafka Topic
 --------------------------
 
 Now we are going to create a Kafka topic. Kafka serves as the entry
@@ -151,7 +150,7 @@ are assigned the same partition.
         producer.send(new KeyedMessage<String, String>(topic, String.valueOf(rnd.nextInt()), x));
     }
 
-STORM SPOUTS AND BOLTS
+Storm Spouts and Bolts
 ----------------------
 
 In our example, the Storm ``Spout``\ s will consume messages from a
@@ -214,7 +213,7 @@ stored as integers that must be divided by 107.
     }
 
 
-ANALYZE
+Analyze
 -------
 
 GeoServer Setup
