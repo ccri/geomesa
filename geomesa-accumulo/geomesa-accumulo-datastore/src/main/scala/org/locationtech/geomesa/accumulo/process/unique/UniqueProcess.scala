@@ -1,14 +1,14 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.accumulo.process.unique
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.Query
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
@@ -32,7 +32,7 @@ import scala.collection.mutable
 
 @DescribeProcess(title = "Geomesa Unique",
   description = "Finds unique attributes values, optimized for GeoMesa")
-class UniqueProcess extends VectorProcess with Logging {
+class UniqueProcess extends VectorProcess with LazyLogging {
 
   @DescribeResult(name = "result",
     description = "Feature collection with an attribute containing the unique values")
@@ -138,7 +138,7 @@ class UniqueProcess extends VectorProcess with Logging {
 class AttributeVisitor(val features: SimpleFeatureCollection,
                        val attributeDescriptor: AttributeDescriptor,
                        val filter: Option[Filter],
-                       histogram: Boolean) extends FeatureCalc with Logging {
+                       histogram: Boolean) extends FeatureCalc with LazyLogging {
 
   import org.locationtech.geomesa.accumulo.process.unique.AttributeVisitor._
   import org.locationtech.geomesa.utils.geotools.Conversions._

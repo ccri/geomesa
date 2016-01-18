@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.google.common.util.concurrent.MoreExecutors
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.admin.TimeType
 import org.apache.accumulo.core.client.mock.MockConnector
 import org.apache.accumulo.core.client.{Connector, TableExistsException}
@@ -48,7 +48,7 @@ trait StatWriter {
 /**
  * Singleton object to manage writing of stats in a background thread.
  */
-object StatWriter extends Runnable with Logging {
+object StatWriter extends Runnable with LazyLogging {
 
   private val batchSize = 100
 

@@ -1,14 +1,14 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.accumulo.process.knn
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Point
 import org.geotools.data.Query
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
@@ -28,7 +28,7 @@ import scala.collection.JavaConverters._
   title = "Geomesa-enabled K Nearest Neighbor Search",
   description = "Performs a K Nearest Neighbor search on a Geomesa feature collection using another feature collection as input"
 )
-class KNearestNeighborSearchProcess extends Logging {
+class KNearestNeighborSearchProcess extends LazyLogging {
 
   @DescribeResult(description = "Output feature collection")
   def execute(
@@ -81,7 +81,7 @@ class KNNVisitor( inputFeatures:     SimpleFeatureCollection,
                   numDesired:        java.lang.Integer,
                   estimatedDistance: java.lang.Double,
                   maxSearchDistance: java.lang.Double
-                ) extends FeatureCalc with Logging {
+                ) extends FeatureCalc with LazyLogging {
 
   val manualVisitResults = new DefaultFeatureCollection(null, dataFeatures.getSchema)
 

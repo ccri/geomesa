@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -201,8 +201,11 @@ object RichSimpleFeatureType {
   // in general we store everything as strings so that it's easy to pass to accumulo iterators
   implicit class RichSimpleFeatureType(val sft: SimpleFeatureType) extends AnyVal {
 
-    def getGeomField: String = sft.getGeometryDescriptor.getLocalName
-    def getGeomIndex: Int = sft.indexOf(sft.getGeometryDescriptor.getLocalName)
+    def getGeomField: String = {
+      val gd = sft.getGeometryDescriptor
+      if (gd == null) null else gd.getLocalName
+    }
+    def getGeomIndex: Int = sft.indexOf(getGeomField)
 
     def getDtgField: Option[String] = userData[String](DEFAULT_DATE_KEY)
     def getDtgIndex: Option[Int] = getDtgField.map(sft.indexOf).filter(_ != -1)
@@ -210,7 +213,7 @@ object RichSimpleFeatureType {
     def clearDtgField(): Unit = sft.getUserData.remove(DEFAULT_DATE_KEY)
     def setDtgField(dtg: String): Unit = {
       val descriptor = sft.getDescriptor(dtg)
-      require(descriptor != null && descriptor.getType.getBinding == classOf[Date],
+      require(descriptor != null && classOf[Date].isAssignableFrom(descriptor.getType.getBinding),
         s"Invalid date field '$dtg' for schema $sft")
       sft.getUserData.put(DEFAULT_DATE_KEY, dtg)
     }
@@ -224,8 +227,14 @@ object RichSimpleFeatureType {
       userData[String](SCHEMA_VERSION_KEY).map(_.toInt).getOrElse(CURRENT_SCHEMA_VERSION)
     def setSchemaVersion(version: Int): Unit = sft.getUserData.put(SCHEMA_VERSION_KEY, version.toString)
 
-    def isPoints = sft.getGeometryDescriptor.getType.getBinding == classOf[Point]
-    def isLines = sft.getGeometryDescriptor.getType.getBinding == classOf[LineString]
+    def isPoints = {
+      val gd = sft.getGeometryDescriptor
+      gd != null && gd.getType.getBinding == classOf[Point]
+    }
+    def isLines = {
+      val gd = sft.getGeometryDescriptor
+      gd != null && gd.getType.getBinding == classOf[LineString]
+    }
 
     //  If no user data is specified when creating a new SFT, we should default to 'true'.
     def isTableSharing: Boolean = userData[String](TABLE_SHARING_KEY).map(_.toBoolean).getOrElse(true)

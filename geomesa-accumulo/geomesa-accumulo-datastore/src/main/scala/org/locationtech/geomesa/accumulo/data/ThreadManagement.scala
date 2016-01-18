@@ -1,22 +1,22 @@
-/*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
- */
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.accumulo.data
 
 import java.util.concurrent.{Executors, PriorityBlockingQueue, TimeUnit}
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.locationtech.geomesa.filter.filterToString
 
 /**
  * Singleton for registering and managing running queries.
  */
-object ThreadManagement extends Logging {
+object ThreadManagement extends LazyLogging {
 
   private val interval = 5000L // how often we check for expired readers
   private val ordering = new Ordering[ReaderAndTime]() {

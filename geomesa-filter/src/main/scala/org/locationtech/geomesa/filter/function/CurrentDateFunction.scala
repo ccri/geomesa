@@ -1,10 +1,11 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
+
 package org.locationtech.geomesa.filter.function
 
 import org.geotools.filter.FunctionExpressionImpl
@@ -17,7 +18,7 @@ class CurrentDateFunction
     new FunctionNameImpl("currentDate", classOf[java.util.Date])
   ) {
 
-  override def evaluate(feature: SimpleFeature): AnyRef = super.evaluate(feature)
+  def evaluate(feature: SimpleFeature): AnyRef = super.evaluate(feature)
 
   override def evaluate(o: java.lang.Object): AnyRef =
     new DateTime().withZone(DateTimeZone.UTC).toDate

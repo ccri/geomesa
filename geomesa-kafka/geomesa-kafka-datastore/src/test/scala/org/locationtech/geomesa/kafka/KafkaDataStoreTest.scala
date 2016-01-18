@@ -1,14 +1,14 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.kafka
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Coordinate
 import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureStore
@@ -25,7 +25,7 @@ import org.specs2.runner.JUnitRunner
 import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
-class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with Logging {
+class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLogging {
 
   sequential // this doesn't really need to be sequential, but we're trying to reduce zk load
 

@@ -1,14 +1,14 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.accumulo.iterators
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Polygon
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
@@ -29,7 +29,7 @@ import scala.collection.GenSeq
 import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
-class MultiIteratorTest extends Specification with Logging {
+class MultiIteratorTest extends Specification with LazyLogging {
 
   sequential
 

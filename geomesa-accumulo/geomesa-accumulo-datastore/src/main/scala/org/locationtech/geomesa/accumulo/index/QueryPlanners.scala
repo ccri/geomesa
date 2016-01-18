@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.index
 
 import java.util.Map.Entry
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data.{Key, Range => AccRange, Value}
@@ -335,7 +335,7 @@ trait ColumnFamilyPlanner {
   def getColumnFamiliesToFetch(filter: KeyPlanningFilter): KeyPlan
 }
 
-trait GeoHashPlanner extends Logging {
+trait GeoHashPlanner extends LazyLogging {
   def geomToGeoHashes(geom: Geometry, offset: Int, bits: Int): Seq[String] =
     GeohashUtils.getUniqueGeohashSubstringsInPolygon(geom, offset, bits, MAX_KEYS_IN_LIST)
 

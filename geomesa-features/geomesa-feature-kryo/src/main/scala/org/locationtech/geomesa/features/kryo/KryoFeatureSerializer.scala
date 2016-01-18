@@ -1,17 +1,17 @@
-/*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
- */
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.features.kryo
 
 import java.util.{Date, List => jList, Map => jMap, HashMap => jHashMap, UUID}
 
 import com.esotericsoftware.kryo.io.{Input, Output}
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.locationtech.geomesa.features.SerializationOption.SerializationOptions
 import org.locationtech.geomesa.features._
@@ -24,7 +24,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
 
 class KryoFeatureSerializer(sft: SimpleFeatureType, val options: SerializationOptions = SerializationOptions.none)
-    extends SimpleFeatureSerializer with SimpleFeatureDeserializer with Logging {
+    extends SimpleFeatureSerializer with SimpleFeatureDeserializer with LazyLogging {
 
   import KryoFeatureSerializer._
 

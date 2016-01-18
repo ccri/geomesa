@@ -1,14 +1,14 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.accumulo.data
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.impl.{MasterClient, Tables}
 import org.apache.accumulo.core.client.mock.MockConnector
 import org.apache.accumulo.core.client.{Connector, Scanner}
@@ -50,7 +50,7 @@ class AccumuloBackedMetadata(connector: Connector,
                              catalogTable: String,
                              writeVisibilities: String,
                              authorizationsProvider: AuthorizationsProvider)
-    extends GeoMesaMetadata with Logging {
+    extends GeoMesaMetadata with LazyLogging {
 
   // warning: only access this map in a synchronized fashion
   private val metaDataCache = new mutable.HashMap[(String, String), Option[String]]()

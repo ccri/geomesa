@@ -1,15 +1,16 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
+
 package org.locationtech.geomesa.kafka
 
 import java.util.Date
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.store.ContentEntry
 import org.geotools.data.{EmptyFeatureReader, Query}
 import org.geotools.factory.CommonFactoryFinder
@@ -37,7 +38,7 @@ class ReplayKafkaConsumerFeatureSource(entry: ContentEntry,
                                        replayConfig: ReplayConfig,
                                        query: Query = null)
   extends KafkaConsumerFeatureSource(entry, replaySFT, query)
-  with Logging {
+  with LazyLogging {
 
   import TimestampFilterSplit.split
 
@@ -282,7 +283,7 @@ case class ReplayConfig(start: Instant, end: Instant, readBehind: Duration) {
   def isInWindow(time: Long): Boolean = !(start.isAfter(time) || end.isBefore(time))
 }
 
-object ReplayConfig extends Logging {
+object ReplayConfig extends LazyLogging {
 
   def apply(start: Long, end: Long, readBehind: Long): ReplayConfig =
     ReplayConfig(new Instant(start), new Instant(end), Duration.millis(readBehind))

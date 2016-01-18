@@ -1,21 +1,21 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.tools.commands
 
 import com.beust.jcommander.{JCommander, Parameter, Parameters}
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.data.{Range => ARange}
 import org.locationtech.geomesa.raster.data.AccumuloRasterStore
 import org.locationtech.geomesa.tools.AccumuloProperties
 import org.locationtech.geomesa.tools.commands.DeleteRasterCommand._
 
-class DeleteRasterCommand(parent: JCommander) extends Command(parent) with Logging with AccumuloProperties {
+class DeleteRasterCommand(parent: JCommander) extends Command(parent) with LazyLogging with AccumuloProperties {
   override val command = "deleteraster"
   override val params = new DeleteRasterParams()
 

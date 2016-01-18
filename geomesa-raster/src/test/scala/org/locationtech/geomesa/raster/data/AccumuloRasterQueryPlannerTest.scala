@@ -1,15 +1,15 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.raster.data
 
 import com.google.common.collect.{ImmutableMap, ImmutableSetMultimap}
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.raster.RasterTestsUtils._
 import org.locationtech.geomesa.raster._
@@ -19,7 +19,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class AccumuloRasterQueryPlannerTest extends Specification with Logging {
+class AccumuloRasterQueryPlannerTest extends Specification with LazyLogging {
 
   sequential
 

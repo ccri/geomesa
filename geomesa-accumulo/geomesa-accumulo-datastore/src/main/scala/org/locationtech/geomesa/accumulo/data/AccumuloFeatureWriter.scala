@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.data
 
 import java.util.concurrent.atomic.AtomicLong
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.BatchWriter
 import org.apache.accumulo.core.data.{Key, Mutation, Value}
 import org.apache.accumulo.core.security.ColumnVisibility
@@ -33,7 +33,7 @@ import org.opengis.filter.Filter
 
 import scala.collection.JavaConversions._
 
-object AccumuloFeatureWriter extends Logging {
+object AccumuloFeatureWriter extends LazyLogging {
 
   type FeatureToMutations = (FeatureToWrite) => Seq[Mutation]
   type FeatureWriterFn    = (FeatureToWrite) => Unit
@@ -114,7 +114,7 @@ abstract class AccumuloFeatureWriter(sft: SimpleFeatureType,
                                      encoder: SimpleFeatureSerializer,
                                      indexValueEncoder: IndexValueEncoder,
                                      ds: AccumuloDataStore,
-                                     defaultVisibility: String) extends SimpleFeatureWriter with Logging {
+                                     defaultVisibility: String) extends SimpleFeatureWriter with LazyLogging {
 
   protected val multiBWWriter = ds.connector.createMultiTableBatchWriter(GeoMesaBatchWriterConfig())
 
@@ -130,15 +130,8 @@ abstract class AccumuloFeatureWriter(sft: SimpleFeatureType,
   protected def nextFeatureId = AccumuloFeatureWriter.tempFeatureIds.getAndIncrement().toString
 
   protected def writeToAccumulo(feature: SimpleFeature): Unit = {
-    // require non-null geometry to write to geomesa (can't index null geo, yo)
-    if (feature.getDefaultGeometry == null) {
-      logger.warn(s"Invalid feature to write (no default geometry): ${DataUtilities.encodeFeature(feature)}")
-      return
-    }
-
     // see if there's a suggested ID to use for this feature, else create one based on the feature
     val featureWithFid = AccumuloFeatureWriter.featureWithFid(sft, feature)
-
     writer(new FeatureToWrite(featureWithFid, defaultVisibility, encoder, indexValueEncoder))
   }
 

@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -15,7 +15,7 @@ import java.util.{Map => JMap}
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.collect.{ImmutableMap, ImmutableSetMultimap}
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.{BatchWriterConfig, Connector, TableExistsException}
 import org.apache.accumulo.core.data.{Key, Mutation, Range, Value}
 import org.apache.accumulo.core.security.TablePermission
@@ -41,7 +41,7 @@ class AccumuloRasterStore(val connector: Connector,
                   writeMemoryConfig: Option[String] = None,
                   writeThreadsConfig: Option[Int] = None,
                   queryThreadsConfig: Option[Int] = None,
-                  collectStats: Boolean = false) extends MethodProfiling with StatWriter with Logging {
+                  collectStats: Boolean = false) extends MethodProfiling with StatWriter with LazyLogging {
   val writeMemory = writeMemoryConfig.getOrElse("10000").toLong
   val writeThreads = writeThreadsConfig.getOrElse(10)
   val bwConfig: BatchWriterConfig =

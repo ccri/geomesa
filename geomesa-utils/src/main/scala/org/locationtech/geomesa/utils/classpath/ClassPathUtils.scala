@@ -1,21 +1,21 @@
-/*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
- */
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.utils.classpath
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.net.{URLClassLoader, URLDecoder}
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable.ArrayBuffer
 
-object ClassPathUtils extends Logging {
+object ClassPathUtils extends LazyLogging {
 
   private val jarFileFilter = new FilenameFilter() {
     override def accept(dir: File, name: String) =

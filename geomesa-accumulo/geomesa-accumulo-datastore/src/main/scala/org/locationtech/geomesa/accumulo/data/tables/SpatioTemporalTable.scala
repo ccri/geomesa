@@ -1,14 +1,14 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
 package org.locationtech.geomesa.accumulo.data.tables
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.BatchDeleter
 import org.apache.accumulo.core.client.admin.TableOperations
 import org.apache.accumulo.core.conf.Property
@@ -23,7 +23,7 @@ import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
 
-object SpatioTemporalTable extends GeoMesaTable with Logging {
+object SpatioTemporalTable extends GeoMesaTable with LazyLogging {
 
   val INDEX_FLAG = "0"
   val DATA_FLAG = "1"
@@ -31,7 +31,7 @@ object SpatioTemporalTable extends GeoMesaTable with Logging {
   val INDEX_CHECK = s"~$INDEX_FLAG~"
   val DATA_CHECK = s"~$DATA_FLAG~"
 
-  override def supports(sft: SimpleFeatureType): Boolean = true
+  override def supports(sft: SimpleFeatureType): Boolean = sft.getGeometryDescriptor != null
 
   override val suffix: String = "st_idx"
 

@@ -1,14 +1,14 @@
 /***********************************************************************
-  * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
-  * All rights reserved. This program and the accompanying materials
-  * are made available under the terms of the Apache License, Version 2.0 which
-  * accompanies this distribution and is available at
-  * http://www.opensource.org/licenses/apache2.0.php.
-  *************************************************************************/
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.blob.api
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreFactory}
 import org.locationtech.geomesa.blob.core.AccumuloBlobStore
 import org.locationtech.geomesa.web.core.GeoMesaScalatraServlet
@@ -16,7 +16,7 @@ import org.scalatra.{NotFound, Ok}
 
 import scala.collection.JavaConversions._
 
-class BlobstoreServlet extends GeoMesaScalatraServlet with Logging {
+class BlobstoreServlet extends GeoMesaScalatraServlet with LazyLogging {
   override def root: String = "blob"
 
   var abs: AccumuloBlobStore = null

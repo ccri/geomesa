@@ -1,16 +1,16 @@
-/*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
- */
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 
 package org.locationtech.geomesa.accumulo.data.tables
 
 import com.google.common.collect.ImmutableSortedSet
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.admin.TableOperations
 import org.apache.accumulo.core.conf.Property
 import org.apache.accumulo.core.data.Mutation
@@ -30,7 +30,7 @@ import scala.util.Try
  * Contains logic for converting between accumulo and geotools for the attribute index
  */
 @deprecated
-object AttributeTableV5 extends GeoMesaTable with Logging {
+object AttributeTableV5 extends GeoMesaTable with LazyLogging {
 
   override def supports(sft: SimpleFeatureType) =
     sft.getSchemaVersion < 6 && SimpleFeatureTypes.getSecondaryIndexedAttributes(sft).nonEmpty

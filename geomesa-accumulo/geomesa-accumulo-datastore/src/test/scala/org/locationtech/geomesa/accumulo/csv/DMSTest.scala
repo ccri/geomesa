@@ -1,8 +1,8 @@
 /***********************************************************************
-* Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
 * All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0 which
-* accompanies this distribution and is available at
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
@@ -33,7 +33,7 @@ class DMSTest extends Specification {
   }
 
   "DMS" should {
-    val dms = DMS(38,04,31.17,North)
+    val dms = DMS(38,4,31.17,North)
 
     "parse DMS strings with colons" >> {
       DMS("38:04:31.17N") mustEqual dms

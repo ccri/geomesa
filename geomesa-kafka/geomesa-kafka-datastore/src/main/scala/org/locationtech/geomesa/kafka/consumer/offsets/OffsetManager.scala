@@ -1,16 +1,16 @@
-/*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
- */
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.kafka.consumer.offsets
 
 import java.io.{Closeable, IOException}
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import kafka.api._
 import kafka.client.ClientUtils
 import kafka.common.ErrorMapping._
@@ -31,7 +31,7 @@ import scala.util.{Failure, Success}
  * Manages storing and retrieving of offsets for a consumer group
  */
 class OffsetManager(val config: ConsumerConfig)
-  extends Fetcher with Closeable with Logging {
+  extends Fetcher with Closeable with LazyLogging {
 
   import OffsetManager._
 
@@ -249,7 +249,7 @@ class OffsetManager(val config: ConsumerConfig)
   }
 }
 
-object OffsetManager extends Logging {
+object OffsetManager extends LazyLogging {
 
   type Offsets = Map[TopicAndPartition, Long]
 

@@ -1,14 +1,14 @@
-/*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License, Version 2.0 which
- * accompanies this distribution and is available at
- * http://www.opensource.org/licenses/apache2.0.php.
- */
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.accumulo.index
 
-import com.typesafe.scalalogging.slf4j.Logging
+import com.typesafe.scalalogging.LazyLogging
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.accumulo.data.tables._
 import org.locationtech.geomesa.accumulo.index.Strategy.StrategyType
@@ -24,7 +24,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Class for splitting queries up based on Boolean clauses and the available query strategies.
  */
-class QueryFilterSplitter(sft: SimpleFeatureType) extends Logging {
+class QueryFilterSplitter(sft: SimpleFeatureType) extends LazyLogging {
 
   val supported = GeoMesaTable.getTables(sft).toSet
 
