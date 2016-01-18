@@ -605,7 +605,7 @@ Ingest a shape file::
 ingestraster
 ^^^^^^^^^^^^
 
-To ingest one or multiple raster image files into Geomesa, use the
+To ingest one or multiple raster image files into GeoMesa, use the
 `ingestraster` command. Input files, Geotiff or DTED, are located on local file
 system. If chunking (only works for single file) is specified by option `-ck`,
 input file is cut into chunks by size in kilobytes (option `-cs or

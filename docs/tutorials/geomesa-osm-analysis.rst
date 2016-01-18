@@ -5,7 +5,7 @@ This tutorial shows you how to:
 
 1. Quickly and easily ingest big OSM (Open Street Map) data files into a
    GeoMesa Accumulo table via a Kafka/Storm stream.
-2. Leverage Geoserver to query and visualize the data.
+2. Leverage GeoServer to query and visualize the data.
 
 Prerequisites
 -------------
@@ -71,7 +71,7 @@ Build the projects:
 DataStore initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Geotools <http://geotools.org/>`__ uses a ``SimpleFeatureType`` to
+`GeoTools <http://geotools.org/>`__ uses a ``SimpleFeatureType`` to
 represent the schema for a feature source. We can easily create a schema
 for the OSM feature type using the DataUtilities class. The schema
 string is a comma separated list of attributes in the form
@@ -223,12 +223,12 @@ Follow the instructions in the `GeoMesa Deployment
 Tutorial </geomesa-deployment/>`_ to install the GeoMesa plugin for
 GeoServer.
 
-Register the GeoMesa DataStore with Geoserver
+Register the GeoMesa DataStore with GeoServer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Click "Stores" and "Add new Store". If you do not see the Accumulo
 Feature Data Store listed under Vector Data Sources, ensure the plugin
-is in the right directory and restart Geoserver.
+is in the right directory and restart GeoServer.
 
 .. figure:: _static/img/tutorials/2014-04-17-geomesa-gdelt-analysis/Accumulo_Feature_Data_Store.png
    :alt: "Registering new Data Store"
@@ -258,7 +258,7 @@ QUERY
 Let's look at events in Chicago. The default point style is a red square
 that does not suit our purposes. Add the SLD file 
 :download:`OSMPoint.sld <_static/assets/tutorials/2014-05-16-geomesa-osm-analysis/OSMPoint.sld>`
-to Geoserver.
+to GeoServer.
 
 .. code-block:: bash
 
@@ -275,7 +275,7 @@ HEATMAPS
 Use a heatmap to more clearly visualize multiple events in the same
 location or high volume of data in general. Add the SLD file
 :download:`heatmap.sld <_static/assets/tutorials/2014-04-17-geomesa-gdelt-analysis/heatmap.sld>`
-to Geoserver.
+to GeoServer.
 
 .. code-block:: bash
 

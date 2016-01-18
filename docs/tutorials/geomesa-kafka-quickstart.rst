@@ -71,7 +71,7 @@ The program will create some metadata in Zookeeper and an associated
 topic in your Kafka instance, and pause execution to let you add the
 newly created ``KafkaDataStore`` to GeoServer.
 
-Visualize with Geoserver
+Visualize with GeoServer
 ------------------------
 
 Register the GeoMesa store with GeoServer

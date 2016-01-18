@@ -33,7 +33,7 @@ Before you begin, you should have these:
    JRE <http://www.oracle.com/technetwork/java/javase/downloads/index.html>`__
    installed.
 
-Download the Geomesa Binary Distribution
+Download the GeoMesa Binary Distribution
 ----------------------------------------
 
 GeoMesa artifacts are available for download or can be built from
@@ -138,7 +138,7 @@ slf4j-log4j12-1.7.7.jar and place it in the geomesa-|version|/lib directory.
 If this conflicts with another SLF4J implementation, it may need to be
 removed from the lib directory.
 
-Deploy Geomesa to Accumulo
+Deploy GeoMesa to Accumulo
 --------------------------
 
 The $GEOMESA\_HOME/dist directory contains the distributed runtime jar
@@ -151,7 +151,7 @@ necessary to query GeoMesa.
     # something like this for each tablet server
     scp $GEOMESA_HOME/dist/geomesa-distributed-runtime-$VERSION.jar tserver1:$ACCUMULO_HOME/lib/ext/
 
-Deploy Geomesa Accumulo Plugin to GeoServer
+Deploy GeoMesa Accumulo Plugin to GeoServer
 -------------------------------------------
 
 You should have an instance of GeoServer, version 2.5.2, running
@@ -274,7 +274,7 @@ To verify that the deployment worked you can follow the `GeoMesa Quick
 Start tutorial </geomesa-quickstart/>`__ to ingest test data and view
 the data in GeoServer.
 
-Deploy Geomesa to Kafka and GeoServer
+Deploy GeoMesa to Kafka and GeoServer
 -------------------------------------
 
 .. raw:: html
@@ -300,7 +300,7 @@ These development tools are required:
 Building Kafka Support
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To set up GeoMesa with Kafka, download the Geomesa source distribution
+To set up GeoMesa with Kafka, download the GeoMesa source distribution
 that matches the binary distribution described above:
 
 .. code-block:: bash
@@ -364,7 +364,7 @@ Configuring GeoServer
 
 Depending on your hardware, it may be important to set the limits for
 your WMS plugin to be higher or disable them completely by clicking
-"WMS" under "Services" on the left side of the admin page of Geoserver.
+"WMS" under "Services" on the left side of the admin page of GeoServer.
 Check with your server administrator to determine the correct settings.
 For massive queries, the standard 60 second timeout may be too short.
 

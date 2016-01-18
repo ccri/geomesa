@@ -166,7 +166,7 @@ class that are relevant:
    parameters, builds the ``DataStore``, creates and inserts new
    records, and then kicks off a single query
 
-Visualize Data With Geoserver
+Visualize Data With GeoServer
 -----------------------------
 
 Register the GeoMesa store with GeoServer

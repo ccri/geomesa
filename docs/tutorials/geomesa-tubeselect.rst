@@ -141,7 +141,7 @@ There are three classes in the module:
 -  ``Runner``: Provides the main method to handle command line argument
    parsing
 -  ``TwitterFeatureIngester``: Inserts features into GeoMesa using a
-   Geotools ``FeatureSource``
+   GeoTools ``FeatureSource``
 -  ``TwitterParser``: Parses Twitter JSON files and turns them into
    ``SimpleFeature``\ s
 

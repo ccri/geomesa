@@ -177,7 +177,7 @@ authorizations, meaning they can only view features of visibility
 
 Let's move to GeoServer to visualize feature level visibility.
 
-Geoserver Visualization
+GeoServer Visualization
 -----------------------
 
 Assuming you have already set up GeoServer (see the `Deployment

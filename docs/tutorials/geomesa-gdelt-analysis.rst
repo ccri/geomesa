@@ -119,10 +119,10 @@ with default authorizations, you probably want to omit this parameter.
 DataStore Initialization
 ------------------------
 
-`Geotools <http://www.geotools.org/>`__ uses a ``SimpleFeatureType`` to
+`GeoTools <http://www.geotools.org/>`__ uses a ``SimpleFeatureType`` to
 represent the schema for individual ``SimpleFeature``\ s created from
 the GDELT data. We can easily create a schema for the GDELT
-``SimpleFeatureType`` using the `Geotools DataUtilities
+``SimpleFeatureType`` using the `GeoTools DataUtilities
 class <http://docs.geotools.org/latest/userguide/library/main/feature.html>`__.
 The schema string is a comma separated list of attribute descriptors of
 the form "<name>:<class>", e.g. "Year:Integer". Some attributes may have
@@ -186,7 +186,7 @@ split the line on tabs and extract the attributes of the data. We parse
 the latitude and longitude field to set the default geometry of our
 ``SimpleFeature``.
 
-Geotools provides common conversions for most data types and some date
+GeoTools provides common conversions for most data types and some date
 formats. However, any attribute strings that will not convert
 automatically into the specified class need to be explicitly set on the
 ``SimpleFeature``. See "SQLDATE" below.
