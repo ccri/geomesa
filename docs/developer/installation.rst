@@ -1,23 +1,22 @@
-.. _geomesa_deployment:
+.. _geomesa-installation:
 
-GeoMesa Deployment
-==================
+GeoMesa Installation
+====================
 
-This tutorial will introduce how to:
-------------------------------------
+These instructions show how to:
 
 1. Install the GeoMesa command line tools.
 2. Deploy the distributed runtime JAR to your Accumulo cluster.
 3. Deploy the GeoServer plugin.
 4. Deploy necessary dependencies for GeoMesa's GeoServer plugin for
-   Accumulo and/or Kafka.
+   Accumulo and Kafka.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. warning::
 
-    For Accumulo deployment, you will need access to a Hadoop 2.2 installation as well as an Accumulo {{ site.accumuloVersion }} database.
+    For Accumulo deployment, you will need access to a Hadoop 2.2 installation as well as an Accumulo |accumulo_version| database.
 
 Before you begin, you should have these:
 
@@ -25,7 +24,7 @@ Before you begin, you should have these:
    `GeoServer <http://geoserver.org>`__,
    `Accumulo <http://accumulo.apache.org>`__, and/or
    `Kafka <http://kafka.apache.org>`__,
--  access to an Accumulo {{ site.accumuloVersion }} database (requires a
+-  access to an Accumulo |accumulo_version| database (requires a
    Hadoop 2.2 installation),
 -  access to a `GeoServer <http://geoserver.org/>`__ 2.5.2 installation,
 -  an Accumulo user that has both create-table and write permissions,
@@ -34,14 +33,12 @@ Before you begin, you should have these:
    JRE <http://www.oracle.com/technetwork/java/javase/downloads/index.html>`__
    installed.
 
-DOWNLOAD THE GEOMESA BINARY DISTRIBUTION
+Download the Geomesa Binary Distribution
 ----------------------------------------
 
 GeoMesa artifacts are available for download or can be built from
-source. The easiest way to get started is to `download the most recent
-stable version ({{ site.stableVersion
-}}) <http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/%7B%7B%20site.stableVersion%20%7D%7D/geomesa-assemble-%7B%7B%20site.stableVersion%20%7D%7D-bin.tar.gz>`__
-and untar it somewhere convenient:
+source. The easiest way to get started is to download the `*-bin.tar.gz` file of the most recent
+stable version (|version|)  from that subdirectory of http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/ and untar it somewhere convenient. The following, and additional command lines shown in these instructions, assume that $VERSION has been set to |version|:
 
 .. code-block:: bash
 
@@ -49,13 +46,13 @@ and untar it somewhere convenient:
     $ cd ~/tools
 
     # download and unpackage the most recent distribution
-    $ wget http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/{{ site.stableVersion }}/geomesa-assemble-{{ site.stableVersion }}-bin.tar.gz
-    $ tar xvf geomesa-assemble-{{ site.stableVersion }}-bin.tar.gz
-    $ cd geomesa-{{ site.stableVersion }}
+    $ wget http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/$VERSION/geomesa-assemble-$VERSION-bin.tar.gz
+    $ tar xvf geomesa-assemble-$VERSION-bin.tar.gz
+    $ cd geomesa-$VERSION
     $ ls
     bin  dist  docs  lib  LICENSE.txt  README.md
 
-INSTALL THE COMMAND LINE TOOLS
+Install the Command Line Tools
 ------------------------------
 
 GeoMesa comes with a set of command line tools for managing features. To
@@ -64,18 +61,18 @@ geomesa configure:
 
 .. code-block:: bash
 
-    $ cd ~/tools/geomesa-{{ site.stableVersion }}/bin
+    $ cd ~/tools/geomesa-$VERSION/bin
     $ ./geomesa configure
-    Warning: GEOMESA_HOME is not set, using ~/tools/geomesa-{{ site.stableVersion }}
-    Using GEOMESA_HOME as set: ~/tools/geomesa-{{ site.stableVersion }}
+    Warning: GEOMESA_HOME is not set, using ~/tools/geomesa-$VERSION
+    Using GEOMESA_HOME as set: ~/tools/geomesa-$VERSION
     Is this intentional? Y\n Y
     Warning: GEOMESA_LIB already set, probably by a prior configuration.
-     Current value is ~/tools/geomesa-{{ site.stableVersion }}/lib.
+     Current value is ~/tools/geomesa-$VERSION/lib.
 
     Is this intentional? Y\n Y
 
     To persist the configuration please update your bashrc file to include:
-    export GEOMESA_HOME=/tools/geomesa-{{ site.stableVersion }}
+    export GEOMESA_HOME=/tools/geomesa-$VERSION
     export PATH=${GEOMESA_HOME}/bin:$PATH
 
 Update and re-source your ``~/.bashrc`` file to include the
@@ -102,7 +99,7 @@ Test the GeoMesa Tools:
 .. code-block:: bash
 
     $ geomesa
-    Using GEOMESA_HOME = /path/to/geomesa-{{ site.stableVersion }}
+    Using GEOMESA_HOME = /path/to/geomesa-$VERSION
     Usage: geomesa [command] [command options]
       Commands:
         create           Create a feature definition in a GeoMesa catalog
@@ -136,13 +133,12 @@ receive an SLF4J error like this:
 
 download the SLF4J TAR-ball `found
 here <http://www.slf4j.org/download.html>`__. Extract
-slf4j-log4j12-1.7.7.jar and place it in the geomesa-{{
-site.stableVersion }}/lib directory.
+slf4j-log4j12-1.7.7.jar and place it in the geomesa-|version|/lib directory.
 
 If this conflicts with another SLF4J implementation, it may need to be
 removed from the lib directory.
 
-DEPLOY GEOMESA TO ACCUMULO
+Deploy Geomesa to Accumulo
 --------------------------
 
 The $GEOMESA\_HOME/dist directory contains the distributed runtime jar
@@ -153,9 +149,9 @@ necessary to query GeoMesa.
 .. code-block:: bash
 
     # something like this for each tablet server
-    scp $GEOMESA_HOME/dist/geomesa-distributed-runtime-{{ site.stableVersion }}.jar tserver1:$ACCUMULO_HOME/lib/ext/
+    scp $GEOMESA_HOME/dist/geomesa-distributed-runtime-$VERSION.jar tserver1:$ACCUMULO_HOME/lib/ext/
 
-DEPLOY GEOMESA ACCUMULO PLUGIN TO GEOSERVER
+Deploy Geomesa Accumulo Plugin to GeoServer
 -------------------------------------------
 
 You should have an instance of GeoServer, version 2.5.2, running
@@ -170,7 +166,7 @@ Plugin <http://docs.geoserver.org/stable/en/user/extensions/wps/install.html>`__
 must also match the version of GeoServer instance.
 
 Copy the
-``geomesa-plugin-{{ site.stableVersion }}-geoserver-plugin.jar`` jar
+``geomesa-plugin-$VERSION-geoserver-plugin.jar`` jar
 file from the GeoMesa dist directory into your GeoServer's library
 directory.
 
@@ -178,13 +174,13 @@ If you are using tomcat:
 
 .. code-block:: bash
 
-    cp $GEOMESA_HOME/dist/geomesa-plugin-{{ site.stableVersion }}-geoserver-plugin.jar /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
+    cp $GEOMESA_HOME/dist/geomesa-plugin-$VERSION-geoserver-plugin.jar /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
 
 If you are using GeoServer's built in Jetty web server:
 
 .. code-block:: bash
 
-    cp $GEOMESA_HOME/dist/geomesa-plugin-{{ site.stableVersion }}-geoserver-plugin.jar /path/to/geoserver-2.5.2/webapps/geoserver/WEB-INF/lib/
+    cp $GEOMESA_HOME/dist/geomesa-plugin-$VERSION-geoserver-plugin.jar /path/to/geoserver-2.5.2/webapps/geoserver/WEB-INF/lib/
 
 Additional dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -278,7 +274,7 @@ To verify that the deployment worked you can follow the `GeoMesa Quick
 Start tutorial </geomesa-quickstart/>`__ to ingest test data and view
 the data in GeoServer.
 
-DEPLOY GEOMESA TO KAFKA AND GEOSERVER
+Deploy Geomesa to Kafka and GeoServer
 -------------------------------------
 
 .. raw:: html
@@ -301,7 +297,7 @@ These development tools are required:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  `Git <https://git-scm.com/>`__.
 
-Building Kafka support
+Building Kafka Support
 ~~~~~~~~~~~~~~~~~~~~~~
 
 To set up GeoMesa with Kafka, download the Geomesa source distribution
@@ -310,7 +306,7 @@ that matches the binary distribution described above:
 .. code-block:: bash
 
     $ git clone https://github.com/locationtech/geomesa/
-    $ git checkout tags/geomesa-{{ site.stableVersion }} -b geomesa-{{ site.stableVersion }}
+    $ git checkout tags/geomesa-$VERSION -b geomesa-$VERSION
 
 Then build the geomesa-kafka submodule (see the `Kafka Quickstart
 tutorial </geomesa-kafka-quickstart/>`__ to see what GeoMesa can do with
@@ -335,13 +331,13 @@ Tomcat:
 
 .. code-block:: bash
 
-    cp geomesa/geomesa-kafka/geomesa-kafka-geoserver-plugin/target/geomesa-kafka-geoserver-plugin-{{ site.stableVersion }}-geoserver-plugin.jar /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
+    cp geomesa/geomesa-kafka/geomesa-kafka-geoserver-plugin/target/geomesa-kafka-geoserver-plugin-$VERSION-geoserver-plugin.jar /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
 
 Jetty:
 
 .. code-block:: bash
 
-    cp geomesa/geomesa-kafka/geomesa-kafka-geoserver-plugin/target/geomesa-kafka-geoserver-plugin-{{ site.stableVersion }}-geoserver-plugin.jar /path/to/jetty/geoserver-2.5.2/webapps/geoserver/WEB-INF/lib/
+    cp geomesa/geomesa-kafka/geomesa-kafka-geoserver-plugin/target/geomesa-kafka-geoserver-plugin-$VERSION-geoserver-plugin.jar /path/to/jetty/geoserver-2.5.2/webapps/geoserver/WEB-INF/lib/
 
 Then copy these dependencies to your ``WEB-INF/lib`` directory.
 
@@ -363,7 +359,7 @@ most likely be necessary to increase the memory settings for Tomcat,
 After placing the dependencies in the correct folder, be sure to restart
 GeoServer for changes to take place.
 
-CONFIGURING GEOSERVER
+Configuring GeoServer
 ---------------------
 
 Depending on your hardware, it may be important to set the limits for
@@ -374,4 +370,4 @@ For massive queries, the standard 60 second timeout may be too short.
 
 |"Disable limits"|
 
-.. |"Disable limits"| image:: _static/img/tutorials/2014-05-16-geomesa-tubeselect/wms_limits.png
+.. |"Disable limits"| image:: _static/img/wms_limits.png

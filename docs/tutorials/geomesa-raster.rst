@@ -18,7 +18,7 @@ PREREQUISITES
 ::
 
     <span class="glyphicon glyphicon-exclamation-sign"></span>
-    For Accumulo deployment, you will need access to a Hadoop 2.2 installation as well as an Accumulo {{ site.accumuloVersion }} database.
+    For Accumulo deployment, you will need access to a Hadoop 2.2 installation as well as an Accumulo |accumulo_version| database.
 
 .. raw:: html
 

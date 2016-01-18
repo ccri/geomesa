@@ -29,7 +29,7 @@ to Accumulo. Afterwards, it may be necessary to change the versions of
 Accumulo and Hadoop that the quickstart tutorial uses. After completing
 the deployment tutorial, you should have:
 
--  an instance of Accumulo {{ site.accumuloVersion }} running on Hadoop
+-  an instance of Accumulo |accumulo_version| running on Hadoop
    2.2,
 -  access to an Accumulo user that has both create-table and write
    permissions, and
@@ -87,11 +87,11 @@ dependencies.
 RUN THE TUTORIAL
 ----------------
 
-On the command-line, run:
+On the command-line, run the following where $VERSION = |version|:
 
 .. code-block:: bash
 
-    java -cp ./geomesa-examples/geomesa-accumulo-quickstart/target/geomesa-accumulo-quickstart-{{ site.stableVersion }}.jar org.locationtech.geomesa.examples.AccumuloQuickStart -instanceId somecloud -zookeepers "zoo1:2181,zoo2:2181,zoo3:2181" -user someuser -password somepwd -tableName sometable
+    java -cp ./geomesa-examples/geomesa-accumulo-quickstart/target/geomesa-accumulo-quickstart-$VERSION.jar org.locationtech.geomesa.examples.AccumuloQuickStart -instanceId somecloud -zookeepers "zoo1:2181,zoo2:2181,zoo3:2181" -user someuser -password somepwd -tableName sometable
 
 where you provide your own values for the following place-holder
 arguments:
@@ -275,3 +275,4 @@ Generating Heatmaps
    will change to a density heat-map. (NB: For this to work, you will
    have to first install the WPS module for GeoServer. See the official
    web site for a download.)
+

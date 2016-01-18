@@ -55,11 +55,11 @@ tutorial:
     $ cd geomesa
     $ mvn clean install -f geomesa-examples/geomesa-kafka-quickstart -DskipTests
 
-After building, run the tutorial program:
+After building, run the tutorial program, where $VERSION = |version|:
 
 .. code-block:: bash
 
-    java -cp ./geomesa-examples/geomesa-kafka-quickstart/target/geomesa-kafka-quickstart-{{ site.stableVersion }}.jar org.locationtech.geomesa.examples.KafkaQuickStart -brokers "localhost:9092" -zookeepers "localhost:2181"
+    java -cp ./geomesa-examples/geomesa-kafka-quickstart/target/geomesa-kafka-quickstart-$VERSION.jar org.locationtech.geomesa.examples.KafkaQuickStart -brokers "localhost:9092" -zookeepers "localhost:2181"
 
 where you provide your own values for the following arguments:
 

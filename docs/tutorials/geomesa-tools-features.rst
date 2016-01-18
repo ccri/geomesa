@@ -28,11 +28,11 @@ directory and run:
 
     $ geomesa
 
-This should print out the following usage text:
+This should print out the following usage text, where the GEOMESA_HOME value shows where GeoMesa was installed:
 
 .. code:: bash
 
-    Using GEOMESA_HOME = /home/jkenneally/geomesa-{{ site.stableVersion }}
+    Using GEOMESA_HOME = /home/jkenneally/geomesa-$VERSION
     Usage: geomesa [command] [command options]
       Commands:
         create           Create a feature definition in a GeoMesa catalog

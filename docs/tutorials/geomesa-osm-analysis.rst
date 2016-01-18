@@ -13,11 +13,11 @@ PREREQUISITES
 
 .. warning::
 
-    You will need access to a Kafka 0.8 installation, a Storm 0.8 installation as well as an Accumulo {{ site.accumuloVersion }} database.
+    You will need access to a Kafka 0.8 installation, a Storm 0.8 installation as well as an Accumulo |accumulo_version| database.
 
 You should have access to:
 
--  an instance of Accumulo {{ site.accumuloVersion }} running on Hadoop
+-  an instance of Accumulo |accumulo_version| running on Hadoop
    2.2,
 -  an Accumulo user with create-table and write permissions,
 -  an installation of Kafka 0.8,
@@ -38,15 +38,14 @@ Obtaining OSM data
 ~~~~~~~~~~~~~~~~~~
 
 Download the `Open Street Map <http://planet.openstreetmap.org/>`__
-(OSM) data here:
-`http://planet.openstreetmap.org/gps/simple-gps-points-120312.txt.xz <>`__.
+(OSM) data file `simple-gps-points-120312.txt` from `http://planet.openstreetmap.org/gps/ <http://planet.openstreetmap.org/gps/>`__.
 This might take a while; the file is approximately 7 GB.
 
-Use the following command to unpack the data:
+Use the following command to unpack the data, adjusting the filename here and in subsequent commands if you downloaded a more recent version:
 
 .. code-block:: bash
 
-    $ xz {{ datafile }}.xz
+    $ xz simple-gps-points-120312.txt.xz
 
 Note: In this demonstration, we will use the ``simple-gps-points`` OSM
 data that contains only the location of an observation.
@@ -137,7 +136,7 @@ Create a Kafka producer to convert the ingest file into kafka messages.
 
     $ java -cp geomesa-osm-1.0-SNAPSHOT.jar     \
        geomesa.osm.OSMIngestProducer   \
-       -ingestFile {{ datafile }}      \
+       -ingestFile simple-gps-points-120312.txt      \
        -topic OSM                      \
        -brokers <kafka broker list>    \
 

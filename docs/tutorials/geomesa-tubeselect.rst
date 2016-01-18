@@ -38,7 +38,7 @@ to Accumulo. Afterwards, it may be necessary to change the versions of
 Accumulo and Hadoop that the tutorial uses. After completing the
 deployment tutorial, you should have:
 
--  an instance of Accumulo {{ site.accumuloVersion }} running on Hadoop
+-  an instance of Accumulo |accumulo_version| running on Hadoop
    2.2,
 -  access to an Accumulo user that has both create-table and write
    permissions, and

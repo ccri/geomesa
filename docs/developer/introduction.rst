@@ -1,5 +1,5 @@
-Introduction
-============
+GeoMesa Development
+===================
 
 Project Structure
 -----------------
@@ -27,11 +27,6 @@ The GeoMesa source distribution is divided into several submodules:
 * **geomesa-web**: web services for accessing GeoMesa.
 * **geomesa-z3**: the implementation of Z3, GeoMesa's space-filling Z-order curve.
 
-Installing the Build Tools
---------------------------
-
-TODO
-
 Using Maven
 -----------
 
@@ -49,10 +44,10 @@ running this command in the root source directory:
 The Scala console will start, and all of the project packages in ``geomesa-accumulo-datastore`` will be loaded along
 with ``JavaConversions`` and ``JavaConverters``.
 
-Features/SimpleFeatures
------------------------
-
-TODO
+.. Features/SimpleFeatures
+.. -----------------------
+..
+.. TODO
 
 The GeoTools DataStore API
 --------------------------

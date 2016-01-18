@@ -28,7 +28,7 @@ PREREQUISITES
 
 .. warning::    
 
-    You will need access to a Hadoop 2.2 installation as well as an Accumulo {{ site.accumuloVersion }} database.
+    You will need access to a Hadoop 2.2 installation as well as an Accumulo |accumulo_version| database.
 
 You will also need:
 
