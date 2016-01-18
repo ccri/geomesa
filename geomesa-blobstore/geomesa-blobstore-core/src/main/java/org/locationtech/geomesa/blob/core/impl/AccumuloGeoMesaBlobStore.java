@@ -29,7 +29,7 @@ import java.util.Map;
 public class AccumuloGeoMesaBlobStore implements GeoMesaBlobStore {
 
     private AccumuloDataStoreFactory accumuloDataStoreFactory = new AccumuloDataStoreFactory();
-    private AccumuloBlobStore accumuloBlobStore;
+    public AccumuloBlobStore accumuloBlobStore;
 
     public AccumuloGeoMesaBlobStore(Map<String, Serializable> dataStoreParams) throws Exception {
         AccumuloDataStore ds = (AccumuloDataStore) accumuloDataStoreFactory.createDataStore(dataStoreParams);
