@@ -1,8 +1,7 @@
 GeoMesa Accumulo Quick Start
 ============================
 
-This tutorial will introduce how to:
-------------------------------------
+This tutorial will show you how to:
 
 1. Write custom Java code using GeoMesa to do the following:
 
@@ -20,7 +19,7 @@ The only dynamic element in the tutorial is the Accumulo destination;
 that is a property that you provide on the command line when running the
 code.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 You should work through the `GeoMesa Deployment
@@ -43,7 +42,7 @@ tools should also be installed and configured:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-DOWNLOADING AND BUILDING THE EXAMPLE CODE
+Downloading And Building the Example Code
 -----------------------------------------
 
 The example code is found in the GeoMesa source distribution, which may
@@ -84,7 +83,7 @@ When this is complete, it should have built a JAR file in
 all of the code you need to run the tutorial with the correct
 dependencies.
 
-RUN THE TUTORIAL
+Run the Tutorial
 ----------------
 
 On the command-line, run the following where $VERSION = |version|:
@@ -137,8 +136,8 @@ Maven's output and log4j's warnings):
     Feature ID Observation.990 | Who: Addams | What: 990
     Feature ID Observation.987 | Who: Addams | What: 987
 
-INSIGHT INTO HOW THE TUTORIAL WORKS
------------------------------------
+Looking at the Code
+-------------------
 
 The source code is meant to be accessible for this tutorial, but here is
 a high-level breakdown of the methods in the ``AccumuloQuickStart``
@@ -167,7 +166,7 @@ class that are relevant:
    parameters, builds the ``DataStore``, creates and inserts new
    records, and then kicks off a single query
 
-VISUALIZE DATA WITH GEOSERVER
+Visualize Data With Geoserver
 -----------------------------
 
 Register the GeoMesa store with GeoServer

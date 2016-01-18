@@ -1,9 +1,6 @@
 Feature Level Visibility & Security
 ===================================
 
-Introduction
-------------
-
 Feature visibility is a new and important feature recently supported by
 GeoMesa. Accumulo has support for cell-level visibility built-in, and in
 recent versions of GeoMesa, support was added to utilize these

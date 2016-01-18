@@ -2,7 +2,6 @@ Map-Reduce Ingest
 =================
 
 This tutorial shows how to:
----------------------------
 
 1. Ingest big `GDELT <http://www.gdeltproject.org/>`__ data files into a
    GeoMesa Accumulo table via a Hadoop Map/Reduce job.

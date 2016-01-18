@@ -1,16 +1,13 @@
 Management with GeoMesa Tools
 =============================
 
-INTRODUCTION
-------------
-
 GeoMesa Tools is a set of command line tools to add feature management
 functions, query planning and explanation, ingest, and export abilities
 from the command line. In this tutorial, we'll cover initial setup of
 GeoMesa Tools and the feature management commands included with the
 module.
 
-CONFIGURATION
+Configuration
 -------------
 
 To begin using the command line tools, first follow the `GeoMesa
@@ -83,7 +80,7 @@ Additionally, if you need visibilities or authorizations on your
 Accumulo tables, every command accepts ``--visibilities`` and
 ``--auths`` for Accumulo connection parameters.
 
-FEATURE MANAGEMENT
+Feature Management
 ------------------
 
 create: creating a feature type
@@ -208,7 +205,7 @@ The output should resemble the following:
     State change: CONNECTED
     Removed feature
 
-CONCLUSION
+Conclusion
 ----------
 
 In this tutorial, you learned about the feature management commands

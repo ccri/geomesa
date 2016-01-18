@@ -1,9 +1,6 @@
 Geohash Ranges
 ==============
 
-Overview
---------
-
 Encoding a (geometry, date-time) pair is only useful when those encoded
 entries can be found quickly. That is the job of the query planner. In
 this post, we present one challenge the query planner in GeoMesa has to

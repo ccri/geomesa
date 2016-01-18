@@ -1,13 +1,12 @@
 Ingest & Export with GeoMesa Tools
 ==================================
 
-This tutorial shows how to:
----------------------------
+This tutorial shows you how to:
 
 1. Ingest features into GeoMesa with the command line tools.
 2. Use the command line tools to query and export data.
 
-INTRODUCTION
+Introduction
 ------------
 
 .. warning::
@@ -23,14 +22,14 @@ functions, query planning and explanation, ingest, and export abilities
 from the command line. In this tutorial, we'll cover how to ingest and
 export features using GeoMesa Tools.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 If you haven't already gone through the :ref:`geomesa_deployment` tutorial and
 done an initial setup of the GeoMesa Tools, please finish those tutorials first
 and return back to this page.
 
-GETTING DATA
+Getting Data
 ------------
 
 For this tutorial, we are going to download some
@@ -58,7 +57,7 @@ Rename the CSV file you just downloaded ``ukraineNovToMar.csv``. Since
 the file is only around 1.5MB we will ingest it directly from the local
 file system without first loading it onto HDFS.
 
-INGESTING FEATURES
+Ingesting Features
 ------------------
 
 The ingest command currently supports three formats: CSV, TSV, and SHP.
@@ -110,7 +109,7 @@ The last argument that is required for all ingest commands is the path
 to the file to ingest. If ingesting CSV/TSV data this can be an HDFS
 path, specified by prefixing it with ``hdfs://``.
 
-GEOMETRIES FOR CSV/TSV FILES
+Geometries for CSV/TSV Files
 ----------------------------
 
 Each feature/line of delimited data is required to contain a valid
@@ -131,7 +130,7 @@ When ingesting a file with a WKT geometry column, the ``-lon`` and
 can be directly referenced in the SFT as the default geometry. e.g.:
 ``*geom:Geometry:srid=4326`` or ``*geom:Point:srid=4326``.
 
-RUNNING AN INGEST
+Running an Ingest
 -----------------
 
 Now that we know a little about the ingest tool and have the
@@ -198,7 +197,7 @@ the Accumulo instance. ``<instance>`` and ``<zookeepers>`` are the
 connection parameters for Accumulo, if this is not specified in the
 configuration files in ``$ACCUMULO_HOME``.
 
-CUSTOMIZING INDEX FIELDS
+Customizing Index Fields
 ------------------------
 
 GeoMesa ingest supports customizing which fields are ingested from a CSV
@@ -231,7 +230,7 @@ fields (0-6,9) matches the first 8 fields of the SFT.
      -cols 0-6,9 \
      /path/to/ukraineNovToMar.csv
 
-EXPORTING FEATURES
+Exporting Features
 ------------------
 
 Let's export your newly ingested features in a couple of file formats.
@@ -281,7 +280,7 @@ Inspect the output to ensure your data was properly exported in the
 respective formats (and if it wasn't, be sure to `submit a bug to our
 listserv <mailto:geomesa-users@locationtech.org>`__).
 
-CONCLUSION
+Conclusion
 ----------
 
 In this tutorial, you learned about the how to run ingests and exports

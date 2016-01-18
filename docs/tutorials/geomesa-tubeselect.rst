@@ -1,19 +1,18 @@
 Web Processing Services (WPS) Tube Select
 =========================================
 
-This tutorial will introduce how to:
-------------------------------------
+This tutorial will show you how to:
 
 1. Ingest a set of Twitter data.
 2. Use GeoServer Web Processing Services (WPS) to generate
    time-interpolated queries.
 3. Query from and save results to GeoServer layers.
 
-INTRODUCTION
+Introduction
 ------------
 
-A time-interpolated query finds features that intersect in both ***space
-and time***. Normal spatial or temporal queries select features that
+A time-interpolated query finds features that intersect in both **space
+and time**. Normal spatial or temporal queries select features that
 fall within a specified geometry, time range, or both. A
 time-interpolated query has a changing geometry as you move foward in
 time.
@@ -22,14 +21,14 @@ Imagine you are traveling from Washington, DC to New York City and are
 interested in people traveling the same route at the same time. These
 travelers would be within a given distance from you at any point in the
 trip. They wouldn't be in DC while you were arriving in New York. Thus
-the geometry of results of your query would be ***a function of time***.
+the geometry of results of your query would be **a function of time**.
 
 Time-interpolated queries are more complex than normal spatial or
 temporal queries, as the input is a sequence of points or lines with an
 increasing time attribute. Time-interpolated queries are colloquially
-known as ***tube selects***.
+known as **tube selects**.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 You should work through the `GeoMesa Deployment
@@ -52,7 +51,7 @@ tools should also be installed and configured:
 -  `Apache Maven <http://maven.apache.org/>`__ 3.2.2 or better, and
 -  a `git <http://git-scm.com/>`__ client.
 
-USING THE GEOSERVER PLUGIN
+Using the GeoServer Plugin
 --------------------------
 
 To complete this tutorial you will have needed to follow the
@@ -71,7 +70,7 @@ of the GeoServer web adminstration interface.
 
    "geomesa:TubeSelect WPS plugin"
 
-DOWNLOADING AND BUILDING THE TUTORIAL CODE
+Downloading and Building the Tutorial Code
 ------------------------------------------
 
 Clone the **geomesa** project and build it, if you haven't already:
@@ -101,7 +100,7 @@ To build the project, run the following command:
 
     $ mvn clean install
 
-COLLECTING TWITTER DATA
+Collecting Twitter Data
 -----------------------
 
 .. warning::
@@ -132,7 +131,7 @@ This will collect live Twitter data and save it in JSON files in the
 ``tmp`` subdirectory; this will collect data indefinitely until it is
 interrupted.
 
-INGESTING TWITTER DATA
+Ingesting Twitter Data
 ----------------------
 
 The **twitter-ingest** module takes a set of JSON files.
@@ -282,7 +281,7 @@ into an object. For more information about connecting to the twitter
 public stream check out the `Twitter Public Stream
 website <https://dev.twitter.com/docs/streaming-apis/streams/public>`__.
 
-CREATING A WEB PROCESSING SERVICE (WPS) REQUEST
+Creating a Web Processing Service (WPS) Request
 -----------------------------------------------
 
 The WPS builder will provide us with a sample XML document as a starting
@@ -303,7 +302,7 @@ data from an existing layer or storing data back into GeoServer to
 create a new layer. The GeoServer User Guide has a section on `Process
 Chaining <http://docs.geoserver.org/stable/en/user/extensions/wps/processes.html#process-chaining>`__.
 
-TUBE SELECTIONS
+Tube Selections
 ---------------
 
 Using a Layer as Input
@@ -328,8 +327,8 @@ Using JSON as Input
 
 Instead of using a layer as input, you can manually define an input
 ``FeatureCollection`` track with JSON using
-`GeoJSON <http://geojson.org/>`__. The features need a unique ***id***,
-a ***geometry*** object, and a property named ***dtg*** representing the
+`GeoJSON <http://geojson.org/>`__. The features need a unique **id**,
+a **geometry** object, and a property named **dtg** representing the
 observation time of the feature. A sample of two of our input track
 points is shown below:
 
@@ -397,7 +396,7 @@ We piped the output into
 which will pretty print the output (native packages are available for
 most Linux distributions).
 
-SAVING THE OUTPUT AS A LAYER
+Saving The Output as a Layer
 ----------------------------
 
 Chaining your result with a **gs:import** process allows you to store
@@ -416,7 +415,7 @@ layers are **mapproxy:globe.osm.toner**, **accumulo:njtrack**, and
 
    "Tube Result at 25m/s 120s"
 
-TWEAKING PARAMETERS
+Tweaking Parameters
 -------------------
 
 maxSpeed, maxTime, bufferSize
@@ -445,14 +444,14 @@ gapFill
 
 Many input tracks can be sparse. Our friend driving the Turnpike didn't
 tweet every 5 seconds. Selecting a ``gapFill`` method fills in those
-missing tracks. In this tutorial we used the ***line*** option for gap
+missing tracks. In this tutorial we used the **line** option for gap
 filling. The options available for the ``gapFill`` method are:
 
 -  ``none`` - use when you have a dense track
 -  ``line`` - draws a line between points two points and uses the time
    range of both points
 
-BEYOND CURL
+Beyond Curl
 -----------
 
 WPS services can also be accessed by a variety of clients including

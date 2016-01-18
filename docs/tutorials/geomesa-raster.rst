@@ -1,14 +1,13 @@
 GeoMesa Raster Support
 ======================
 
-This tutorial will introduce how to:
-------------------------------------
+This tutorial will show you how to:
 
 1. Deploy and use the raster data support in GeoMesa.
 2. Prepare and ingest raster data.
 3. Conduct WMS/WCS queries of raster data.
 
-PREREQUISITES
+Prerequisites
 -------------
 
 .. raw:: html
@@ -37,7 +36,7 @@ Before you begin, you should have these:
 Before you begin, you should have also completed the :ref:`geomesa_deployment`
 tutorial. 
 
-INTRODUCTION
+Introduction
 ------------
 
 The Raster support in GeoMesa was produced to support image pyramids in
@@ -46,7 +45,7 @@ EPSG:4326.
 Currently WMS and WCS (version 1.0.0) queries are supported via the
 GeoServer plugin.
 
-INGEST
+Ingest
 ------
 
 First, download and extract the example data set `Natural Earth 2 with
@@ -80,7 +79,7 @@ Coverage Format".
 When attempting to ingest your own rasters, tiles should be on the order
 of 128x128 to 1024x1024 pixels.
 
-REGISTERING IN GEOSERVER
+Registering in GeoServer
 ------------------------
 
 To view the ingested pyramid via WMS and WCS you must register the new
@@ -104,7 +103,7 @@ your GeoServer and follow these steps:
 
 |"GeoMesa Raster WMS example"|
 
-WCS QUERIES
+WCS Queries
 -----------
 
 WCS version 1.0.0 queries are fairly similar to WMS queries. Try running
