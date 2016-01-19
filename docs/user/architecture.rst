@@ -7,10 +7,12 @@ For scalability, GeoMesa is built on technologies that can use Apache Hadoop. Th
    :align: center
 
 
+.. _geomesa_and_geoserver:
+
 GeoMesa and GeoServer
 ---------------------
 
-GeoMesa's GeoServer Plugin lets GeoServer work with data stored using GeoMesa tables. The plugin maps the GeoServer capabilities associated with data sources to the GeoMesa formatted tables and provides a number of optimizations to support specific use cases.
+GeoMesa's GeoServer plugins let GeoServer work with data stored using GeoMesa tables. The plugin maps the GeoServer capabilities associated with data sources to the GeoMesa formatted tables and provides a number of optimizations to support specific use cases.
 
 If an application already uses GeoServer, integration with GeoMesa is simply a matter of adding a new datastore to GeoServer and updating the application’s configuration.
 

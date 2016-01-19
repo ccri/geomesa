@@ -40,14 +40,14 @@ Versions and Downloads
 
 * Source: https://github.com/locationtech/geomesa/archive/master.tar.gz
 
-**1.0.x release**: geomesa-accumulo1.5-1.0.0-rc.7 
+**1.1.x release**: |release_1_1|
 
-* Source: https://github.com/locationtech/geomesa/releases/tag/geomesa-accumulo1.5-1.0.0-rc.7
-* Release tarball: https://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble-accumulo1.5/1.0.0-rc.7/geomesa-assemble-accumulo1.5-1.0.0-rc.7-bin.tar.gz
+* Release tarball: |release_1_1_tarball|
+* Source: |release_1_1_source_tarball|
 
 GeoMesa artifacts can be downloaded from the LocationTech Maven repository: https://repo.locationtech.org/content/repositories/geomesa-releases/.
 
-Snapshots are available in the LocationTech Snapshots Repositor: https://repo.locationtech.org/content/repositories/geomesa-snapshots/.
+Snapshot artifacts are available in the LocationTech snapshots repository: https://repo.locationtech.org/content/repositories/geomesa-snapshots/.
 
 .. _install_binary:
 
@@ -60,113 +60,78 @@ and untar it somewhere convenient.
 
 .. code-block:: bash
 
-    # cd to a convenient directory for installing geomesa 
-    $ cd ~/tools
-
     # download and unpackage the most recent distribution
-    $ wget http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-assemble/$VERSION/geomesa-assemble-$VERSION-bin.tar.gz
-    $ tar xvf geomesa-assemble-$VERSION-bin.tar.gz
+    $ wget http://repo.locationtech.org/content/repositories/geomesa-releases/org/locationtech/geomesa/geomesa-dist/$VERSION/geomesa-dist-$VERSION-bin.tar.gz
+    $ tar xvf geomesa-dist-$VERSION-bin.tar.gz
     $ cd geomesa-$VERSION
     $ ls
-    bin  dist  docs  lib  LICENSE.txt  README.md
+    dist/  docs/  LICENSE.txt  README.md
 
 .. _building_source:
 
 Building from Source
 --------------------
 
-These development tools are required:
+GeoMesa may also be built from source. For more information refer to the
+**GeoMesa Developer Manual**, or to the ``README.md`` file in the the
+source distribution. The remainder of the instructions in this chapter assume
+the use of the binary GeoMesa distribution. If you have built from source, the
+distribution is created in the ``geomesa-dist/target`` directory as a part of
+the build process.
 
-* `Java JDK 7 <http://www.oracle.com/technetwork/java/javase/downloads/index.html>`_,
-* `Apache Maven <http://maven.apache.org/>`_ 3.2.2 or better, and
-* `Git <https://git-scm.com/>`_.
+More information about developing with GeoMesa may be found in the 
+**GeoMesa Developer Manual**. 
 
-The GeoMesa source distribution may be cloned from GitHub:
-
-.. code-block:: bash
-
-    $ git clone https://github.com/locationtech/geomesa.git
-    $ cd geomesa
-
-This downloads the latest development version. To check out the code for the latest stable release
-(``$VERSION`` = |release|):
-
-.. code-block:: bash
-
-    $ git checkout tags/geomesa-$VERSION -b geomesa-$VERSION 
-
-
-Building and dependency management for GeoMesa is handled by Maven (http://maven.apache.org/). 
-The Maven ``pom.xml`` file in the root directory of the source distribution contains an explicit
-list of dependent libraries that will be bundled together for each module of the program.
-
-.. note::
-
-    The only reason dependent libraries are bundled into the final JAR is to make it easier 
-    to deploy files rather than setting the classpath. If you would rather not bundle these 
-    dependencies, mark them as "provided" in the POM, and update your classpath as appropriate.
-
-The version of Accumulo supported is controlled by the `accumulo-1.5` 
-property; to target Accumulo 1.5:   
-
-.. code-block:: bash
-
-    $ mvn clean install -Daccumulo-1.5
-
-If the property is omitted, support for Accumulo 1.6 is assumed:
-
-.. code-block:: bash
-
-    $ mvn clean install
-
-The `skipTests` property may be used to speed compilation. Set it to ``true``
-to omit the test phase of the build process:
-
-.. code-block:: bash
-
-    $ mvn clean install -DskipTests=true
-
-The ``build/mvn`` script is a wrapper around Maven that builds the project using the Zinc
-(https://github.com/typesafehub/zinc) incremental compiler:
-
-.. code-block:: bash
-
-    $ build/mvn clean install -Daccumulo-1.5  # Accumulo 1.5
-    $ build/mvn clean install                 # Accumulo 1.6
+.. _setting_up_commandline:
 
 Setting up the Command Line Tools
 ---------------------------------
 
-.. note::
-
-    The instructions for setting up the command line tools assumes the use of the 
-    binary GeoMesa distribution. If you have built GeoMesa from source (see :ref:`building_source`),
-    use the ``geomesa-assemble/assemble.sh`` script to bundle a tarball of the binary
-    distribution.
-
 GeoMesa comes with a set of command line tools for managing features. To complete the setup 
-of the tools, cd into the ``bin`` directory of the binary distribution and execute 
-``geomesa configure``:
+of the tools, cd into the ``dist/tools`` directory of the binary distribution and unpack the
+``geomesa-tools-$VERSION-bin.tar.gz`` file (``$VERSION`` = |release|).
 
 .. code-block:: bash
 
-    $ cd /path/to/geomesa-$VERSION/bin
-    $ ./geomesa configure
-    Warning: GEOMESA_HOME is not set, using /path/to/geomesa-$VERSION
-    Using GEOMESA_HOME as set: /path/to/geomesa-$VERSION
-    Is this intentional? Y\n Y
-    Warning: GEOMESA_LIB already set, probably by a prior configuration.
-    Current value is /path/to/geomesa-$VERSION/lib.
+    $ cd geomesa-$VERSION/dist/tools
+    $ tar -xzvf geomesa-tools-$VERSION-bin.tar.gz
+    $ cd geomesa-tools-$VERSION
+    $ ls
+    bin/  conf/  examples/  lib/
 
-    Is this intentional? Y\n Y
+The instructions below assume that the ``geomesa-tools-$VERSION`` directory is kept in the 
+``geomesa-$VERSION/dist/tools`` directory, but the tools distribution may be moved elsewhere
+as desired.
+
+In the ``geomesa-tools-$VERSION`` directory, run ``bin/geomesa confgire`` to set up the tools.
+
+.. code-block:: bash
+
+    ### in geomesa-$VERSION/dist/tools/geomesa-tools-$VERSION:
+    $ bin/geomesa configure
+    Warning: GEOMESA_HOME is not set, using /path/to/geomesa-$VERSION/dist/tools/geomesa-tools-$VERSION
+    Using GEOMESA_HOME as set: /path/to/geomesa-$VERSION/dist/tools/geomesa-tools-$VERSION
+    Is this intentional? Y\n y
+    Warning: GEOMESA_LIB already set, probably by a prior configuration.
+    Current value is /path/to/geomesa-$VERSION/dist/tools/geomesa-tools-$VERSION/lib.
+
+    Is this intentional? Y\n y
 
     To persist the configuration please update your bashrc file to include: 
-    export GEOMESA_HOME=/path/to/geomesa-$VERSION
+    export GEOMESA_HOME=/path/to/geomesa-$VERSION/dist/tools/geomesa-tools-$VERSION
     export PATH=${GEOMESA_HOME}/bin:$PATH
 
-Update and re-source your ``~/.bashrc`` file to include the $GEOMESA_HOME and $PATH updates.
+Update and re-source your ``~/.bashrc`` file to include the ``$GEOMESA_HOME`` and ``$PATH`` updates.
 
-Install GPL software:
+
+.. warning::
+
+    Please note that the ``$GEOMESA_HOME`` variable points to the location of the ``geomesa-tools-$VERSION``
+    directory, not the main geomesa binary distribution directory!
+
+Due to licensing restrictions, dependencies for shape file support and raster 
+ingest must be separately installed. These may be installed by invoking the
+following commands: 
 
 .. code-block:: bash
 
@@ -205,77 +170,93 @@ Test the GeoMesa Tools:
         tableconf        Perform table configuration operations
         version          GeoMesa Version
 
-GeoMesa Tools comes with a bundled SLF4J implementation. However, if you receive an SLF4J error like this:
 
-.. code-block:: bash
+GeoMesa Tools comes bundled by default with an SLF4J implementation that is installed to the ``$GEOMESA_HOME/lib`` directory
+named ``slf4j-log4j12-1.7.5.jar``. If you already have an SLF4J implementation installed on your Java classpath you may
+see errors at runtime and will have to exclude one of the JARs. This can be done by simply renaming the bundled
+``slf4j-log4j12-1.7.5.jar`` file to ``slf4j-log4j12-1.7.5.jar.exclude``.
+ 
+Note that if no slf4j implementation is installed you will see this error:
+
+.. code::
 
     SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
     SLF4J: Defaulting to no-operation (NOP) logger implementation
     SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-    
-download the SLF4J TAR file from http://www.slf4j.org/download.html. Extract 
-``slf4j-log4j12-1.7.7.jar`` and place it in the ``lib`` directory of the binary distribution. 
 
+In this case you may download SLF4J from http://www.slf4j.org/download.html. Extract 
+``slf4j-log4j12-1.7.7.jar`` and place it in the ``lib`` directory of the binary distribution. 
 If this conflicts with another SLF4J implementation, it may need to be removed from the lib directory.
 
 
-Configuring for Accumulo
-------------------------
+Installing the Accumulo distributed runtime library
+---------------------------------------------------
 
-The ``$GEOMESA_HOME/dist`` directory contains the distributed runtime jar that should be copied into the ``$ACCUMULO_HOME/lib/ext`` folder on each tablet server. This jar contains the GeoMesa Accumulo iterators that are necessary to query GeoMesa.
+The ``geomesa-$VERSION/dist/accumulo`` directory contains the distributed
+runtime jar that should be copied into the ``$ACCUMULO_HOME/lib/ext`` folder on
+each tablet server. This jar contains the GeoMesa Accumulo iterators that are
+necessary to query GeoMesa.
 
 .. code-block:: bash
 
     # something like this for each tablet server
-    $ scp $GEOMESA_HOME/dist/geomesa-distributed-runtime-$GEOMESA_VERSION.jar tserver1:$ACCUMULO_HOME/lib/ext/
+    $ scp geomesa-$VERSION/dist/accumulo/geomesa-accumulo-distributed-runtime-$VERSION.jar tserver1:$ACCUMULO_HOME/lib/ext
+
+Installing the GeoMesa GeoServer plugins
+----------------------------------------
+
+.. warning::
+
+    The GeoMesa GeoServer plugins require the use of GeoServer
+    |geoserver_version| and GeoTools |geotools_version|.
 
 
-Configuring for Kafka
----------------------
+As described in section :ref:`geomesa_and_geoserver` , GeoMesa implements a
+GeoTools-compatible (http://geotools.org/) data store. This makes it possible
+to use GeoMesa as a data store in GeoServer (http://geoserver.org/). The documentation
+below describes how to configure GeoServer to connect to GeoMesa Accumulo and Kafka data stores.
+The installation and setup of GeoServer is beyond the scope of this document, but
+instructions may be found here: http://docs.geoserver.org/latest/en/user/installation/index.html
 
-To install the Kafka module, you will need to build GeoMesa from source (see :ref:`building_source`). 
-Build the ``geomesa-kafka`` submodule:
-
-.. code-block:: bash
-
-    $ mvn clean install -f geomesa/geomesa-kafka/pom.xml -DskipTests
-
-
-Installing the GeoMesa GeoServer plugin
----------------------------------------
-
-In addition to the GeoServer plugin, you will also need to install the WPS plugin to your GeoServer
+After GeoServer is running, you will also need to install the WPS plugin to your GeoServer
 instance. The GeoServer WPS Plugin (available at 
-http://docs.geoserver.org/stable/en/user/extensions/wps/install.html) must also match the version of
+http://docs.geoserver.org/stable/en/user/extensions/wps/install.html) must match the version of
 GeoServer instance. This is needed for both the Accumulo and Kafka variants of the plugin.
 
 For Accumulo
 ^^^^^^^^^^^^
 
-.. note:: 
+To install the GeoMesa Accumulo GeoServer plugin, unpack the contents of the
+``geomesa-accumulo-gs-plugin-$VERSION.zip`` file in ``geomesa-$VERSION/dist/gs-plugins`` 
+into your GeoServer's ``lib`` directory (``$VERSION`` = |release|):
 
-    ``$VERSION`` = |release| unless you have built from source.
-
-Copy the ``geomesa-$VERSION-geoserver-plugin.jar`` jar file from the GeoMesa dist directory into your GeoServer's library directory.
-
-If you are using tomcat:
+If you are using Tomcat:
 
 .. code-block:: bash
 
-    $ cp $GEOMESA_HOME/dist/geomesa-plugin-$VERSION-geoserver-plugin.jar /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
+    $ unzip \
+      geomesa-$VERSION/dist/gs-plugins/geomesa-accumulo-gs-plugin-$VERSION-install.zip \
+      -d /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
 
 If you are using GeoServer's built in Jetty web server:
 
 .. code-block:: bash
 
-    $ cp $GEOMESA_HOME/dist/geomesa-plugin-$VERSION-geoserver-plugin.jar /path/to/geoserver-2.5.2/webapps/geoserver/WEB-INF/lib/
+    $ unzip \
+      geomesa-$VERSION/dist/gs-plugins/geomesa-accumulo-gs-plugin-$VERSION-install.zip \
+      -d /path/to/geoserver/webapps/geoserver/WEB-INF/lib/
 
-There are additional JARs that are specific to your installation that you will also need to 
-copy to GeoServer's ``WEB-INF/lib`` directory. There is a script located at 
-``$GEOMESA_HOME/bin/install-hadoop-accumulo.sh`` which will install these dependencies to a
-target directory using ``wget`` which will require an internet connection. 
+There are additional JARs for Accumulo, Zookeeper, Hadoop, and Thrift that will
+be specific to your installation that you will also need to copy to GeoServer's
+``WEB-INF/lib`` directory. For example, GeoMesa only requires Hadoop
+|hadoop_version|, but if you are using Hadoop 2.5.0 you should use the JARs
+that match the version of Hadoop you are running.
 
-For example:
+There is a script in the ``geomesa-tools-$VERSION`` directory
+(``$GEOMESA_HOME/bin/install-hadoop-accumulo.sh``) which will install these
+dependencies to a target directory using ``wget`` (requires an internet
+connection). You may have to edit this file to set the versions of Accumulo,
+Zookeeper, Hadoop, and Thrift you are running.
 
 .. code-block:: bash
 
@@ -292,46 +273,60 @@ For example:
     ...
 
 If you do no have an internet connection you can download the JARs manually via http://search.maven.org/.
-These may include (the specific JARs are included only for reference, and only apply if you are using Accumulo 1.6.2 and Hadoop 2.2):
+These may include the JARs below; the specific JARs are included only for reference (assuming Accumulo 1.6.2,
+Zookeeper 3.4.5, Hadoop 2.2.0 and Thrift 0.9.1):
 
 * Accumulo
-    * `accumulo-core-1.6.2.jar <https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-core/1.6.2/accumulo-core-1.6.2.jar>`_
-    * `accumulo-fate-1.6.2.jar <https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-fate/1.6.2/accumulo-fate-1.6.2.jar>`_
-    * `accumulo-trace-1.6.2.jar <https://search.maven.org/remotecontent?filepath=org/apache/accumulo/accumulo-trace/1.6.2/accumulo-trace-1.6.2.jar>`_
+    * accumulo-core-1.6.2.jar
+    * accumulo-fate-1.6.2.jar
+    * accumulo-trace-1.6.2.jar
 * Zookeeper
-    * `zookeeper-3.4.5.jar <https://search.maven.org/remotecontent?filepath=org/apache/zookeeper/zookeeper/3.4.5/zookeeper-3.4.5.jar>`_
-* Hadoop core
-    * `hadoop-auth-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-auth/2.2.0/hadoop-auth-2.2.0.jar>`_
-    * `hadoop-client-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-client/2.2.0/hadoop-client-2.2.0.jar>`_
-    * `hadoop-common-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-common/2.2.0/hadoop-common-2.2.0.jar>`_
-    * `hadoop-hdfs-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-hdfs/2.2.0/hadoop-hdfs-2.2.0.jar>`_
-    * `hadoop-mapreduce-client-app-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-mapreduce-client-app/2.2.0/hadoop-mapreduce-client-app-2.2.0.jar>`_
-    * `hadoop-mapreduce-client-common-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-mapreduce-client-common/2.2.0/hadoop-mapreduce-client-common-2.2.0.jar>`_
-    * `hadoop-mapreduce-client-core-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-mapreduce-client-core/2.2.0/hadoop-mapreduce-client-core-2.2.0.jar>`_
-    * `hadoop-mapreduce-client-jobclient-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-mapreduce-client-jobclient/2.2.0/hadoop-mapreduce-client-jobclient-2.2.0.jar>`_
-    * `hadoop-mapreduce-client-shuffle-2.2.0.jar <https://search.maven.org/remotecontent?filepath=org/apache/hadoop/hadoop-mapreduce-client-shuffle/2.2.0/hadoop-mapreduce-client-shuffle-2.2.0.jar>`_
+    * zookeeper-3.4.5.jar
+* Hadoop
+    * hadoop-auth-2.2.0.jar
+    * hadoop-client-2.2.0.jar
+    * hadoop-common-2.2.0.jar
+    * hadoop-hdfs-2.2.0.jar
+    * hadoop-mapreduce-client-app-2.2.0.jar
+    * hadoop-mapreduce-client-common-2.2.0.jar
+    * hadoop-mapreduce-client-core-2.2.0.jar
+    * hadoop-mapreduce-client-jobclient-2.2.0.jar
+    * hadoop-mapreduce-client-shuffle-2.2.0.jar
 * Thrift
-    * `libthrift-0.9.1.jar <https://search.maven.org/remotecontent?filepath=org/apache/thrift/libthrift/0.9.1/libthrift-0.9.1.jar>`_
+    * libthrift-0.9.1.jar
     
-There are also GeoServer JARs that need to be updated for Accumulo (also in the lib directory):
+There are also GeoServer JARs that may need to be updated for Accumulo (also in the ``lib`` directory):
     
 * **commons-configuration**: Accumulo requires commons-configuration 1.6 and previous versions should be replaced [`commons-configuration-1.6.jar <https://search.maven.org/remotecontent?filepath=commons-configuration/commons-configuration/1.6/commons-configuration-1.6.jar>`_]
 * **commons-lang**: GeoServer ships with commons-lang 2.1, but Accumulo requires replacing that with version 2.4 [`commons-lang-2.4.jar <https://search.maven.org/remotecontent?filepath=commons-lang/commons-lang/2.4/commons-lang-2.4.jar>`_]
 
+After placing the dependencies in the correct folder, be sure to restart GeoServer for changes to take place.
+
 For Kafka
 ^^^^^^^^^
 
-Copy the GeoMesa Kafka plugin JAR files from the GeoMesa directory you built into your GeoServer's library directory. 
+To install the GeoMesa Kafka GeoServer plugin, unpack the contents of the
+``geomesa-kafka-gs-plugin-$VERSION.zip`` file in ``geomesa-$VERSION/dist/gs-plugins`` 
+into your GeoServer's ``lib`` directory (``$VERSION`` = |release|):
 
-Tomcat::
+If you are using Tomcat:
 
-    $ cp geomesa/geomesa-kafka/geomesa-kafka-geoserver-plugin/target/geomesa-kafka-geoserver-plugin-$VERSION-geoserver-plugin.jar /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
+.. code-block:: bash
 
-GeoServer's built-in Jetty web server::
+    $ unzip \
+      geomesa-$VERSION/dist/gs-plugins/geomesa-kafka-gs-plugin-$VERSION-install.zip \
+      -d /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
 
-    $ cp geomesa/geomesa-kafka/geomesa-kafka-geoserver-plugin/target/geomesa-kafka-geoserver-plugin-$VERSION-geoserver-plugin.jar /path/to/jetty/geoserver-2.5.2/webapps/geoserver/WEB-INF/lib/
+If you are using GeoServer's built in Jetty web server:
 
-Then copy these dependencies to your `WEB-INF/lib` directory.
+.. code-block:: bash
+
+    $ unzip \
+      geomesa-$VERSION/dist/gs-plugins/geomesa-kafka-gs-plugin-$VERSION-install.zip \
+      -d /path/to/geoserver/webapps/geoserver/WEB-INF/lib/
+
+Then copy these dependencies (or the equivalents for your Kafka installation) to
+your ``WEB-INF/lib`` directory.
 
 * Kafka
     * kafka-clients-0.8.2.1.jar
@@ -341,7 +336,11 @@ Then copy these dependencies to your `WEB-INF/lib` directory.
 * Zookeeper
     * zookeeper-3.4.5.jar
 
-Note: when using the Kafka Data Store with GeoServer in Tomcat it will most likely be necessary to increase the memory settings for Tomcat, `export CATALINA_OPTS="-Xms512M -Xmx1024M -XX:PermSize=256m -XX:MaxPermSize=256m"`.
+Note: when using the Kafka Data Store with GeoServer in Tomcat it will most likely be necessary to increase the memory settings for Tomcat:
+
+.. code-block:: bash
+
+    export CATALINA_OPTS="-Xms512M -Xmx1024M -XX:PermSize=256m -XX:MaxPermSize=256m"
 
 After placing the dependencies in the correct folder, be sure to restart GeoServer for changes to take place.
 
@@ -351,5 +350,17 @@ Upgrading
 To upgrade between minor releases of GeoMesa, the versions of all GeoMesa components **must** match. 
 
 This means that the version of the ``geomesa-distributed-runtime`` JAR installed on Accumulo tablet servers
-**must** match the version of the ``geomesa-plugin`` JAR installed in the ``WEB-INF/lib`` directory of GeoServer.
+**must** match the version of the ``geomesa-plugin`` JARs installed in the ``WEB-INF/lib`` directory of GeoServer.
 
+Configuring GeoServer
+---------------------
+
+Depending on your hardware, it may be important to set the limits for
+your WMS plugin to be higher or disable them completely by clicking
+"WMS" under "Services" on the left side of the admin page of GeoServer.
+Check with your server administrator to determine the correct settings.
+For massive queries, the standard 60 second timeout may be too short.
+
+|"Disable limits"|
+
+.. |"Disable limits"| image:: _static/img/wms_limits.png
