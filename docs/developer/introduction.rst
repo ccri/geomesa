@@ -32,6 +32,68 @@ Using Maven
 
 The GeoMesa project uses `Apache Maven <https://maven.apache.org/>`_ as a build tool. The Maven project's `Maven in 5 Minutes <https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html>`_ provides a quick introduction to getting started with its `mvn` executable.
 
+Building from Source
+--------------------
+
+These development tools are required:
+
+* `Java JDK 7 <http://www.oracle.com/technetwork/java/javase/downloads/index.html>`_,
+* `Apache Maven <http://maven.apache.org/>`_ 3.2.2 or better, and
+* `Git <https://git-scm.com/>`_.
+
+The GeoMesa source distribution may be cloned from GitHub:
+
+.. code-block:: bash
+
+    $ git clone https://github.com/locationtech/geomesa.git
+    $ cd geomesa
+
+This downloads the latest development version. To check out the code for the latest stable release
+(``$VERSION`` = |release|):
+
+.. code-block:: bash
+
+    $ git checkout tags/geomesa-$VERSION -b geomesa-$VERSION 
+
+
+Building and dependency management for GeoMesa is handled by Maven (http://maven.apache.org/). 
+The Maven ``pom.xml`` file in the root directory of the source distribution contains an explicit
+list of dependent libraries that will be bundled together for each module of the program.
+
+.. note::
+
+    The only reason dependent libraries are bundled into the final JAR is to make it easier 
+    to deploy files rather than setting the classpath. If you would rather not bundle these 
+    dependencies, mark them as "provided" in the POM, and update your classpath as appropriate.
+
+The version of Accumulo supported is controlled by the `accumulo-1.5` 
+property; to target Accumulo 1.5:   
+
+.. code-block:: bash
+
+    $ mvn clean install -Daccumulo-1.5
+
+If the property is omitted, support for Accumulo 1.6 is assumed:
+
+.. code-block:: bash
+
+    $ mvn clean install
+
+The `skipTests` property may be used to speed compilation. Set it to ``true``
+to omit the test phase of the build process:
+
+.. code-block:: bash
+
+    $ mvn clean install -DskipTests=true
+
+The ``build/mvn`` script is a wrapper around Maven that builds the project using the Zinc
+(https://github.com/typesafehub/zinc) incremental compiler:
+
+.. code-block:: bash
+
+    $ build/mvn clean install -Daccumulo-1.5  # Accumulo 1.5
+    $ build/mvn clean install                 # Accumulo 1.6
+
 Using the Scala Console
 -----------------------
 
