@@ -16,7 +16,10 @@ available at :ref:`install_geoserver_plugins`.
 Access to the User Interface
 ----------------------------
 
-You can reach the GeoServer main screen by sending a browser to ``http://127.0.0.1:8080/geoserver`` and logging in with a username of ``admin`` and a password of  ``geoserver``. (This URL and password are default values and may be different at your own installation.) 
+You can reach the GeoServer main screen by sending a browser to
+``http://127.0.0.1:8080/geoserver`` and logging in with a username of ``admin``
+and a password of  ``geoserver``. (This URL and password are default values and
+may be different at your own installation.) 
 
 Once you have installed the GeoMesa plugin, the GeoServer administration interface will include a GeoMesa menu on the sidebar:
 
@@ -68,4 +71,22 @@ cluster and any currently running jobs.
 
 .. figure:: /_static/img/geoserver-hadoop-status.png
    :alt: "Hadoop Status"
+
+Analysis with WPS
+-----------------
+
+As described by the Open Geospatial Consortium's page on WPS, 
+
+    The OpenGIS® Web Map Service Interface Standard (WMS) provides a simple HTTP
+    interface for requesting geo-registered map images from one or more
+    distributed geospatial databases. A WMS request defines the geographic
+    layer(s) and area of interest to be processed. The response to the request is
+    one or more geo-registered map images (returned as JPEG, PNG, etc) that can be
+    displayed in a browser application. The interface also supports the ability to
+    specify whether the returned images should be transparent so that layers from
+    multiple servers can be combined or not.
+ 
+A tool like GeoServer (once its WPS plugin has been installed) uses WPS to
+retrieve data from GeoMesa. WPS processes can be chained, letting you use
+additional WPS requests to build on the results of earlier ones.
 
