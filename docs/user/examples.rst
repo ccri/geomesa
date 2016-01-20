@@ -1,36 +1,141 @@
-Ingest & Export with GeoMesa Tools
-==================================
+Examples
+========
 
-This tutorial shows you how to:
+Feature Management
+------------------
 
-1. Ingest features into GeoMesa with the command line tools.
-2. Use the command line tools to query and export data.
+Creating a feature type
+^^^^^^^^^^^^^^^^^^^^^^^
 
-Introduction
-------------
+To begin, let's start by creating a new feature type in GeoMesa with the
+``create`` command. The ``create`` command takes three required and one
+optional flag:
 
-.. warning::
+**Required**
 
-    The instructions in the tutorial apply to GeoMesa version 1.1.0-rc.6 and below. In later
-    releases, including the current development branch, the ``geomesa ingest``
-    command makes use of the ``-conf`` option to specify a **geomesa-convert**
-    configuration file to pass arguments formerly specified by the ``-cols``, ``-dt``, ``-dtf``,
-    ``-h``, ``-id``, ``-lat``, ``-long``, and ``-ld`` flags.
+-  ``-c`` or ``--catalog``: the name of the catalog table
+-  ``-fn`` or ``--feature-name``: the name of the feature
+-  ``-s`` or ``--spec``: the ``SimpleFeatureType`` specification
+
+**Optional**
+
+-  ``-dt`` or ``--dt-field``: the default date attribute of the
+   ``SimpleFeatureType``
+
+Run the command:
+
+.. code:: bash
+
+    $ geomesa create -u <username> -p <password> \
+    -c cmd_tutorial \
+    -fn feature \
+    -s id:String:index=true,dtg:Date,geom:Point:srid=4326 \
+    -dt dtg
+
+This will create a new feature type, named "feature", on the GeoMesa
+catalog table "cmd\_tutorial". The catalog table stores metadata
+information about each feature, and it will be used to prefix each table
+name in Accumulo.
+
+If the above command was successful, you should see output similar to
+the following:
+
+.. code:: bash
+
+    Creating 'cmd_tutorial_feature' with spec 'id:String:index=true,dtg:Date,geom:Point:srid=4326'. Just a few moments...
+    Feature 'cmd_tutorial_feature' with spec 'id:String:index=true,dtg:Date,geom:Point:srid=4326' successfully created.
+
+Now that you've seen how to create feature types, create another feature
+type on catalog table "cmd\_tutorial" using your own first name for the
+``--feature-name`` and the above schema for the ``--spec``.
+
+Listing known feature types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You should have two feature types on catalog table "cmd\_tutorial". To
+verify, we'll use the ``list`` command. The ``list`` command takes one
+flag:
+
+-  ``-c`` or ``--catalog``: the name of the catalog table
+
+Run the following command:
+
+.. code:: bash
+
+    $ geomesa list -u <username> -p <password> -c cmd_tutorial
+
+The output text should be something like:
+
+.. code:: bash
+
+    Listing features on 'cmd_tutorial'. Just a few moments...
+    2 features exist on 'cmd_tutorial'. They are:
+    feature
+    jake
+
+Finding the attributes of a feature type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To find out more about the attributes of a feature type, we'll use the
+``describe`` command. This command takes two flags:
+
+-  ``-c`` or ``--catalog``: the name of the catalog table
+-  ``-fn`` or ``--feature-name``: the name of the feature type
+
+Let's find out more about the attributes on our first feature type. Run
+the command
+
+.. code:: bash
+
+    $ geomesa describe -u <username> -p <password> -c cmd_tutorial -fn feature
+
+The output should look like:
+
+.. code:: bash
+
+    Describing attributes of feature 'cmd_tutorial_feature'. Just a few moments...
+    id: String (Indexed)
+    dtg: Date (Time-index)
+    geom: Point (Geo-index)
+
+Deleting a feature type
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Continuing on, let's delete the first feature type we created with the
+``removeschema`` command. The ``removeschema`` command takes two flags:
+
+-  ``-c`` or ``--catalog``: the name of the catalog table
+-  ``-fn`` or ``--feature-name``: the name of the feature to delete
+
+Run the following command:
+
+.. code:: bash
+
+    geomesa removeschema -u <username> -p <password> -c cmd_tutorial -fn feature
+
+NOTE: Running this command will take a bit longer than the previous two,
+as it will delete three tables in Accumulo, as well as remove the
+metadata rows in the catalog table associated with the feature.
+
+The output should resemble the following:
+
+.. code:: bash
+
+    Remove schema feature from catalog cmd_tutorial? (yes/no): yes
+    Starting
+    State change: CONNECTED
+    Removed feature
+
+Ingesting Data
+--------------
 
 GeoMesa Tools is a set of command line tools to add feature management
 functions, query planning and explanation, ingest, and export abilities
 from the command line. In this tutorial, we'll cover how to ingest and
 export features using GeoMesa Tools.
 
-Prerequisites
--------------
-
-If you haven't already gone through the :ref:`geomesa_deployment` tutorial and
-done an initial setup of the GeoMesa Tools, please finish those tutorials first
-and return back to this page.
-
 Getting Data
-------------
+^^^^^^^^^^^^
 
 For this tutorial, we are going to download some
 `GDELT <http://gdeltproject.org/>`__ data from `Google
@@ -58,7 +163,7 @@ the file is only around 1.5MB we will ingest it directly from the local
 file system without first loading it onto HDFS.
 
 Ingesting Features
-------------------
+^^^^^^^^^^^^^^^^^^
 
 The ingest command currently supports three formats: CSV, TSV, and SHP.
 
@@ -110,7 +215,7 @@ to the file to ingest. If ingesting CSV/TSV data this can be an HDFS
 path, specified by prefixing it with ``hdfs://``.
 
 Geometries for CSV/TSV Files
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each feature/line of delimited data is required to contain a valid
 geometry. This geometry may be supplied in one of two ways:
@@ -131,7 +236,7 @@ can be directly referenced in the SFT as the default geometry. e.g.:
 ``*geom:Geometry:srid=4326`` or ``*geom:Point:srid=4326``.
 
 Running an Ingest
------------------
+^^^^^^^^^^^^^^^^^
 
 Now that we know a little about the ingest tool and have the
 ``ukraineNovToMar.csv`` dataset downloaded above, we will construct
@@ -198,7 +303,7 @@ connection parameters for Accumulo, if this is not specified in the
 configuration files in ``$ACCUMULO_HOME``.
 
 Customizing Index Fields
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 GeoMesa ingest supports customizing which fields are ingested from a CSV
 or TSV file. If we decide to drop the fields ``ActionGeo_Long`` and
@@ -279,12 +384,3 @@ output file.
 Inspect the output to ensure your data was properly exported in the
 respective formats (and if it wasn't, be sure to `submit a bug to our
 listserv <mailto:geomesa-users@locationtech.org>`__).
-
-Conclusion
-----------
-
-In this tutorial, you learned about the how to run ingests and exports
-using the GeoMesa Command Line Tools. We covered ``ingest`` and
-``export``. If you have ideas for additional functionality to include in
-the Command Line Tools module, please don't hesitate to `reach out on
-our listserv <mailto:geomesa-users@locationtech.org>`__.
