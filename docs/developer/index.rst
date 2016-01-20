@@ -2,13 +2,11 @@ GeoMesa |release| Developer Manual
 ==================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    
    introduction
-   ingest_export
-   querying
+   api
    analysis
-   security
    modules
 
 Index

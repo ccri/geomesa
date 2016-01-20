@@ -1,5 +1,48 @@
-geomesa-kafka-datastore
-=======================
+The GeoMesa API
+===============
+
+GeoTools DataStore
+------------------
+
+GeoMesa provides multiple classes that implement the `GeoTools <http://geotools.org>`_ |geotools_version| `DataStore <http://docs.geotools.org/latest/userguide/library/api/datastore.html>`_ class, each of which uses a different backing store. These include ``DataStore``\ s that use Accumulo or Kafka.
+
+Accumulo DataStore
+^^^^^^^^^^^^^^^^^^
+
+The implementation of ``AccumuloDataStore`` is located in the ``geomesa-accumulo``
+directory of the source distribution.
+
+The Accumulo iterator stack is the where most of our query processing is done.
+Because every single feature we return from a query has to go through the
+iterator stack, it's akin to a 'tight inner loop' - e.g. we want to optimize it
+as much as possible. To improve execution speed, we don't use the common scala
+conventions such as Option or foreach in the stack. Instead, we use null values
+and while loops, which should be more performant.
+
+In order to optimize our processing, each scan to Accumulo will ideally use a
+single iterator that will perform all the required filtering and
+transformation. In order to allow re-use across different iterators, common
+functionality has been broken out into a series of traits and functions that
+can be mixed in to provide the required mix of functionality.
+
+Iterator features are contained in
+``org.locationtech.geomesa.core.iterators.IteratorExtensions``. In order to
+simplify initialization, they each have an overloaded abstract init method.
+This allows an iterator implementation to call a single init, which will chain
+to all the mixed in traits. The different features are exposed as vars that get
+initialized during the iterator initialization, but they shouldn't change (or
+be changed) after initialization.
+
+Iterator functions are contained in
+``org.locationtech.geomesa.core.iterators.IteratorFunctions``. In order to
+avoid unnecessary checks each time through the loop, we create a function for
+each path our execution could take. In general, this means a separate function
+for each combination of filtering, transforming and uniqueness. During the
+iterator initialization, the appropriate function will be selected based on the
+query.
+
+Kafka DataStore
+^^^^^^^^^^^^^^^
 
 The ``KafkaDataStore`` is an implementation of the GeoTools
 ``DataStore`` interface that is backed by Apache Kafka. The
@@ -21,7 +64,7 @@ past and can provide features as they existed at any point in time
 within that interval.
 
 Usage/Configuration
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 To create a ``KafkaDataStore`` there are two required properties, one
 for the Apache Kafka connection, "brokers", and one for the Apache
@@ -47,11 +90,11 @@ on the Kafka Data Store Producer it cannot be called on the Kafka
 Consumer Data Store Consumer.
 
 Data Producers
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 
 First, create the data store. For example:
 
-::
+.. code-block:: scala
 
     String brokers = ...
     String zookeepers = ...
@@ -73,7 +116,7 @@ First, create the data store. For example:
 Next, create the schema. Each data store can have one or many schemas.
 For example:
 
-::
+.. code-block:: scala
 
     SimpleFeatureType sft = ...
     SimpleFeatureType streamingSFT = KafkaDataStoreHelper.createStreamingSFT(sft, zkPath);
@@ -91,7 +134,7 @@ was not created by the ``KafkaDataStoreHelper``.
 
 Now, you can create or update simple features:
 
-::
+.. code-block:: scala
 
     // the name of the simple feature type -  will be the same as sft.getTypeName();
     String typeName = streamingSFT.getTypeName();
@@ -104,7 +147,7 @@ Now, you can create or update simple features:
 
 Delete simple features:
 
-::
+.. code-block:: scala
 
     SimpleFeatureStore producerStore = (SimpleFeatureStore) producerDs.getFeatureSource(typeName);
     FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
@@ -114,7 +157,7 @@ Delete simple features:
 
 And, clear (delete all) features:
 
-::
+.. code-block:: scala
 
     producerStore.removeFeatures(Filter.INCLUDE);
 
@@ -122,7 +165,7 @@ Each operation that creates, modifies, deletes, or clears simple
 features results in a message being sent to the Kafka topic.
 
 Data Consumers
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 
 First, create the data store. For example:
 
@@ -263,7 +306,7 @@ Finally the Kafka Replay Consumer Feature Source can be queried:
     replayFeatureSource.getFeatures(timeFilter);
 
 Command Line Tools
-------------------
+~~~~~~~~~~~~~~~~~~
 
 The KafkaGeoMessageFormatter, part of geomesa-kafka-datastore, may be
 used with the ``kafka-console-consumer``, part of Apache Kafka. In order
@@ -298,9 +341,9 @@ to not specifying ``--from-beginning``.
 
 For example:
 
-::
+.. code-block:: bash
 
-    kafka-ds-log-viewer --zookeeper {zookeeper} --zkPath {zkPath} --sftName {sftName}
+    $ kafka-ds-log-viewer --zookeeper {zookeeper} --zkPath {zkPath} --sftName {sftName}
 
 The ``KafkaDataStoreLogViewer`` loads the ``SimpleFeatureType`` from
 Zookeeper so it does not need to be passed via the command line.
