@@ -202,6 +202,8 @@ necessary to query GeoMesa.
     # something like this for each tablet server
     $ scp geomesa-$VERSION/dist/accumulo/geomesa-accumulo-distributed-runtime-$VERSION.jar tserver1:$ACCUMULO_HOME/lib/ext
 
+.. _install_geoserver_plugins:
+
 Installing the GeoMesa GeoServer plugins
 ----------------------------------------
 

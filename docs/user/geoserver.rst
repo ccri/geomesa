@@ -1,21 +1,17 @@
-GeoMesa GeoServer UI
-====================
+GeoMesa GeoServer Plugins
+=========================
 
 Background
 ----------
 
-When you install the GeoMesa plugin for GeoServer, you get access to the
+When you install the GeoMesa plugins for GeoServer, you get access to the
 GeoMesa User Interface. The GeoMesa UI shows the status of your GeoMesa
 data stores and will eventually provide additional features such as the
 ability to build indices on your data and calculate statistics on your common
 queries.
 
-This section outlines some of the features currently available through the
-GeoMesa UI.
-
-Instructions for installing the GeoMesa plugin in GeoServer are
-available `here </geomesa-deployment/>`__, under 'Deploy GeoMesa
-Accumulo Plugin to GeoServer'.
+Instructions for installing the GeoMesa plugins in GeoServer are
+available at :ref:`install_geoserver_plugins`.
 
 Access to the User Interface
 ----------------------------
@@ -24,7 +20,7 @@ You can reach the GeoServer main screen by sending a browser to ``http://127.0.0
 
 Once you have installed the GeoMesa plugin, the GeoServer administration interface will include a GeoMesa menu on the sidebar:
 
-.. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-menu.png
+.. figure:: /_static/img/geoserver-menu.png
    :alt: "GeoMesa Menu"
 
 Data Store Summary
@@ -47,7 +43,7 @@ of tablets per table, and the total number of entries. Clicking the 'Feature
 Attributes' link displays a list of all the attributes for the feature shows
 whether they are indexed for querying.
 
-.. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-datastores.png
+.. figure:: /_static/img/geoserver-datastores.png
    :alt: "Hadoop Status"
 
 Configuration
@@ -60,7 +56,7 @@ configuration files. You can enter them by hand, or you can upload your
 hadoop configuration files directly to the page. To do this, use the
 'Load from XML' button.
 
-.. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-config.png
+.. figure:: /_static/img/geoserver-config.png
    :alt: "GeoMesa Configuration"
 
 Hadoop Status
@@ -70,6 +66,6 @@ Once the configuration is done, you can monitor the Hadoop cluster
 status on the Hadoop Status page. Here you can see the load on your
 cluster and any currently running jobs.
 
-.. figure:: _static/img/tutorials/2014-08-06-geomesa-ui/geoserver-hadoop-status.png
+.. figure:: /_static/img/geoserver-hadoop-status.png
    :alt: "Hadoop Status"
 
