@@ -52,12 +52,18 @@ class BlobstoreServlet(val persistence: FilePersistence) extends GeoMesaBaseData
     store => connectToBlobStore(store._2).map(abs => blobStores.putIfAbsent(store._1, abs))
   }
 
-  override def requestPath(implicit request: HttpServletRequest): String = {
-    if (request.getMethod == "POST" && request.getServletPath.startsWith("/blob")){
-      request.getServletPath + request.getPathInfo
+  private def connectToBlobStore(dsParams: Map[String, String]): Option[AccumuloBlobStore] = {
+    val ds = new AccumuloDataStoreFactory().createDataStore(dsParams).asInstanceOf[AccumuloDataStore]
+    if (ds == null) {
+      logger.error("Bad Connection Params: {}", dsParams)
+      None
     } else {
-      super.requestPath
+      Some(new AccumuloBlobStore(ds))
     }
+  }
+
+  override def requestPath(implicit request: HttpServletRequest): String = {
+    request.getServletPath + request.getPathInfo
   }
 
   // TODO: Revisit configuration and persistence of configuration.
@@ -119,16 +125,6 @@ class BlobstoreServlet(val persistence: FilePersistence) extends GeoMesaBaseData
       getPersistedDataStores
     } catch {
       case e: Exception => handleError(s"Error reading data stores:", e)
-    }
-  }
-
-  private def connectToBlobStore(dsParams: Map[String, String]): Option[AccumuloBlobStore] = {
-    val ds = new AccumuloDataStoreFactory().createDataStore(dsParams).asInstanceOf[AccumuloDataStore]
-    if (ds == null) {
-      logger.error("Bad Connection Params: {}", dsParams)
-      None
-    } else {
-      Some(new AccumuloBlobStore(ds))
     }
   }
 
