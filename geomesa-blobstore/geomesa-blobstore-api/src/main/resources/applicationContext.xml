@@ -5,6 +5,7 @@
 
     <bean id="blobStoreServlet" class="org.locationtech.geomesa.blob.api.BlobstoreServlet">
         <constructor-arg index="0" ref="blobStoreDataPersistence"/>
+        <property name="debug" value="true"/>
     </bean>
 
     <bean name="blobStoreDataPersistence" class="org.locationtech.geomesa.utils.cache.FilePersistence">

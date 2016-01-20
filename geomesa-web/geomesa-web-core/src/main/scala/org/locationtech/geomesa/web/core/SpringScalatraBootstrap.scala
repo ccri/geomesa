@@ -9,7 +9,6 @@
 package org.locationtech.geomesa.web.core
 
 import javax.servlet.ServletContext
-import javax.servlet.http.{HttpServletRequest, HttpServletRequestWrapper, HttpServletResponse}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.lang.exception.ExceptionUtils
@@ -28,10 +27,10 @@ trait GeoMesaScalatraServlet extends ScalatraServlet with LazyLogging {
 
   def root: String
 
-  override def handle(req: HttpServletRequest, res: HttpServletResponse): Unit = req match {
-    case r: HttpServletRequestWrapper => super.handle(r.getRequest.asInstanceOf[HttpServletRequest], res)
-    case _ => super.handle(req, res)
-  }
+//  override def handle(req: HttpServletRequest, res: HttpServletResponse): Unit = req match {
+//    case r: HttpServletRequestWrapper => super.handle(r.getRequest.asInstanceOf[HttpServletRequest], res)
+//    case _ => super.handle(req, res)
+//  }
 
   /**
    * Pulls data store relevant values out of the request params
