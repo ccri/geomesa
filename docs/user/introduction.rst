@@ -53,5 +53,5 @@ License
 GeoMesa is open-source software, and is licensed under the Apache License Version 2.0: 
 http://apache.org/licenses/LICENSE-2.0.html
 
-.. |locationtech-icon| image:: /_static/img/locationtech.png
+.. |locationtech-icon| image:: _static/img/locationtech.png
 

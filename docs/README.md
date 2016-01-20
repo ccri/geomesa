@@ -34,12 +34,6 @@ To build HTML versions of the manuals:
 
     $ ant html
 
-To build an HTML version of a particular manual:
-
-    $ ant user-html
-    $ ant developer-html
-    $ ant tutorials-html
-
 The outputted files are written to the ``_build`` directory. 
 
 To build PDF versions:

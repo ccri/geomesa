@@ -1,6 +1,3 @@
-.. GeoMesa documentation master file, created by
-   sphinx-quickstart on Mon Dec  7 10:39:14 2015.
-
 GeoMesa |release| User Manual
 =============================
 
@@ -15,9 +12,4 @@ GeoMesa |release| User Manual
    commandline_tools
    geoserver
    examples
-
-Index
-=====
-
-* :ref:`search`
 
