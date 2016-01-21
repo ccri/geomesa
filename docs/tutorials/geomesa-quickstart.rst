@@ -45,52 +45,52 @@ tools should also be installed and configured:
 Downloading And Building the Example Code
 -----------------------------------------
 
-The example code is found in the GeoMesa source distribution, which may
+The example code is found in the GeoMesa tutorials distribution, which may
 be cloned from GitHub:
 
 .. code-block:: bash
 
-    $ git clone https://github.com/locationtech/geomesa/
+    $ git clone https://github.com/geomesa/geomesa-tutorials.git
 
-The Maven ``pom.xml`` file in the root directory of the source
-distribution contains an explicit list of dependent libraries that will
-be bundled together into the final tutorial. You should confirm that the
-versions of Accumulo and Hadoop match what you are running; if it does
-not match, change the value in the POM. The version of Accumulo is
-handled by profile; setting the property ``accumulo-1.5`` tells the root
-``pom.xml`` to use Accumulo 1.5 libraries:
+The Accumulo QuickStart tutorial is in the ``geomesa-quickstart-accumulo``
+directory:
 
 .. code-block:: bash
 
-    $ mvn clean install -Daccumulo-1.5
+    $ cd geomesa-tutorials/geomesa-quickstart-accumulo
 
-If the ``accumulo-1.5`` property is omitted, Accumulo 1.6 is assumed.
-
-(NB: The only reason dependent libraries are bundled into the final JAR
-is that this is easier for most people to do this than it is to set the
-classpath when running the tutorial. If you would rather not bundle
-these dependencies, mark them as provided in the POM, and update your
-classpath as appropriate.)
+The Maven ``pom.xml`` file in this directory of the tutorial source
+distribution contains an explicit list of dependent libraries that will
+be bundled together into the final tutorial. You should confirm that the
+versions of Accumulo and Hadoop match what you are running; if it does
+not match, change the value in the POM.
 
 Navigate to the directory where the source was unpacked and run:
 
 .. code-block:: bash
 
-    $ mvn clean install -f geomesa-examples/geomesa-accumulo-quickstart/pom.xml
+    $ mvn clean install
 
 When this is complete, it should have built a JAR file in
-``geomesa-examples/geomesa-accumulo-quickstart/target`` that contains
-all of the code you need to run the tutorial with the correct
-dependencies.
+``./target`` that contains all of the code you need to run the
+tutorial with the correct dependencies.
+
+.. note::
+
+    The only reason dependent libraries are bundled into the final JAR
+    is that this is easier for most people to do this than it is to set the
+    classpath when running the tutorial. If you would rather not bundle
+    these dependencies, mark them as provided in the POM, and update your
+    classpath as appropriate.
 
 Run the Tutorial
 ----------------
 
-On the command-line, run the following where $VERSION = |version|:
+On the command-line, run the following:
 
 .. code-block:: bash
 
-    java -cp ./geomesa-examples/geomesa-accumulo-quickstart/target/geomesa-accumulo-quickstart-$VERSION.jar org.locationtech.geomesa.examples.AccumuloQuickStart -instanceId somecloud -zookeepers "zoo1:2181,zoo2:2181,zoo3:2181" -user someuser -password somepwd -tableName sometable
+    java -cp ./target/geomesa-quickstart-accumulo-$VERSION.jar com.example.geomesa.accumulo.AccumuloQuickStart -instanceId somecloud -zookeepers "zoo1:2181,zoo2:2181,zoo3:2181" -user someuser -password somepwd -tableName sometable
 
 where you provide your own values for the following place-holder
 arguments:

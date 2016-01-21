@@ -92,24 +92,31 @@ This is needed to install the GeoMesa JAR files in your local Maven
 repository. For more information see the `GeoMesa Accumulo Quick
 Start </geomesa-quickstart/>`__ tutorial.
 
-Clone the tutorial code as well:
+Clone the GeoMesa tutorials project:
 
 .. code:: bash
 
-    $ git clone https://github.com/geomesa/geomesa-tutorial-transformations.git
-    $ cd geomesa-tutorial-transformations
+    $ git clone https://github.com/geomesa/geomesa-tutorials.git
+
+The source code for this tutorial is in the ``geomesa-examples-transformations``
+directory:
+
+    $ cd geomesa-tutorials/geomesa-examples-transformations
 
 The Maven ``pom.xml`` file contains an explicit list of dependent
 libraries that will be bundled together into the final tutorial. You
 should confirm that the versions of Accumulo and Hadoop match what you
-are running; if it does not match, change the value in the POM. (NB: The
-only reason these libraries are bundled into the final JAR is that this
-is easier for most people to do this than it is to set the classpath
-when running the tutorial. If you would rather not bundle these
-dependencies, mark them as provided in the POM, and update your
-classpath as appropriate.)
+are running; if it does not match, change the value in the POM.
 
-From within the root of the cloned tutorial, run:
+.. note::
+
+    The only reason these libraries are bundled into the final JAR is that this
+    is easier for most people to do this than it is to set the classpath
+    when running the tutorial. If you would rather not bundle these
+    dependencies, mark them as provided in the POM, and update your
+    classpath as appropriate.
+
+From within this directory, run:
 
 .. code:: bash
 
@@ -131,8 +138,8 @@ On the command line, run:
 
 .. code:: bash
 
-    java -cp ./target/geomesa-tutorial-transformations-1.0-SNAPSHOT.jar \
-       geomesa.tutorial.QueryTutorial \
+    java -cp ./target/geomesa-examples-transformations-$VERSION.jar \
+       com.example.geomesa.transformations.QueryTutorial \
        -instanceId <instance> \
        -zookeepers <zoos> \
        -user <user> \
@@ -160,7 +167,7 @@ Looking Closer at the Code
 --------------------------
 
 The code for querying and projections is available in the class
-``geomesa.tutorial.QueryTutorial``. The source code is meant to be
+``QueryTutorial``. The source code is meant to be
 accessible, but here is a high-level breakdown of the relevant methods:
 
 -  ``basicQuery`` - executes a base filter without any further options.
@@ -184,9 +191,9 @@ Additional transformation functions are listed
 
 Additionally, there are two helper classes included in the tutorial:
 
--  ``geomesa.tutorial.GdeltFeature`` - Contains the properties
+-  ``GdeltFeature`` - Contains the properties
    (attributes) available in the GDELT data set.
--  ``geomesa.tutorial.SetupUtil`` - Handles reading command-line
+-  ``SetupUtil`` - Handles reading command-line
    arguments.
 
 Sample Code and Output
