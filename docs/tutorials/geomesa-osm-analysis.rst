@@ -52,20 +52,26 @@ data that contains only the location of an observation.
 Building the example code
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Clone the ``geomesa`` and ``geomesa-osm`` projects:
+Clone the ``geomesa`` and ``geomesa-tutorials`` projects:
 
 .. code-block:: bash
 
     $ git clone https://github.com/locationtech/geomesa.git
-    $ git clone https://github.com/geomesa/geomesa-osm.git
+    $ git clone https://github.com/geomesa/geomesa-tutorials.git
 
-Build the projects:
+Build GeoMesa, if you haven't already:
 
 .. code-block:: bash
 
     $ cd geomesa
     $ mvn clean install
-    $ cd ../geomesa-osm
+
+The source code for this tutorial is in the ``geomesa-quickstart-storm``
+directory of ``geomesa-tutorials``:
+
+.. code-block:: bash
+
+    $ cd ../geomesa-tutorials/geomesa-quickstart-storm
     $ mvn clean install
 
 DataStore initialization
@@ -95,13 +101,13 @@ Setting Up the Ingest Topology
 ------------------------------
 
 Use ``storm jar`` to submit the topology built
-(``geomesa-osm/target/geomesa-osm-1.0-SNAPSHOT.jar``) to your Storm
+(``geomesa-osm/target/geomesa-quickstart-storm-$VERSION.jar``) to your Storm
 Nimbus.
 
 .. code-block:: bash
 
-    $ storm jar geomesa-osm-1.0-SNAPSHOT.jar \
-       geomesa.osm.OSMIngest                         \
+    $ storm jar geomesa-quickstart-storm-$VERSION.jar \
+       com.example.geomesa.storm.OSMIngest                         \
        -instanceId <accumulo-instance-id>            \
        -zookeepers <zookeeper-hosts-string>          \
        -user <username> -password <password>         \
@@ -133,8 +139,8 @@ Create a Kafka producer to convert the ingest file into kafka messages.
 
 .. code-block:: bash
 
-    $ java -cp geomesa-osm-1.0-SNAPSHOT.jar     \
-       geomesa.osm.OSMIngestProducer   \
+    $ java -cp geomesa-quickstart-storm-$VERSION.jar     \
+       com.example.geomesa.storm.OSMIngestProducer   \
        -ingestFile simple-gps-points-120312.txt      \
        -topic OSM                      \
        -brokers <kafka broker list>    \

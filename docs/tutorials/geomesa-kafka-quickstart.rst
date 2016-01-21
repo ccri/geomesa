@@ -43,19 +43,25 @@ Ensure your Kafka and Zookeeper instances are running. You can use
 quickstart <http://kafka.apache.org/documentation.html#quickstart>`__ to
 get Kafka/Zookeeper instances up and running quickly.
 
-Navigate to the GeoMesa source directory and build the Kafka quickstart
-tutorial:
+The example code is found in the GeoMesa tutorials distribution, which may
+be cloned from GitHub:
 
 .. code-block:: bash
 
-    $ cd geomesa
-    $ mvn clean install -f geomesa-examples/geomesa-kafka-quickstart -DskipTests
+    $ git clone https://github.com/geomesa/geomesa-tutorials.git
+
+The Kafka QuickStart tutorial is in the ``geomesa-quickstart-kafka`` directory:
+
+.. code-block:: bash
+
+    $ cd geomesa-tutorials/geomesa-quickstart-kafka
+    $ mvn clean install -DskipTests=true
 
 After building, run the tutorial program, where $VERSION = |version|:
 
 .. code-block:: bash
 
-    java -cp ./geomesa-examples/geomesa-kafka-quickstart/target/geomesa-kafka-quickstart-$VERSION.jar org.locationtech.geomesa.examples.KafkaQuickStart -brokers "localhost:9092" -zookeepers "localhost:2181"
+    java -cp ./target/geomesa-quickstart-kafka-$VERSION.jar com.example.geomesa.kafka.KafkaQuickStart -brokers "localhost:9092" -zookeepers "localhost:2181"
 
 where you provide your own values for the following arguments:
 

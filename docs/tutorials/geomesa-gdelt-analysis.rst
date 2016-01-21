@@ -85,12 +85,17 @@ This is needed to install the GeoMesa JAR files in your local Maven
 repository. For more information see the `GeoMesa Accumulo Quick
 Start </geomesa-quickstart/>`__ tutorial.
 
-Clone the geomesa-gdelt tutorial project and build it:
+Clone the geomesa-tutorials project and build it:
 
 .. code-block:: bash
 
-    $ git clone https://github.com/geomesa/geomesa-gdelt.git
-    $ cd geomesa-gdelt
+    $ git clone https://github.com/geomesa/geomesa-tutorials.git
+
+The example code is in ``geomesa-examples-gdelt``:
+
+.. code-block:: bash
+
+    $ cd geomesa-tutorials/geomesa-examples-gdelt
     $ mvn clean install
 
 After building, the built JAR file bundled with all dependencies will be
@@ -103,8 +108,8 @@ Use ``hadoop jar`` to launch the Map/Reduce ingest job:
 
 .. code-block:: bash
 
-    $ hadoop jar geomesa-gdelt/target/geomesa-gdelt-1.0-SNAPSHOT.jar \
-       geomesa.gdelt.GDELTIngest                       \
+    $ hadoop jar ./target/geomesa-examples-$VERSION.jar \
+       com.example.geomesa.gdelt.GDELTIngest           \
        -instanceId <accumulo-instance-id>              \
        -zookeepers <zookeeper-hosts-string>            \
        -user <username> -password <password>           \

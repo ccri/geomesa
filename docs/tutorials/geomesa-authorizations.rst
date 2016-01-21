@@ -172,8 +172,8 @@ never ingested GDELT data, or you have previously ingested it
 Follow the instructions `here </geomesa-gdelt-analysis/>`__, with the
 following changes:
 
--  Ensure that you have the latest version of the GDELT tutorial code
-   from github
+-  Ensure that you have the latest version of the GeoMesa tutorial code
+   from GitHub.
 -  When executing the map/reduce job, include the following parameter:
 
 .. code-block:: bash
@@ -184,8 +184,8 @@ The entire command will be as follows:
 
 .. code-block:: bash
 
-    $ hadoop jar /path/to/geomesa-gdelt-1.0-SNAPSHOT.jar \
-       geomesa.gdelt.GDELTIngest                         \
+    $ hadoop jar /path/to/geomesa-examples-gdelt-$VERSION.jar \
+       com.example.geomesa.gdelt.GDELTIngest                         \
        -instanceId <accumulo-instance-id>                \
        -zookeepers <zookeeper-hosts-string>              \
        -user <username> -password <password>             \
@@ -245,19 +245,29 @@ Clone the tutorial code:
 
 .. code-block:: bash
 
-    $ git clone https://github.com/geomesa/geomesa-tutorial-authorizations.git
+    $ git clone https://github.com/geomesa/geomesa-tutorials.git
 
-The ``pom.xml`` file contains an explicit list of dependent libraries
+The authorizations tutorial is located in the ``geomesa-examples-authorizations``
+directory:
+
+.. code-block:: bash
+
+    $ cd com.example.geomesa.authorizations./geomesa-examples-authorizations
+
+The ``pom.xml`` file here contains an explicit list of dependent libraries
 that will be bundled together into the final tutorial. You should
 confirm that the versions of Accumulo and Hadoop match what you are
-running; if it does not match, change the value in the POM. (NB: The
-only reason these libraries are bundled into the final JAR is that this
-is easier for most people to do this than it is to set the classpath
-when running the tutorial. If you would rather not bundle these
-dependencies, mark them as provided in the POM, and update your
-classpath as appropriate.)
+running; if it does not match, change the value in the POM.
 
-From within the root of the cloned tutorial, run:
+.. note::
+
+    The only reason these libraries are bundled into the final JAR is that this
+    is easier for most people to do this than it is to set the classpath
+    when running the tutorial. If you would rather not bundle these
+    dependencies, mark them as provided in the POM, and update your
+    classpath as appropriate.
+
+From within this directory, run:
 
 .. code-block:: bash
 
@@ -273,8 +283,8 @@ On the command-line, run:
 
 .. code-block:: bash
 
-    $ java -cp ./target/geomesa-tutorial-authorizations-1.0-SNAPSHOT.jar \
-       geomesa.tutorial.AuthorizationsTutorial \
+    $ java -cp ./target/geomesa-examples-authorizations-1.0-SNAPSHOT.jar \
+       com.example.geomesa.authorizations.AuthorizationsTutorial \
        -instanceId <instance> \
        -zookeepers <zoos> \
        -user <user> \
@@ -317,7 +327,7 @@ Looking Closer at the Code
 --------------------------
 
 The code for querying with authorizations is available in the class
-``geomesa.tutorial.AuthorizationsTutorial``.
+``AuthorizationsTutorial``.
 
 The interesting code for this tutorial is contained in the ``main``
 method:
@@ -344,7 +354,7 @@ when no other implementations are found. The
 
 .. code-block:: java
 
-    geomesa.tutorial.EmptyAuthorizationsProvider
+    com.example.geomesa.authorizations.EmptyAuthorizationsProvider
 
 The ``EmptyAuthorizationsProvider`` will always return an empty
 ``Authorizations`` object, which means that any data stored with
@@ -355,21 +365,21 @@ will be explored in more detail in the next section:
 
 .. code-block:: java
 
-    geomesa.tutorial.LdapAuthorizationsProvider
-    geomesa.tutorial.LdapAuthorizationsProviderTest
+    com.example.geomesa.authorizations.LdapAuthorizationsProvider
+    com.example.geomesa.authorizations.LdapAuthorizationsProviderTest
 
 There is a class that shows how to query GeoServer through WFS that will
 be explored in more detail later in the tutorial:
 
 .. code-block:: java
 
-    geomesa.tutorial.GeoServerAuthorizationsTutorial
+    com.example.geomesa.authorizations.GeoServerAuthorizationsTutorial
 
 Additionally, there are two helper classes included in the tutorial:
 
--  ``geomesa.tutorial.GdeltFeature`` - Contains the attributes available
+-  ``com.example.geomesa.authorizations.GdeltFeature`` - Contains the attributes available
    in the GDELT data set.
--  ``geomesa.tutorial.SetupUtil`` - Handles reading command-line
+-  ``com.example.geomesa.authorizations.SetupUtil`` - Handles reading command-line
    arguments
 
 Applying Authorizations and Visibilities to GeoServer Using PKIs And LDAP
@@ -571,7 +581,7 @@ Test LDAP Connection Using Tutorial Code
 
 The tutorial code includes an ``AuthorizationsProvider`` implementation
 that will connect to LDAP to retrieve authorizations, in the class
-``geomesa.tutorial.LdapAuthorizationsProvider``.
+``com.example.geomesa.authorizations.LdapAuthorizationsProvider``.
 
 The provider will configure itself based on the
 ``geomesa-ldap.properties`` file on the classpath (under
@@ -610,15 +620,15 @@ are using different authorizations, you will need to update the
 attribute to match.
 
 The tutorial code includes a test case for connecting to LDAP, in the
-class ``geomesa.tutorial.LdapAuthorizationsProviderTest``.
+class ``com.example.geomesa.authorizations.LdapAuthorizationsProviderTest``.
 
 Once you have modified ``geomesa-ldap.properties`` to connect to your
 LDAP, you can test the connection by running this test class:
 
 .. code-block:: bash
 
-    $ java -cp ./target/geomesa-tutorial-authorizations-1.0-SNAPSHOT.jar \
-       geomesa.tutorial.LdapAuthorizationsProviderTest rod
+    $ java -cp ./target/geomesa-examples-authorizations-$VERSION.jar \
+       com.example.geomesa.authorizations.LdapAuthorizationsProviderTest rod
 
 The argument to the program ('rod') is the user to retrieve
 authorizations for. You should get the following output:
@@ -644,7 +654,7 @@ specified as the ``EmptyAuthorizationsProvider``.
 
 2. Change the provider class in
    ``src/main/resources/META-INF/services/geomesa.core.security.AuthorizationsProvider``
-   to be ``geomesa.tutorial.LdapAuthorizationsProvider``.
+   to be ``com.example.geomesa.authorizations.LdapAuthorizationsProvider``.
 
 3. Rebuild the tutorial JAR and install the unshaded original jar in
    GeoServer:
@@ -652,7 +662,7 @@ specified as the ``EmptyAuthorizationsProvider``.
 .. code-block:: bash
 
     $ mvn clean install
-    $ cp ./target/original-geomesa-tutorial-authorizations-1.0-SNAPSHOT.jar \
+    $ cp ./target/original-geomesa-examples-authorizations-$VERSION.jar \
        /path/to/tomcat/webapps/geoserver/WEB-INF/lib/
 
 .. note::
@@ -712,14 +722,14 @@ Go back to the tutorial folder, and execute the following command:
 
 .. code-block:: bash
 
-    $ java -cp ./target/geomesa-tutorial-authorizations-1.0-SNAPSHOT.jar \
+    $ java -cp ./target/geomesa-examples-authorizations-1.0-SNAPSHOT.jar \
        -Djavax.net.ssl.keyStore=/path/to/certs/rod.p12 \
        -Djavax.net.ssl.keyStorePassword=password \
        -Djavax.net.ssl.keyStoreType=PKCS12 \
        -Djavax.net.ssl.trustStore=/path/to/certs/server.jks \
        -Djavax.net.ssl.trustStorePassword=password \
        -Djavax.net.ssl.trustStoreType=JKS
-       geomesa.tutorial.GeoServerAuthorizationsTutorial \
+       com.example.geomesa.authorizations.GeoServerAuthorizationsTutorial \
        -geoserverUrl <url> \
        -featureStore <featureStore> \
 
@@ -773,7 +783,7 @@ Looking Closer at the Code
 --------------------------
 
 The code for querying through WFS is available in the class
-``geomesa.tutorial.GeoServerAuthorizationsTutorial``. The interesting
+``com.example.geomesa.authorizations.GeoServerAuthorizationsTutorial``. The interesting
 code for this tutorial is contained in the ``main`` method:
 
 .. code-block:: java
