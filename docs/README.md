@@ -18,8 +18,6 @@ Alternatively use ``sudo`` with the ``pip`` command to install the packages in t
     $ sudo pip install sphinx
     $ sudo pip install recommonmark
 
-You will also need ``ant``.
-
 Optional:  if you want to build the PDF version of the manual, install LaTeX:
 
     # on Ubuntu
@@ -32,19 +30,16 @@ You will also need ``make``.
 
 To build HTML versions of the manuals:
 
-    $ ant html
+    $ mvn clean install
 
-The outputted files are written to the ``_build`` directory. 
+If you do not have Sphinx installed the manual will not be built.
+The outputted files are written to the ``target/html`` directory. 
 
 To build PDF versions:
 
-    $ ant user-latex
-    $ cd _build/latex/user
+    $ mvn clean install -Puser-latex
+    $ cd target/latex/user
     $ make
-
-To clean up (delete the ``_build`` directory):
-
-    $ ant clean 
 
 ## About
 
