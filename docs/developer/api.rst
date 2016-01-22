@@ -347,3 +347,8 @@ For example:
 
 The ``KafkaDataStoreLogViewer`` loads the ``SimpleFeatureType`` from
 Zookeeper so it does not need to be passed via the command line.
+
+Test link 1: `Testing 123 <http://geotools.ogre>`_ 
+
+test link 2: :doc:`dummy_bad_link`
+|geotools_version| `DataStore <http://docs.geotools.org/latest/userguide/library/api/datastore.html>`_ class, each of which uses a different backing store. These include ``DataStore``\ s that use Accumulo or Kafka.
