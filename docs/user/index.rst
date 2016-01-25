@@ -12,4 +12,3 @@ GeoMesa |release| User Manual
    commandline_tools
    geoserver
    examples
-

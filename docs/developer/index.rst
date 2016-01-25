@@ -10,3 +10,4 @@ GeoMesa |release| Developer Manual
    api
    analysis
    modules
+
