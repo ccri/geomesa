@@ -27,7 +27,7 @@ Versions and Downloads
 
 .. note::
 
-    The current recommended version is |release|.
+    The current recommended version of GeoMesa to install is |release|.
 
 **Latest release**: |release|
 
@@ -73,14 +73,13 @@ Building from Source
 --------------------
 
 GeoMesa may also be built from source. For more information refer to the
-**GeoMesa Developer Manual**, or to the ``README.md`` file in the the
+:doc:`../developer/index` or to the ``README.md`` file in the the
 source distribution. The remainder of the instructions in this chapter assume
 the use of the binary GeoMesa distribution. If you have built from source, the
 distribution is created in the ``geomesa-dist/target`` directory as a part of
 the build process.
 
-More information about developing with GeoMesa may be found in the 
-**GeoMesa Developer Manual**. 
+More information about developing with GeoMesa may be found in the :doc:`../developer/index`.
 
 .. _setting_up_commandline:
 
@@ -88,7 +87,7 @@ Setting up the Command Line Tools
 ---------------------------------
 
 GeoMesa comes with a set of command line tools for managing features. To complete the setup 
-of the tools, cd into the ``dist/tools`` directory of the binary distribution and unpack the
+of the tools, `cd` into the ``dist/tools`` directory of the binary distribution and unpack the
 ``geomesa-tools-$VERSION-bin.tar.gz`` file (``$VERSION`` = |release|).
 
 .. code-block:: bash
@@ -130,8 +129,7 @@ Update and re-source your ``~/.bashrc`` file to include the ``$GEOMESA_HOME`` an
     directory, not the main geomesa binary distribution directory!
 
 Due to licensing restrictions, dependencies for shape file support and raster 
-ingest must be separately installed. These may be installed by invoking the
-following commands: 
+ingest must be separately installed. Do this with the following commands: 
 
 .. code-block:: bash
 
@@ -146,7 +144,7 @@ data specific to your setup and running it:
 
     $ bin/test-geomesa
 
-Test the GeoMesa Tools:
+Test the command that invokes the GeoMesa Tools:
 
 .. code-block:: bash
 
@@ -186,7 +184,7 @@ Note that if no slf4j implementation is installed you will see this error:
 
 In this case you may download SLF4J from http://www.slf4j.org/download.html. Extract 
 ``slf4j-log4j12-1.7.7.jar`` and place it in the ``lib`` directory of the binary distribution. 
-If this conflicts with another SLF4J implementation, it may need to be removed from the lib directory.
+If this conflicts with another SLF4J implementation, you may need to remove it from the ``lib`` directory.
 
 
 Installing the Accumulo distributed runtime library
