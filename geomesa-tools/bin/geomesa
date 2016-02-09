@@ -171,7 +171,7 @@ GEOMESA_CP="${GEOMESA_CP}:${ACCUMULO_CONF_DIR}:${HADOOP_CONF_DIR}"
 ACCUMULO_CP="$(findJars $ACCUMULO_LIB)"
 
 #Get the hadoop jars, ignoring jars with names containing slf4j and test
-hadoopDirs=("$HADOOP_LIB" "$HADOOP_COMMON" "$HADOOP_MAPREDUCE" "$HADOOP_YARN" "$HADOOP_HDFS")
+hadoopDirs=("$HADOOP_LIB" "$HADOOP_COMMON_HOME" "$HADOOP_COMMON" "$HADOOP_MAPREDUCE" "$HADOOP_YARN" "$HADOOP_HDFS")
 for home in ${hadoopDirs[*]}; do
   tmp="$(findJars $home true)"
   if [ -n "$tmp" ]; then
