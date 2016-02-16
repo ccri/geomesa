@@ -22,6 +22,14 @@ import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
 
+object DynamoDBDataStore {
+  val keySchema =
+    List(
+      new KeySchemaElement().withAttributeName("id").withKeyType(KeyType.HASH),
+      new KeySchemaElement().withAttributeName("z3").withKeyType(KeyType.RANGE)
+    )
+}
+
 class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentDataStore {
 
   private val CATALOG_TABLE = catalog
@@ -45,6 +53,7 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
 
   override def createSchema(featureType: SimpleFeatureType): Unit = {
     import java.{lang => jl}
+    import DynamoDBDataStore._
     val name = featureType.getTypeName
 
     val attrDefs =
@@ -77,12 +86,6 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
         }
       }
 
-    val keySchema =
-      List(
-        new KeySchemaElement().withAttributeName("id").withKeyType(KeyType.HASH),
-        new KeySchemaElement().withAttributeName("z3").withKeyType(KeyType.RANGE)
-      )
-
     val tableDesc =
       new CreateTableRequest()
         .withTableName(s"${catalog}_${name}_z3")
@@ -109,7 +112,7 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
     val sft =
       Option(entry.getState(Transaction.AUTO_COMMIT).getFeatureType).getOrElse { getSchema(entry) }
     val table = dynamoDB.getTable(s"${catalog}_${sft.getTypeName}_z3")
-    new DynamoDBFeatureSource(entry, sft, table)
+    new DynamoDBFeatureStore(entry, sft, table)
   }
 
   def getSchema(entry: ContentEntry) = {
