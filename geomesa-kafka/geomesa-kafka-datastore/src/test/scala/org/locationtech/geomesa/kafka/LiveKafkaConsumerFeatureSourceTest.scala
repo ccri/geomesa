@@ -8,9 +8,13 @@
 
 package org.locationtech.geomesa.kafka
 
+import java.util.concurrent.atomic.AtomicBoolean
+
+import com.google.common.util.concurrent.AtomicLongMap
 import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.Coordinate
 import org.geotools.data._
+import org.geotools.filter.identity.FeatureIdImpl
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
@@ -101,6 +105,47 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
         val features = consumerFC.getFeatures(bbox).features()
         features.hasNext must beFalse
       }
+    }
+
+    "support listeners" >> {
+      val m = AtomicLongMap.create[String]()
+
+      val id = {
+        val sft = {
+          val sft = SimpleFeatureTypes.createType("listeners", "name:String,age:Int,dtg:Date,*geom:Point:srid=4326")
+          KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
+        }
+        val producerDS = DataStoreFinder.getDataStore(producerParams)
+        producerDS.createSchema(sft)
+
+        val listenerConsumerDS = DataStoreFinder.getDataStore(consumerParams)
+        val consumerFC = listenerConsumerDS.getFeatureSource("listeners")
+
+        val processed = new AtomicBoolean(false)
+        consumerFC.addFeatureListener(new FeatureListener {
+          override def changed(featureEvent: FeatureEvent): Unit = {
+            val f = featureEvent.asInstanceOf[KafkaFeatureEvent].feature
+            logger.info(s"Got feature ${f.getID}")
+            m.incrementAndGet(f.getID)
+            processed.set(true)
+          }
+        })
+
+        val fw = producerDS.getFeatureWriter("listeners", null, Transaction.AUTO_COMMIT)
+        val sf = fw.next()
+        sf.getIdentifier.asInstanceOf[FeatureIdImpl].setID("testlistener")
+        sf.setAttributes(Array("smith", 30, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
+        sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
+        fw.write()
+
+        logger.info("Wrote feature")
+        while(!processed.get()) Thread.sleep(100)
+
+        "testlistener"
+      }
+
+      logger.info("getting id")
+      m.get(id) must be equalTo 1
     }
   }
 

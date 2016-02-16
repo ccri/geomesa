@@ -121,17 +121,18 @@ class LiveKafkaConsumerFeatureSource(entry: ContentEntry,
     }, 0, 1, TimeUnit.SECONDS)
   }
 
-  override def run(): Unit = while (running.get) {
-    queue.take() match {
-      case update: CreateOrUpdate =>
-        featureCache.createOrUpdateFeature(update)
-        contentState.fireFeatureEvent(new KafkaFeatureEvent(this, Type.CHANGED, null, update.feature))
-      case del: Delete            => featureCache.removeFeature(del)
-        contentState.fireFeatureEvent(new FeatureEvent(this, Type.REMOVED, null, buildId(del.id)))
-      case clr: Clear             => featureCache.clear()
-      case m                      => throw new IllegalArgumentException(s"Unknown message: $m")
+  override def run(): Unit =
+    while (running.get) {
+      queue.take() match {
+        case update: CreateOrUpdate =>
+          featureCache.createOrUpdateFeature(update)
+          contentState.fireFeatureEvent(new KafkaFeatureEvent(this, Type.CHANGED, null, update.feature))
+        case del: Delete            => featureCache.removeFeature(del)
+          contentState.fireFeatureEvent(new FeatureEvent(this, Type.REMOVED, null, buildId(del.id)))
+        case clr: Clear             => featureCache.clear()
+        case m                      => throw new IllegalArgumentException(s"Unknown message: $m")
+      }
     }
-  }
 
   // optimized for filter.include
   override def getCountInternal(query: Query): Int = featureCache.size(query.getFilter)
