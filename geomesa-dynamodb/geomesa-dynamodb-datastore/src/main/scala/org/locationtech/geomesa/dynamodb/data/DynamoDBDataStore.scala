@@ -28,32 +28,31 @@ object DynamoDBDataStore {
       new KeySchemaElement().withAttributeName("id").withKeyType(KeyType.HASH),
       new KeySchemaElement().withAttributeName("z3").withKeyType(KeyType.RANGE)
     )
+
+  val attributeDescriptions = Lists.newArrayList(
+    new AttributeDefinition("id", ScalarAttributeType.S),
+    new AttributeDefinition("z3", ScalarAttributeType.N)
+  )
+
+  def makeTableName(catalog: String, name: String): String = s"${catalog}_${name}_z3"
+
 }
 
 class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentDataStore {
+  import DynamoDBDataStore._
 
   private val CATALOG_TABLE = catalog
   private val catalogTable = getOrCreateCatalogTable(dynamoDB, CATALOG_TABLE)
 
-  private def getOrCreateCatalogTable(dynamoDB: DynamoDB, table: String) = {
-    val tables = dynamoDB.listTables().iterator().toList
-    val ret = tables
-      .find(_.getTableName == table)
-      .getOrElse(
-        dynamoDB.createTable(
-          table,
-          util.Arrays.asList(new KeySchemaElement("feature", KeyType.HASH)),
-          util.Arrays.asList(new AttributeDefinition("feature", ScalarAttributeType.S)),
-          new ProvisionedThroughput()
-            .withReadCapacityUnits(5L)
-            .withWriteCapacityUnits(6L)))
-    ret.waitForActive()
-    ret
+  override def createFeatureSource(entry: ContentEntry): ContentFeatureSource = {
+    val sft =
+      Option(entry.getState(Transaction.AUTO_COMMIT).getFeatureType).getOrElse { getSchema(entry) }
+    val table = dynamoDB.getTable(makeTableName(catalog, sft.getTypeName))
+    new DynamoDBFeatureStore(entry, sft, table)
   }
 
   override def createSchema(featureType: SimpleFeatureType): Unit = {
     import java.{lang => jl}
-    import DynamoDBDataStore._
     val name = featureType.getTypeName
 
     val attrDefs =
@@ -88,41 +87,51 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
 
     val tableDesc =
       new CreateTableRequest()
-        .withTableName(s"${catalog}_${name}_z3")
+        .withTableName(makeTableName(catalog, name))
         .withKeySchema(keySchema)
-        .withAttributeDefinitions(
-          Lists.newArrayList(
-            new AttributeDefinition("id", ScalarAttributeType.S),
-            new AttributeDefinition("z3", ScalarAttributeType.N)
-          )
-        )
+        .withAttributeDefinitions(attributeDescriptions)
         .withProvisionedThroughput(new ProvisionedThroughput(5L, 6L))
 
     // create the z3 index
     val res = dynamoDB.createTable(tableDesc)
 
     // write the meta-data
-    val metaEntry = new Item().withPrimaryKey("feature", name).withString("sft", SimpleFeatureTypes.encodeType(featureType))
+    val metaEntry = createDDMMetaDataItem(name, featureType)
     catalogTable.putItem(metaEntry)
 
     res.waitForActive()
   }
 
-  override def createFeatureSource(entry: ContentEntry): ContentFeatureSource = {
-    val sft =
-      Option(entry.getState(Transaction.AUTO_COMMIT).getFeatureType).getOrElse { getSchema(entry) }
-    val table = dynamoDB.getTable(s"${catalog}_${sft.getTypeName}_z3")
-    new DynamoDBFeatureStore(entry, sft, table)
+  override def createTypeNames(): util.List[Name] = {
+    // read types from catalog
+    catalogTable.scan().iterator().map { i => new NameImpl(i.getString("feature")) }.toList
   }
+
+  override def dispose(): Unit = ???
 
   def getSchema(entry: ContentEntry) = {
     val item = catalogTable.getItem("feature", entry.getTypeName)
     SimpleFeatureTypes.createType(entry.getTypeName, item.getString("sft"))
   }
 
-  override def createTypeNames(): util.List[Name] = {
-    // read types from catalog
-    catalogTable.scan().iterator().map { i => new NameImpl(i.getString("feature")) }.toList
+  private def getOrCreateCatalogTable(dynamoDB: DynamoDB, table: String) = {
+    val tables = dynamoDB.listTables().iterator().toList
+    val ret = tables
+      .find(_.getTableName == table)
+      .getOrElse(
+        dynamoDB.createTable(
+          table,
+          util.Arrays.asList(new KeySchemaElement("feature", KeyType.HASH)),
+          util.Arrays.asList(new AttributeDefinition("feature", ScalarAttributeType.S)),
+          new ProvisionedThroughput()
+            .withReadCapacityUnits(5L)
+            .withWriteCapacityUnits(6L)))
+    ret.waitForActive()
+    ret
+  }
+
+  private def createDDMMetaDataItem(name: String, featureType: SimpleFeatureType): Item = {
+    new Item().withPrimaryKey("feature", name).withString("sft", SimpleFeatureTypes.encodeType(featureType))
   }
 
 }

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.dynamodb.data
 
-import java.util.Date
+import java.util.{UUID, Date}
 
 import com.amazonaws.services.dynamodbv2.document.{KeyAttribute, Item, Table}
 import com.vividsolutions.jts.geom.Geometry
@@ -23,7 +23,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import scala.collection.JavaConversions._
 
 class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends SimpleFeatureWriter {
-  private val SFC = new Z3SFC
+  private val SFC3D = new Z3SFC
   private var curFeature: SimpleFeature = null
   private val dtgIndex =
     sft.getAttributeDescriptors
@@ -35,7 +35,7 @@ class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends Simple
   private val encoder = new KryoFeatureSerializer(sft)
 
   override def next(): SimpleFeature = {
-    curFeature = new ScalaSimpleFeature("", sft)
+    curFeature = new ScalaSimpleFeature(UUID.randomUUID().toString, sft)
     curFeature
   }
 
@@ -45,9 +45,9 @@ class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends Simple
 
   val EPOCH = new DateTime(0)
 
-  def epochWeeks(dtg: DateTime) = Weeks.weeksBetween(EPOCH, new DateTime(dtg))
+  def epochWeeks(dtg: DateTime): Weeks = Weeks.weeksBetween(EPOCH, new DateTime(dtg))
 
-  def secondsInCurrentWeek(dtg: DateTime, weeks: Weeks) =
+  def secondsInCurrentWeek(dtg: DateTime, weeks: Weeks): Int =
     Seconds.secondsBetween(EPOCH, dtg).getSeconds - weeks.toStandardSeconds.getSeconds
 
   override def write(): Unit = {
@@ -61,7 +61,7 @@ class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends Simple
     val weeks = epochWeeks(dtg)
 
     val secondsInWeek = secondsInCurrentWeek(dtg, weeks)
-    val z3 = SFC.index(x, y, secondsInWeek)
+    val z3 = SFC3D.index(x, y, secondsInWeek)
 
     val id = curFeature.getID
     val item = new Item().withKeyComponents(new KeyAttribute("id", id), new KeyAttribute("z3", z3.z))
