@@ -126,15 +126,10 @@ class LiveKafkaConsumerFeatureSource(entry: ContentEntry,
     queue.take() match {
       case update: CreateOrUpdate =>
         featureCache.createOrUpdateFeature(update)
-        println(s"Firing createOrUpdate for ${update.feature.getID}.")
-        //contentState.fireFeatureUpdated(this, update.feature, null)
-        contentState.fireFeatureEvent(new FeatureEvent(this, Type.CHANGED, null, buildId(update.feature.getID)))
+        contentState.fireFeatureEvent(new KafkaFeatureEvent(this, Type.CHANGED, null, update.feature))
       case del: Delete            => featureCache.removeFeature(del)
-        // Delete is funky.
-        println(s"Firing delete message to listeners for FID: ${del.id}.")
         contentState.fireFeatureEvent(new FeatureEvent(this, Type.REMOVED, null, buildId(del.id)))
       case clr: Clear             => featureCache.clear()
-        println("Clear called...")
       case m                      => throw new IllegalArgumentException(s"Unknown message: $m")
     }
   }
