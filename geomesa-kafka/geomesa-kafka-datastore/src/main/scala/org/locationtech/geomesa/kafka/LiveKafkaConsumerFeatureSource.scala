@@ -8,20 +8,26 @@
 
 package org.locationtech.geomesa.kafka
 
+import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ScheduledThreadPoolExecutor, Executors, LinkedBlockingQueue, TimeUnit}
 
 import com.google.common.base.Ticker
 import com.google.common.cache._
 import com.typesafe.scalalogging.LazyLogging
-import org.geotools.data.Query
+import org.geotools.data.FeatureEvent.Type
+import org.geotools.data.{FeatureEvent, Query}
 import org.geotools.data.store.ContentEntry
+import org.geotools.factory.CommonFactoryFinder
+import org.geotools.filter.identity.FeatureIdImpl
+import org.geotools.geometry.jts.ReferencedEnvelope
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumerFactory
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.FR
 import org.locationtech.geomesa.utils.index.{BucketIndex, SpatialIndex}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
+import org.opengis.filter.identity.FeatureId
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -37,6 +43,8 @@ class LiveKafkaConsumerFeatureSource(entry: ContentEntry,
   extends KafkaConsumerFeatureSource(entry, sft, query) with Runnable with LazyLogging {
 
   private[kafka] val featureCache = new LiveFeatureCache(sft, expirationPeriod)
+
+  private val contentState = entry.getState(getTransaction)
 
   private val msgDecoder = new KafkaGeoMessageDecoder(sft)
   private val queue = new LinkedBlockingQueue[GeoMessage]()
@@ -116,9 +124,17 @@ class LiveKafkaConsumerFeatureSource(entry: ContentEntry,
 
   override def run(): Unit = while (running.get) {
     queue.take() match {
-      case update: CreateOrUpdate => featureCache.createOrUpdateFeature(update)
+      case update: CreateOrUpdate =>
+        featureCache.createOrUpdateFeature(update)
+        println(s"Firing createOrUpdate for ${update.feature.getID}.")
+        //contentState.fireFeatureUpdated(this, update.feature, null)
+        contentState.fireFeatureEvent(new FeatureEvent(this, Type.CHANGED, null, buildId(update.feature.getID)))
       case del: Delete            => featureCache.removeFeature(del)
+        // Delete is funky.
+        println(s"Firing delete message to listeners for FID: ${del.id}.")
+        contentState.fireFeatureEvent(new FeatureEvent(this, Type.REMOVED, null, buildId(del.id)))
       case clr: Clear             => featureCache.clear()
+        println("Clear called...")
       case m                      => throw new IllegalArgumentException(s"Unknown message: $m")
     }
   }
@@ -127,6 +143,38 @@ class LiveKafkaConsumerFeatureSource(entry: ContentEntry,
   override def getCountInternal(query: Query): Int = featureCache.size(query.getFilter)
 
   override def getReaderForFilter(f: Filter): FR = featureCache.getReaderForFilter(f)
+
+
+  def buildId(id: String): Filter = {
+    val ff = entry.getDataStore.getFilterFactory
+    val fid = new FeatureIdImpl(id)
+    val set = new util.HashSet[FeatureId]
+    set.add(fid)
+
+    ff.id(set)
+  }
+
+}
+
+import KafkaFeatureEvent._
+
+// A bit hacky since FeatureEvent is not an interface.
+class KafkaFeatureEvent(source: AnyRef,
+                        eventType: FeatureEvent.Type,
+                        bounds: ReferencedEnvelope,
+                        val feature: SimpleFeature) extends FeatureEvent(source, eventType, bounds, buildId(feature.getID)) {
+
+}
+
+object KafkaFeatureEvent {
+  def buildId(id: String): Filter = {
+    val ff = CommonFactoryFinder.getFilterFactory2
+    val fid = new FeatureIdImpl(id)
+    val set = new util.HashSet[FeatureId]
+    set.add(fid)
+
+    ff.id(set)
+  }
 }
 
 /** @param sft the [[SimpleFeatureType]]
