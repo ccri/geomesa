@@ -9,16 +9,23 @@
 package org.locationtech.geomesa.dynamodb.data
 
 import com.amazonaws.services.dynamodbv2.document.Table
+import com.amazonaws.services.dynamodbv2.document.spec.ScanSpec
 import org.geotools.data.store.{ContentEntry, ContentState}
 import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.utils.text.ObjectPoolFactory
 import org.opengis.feature.simple.SimpleFeatureType
 
 class DynamoDBContentState(entry: ContentEntry, catalog: Table) extends ContentState(entry) {
 
   val sft: SimpleFeatureType = DynamoDBDataStore.getSchema(entry, catalog)
+  val table: Table = catalog
   val builderPool = ObjectPoolFactory(getBuilder, 10)
-  
+
+  val serializer = new KryoFeatureSerializer(sft)
+
+  val ALL_QUERY = new ScanSpec
+
   private def getBuilder = {
     val builder = new SimpleFeatureBuilder(sft)
     builder.setValidating(java.lang.Boolean.FALSE)

@@ -22,7 +22,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 
-class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends SimpleFeatureWriter {
+trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
   private val SFC3D = new Z3SFC
   private var curFeature: SimpleFeature = null
   private val dtgIndex =
@@ -33,6 +33,9 @@ class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends Simple
       .getOrElse(throw new RuntimeException("No date attribute"))
 
   private val encoder = new KryoFeatureSerializer(sft)
+
+  def sft: SimpleFeatureType
+  def table: Table
 
   override def next(): SimpleFeature = {
     curFeature = new ScalaSimpleFeature(UUID.randomUUID().toString, sft)
@@ -95,4 +98,12 @@ class DynamoDBFeatureWriter(sft: SimpleFeatureType, table: Table) extends Simple
 
   override def close(): Unit = {}
 
+}
+
+class DynamoDBAppendingFeatureWriter(val sft: SimpleFeatureType, val table: Table) extends DynamoDBFeatureWriter {
+  override def hasNext: Boolean = false
+}
+
+class DynamoDBUpdatingFeatureWriter(val sft: SimpleFeatureType, val table: Table) extends DynamoDBFeatureWriter {
+  override def hasNext: Boolean = false
 }
