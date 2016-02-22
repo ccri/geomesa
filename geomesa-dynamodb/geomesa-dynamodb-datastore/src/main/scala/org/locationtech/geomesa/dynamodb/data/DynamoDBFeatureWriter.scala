@@ -8,34 +8,55 @@
 
 package org.locationtech.geomesa.dynamodb.data
 
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 
-import com.amazonaws.services.dynamodbv2.document.{KeyAttribute, Item, Table}
+import com.amazonaws.services.dynamodbv2.document.{Item, KeyAttribute, Table}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.simple.SimpleFeatureWriter
-import org.joda.time.{Seconds, Weeks, DateTime}
+import org.joda.time.{DateTime, Seconds, Weeks}
 import org.locationtech.geomesa.curve.Z3SFC
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.utils.text.WKBUtils
+import org.locationtech.sfcurve.zorder.ZCurve2D
+import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 
 trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
-  private val SFC3D = new Z3SFC
+  import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType._
+  def sft: SimpleFeatureType
+  def table: Table
+
   private var curFeature: SimpleFeature = null
-  private val dtgIndex =
-    sft.getAttributeDescriptors
-      .zipWithIndex
-      .find { case (ad, idx) => classOf[java.util.Date].equals(ad.getType.getBinding) }
-      .map  { case (_, idx)  => idx }
-      .getOrElse(throw new RuntimeException("No date attribute"))
+
+  val dtgIndex = sft.getDtgIndex.get
 
   private val encoder = new KryoFeatureSerializer(sft)
 
-  def sft: SimpleFeatureType
-  def table: Table
+  private def serialize(item: Item, attr: AnyRef, desc: AttributeDescriptor) = {
+    import java.{lang => jl}
+    desc.getType.getBinding match {
+      case c if c.equals(classOf[jl.Boolean]) =>
+        item.withBoolean(desc.getLocalName, attr.asInstanceOf[jl.Boolean])
+
+      case c if c.equals(classOf[jl.Integer]) =>
+        item.withInt(desc.getLocalName, attr.asInstanceOf[jl.Integer])
+
+      case c if c.equals(classOf[jl.Double]) =>
+        item.withDouble(desc.getLocalName, attr.asInstanceOf[jl.Double])
+
+      case c if c.equals(classOf[String]) =>
+        item.withString(desc.getLocalName, attr.asInstanceOf[String])
+
+      case c if c.equals(classOf[java.util.Date]) =>
+        item.withLong(desc.getLocalName, attr.asInstanceOf[java.util.Date].getTime)
+
+      case c if classOf[com.vividsolutions.jts.geom.Geometry].isAssignableFrom(c) =>
+        item.withBinary(desc.getLocalName, WKBUtils.write(attr.asInstanceOf[Geometry]))
+    }
+  }
 
   override def next(): SimpleFeature = {
     curFeature = new ScalaSimpleFeature(UUID.randomUUID().toString, sft)
@@ -46,48 +67,23 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
 
   override def hasNext: Boolean = true
 
-  val EPOCH = new DateTime(0)
-
-  def epochWeeks(dtg: DateTime): Weeks = Weeks.weeksBetween(EPOCH, new DateTime(dtg))
-
-  def secondsInCurrentWeek(dtg: DateTime, weeks: Weeks): Int =
-    Seconds.secondsBetween(EPOCH, dtg).getSeconds - weeks.toStandardSeconds.getSeconds
-
   override def write(): Unit = {
     import org.locationtech.geomesa.utils.geotools.Conversions._
 
     // write
-    val geom = curFeature.point
+    // TODO: is getting the centroid here smart?
+    val geom = curFeature.geometry.getCentroid
     val x = geom.getX
     val y = geom.getY
     val dtg = new DateTime(curFeature.getAttribute(dtgIndex).asInstanceOf[Date])
-    val weeks = epochWeeks(dtg)
 
-    val secondsInWeek = secondsInCurrentWeek(dtg, weeks)
-    val z3 = SFC3D.index(x, y, secondsInWeek)
+    val secondsInWeek = DynamoDBPrimaryKey.secondsInCurrentWeek(dtg)
+    val z3 = DynamoDBPrimaryKey.SFC3D.index(x, y, secondsInWeek)
 
     val id = curFeature.getID
     val item = new Item().withKeyComponents(new KeyAttribute("id", id), new KeyAttribute("z3", z3.z))
 
-    curFeature.getAttributes.zip(sft.getAttributeDescriptors).foreach { case (attr, desc) =>
-      import java.{lang => jl}
-      desc.getType.getBinding match {
-        case c if c.equals(classOf[String]) =>
-          item.withString(desc.getLocalName, attr.asInstanceOf[String])
-
-        case c if c.equals(classOf[jl.Integer]) =>
-          item.withInt(desc.getLocalName, attr.asInstanceOf[jl.Integer])
-
-        case c if c.equals(classOf[jl.Double]) =>
-          item.withDouble(desc.getLocalName, attr.asInstanceOf[jl.Double])
-
-        case c if c.equals(classOf[java.util.Date]) =>
-          item.withLong(desc.getLocalName, attr.asInstanceOf[java.util.Date].getTime)
-
-        case c if classOf[com.vividsolutions.jts.geom.Geometry].isAssignableFrom(c) =>
-          item.withBinary(desc.getLocalName, WKBUtils.write(attr.asInstanceOf[Geometry]))
-      }
-    }
+    curFeature.getAttributes.zip(sft.getAttributeDescriptors).foreach { case (attr, desc) => serialize(item, attr, desc)}
 
     item.withBinary("ser", encoder.serialize(curFeature))
     table.putItem(item)
@@ -106,4 +102,36 @@ class DynamoDBAppendingFeatureWriter(val sft: SimpleFeatureType, val table: Tabl
 
 class DynamoDBUpdatingFeatureWriter(val sft: SimpleFeatureType, val table: Table) extends DynamoDBFeatureWriter {
   override def hasNext: Boolean = false
+}
+
+object DynamoDBPrimaryKey {
+
+  val SFC3D = new Z3SFC
+  val SFC2D = new ZCurve2D(math.pow(2,5).toInt)
+
+  val EPOCH = new DateTime(0)
+  val ONE_WEEK_IN_SECONDS = Weeks.ONE.toStandardSeconds.getSeconds
+
+  def epochWeeks(dtg: DateTime): Weeks = Weeks.weeksBetween(EPOCH, new DateTime(dtg))
+
+  def secondsInCurrentWeek(dtg: DateTime): Int =
+    Seconds.secondsBetween(EPOCH, dtg).getSeconds - epochWeeks(dtg).getWeeks*ONE_WEEK_IN_SECONDS
+
+  case class Key(idx: Int, x: Double, y: Double, dk: Int, z: Int)
+
+  def unapply(idx: Int): Key = {
+    val dk = idx >> 16
+    val z = idx & 0x000000ff
+    val (x, y) = SFC2D.toPoint(z)
+    Key(idx, x, y, dk, z)
+  }
+
+  def apply(dtg: DateTime, x: Double, y: Double): Key = {
+    val dk = epochWeeks(dtg).getWeeks << 16
+    val z = SFC2D.toIndex(x, y).toInt
+    val (rx, ry) = SFC2D.toPoint(z)
+    val idx = dk + z
+    Key(idx, rx, ry, dk, z)
+  }
+
 }

@@ -84,10 +84,10 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
     val attrDefs =
       featureType.getAttributeDescriptors.map { attr =>
         attr.getType.getBinding match {
-          case c if c.equals(classOf[String]) =>
+          case c if c.equals(classOf[jl.Boolean]) =>
             new AttributeDefinition()
               .withAttributeName(attr.getLocalName)
-              .withAttributeType(ScalarAttributeType.S)
+              .withAttributeType("BOOL")
 
           case c if c.equals(classOf[jl.Integer]) =>
             new AttributeDefinition()
@@ -98,6 +98,12 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
             new AttributeDefinition()
               .withAttributeName(attr.getLocalName)
               .withAttributeType(ScalarAttributeType.N)
+
+          case c if c.equals(classOf[String]) =>
+            new AttributeDefinition()
+              .withAttributeName(attr.getLocalName)
+              .withAttributeType(ScalarAttributeType.S)
+
 
           case c if c.equals(classOf[java.util.Date]) =>
             new AttributeDefinition()

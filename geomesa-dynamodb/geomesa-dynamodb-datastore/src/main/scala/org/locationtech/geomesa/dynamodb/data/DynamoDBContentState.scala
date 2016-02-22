@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.dynamodb.data
 
 import com.amazonaws.services.dynamodbv2.document.Table
-import com.amazonaws.services.dynamodbv2.document.spec.ScanSpec
+import com.amazonaws.services.dynamodbv2.document.spec.{QuerySpec, ScanSpec}
 import org.geotools.data.store.{ContentEntry, ContentState}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
@@ -25,6 +25,8 @@ class DynamoDBContentState(entry: ContentEntry, catalog: Table) extends ContentS
   val serializer = new KryoFeatureSerializer(sft)
 
   val ALL_QUERY = new ScanSpec
+
+  def geoTimeQuery(pkz: Int, z3min: Long, z3max: Long): QuerySpec = new QuerySpec().withKeyConditionExpression(s"pkz = :$pkz AND z31 BETWEEN :$z3min AND :$z3max")
 
   private def getBuilder = {
     val builder = new SimpleFeatureBuilder(sft)
