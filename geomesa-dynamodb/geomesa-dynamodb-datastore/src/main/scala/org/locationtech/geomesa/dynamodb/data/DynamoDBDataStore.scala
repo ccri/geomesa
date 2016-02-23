@@ -25,48 +25,11 @@ import org.opengis.feature.simple.SimpleFeatureType
 import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
 
-object DynamoDBDataStore {
-  val keySchema =
-    List(
-      new KeySchemaElement().withAttributeName("id").withKeyType(KeyType.HASH),
-      new KeySchemaElement().withAttributeName("z3").withKeyType(KeyType.RANGE)
-    )
-
-  val attributeDescriptions = Lists.newArrayList(
-    new AttributeDefinition("id", ScalarAttributeType.S),
-    new AttributeDefinition("z3", ScalarAttributeType.N)
-  )
-
-  def makeTableName(catalog: String, name: String): String = s"${catalog}_${name}_z3"
-
-  def getSchema(entry: ContentEntry, catalogTable: Table): SimpleFeatureType  = {
-    val item = catalogTable.getItem("feature", entry.getTypeName)
-    SimpleFeatureTypes.createType(entry.getTypeName, item.getString("sft"))
-  }
-
-  private def getOrCreateCatalogTable(dynamoDB: DynamoDB, table: String) = {
-    val tables = dynamoDB.listTables().iterator().toList
-    val ret = tables
-      .find(_.getTableName == table)
-      .getOrElse(
-        dynamoDB.createTable(
-          table,
-          util.Arrays.asList(new KeySchemaElement("feature", KeyType.HASH)),
-          util.Arrays.asList(new AttributeDefinition("feature", ScalarAttributeType.S)),
-          new ProvisionedThroughput()
-            .withReadCapacityUnits(5L)
-            .withWriteCapacityUnits(6L)))
-    ret.waitForActive()
-    ret
-  }
-
-}
-
-class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentDataStore with SchemaValidation with LazyLogging {
+class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB, catalogPt: ProvisionedThroughput) extends ContentDataStore with SchemaValidation with LazyLogging {
   import DynamoDBDataStore._
 
   private val CATALOG_TABLE = catalog
-  private val catalogTable: Table = getOrCreateCatalogTable(dynamoDB, CATALOG_TABLE)
+  private val catalogTable: Table = getOrCreateCatalogTable(dynamoDB, CATALOG_TABLE, catalogPt.getReadCapacityUnits, catalogPt.getWriteCapacityUnits)
 
   override def createFeatureSource(entry: ContentEntry): ContentFeatureSource = {
     val sft = Option(entry.getState(Transaction.AUTO_COMMIT).getFeatureType).getOrElse { DynamoDBDataStore.getSchema(entry, catalogTable) }
@@ -104,7 +67,6 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
               .withAttributeName(attr.getLocalName)
               .withAttributeType(ScalarAttributeType.S)
 
-
           case c if c.equals(classOf[java.util.Date]) =>
             new AttributeDefinition()
               .withAttributeName(attr.getLocalName)
@@ -118,12 +80,13 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
       }
 
     val name = featureType.getTypeName
+    // TODO: consider making rcus and wcus a part of the sft somehow and parse out here?
     val tableDesc =
       new CreateTableRequest()
         .withTableName(makeTableName(catalog, name))
-        .withKeySchema(keySchema)
-        .withAttributeDefinitions(attributeDescriptions)
-        .withProvisionedThroughput(new ProvisionedThroughput(5L, 6L))
+        .withKeySchema(featureKeySchema)
+        .withAttributeDefinitions(featureAttributeDescriptions ++ attrDefs) //TODO: do we really want to bother with all these other attributes?
+        .withProvisionedThroughput(catalogPt)
 
     // create the z3 index
     val res = dynamoDB.createTable(tableDesc)
@@ -165,6 +128,53 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB) extends ContentData
 
 }
 
+object DynamoDBDataStore {
+  val catalogKeyAttributeID = "id"
+  val catalogKeyAttributeZ3 = "z3"
+
+  val featureKeySchema =
+    List(
+      new KeySchemaElement().withAttributeName(catalogKeyAttributeID).withKeyType(KeyType.HASH),
+      new KeySchemaElement().withAttributeName(catalogKeyAttributeZ3).withKeyType(KeyType.RANGE)
+    )
+
+  val featureAttributeDescriptions = Lists.newArrayList(
+    new AttributeDefinition("id", ScalarAttributeType.S),
+    new AttributeDefinition("z3", ScalarAttributeType.N)
+  )
+
+  val catalogKeySchema = util.Arrays.asList(new KeySchemaElement("feature", KeyType.HASH))
+  val catalogAttributeDescriptions =  util.Arrays.asList(new AttributeDefinition("feature", ScalarAttributeType.S))
+
+  def makeTableName(catalog: String, name: String): String = s"${catalog}_${name}_z3"
+
+  def getSchema(entry: ContentEntry, catalogTable: Table): SimpleFeatureType  = {
+    val item = catalogTable.getItem("feature", entry.getTypeName)
+    SimpleFeatureTypes.createType(entry.getTypeName, item.getString("sft"))
+  }
+
+  private def getOrCreateCatalogTable(dynamoDB: DynamoDB, table: String, rcus: Long = 1L, wcus: Long = 1L) = {
+    val tables = dynamoDB.listTables().iterator().toList
+    val ret = tables
+      .find(_.getTableName == table)
+      .getOrElse(
+        dynamoDB.createTable(
+          table,
+          catalogKeySchema,
+          catalogAttributeDescriptions,
+          new ProvisionedThroughput(rcus, wcus)
+        )
+      )
+    ret.waitForActive()
+    ret
+  }
+
+  def apply(catalog: String, dynamoDB: DynamoDB, rcus: Long, wcus: Long): DynamoDBDataStore = {
+    val pt = new ProvisionedThroughput(rcus, wcus)
+    new DynamoDBDataStore(catalog, dynamoDB, pt)
+  }
+
+}
 
 trait SchemaValidation {
 
@@ -183,4 +193,3 @@ trait SchemaValidation {
   }
 
 }
-

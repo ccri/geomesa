@@ -10,7 +10,7 @@ package org.locationtech.geomesa.dynamodb.data
 
 import java.util.{Date, UUID}
 
-import com.amazonaws.services.dynamodbv2.document.{Item, KeyAttribute, Table}
+import com.amazonaws.services.dynamodbv2.document.{Item, PrimaryKey, Table}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.joda.time.{DateTime, Seconds, Weeks}
@@ -81,9 +81,10 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
     val z3 = DynamoDBPrimaryKey.SFC3D.index(x, y, secondsInWeek)
 
     val id = curFeature.getID
-    val item = new Item().withKeyComponents(new KeyAttribute("id", id), new KeyAttribute("z3", z3.z))
+    val primaryKey = new PrimaryKey(DynamoDBDataStore.catalogKeyAttributeID, id, DynamoDBDataStore.catalogKeyAttributeZ3, z3.z)
+    val item = new Item().withPrimaryKey(primaryKey)
 
-    curFeature.getAttributes.zip(sft.getAttributeDescriptors).foreach { case (attr, desc) => serialize(item, attr, desc)}
+    curFeature.getAttributes.zip(sft.getAttributeDescriptors).foreach { case (attr, desc) => serialize(item, attr, desc) }
 
     item.withBinary("ser", encoder.serialize(curFeature))
     table.putItem(item)
