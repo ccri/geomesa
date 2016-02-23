@@ -69,7 +69,7 @@ class DynamoDBFeatureStore(entry: ContentEntry,
   }
 
   def getAllFeatures: Iterator[SimpleFeature] = {
-    contentState.table.scan(contentState.ALL_QUERY).iterator().map(i => contentState.serializer.deserialize(i.getBinary("ser")))
+    contentState.table.scan(contentState.ALL_QUERY).iterator().map(i => contentState.serializer.deserialize(i.getBinary(DynamoDBDataStore.serId)))
   }
 
   def planQuery(query: Query): GenTraversable[RowAndColumnQueryPlan] = {
@@ -162,7 +162,7 @@ class DynamoDBFeatureStore(entry: ContentEntry,
   }
 
   private def convertItemToSF(i: Item): SimpleFeature = {
-    contentState.serializer.deserialize(i.getBinary("ser"))
+    contentState.serializer.deserialize(i.getBinary(DynamoDBDataStore.serId))
   }
 
 }

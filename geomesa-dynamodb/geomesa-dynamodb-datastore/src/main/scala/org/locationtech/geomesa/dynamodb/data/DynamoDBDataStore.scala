@@ -18,6 +18,7 @@ import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.Transaction
 import org.geotools.data.store.{ContentDataStore, ContentEntry, ContentFeatureSource, ContentState}
 import org.geotools.feature.NameImpl
+import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.`type`.Name
 import org.opengis.feature.simple.SimpleFeatureType
@@ -80,13 +81,15 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB, catalogPt: Provisio
       }
 
     val name = featureType.getTypeName
-    // TODO: consider making rcus and wcus a part of the sft somehow and parse out here?
+    val rcu: Long = featureType.userData[Long](rcuKey).getOrElse(1L)
+    val wcu: Long = featureType.userData[Long](wcuKey).getOrElse(1L)
+
     val tableDesc =
       new CreateTableRequest()
         .withTableName(makeTableName(catalog, name))
         .withKeySchema(featureKeySchema)
         .withAttributeDefinitions(featureAttributeDescriptions ++ attrDefs) //TODO: do we really want to bother with all these other attributes?
-        .withProvisionedThroughput(catalogPt)
+        .withProvisionedThroughput(new ProvisionedThroughput(rcu, wcu))
 
     // create the z3 index
     val res = dynamoDB.createTable(tableDesc)
@@ -129,6 +132,11 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB, catalogPt: Provisio
 }
 
 object DynamoDBDataStore {
+  val rcuKey = "geomesa.dynamodb.rcu"
+  val wcuKey = "geomesa.dynamodb.wcu"
+
+  val serId  = "ser"
+
   val catalogKeyAttributeID = "id"
   val catalogKeyAttributeZ3 = "z3"
 

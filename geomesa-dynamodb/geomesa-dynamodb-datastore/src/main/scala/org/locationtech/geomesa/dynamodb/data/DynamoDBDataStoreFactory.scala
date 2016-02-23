@@ -46,8 +46,8 @@ class DynamoDBDataStoreFactory extends DataStoreFactorySpi{
 object DynamoDBDataStoreFactory {
   val CATALOG     = new Param("geomesa.dynamodb.catalog", classOf[String], "DynamoDB table name", true)
   val DYNAMODBAPI = new Param("geomesa.dynamodb.api", classOf[DynamoDB], "DynamoDB api instance", true)
-  val RCUS        = new Param("geomesa.dynamodb.rcu", classOf[java.lang.Long], "DynamoDB read capacity units", false)
-  val WCUS        = new Param("geomesa.dynamodb.wcu", classOf[java.lang.Long], "DynamoDB write capacity units", false)
+  val RCUS        = new Param(DynamoDBDataStore.rcuKey, classOf[java.lang.Long], "DynamoDB read capacity units", false)
+  val WCUS        = new Param(DynamoDBDataStore.wcuKey, classOf[java.lang.Long], "DynamoDB write capacity units", false)
 
   val PARAMS  = Array(CATALOG, DYNAMODBAPI, RCUS, WCUS)
 

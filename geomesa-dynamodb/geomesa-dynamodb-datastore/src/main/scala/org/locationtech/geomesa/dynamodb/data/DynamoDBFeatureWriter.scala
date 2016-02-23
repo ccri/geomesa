@@ -10,7 +10,8 @@ package org.locationtech.geomesa.dynamodb.data
 
 import java.util.{Date, UUID}
 
-import com.amazonaws.services.dynamodbv2.document.{Item, PrimaryKey, Table}
+import com.amazonaws.services.dynamodbv2.document.spec.PutItemSpec
+import com.amazonaws.services.dynamodbv2.document.{Expected, Item, PrimaryKey, Table}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.joda.time.{DateTime, Seconds, Weeks}
@@ -24,7 +25,12 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 
-trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
+trait DynamoDBPutter {
+  // Allows impl changes between appending and updating writers
+  protected def dynamoDBPut(t: Table, i: Item): Unit = ???
+}
+
+trait DynamoDBFeatureWriter extends SimpleFeatureWriter with DynamoDBPutter {
   import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType._
   def sft: SimpleFeatureType
   def table: Table
@@ -70,7 +76,6 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
   override def write(): Unit = {
     import org.locationtech.geomesa.utils.geotools.Conversions._
 
-    // write
     // TODO: is getting the centroid here smart?
     val geom = curFeature.geometry.getCentroid
     val x = geom.getX
@@ -85,9 +90,9 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
     val item = new Item().withPrimaryKey(primaryKey)
 
     curFeature.getAttributes.zip(sft.getAttributeDescriptors).foreach { case (attr, desc) => serialize(item, attr, desc) }
+    item.withBinary(DynamoDBDataStore.serId, encoder.serialize(curFeature))
 
-    item.withBinary("ser", encoder.serialize(curFeature))
-    table.putItem(item)
+    this.dynamoDBPut(table, item)
     curFeature = null
   }
 
@@ -99,11 +104,23 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter {
 
 class DynamoDBAppendingFeatureWriter(val sft: SimpleFeatureType, val table: Table) extends DynamoDBFeatureWriter {
   override def hasNext: Boolean = false
+
+  override def dynamoDBPut(t: Table, i: Item): Unit = {
+    val ps = new PutItemSpec()
+      .withItem(i)
+      .withExpected(new Expected(DynamoDBDataStore.catalogKeyAttributeID).notExist())
+    t.putItem(ps)
+  }
 }
 
 class DynamoDBUpdatingFeatureWriter(val sft: SimpleFeatureType, val table: Table) extends DynamoDBFeatureWriter {
   override def hasNext: Boolean = false
+
+  override def dynamoDBPut(t: Table, i: Item): Unit = {
+    t.putItem(i)
+  }
 }
+
 
 object DynamoDBPrimaryKey {
 

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.dynamodb.data
 
-import com.amazonaws.services.dynamodbv2.document.Table
+import com.amazonaws.services.dynamodbv2.document.{RangeKeyCondition, Table}
 import com.amazonaws.services.dynamodbv2.document.spec.{QuerySpec, ScanSpec}
 import org.geotools.data.store.{ContentEntry, ContentState}
 import org.geotools.feature.simple.SimpleFeatureBuilder
@@ -26,7 +26,12 @@ class DynamoDBContentState(entry: ContentEntry, catalog: Table) extends ContentS
 
   val ALL_QUERY = new ScanSpec
 
-  def geoTimeQuery(pkz: Int, z3min: Long, z3max: Long): QuerySpec = new QuerySpec().withKeyConditionExpression(s"pkz = :$pkz AND z31 BETWEEN :$z3min AND :$z3max")
+  def geoTimeQuery(pkz: Int, z3min: Long, z3max: Long): QuerySpec = new QuerySpec()
+    .withRangeKeyCondition(genRangeKey(z3min, z3max))
+    .withProjectionExpression(DynamoDBDataStore.serId)
+
+  private def genRangeKey(z3min: Long, z3max: Long): RangeKeyCondition =
+    new RangeKeyCondition(DynamoDBDataStore.catalogKeyAttributeID).between(z3min, z3max)
 
   private def getBuilder = {
     val builder = new SimpleFeatureBuilder(sft)
