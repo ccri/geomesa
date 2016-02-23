@@ -26,6 +26,7 @@ class DynamoDBContentState(entry: ContentEntry, catalog: Table) extends ContentS
 
   val ALL_QUERY = new ScanSpec
 
+  //TODO: do I need a Select or a Projection?
   def geoTimeQuery(pkz: Int, z3min: Long, z3max: Long): QuerySpec = new QuerySpec()
     .withRangeKeyCondition(genRangeKey(z3min, z3max))
     .withProjectionExpression(DynamoDBDataStore.serId)
