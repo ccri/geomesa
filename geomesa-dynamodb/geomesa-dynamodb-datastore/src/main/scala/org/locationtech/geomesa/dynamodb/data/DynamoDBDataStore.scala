@@ -12,7 +12,6 @@ import java.util
 
 import com.amazonaws.services.dynamodbv2.document.{DynamoDB, Item, Table}
 import com.amazonaws.services.dynamodbv2.model._
-import com.google.common.collect.Lists
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.Transaction
@@ -91,19 +90,18 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB, catalogPt: Provisio
         .withAttributeDefinitions(featureAttributeDescriptions ++ attrDefs) //TODO: do we really want to bother with all these other attributes?
         .withProvisionedThroughput(new ProvisionedThroughput(rcu, wcu))
 
-    // create the z3 index
+    // create the table
     val res = dynamoDB.createTable(tableDesc)
+    res.waitForActive()
 
     // write the meta-data
     val metaEntry = createDDMMetaDataItem(name, featureType)
     catalogTable.putItem(metaEntry)
-
-    res.waitForActive()
   }
 
   override def createTypeNames(): util.List[Name] = {
     // read types from catalog
-    catalogTable.scan().iterator().map { i => new NameImpl(i.getString("feature")) }.toList
+    catalogTable.scan().iterator().map { i => new NameImpl(i.getString(catalogKeyHash)) }.toList
   }
 
   override def createContentState(entry: ContentEntry): ContentState = {
@@ -113,7 +111,7 @@ class DynamoDBDataStore(catalog: String, dynamoDB: DynamoDB, catalogPt: Provisio
   override def dispose(): Unit = if (dynamoDB != null) dynamoDB.shutdown()
 
   private def createDDMMetaDataItem(name: String, featureType: SimpleFeatureType): Item = {
-    new Item().withPrimaryKey("feature", name).withString("sft", SimpleFeatureTypes.encodeType(featureType))
+    new Item().withPrimaryKey(catalogKeyHash, name).withString(catalogSftAttributeName, SimpleFeatureTypes.encodeType(featureType))
   }
 
   def updateProvisionedThroughput(name: String, pt: ProvisionedThroughput): Unit = {
@@ -137,22 +135,24 @@ object DynamoDBDataStore {
 
   val serId  = "ser"
 
-  val catalogKeyAttributeID = "id"
-  val catalogKeyAttributeZ3 = "z3"
+  val geomesaKeyHash  = "z3"
+  val geomesaKeyRange = "z2andID"
 
-  val featureKeySchema =
-    List(
-      new KeySchemaElement().withAttributeName(catalogKeyAttributeID).withKeyType(KeyType.HASH),
-      new KeySchemaElement().withAttributeName(catalogKeyAttributeZ3).withKeyType(KeyType.RANGE)
+  val featureKeySchema = List(
+      new KeySchemaElement().withAttributeName(geomesaKeyHash).withKeyType(KeyType.HASH),
+      new KeySchemaElement().withAttributeName(geomesaKeyRange).withKeyType(KeyType.RANGE)
     )
 
-  val featureAttributeDescriptions = Lists.newArrayList(
-    new AttributeDefinition("id", ScalarAttributeType.S),
-    new AttributeDefinition("z3", ScalarAttributeType.N)
+  val featureAttributeDescriptions = List(
+    new AttributeDefinition(geomesaKeyHash,  ScalarAttributeType.B),
+    new AttributeDefinition(geomesaKeyRange, ScalarAttributeType.B)
   )
 
-  val catalogKeySchema = util.Arrays.asList(new KeySchemaElement("feature", KeyType.HASH))
-  val catalogAttributeDescriptions =  util.Arrays.asList(new AttributeDefinition("feature", ScalarAttributeType.S))
+  val catalogKeyHash = "feature"
+  val catalogSftAttributeName = "sft"
+
+  val catalogKeySchema = List(new KeySchemaElement(catalogKeyHash, KeyType.HASH))
+  val catalogAttributeDescriptions =  List(new AttributeDefinition(catalogSftAttributeName, ScalarAttributeType.S))
 
   def makeTableName(catalog: String, name: String): String = s"${catalog}_${name}_z3"
 

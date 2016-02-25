@@ -8,10 +8,12 @@
 
 package org.locationtech.geomesa.dynamodb.data
 
+import java.nio.charset.StandardCharsets
 import java.util.{Date, UUID}
 
 import com.amazonaws.services.dynamodbv2.document.spec.PutItemSpec
 import com.amazonaws.services.dynamodbv2.document.{Expected, Item, PrimaryKey, Table}
+import com.google.common.primitives.{Longs, Bytes}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.joda.time.{DateTime, Seconds, Weeks}
@@ -35,7 +37,7 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter with DynamoDBPutter {
   def sft: SimpleFeatureType
   def table: Table
 
-  private var curFeature: SimpleFeature = null
+  private[this] var curFeature: SimpleFeature = null
 
   val dtgIndex = sft.getDtgIndex.get
 
@@ -69,7 +71,7 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter with DynamoDBPutter {
     curFeature
   }
 
-  override def remove(): Unit = ???
+  override def remove(): Unit = throw new NotImplementedError("DynamoDB feature writer is append only")
 
   override def hasNext: Boolean = true
 
@@ -83,10 +85,19 @@ trait DynamoDBFeatureWriter extends SimpleFeatureWriter with DynamoDBPutter {
     val dtg = new DateTime(curFeature.getAttribute(dtgIndex).asInstanceOf[Date])
 
     val secondsInWeek = DynamoDBPrimaryKey.secondsInCurrentWeek(dtg)
+    val z2 = DynamoDBPrimaryKey.SFC2D.toIndex(x, y)
+    val z2idx = Longs.toByteArray(z2)
     val z3 = DynamoDBPrimaryKey.SFC3D.index(x, y, secondsInWeek)
+    val z3idx = Longs.toByteArray(z3.z)
 
-    val id = curFeature.getID
-    val primaryKey = new PrimaryKey(DynamoDBDataStore.catalogKeyAttributeID, id, DynamoDBDataStore.catalogKeyAttributeZ3, z3.z)
+    val hash = z3idx
+    val range = Bytes.concat(z2idx, curFeature.getID.getBytes(StandardCharsets.UTF_8))
+
+    val primaryKey = new PrimaryKey(
+      DynamoDBDataStore.geomesaKeyHash, hash,
+      DynamoDBDataStore.geomesaKeyRange, range
+    )
+
     val item = new Item().withPrimaryKey(primaryKey)
 
     curFeature.getAttributes.zip(sft.getAttributeDescriptors).foreach { case (attr, desc) => serialize(item, attr, desc) }
@@ -108,7 +119,7 @@ class DynamoDBAppendingFeatureWriter(val sft: SimpleFeatureType, val table: Tabl
   override def dynamoDBPut(t: Table, i: Item): Unit = {
     val ps = new PutItemSpec()
       .withItem(i)
-      .withExpected(new Expected(DynamoDBDataStore.catalogKeyAttributeID).notExist())
+      .withExpected(new Expected(DynamoDBDataStore.geomesaKeyHash).notExist())
     t.putItem(ps)
   }
 }
