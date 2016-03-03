@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 Commonwealth Computer Research, Inc.
+ * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Apache License, Version 2.0 which
  * accompanies this distribution and is available at
@@ -8,24 +8,27 @@
 
 package org.locationtech.geomesa.kafka
 
-import com.typesafe.scalalogging.slf4j.Logging
-import com.vividsolutions.jts.geom.Coordinate
 import java.util.concurrent.CountDownLatch
 
 import com.google.common.util.concurrent.AtomicLongMap
+import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Coordinate, Point}
 import org.geotools.data._
+import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureStore}
+import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.identity.FeatureIdImpl
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
+import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.filter.Filter
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 
 @RunWith(classOf[JUnitRunner])
 class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedKafka with Logging {
@@ -152,14 +155,78 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
         fw.write()
       }
 
-      logger.debug("Wrote feature")
-      while(latch.getCount > 0) {
-        Thread.sleep(100)
-      }
-
-      logger.debug("getting id")
+      Thread.sleep(100)
       m.get(id) must be equalTo numUpdates
       latestLon must be equalTo 0.0
+    }
+
+    "handle multiple consumers starting in-between CRUD messages" >> {
+      val ff = CommonFactoryFinder.getFilterFactory2
+      val sftName = "concurrent"
+      val wait    = 500
+
+      val sft = {
+        val sft = SimpleFeatureTypes.createType(sftName, "name:String,age:Int,dtg:Date,*geom:Point:srid=4326")
+        KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
+      }
+      val producerDS = DataStoreFinder.getDataStore(producerParams)
+      producerDS.createSchema(sft)
+      val producerFS = producerDS.getFeatureSource(sftName).asInstanceOf[SimpleFeatureStore]
+
+      val fw = producerDS.getFeatureWriter(sftName, null, Transaction.AUTO_COMMIT)
+
+      def writeUpdate(x: Double, y: Double, name: String, age: Int, id: String) = {
+        Thread.sleep(wait)
+        val sf = fw.next()
+        sf.getIdentifier.asInstanceOf[FeatureIdImpl].setID(id)
+        sf.setAttributes(Array(name, age, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
+        sf.setDefaultGeometry(gf.createPoint(new Coordinate(x, y)))
+        fw.write()
+        Thread.sleep(wait)
+      }
+
+      def deleteById(id: String) = {
+        Thread.sleep(wait)
+        producerFS.removeFeatures(ff.id(ff.featureId(id)))
+        Thread.sleep(wait)
+      }
+
+      val listenerConsumerDS = DataStoreFinder.getDataStore(consumerParams)
+      val consumers = mutable.ListBuffer[SimpleFeatureSource]()
+
+      val fl = new FeatureListener {
+        override def changed(featureEvent: FeatureEvent): Unit = {
+          logger.info(s"Got message. ${featureEvent.getType} with filter ${featureEvent.getFilter}")
+        }
+      }
+
+      def addConsumer()  {
+        val newfs = listenerConsumerDS.getFeatureSource(sftName)
+        newfs.addFeatureListener(fl)
+        consumers += newfs
+        logger.info("Got a new Consumer")
+      }
+
+      def checkConsumers[T](check: (SimpleFeatureSource) => T) = {
+        Thread.sleep(wait)
+        logger.debug(s"Size of consumers = ${consumers.size}")
+        consumers.map { check }
+      }
+
+      deleteById("1")
+
+      addConsumer()
+      deleteById("2")
+      writeUpdate(0.0, 0.0, "James", 33, "1")
+      checkConsumers {_.getFeatures().features().toList.size must equalTo(1) }
+
+      addConsumer()
+      deleteById("1")
+      checkConsumers {_.getFeatures().features().toList.size must equalTo(0) }
+
+      addConsumer()
+      writeUpdate(1.0, -1.0, "Mark", 27, "2")
+      checkConsumers {_.getFeatures().features().toList.size must equalTo(1) }
     }
   }
 

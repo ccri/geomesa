@@ -149,7 +149,11 @@ class LiveKafkaConsumerFeatureSource(entry: ContentEntry,
   // Lazily fires events.
   def fireEvent(event: => FeatureEvent) = {
     if (contentState.hasListener) {
-      contentState.fireFeatureEvent(event)
+      try {
+        contentState.fireFeatureEvent(event)
+      } catch {
+        case t: Throwable =>
+      }
     }
   }
 }
