@@ -124,6 +124,10 @@ code,.rst-content tt,.rst-content code {
    color: #333;
 }
 
+.wy-side-nav-search>div.version {
+   color: #666;
+}
+
 .wy-nav .wy-menu-vertical header {
    color: #E6A150
 }
