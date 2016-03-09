@@ -147,6 +147,10 @@ code,.rst-content tt,.rst-content code {
    background-color: #E6A150;
 }
 
+.wy-nav-content {
+   background: #333;
+}
+
 .wy-nav-content-wrap {
    background: #333;
 }
