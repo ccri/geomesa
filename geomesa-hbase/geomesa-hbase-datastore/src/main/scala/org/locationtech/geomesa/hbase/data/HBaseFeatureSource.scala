@@ -22,6 +22,8 @@ import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.{And, Filter}
 
+import scala.collection.mutable
+
 class HBaseFeatureSource(entry: ContentEntry,
                          query: Query,
                          sft: SimpleFeatureType)
@@ -77,8 +79,8 @@ class HBaseFeatureSource(entry: ContentEntry,
     }
   }
 
-  private def include(): FR = {
-    new HBaseFeatureReader(ds.getZ3Table(sft), sft, 0, Seq.empty, new KryoFeatureSerializer(sft))
+  private def include(clientFilter: Option[Filter] = None): FR = {
+    new HBaseFeatureReader(ds.getZ3Table(sft), sft, 0, Seq.empty, new KryoFeatureSerializer(sft), clientFilter)
   }
 
   private def and(a: And): FR = {
@@ -90,12 +92,12 @@ class HBaseFeatureSource(entry: ContentEntry,
     val serializer = new KryoFeatureSerializer(sft)
     val table = ds.getZ3Table(sft)
 
-    val dtFieldName = sft.getDescriptor(dtgIndex).getLocalName
-    val (i, _) = a.getChildren.partition(isTemporalFilter(_, dtFieldName))
-    val interval = FilterHelper.extractInterval(i, Some(dtFieldName))
+    val (spatialFilter, temporalFilter, postFilter) = partitionFilters(a.getChildren)
 
-    val (b, _) = partitionPrimarySpatials(a.getChildren, sft)
-    val geomsToCover = tryReduceGeometryFilter(b).flatMap(decomposeToGeometry)
+    val dtFieldName = sft.getDescriptor(dtgIndex).getLocalName
+    val interval = FilterHelper.extractInterval(temporalFilter, Some(dtFieldName))
+
+    val geomsToCover = tryReduceGeometryFilter(spatialFilter).flatMap(decomposeToGeometry)
     val geom = if (geomsToCover.isEmpty) {
       AllGeom
     } else if (geomsToCover.length == 1) {
@@ -120,7 +122,7 @@ class HBaseFeatureSource(entry: ContentEntry,
     // TODO: ignoring seconds for now
     if (weeks.length == 1) {
       val ranges = Z3_CURVE.ranges((lx, ux), (ly, uy), (lt, ut))
-      new HBaseFeatureReader(table, sft, weeks.head, ranges, serializer)
+      new HBaseFeatureReader(table, sft, weeks.head, ranges, serializer, postFilter)
     } else {
       val head +: xs :+ last = weeks.toList
       val oneWeekInSeconds = Weeks.ONE.toStandardSeconds.getSeconds
@@ -129,11 +131,11 @@ class HBaseFeatureSource(entry: ContentEntry,
       val middleRanges = Z3_CURVE.ranges((lx, ux), (ly, uy), (0, oneWeekInSeconds))
       val lastRanges   = Z3_CURVE.ranges((lx, ux), (ly, uy), (tStart, ut))
 
-      val headReader = new HBaseFeatureReader(table, sft, head, headRanges, serializer)
+      val headReader = new HBaseFeatureReader(table, sft, head, headRanges, serializer, postFilter)
       val middleReaders = xs.map { w =>
         new HBaseFeatureReader(table, sft, w, middleRanges, serializer)
       }
-      val lastReader = new HBaseFeatureReader(table, sft, head, lastRanges, serializer)
+      val lastReader = new HBaseFeatureReader(table, sft, head, lastRanges, serializer, postFilter)
 
       val readers = Seq(headReader) ++ middleReaders ++ Seq(lastReader)
 
@@ -165,6 +167,16 @@ class HBaseFeatureSource(entry: ContentEntry,
         }
       }
     }
+  }
+
+  import org.locationtech.geomesa.filter._
+
+  private def partitionFilters(filters: Seq[Filter]) = {
+    val (spatial, nonSpatial)         = partitionPrimarySpatials(filters, sft)
+    val dtFieldName = sft.getDescriptor(dtgIndex).getLocalName
+    val (temporal, nonSpatioTemporal) = nonSpatial.partition(isTemporalFilter(_, dtFieldName))
+
+    (spatial, temporal, andOption(nonSpatioTemporal))
   }
 }
 
