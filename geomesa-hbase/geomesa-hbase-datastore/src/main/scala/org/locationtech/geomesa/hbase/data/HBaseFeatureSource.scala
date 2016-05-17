@@ -8,6 +8,7 @@
 
 package org.locationtech.geomesa.hbase.data
 
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.{Envelope, GeometryCollection}
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
 import org.geotools.data.{FeatureReader, FeatureWriter, Query, QueryCapabilities}
@@ -22,12 +23,10 @@ import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.{And, Filter}
 
-import scala.collection.mutable
-
 class HBaseFeatureSource(entry: ContentEntry,
                          query: Query,
                          sft: SimpleFeatureType)
-    extends ContentFeatureStore(entry, query) {
+    extends ContentFeatureStore(entry, query) with LazyLogging {
   import geotools._
 
   import scala.collection.JavaConversions._
@@ -64,8 +63,10 @@ class HBaseFeatureSource(entry: ContentEntry,
       include()
     } else {
       filter.rewriteFilterInCNF(query.getFilter)(filter.ff) match {
-        case a: And => and(a)
-        case _      => throw new NotImplementedError("Queries must include a geometry and date filter")
+        case a: And   => and(a)
+        case _ =>
+          logger.warn(s"Failing back to full-table scan for $query.")
+          include(Some(query.getFilter))
       }
     }
   }
@@ -122,7 +123,7 @@ class HBaseFeatureSource(entry: ContentEntry,
     // TODO: ignoring seconds for now
     if (weeks.length == 1) {
       val ranges = Z3_CURVE.ranges((lx, ux), (ly, uy), (lt, ut))
-      new HBaseFeatureReader(table, sft, weeks.head, ranges, serializer, postFilter)
+      new HBaseFeatureReader(table, sft, weeks.head, ranges, serializer, Some(a))
     } else {
       val head +: xs :+ last = weeks.toList
       val oneWeekInSeconds = Weeks.ONE.toStandardSeconds.getSeconds
@@ -131,11 +132,11 @@ class HBaseFeatureSource(entry: ContentEntry,
       val middleRanges = Z3_CURVE.ranges((lx, ux), (ly, uy), (0, oneWeekInSeconds))
       val lastRanges   = Z3_CURVE.ranges((lx, ux), (ly, uy), (tStart, ut))
 
-      val headReader = new HBaseFeatureReader(table, sft, head, headRanges, serializer, postFilter)
+      val headReader = new HBaseFeatureReader(table, sft, head, headRanges, serializer, Some(a))
       val middleReaders = xs.map { w =>
-        new HBaseFeatureReader(table, sft, w, middleRanges, serializer)
+        new HBaseFeatureReader(table, sft, w, middleRanges, serializer, Some(a))
       }
-      val lastReader = new HBaseFeatureReader(table, sft, head, lastRanges, serializer, postFilter)
+      val lastReader = new HBaseFeatureReader(table, sft, head, lastRanges, serializer, Some(a))
 
       val readers = Seq(headReader) ++ middleReaders ++ Seq(lastReader)
 
