@@ -13,7 +13,7 @@ import com.vividsolutions.jts.geom.{Envelope, GeometryCollection}
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
 import org.geotools.data.{FeatureReader, FeatureWriter, Query, QueryCapabilities}
 import org.geotools.geometry.jts.ReferencedEnvelope
-import org.joda.time.Weeks
+import org.joda.time.{DateTimeZone, DateTime, Interval, Weeks}
 import org.locationtech.geomesa.curve.Z3SFC
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.filter
@@ -59,11 +59,22 @@ class HBaseFeatureSource(entry: ContentEntry,
   }
 
   override def getReaderInternal(query: Query): FR = {
+    import org.locationtech.geomesa.filter.isTemporalFilter
+
     if (query.getFilter == null || query.getFilter == Filter.INCLUDE) {
       include()
     } else {
       filter.rewriteFilterInCNF(query.getFilter)(filter.ff) match {
-        case a: And   => and(a)
+        case a: And => {
+          val (spatialFilter, temporalFilter, postFilter) = partitionFilters(a.getChildren)
+          if (temporalFilter.isEmpty) {
+            logger.warn(s"Temporal filter missing; falling back to full-table scan for $query")
+            include(Some(query.getFilter))
+          }
+          else {
+            and(a)
+          }
+        }
         case _ =>
           logger.warn(s"Failing back to full-table scan for $query.")
           include(Some(query.getFilter))
@@ -183,4 +194,9 @@ class HBaseFeatureSource(entry: ContentEntry,
 
 object HBaseFeatureSource {
   val AllGeom = WKTUtils.read("POLYGON((-180 -90, 0 -90, 180 -90, 180 90, 0 90, -180 90, -180 -90))")
+  // Z3-indexable dates: "[1901-12-13T20:45:51.001Z, 2038-01-19T03:14:07.999Z]"
+  // rounding in a little bit to make it clear these are arbitrary dates
+  val MinDateTime = new DateTime(1901, 12, 31, 0, 0, 0, DateTimeZone.UTC).getMillis
+  val MaxDateTime = new DateTime(2038,  1,  1, 0, 0, 0, DateTimeZone.UTC).getMillis
+  val AllDateTime = new Interval(MinDateTime, MaxDateTime, DateTimeZone.UTC)
 }
