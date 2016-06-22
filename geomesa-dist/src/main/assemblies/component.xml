@@ -68,6 +68,17 @@
                 <include>org.locationtech.geomesa:geomesa-jobs*</include>
             </includes>
         </dependencySet>
+        <dependencySet>
+            <outputDirectory>dist/handlers</outputDirectory>
+            <directoryMode>0755</directoryMode>
+            <fileMode>0755</fileMode>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <includes>
+                <include>org.locationtech.geomesa:geomesa-blobstore-exif-handler*</include>
+                <include>org.locationtech.geomesa:geomesa-blobstore-handlers*</include>
+            </includes>
+        </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>
@@ -124,6 +135,11 @@
         <file>
             <source>../geomesa-blobstore/README.md</source>
             <destName>README-blobstore.md</destName>
+            <outputDirectory>docs</outputDirectory>
+        </file>
+        <file>
+            <source>../geomesa-blobstore/geomesa-blobstore-handlers/geomesa-blobstore-gdal-handler</source>
+            <destName>README-blobstore-gdal-handler.md</destName>
             <outputDirectory>docs</outputDirectory>
         </file>
         <file>
