@@ -137,19 +137,19 @@ Request for all features of provided type:
 
 .. code-block:: bash
 
-    $ curl -X GET 'http://localhost:9090/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob'
+    $ curl -X GET 'http://localhost:8080/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob'
 
 Request for all filenames contained in index:
 
 .. code-block:: bash
 
-    $ curl -X GET 'http://localhost:9090/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob'
+    $ curl -X GET 'http://localhost:8080/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob&propertyName=filename'
 
 Request for all features within a BBOX via ECQL:
 
 .. code-block:: bash
 
-    $ curl -X GET 'http://localhost:9090/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=workspace:blob&cql_filter=BBOX(geom,0,0,90,180)'
+    $ curl -X GET 'http://localhost:8080/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob&cql_filter=BBOX(geom,0,0,90,-180)'
 
 
 Downloading Blobs
@@ -160,7 +160,7 @@ the blob id and alias for the BlobStore.
 
 .. code-block:: bash
 
-    $ curl -JO http://localhost:8080/geoserver/geomesa/blobstore/blob/:alias/some-id/
+    $ curl -JO http://localhost:8080/geoserver/geomesa/blobstore/blob/:alias/some-id
 
 You can also use the GZip support to minimize network utilization by running
 
