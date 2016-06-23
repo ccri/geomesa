@@ -65,12 +65,13 @@ Using the EXIF Handler
 In order to use our new handler, we will need to get some geotagged images.
 Below is a partial Python script that uses the Flickr API to grab some geotagged images taken around Monument Valley.
 Using the Flickr API is beyond the scope of this tutorial, however the Python code snippet is provided for those
-interested in obtaining a test data set. The below script will download 100 images to the home user directory.
+interested in obtaining a test data set. The below script will download 100 images to the user's home directory.
 
 .. code-block:: python
 
     import flickrapi
     import requests
+    import itertools
     api_key = u'Some API Key'
     secret  = u'some secret'
 
@@ -78,15 +79,14 @@ interested in obtaining a test data set. The below script will download 100 imag
     flickr.authenticate_console(perms='read')
     photos = flickr.photos_search(lat='37.0000', lon='-110.1700', radius='10', safe_search='1', extras='url_o')
 
-    i = 0
-    for photo in photos[0][0:100]:
-        if 'url_o' in photo.keys():
-            url = photo.attrib['url_o']
-            with open('~/flickr_{0:03d}.jpg'.format(i), 'wb') as fd:
-                r = requests.get(url)
-                for chunk in r.iter_content(1024):
-                    fd.write(chunk)
-                i += 1
+    urls = itertools.islice((p.attrib['url_o'] for p in photos[0] if 'url_o' in p.keys()), 100)
+
+    for i, url in enumerate(urls):
+        with open('~/flickr{0:03d}.jpg'.format(i), 'wb') as fd:
+            r = requests.get(url)
+            for chunk in r.iter_content(1024):
+                fd.write(chunk)
+
 
 
 First we need to register a BlobStore using the following command:
@@ -112,7 +112,8 @@ For an example of registering a DataStore in GeoServer please follow these :doc:
 
 Once the layer is registered we can view the layer in the GeoServer layer previewer.
 
-TODO: picture
+.. figure:: _static/geomesa-blobstore-exif/geoserver-wfs-enable.png
+   :alt: GeoServer Workspace Settings View
 
 
 Querying the Index for Blobs
