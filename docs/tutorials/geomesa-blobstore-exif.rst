@@ -112,8 +112,8 @@ For an example of registering a DataStore in GeoServer please follow these :doc:
 
 Once the layer is registered we can view the layer in the GeoServer layer previewer.
 
-.. figure:: _static/geomesa-blobstore-exif/geoserver-wfs-enable.png
-   :alt: GeoServer Workspace Settings View
+.. figure:: _static/geomesa-blobstore-exif/blob-index-map.png
+    :alt: Figure of locations of Blobs
 
 
 Querying the Index for Blobs
@@ -123,7 +123,8 @@ To Query for blobs in the spatio-temporal index we will need to enable WFS queri
 Ensure the Workspace in which the BlobStore index DataStore was registered has the WFS service enabled.
 This can be verified by clicking through to Workspaces -> (your workspace) -> Checkbox next to WFS -> Save, in the GeoServer UI.
 
-TODO: picture
+.. figure:: _static/geomesa-blobstore-exif/geoserver-wfs-enable.png
+    :alt: GeoServer Workspace Settings View
 
 This can also be achieved through the GeoServer REST API :doc:`http://docs.geoserver.org/stable/en/user/rest/index.html`
 which is beyond the scope of this tutorial.
