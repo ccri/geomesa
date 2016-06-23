@@ -76,7 +76,7 @@
             <useTransitiveDependencies>false</useTransitiveDependencies>
             <includes>
                 <include>org.locationtech.geomesa:geomesa-blobstore-exif-handler*</include>
-                <include>org.locationtech.geomesa:geomesa-blobstore-handlers*</include>
+                <include>org.locationtech.geomesa:geomesa-blobstore-gdal-handler*</include>
             </includes>
         </dependencySet>
     </dependencySets>
