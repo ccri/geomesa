@@ -30,6 +30,8 @@ Introduction
 The GeoMesa BlobStore is able to handle a variety of file types by using a pluggable interface for FileHandlers.
 This allows support for new file formats to be quickly integrated. GeoMesa comes with a handler for EXIF headers,
 which are included in a variety of image formats from digital cameras that will be demonstrated by this tutorial.
+Also demonstrated in this tutorial is querying the BlobStore's DataStore index for Blobs and demonstrating the two
+step query - fetch workflow users use to interact with the BlobStore.
 
 GeoMesa BlobStore EXIF Handler Installation Instructions
 --------------------------------------------------------
@@ -63,7 +65,7 @@ Using the EXIF Handler
 In order to use our new handler, we will need to get some geotagged images.
 Below is a partial Python script that uses the Flickr API to grab some geotagged images taken around Monument Valley.
 Using the Flickr API is beyond the scope of this tutorial, however the Python code snippet is provided for those
-interested in obtaining a test data set. The below script will download 25 images to the home user directory.
+interested in obtaining a test data set. The below script will download 100 images to the home user directory.
 
 .. code-block:: python
 
@@ -77,10 +79,10 @@ interested in obtaining a test data set. The below script will download 25 image
     photos = flickr.photos_search(lat='37.0000', lon='-110.1700', radius='10', safe_search='1', extras='url_o')
 
     i = 0
-    for photo in photos[0][0:25]:
+    for photo in photos[0][0:100]:
         if 'url_o' in photo.keys():
             url = photo.attrib['url_o']
-            with open('~/flickr{}.jpg'.format(i), 'wb') as fd:
+            with open('~/flickr_{0:03d}.jpg'.format(i), 'wb') as fd:
                 r = requests.get(url)
                 for chunk in r.iter_content(1024):
                     fd.write(chunk)
@@ -99,21 +101,68 @@ To ingest the files, we can write a simple bash loop to use cURL on each file to
 
     $ for f in *.jpg; do curl -X POST -F file=@$f http://localhost:8080/geoserver/geomesa/blobstore/blob/myblobstore ; done
 
-Files have now been ingested.
+The files have now been ingested.
 
 
 Register Index table in GeoServer
 ---------------------------------
 
-The BlobStore index tables are ordinary GeoTools Data Stores, so the registration in GeoServer is no different.
+The BlobStore index DataStore is an ordinary GeoTools DataStore, so the registration in GeoServer is no different than for other DataStores.
+For an example of registering a DataStore in GeoServer please follow these :doc:`/user/geoserver.rst'.
+
+Once the layer is registered we can view the layer in the GeoServer layer previewer.
+
+TODO: picture
 
 
 Querying the Index for Blobs
 ----------------------------
 
+To Query for blobs in the spatio-temporal index we will need to enable WFS queries for the layer in GeoServer.
+Ensure the Workspace in which the BlobStore index DataStore was registered has the WFS service enabled.
+This can be verified by clicking through to Workspaces -> (your workspace) -> Checkbox next to WFS -> Save, in the GeoServer UI.
+
+TODO: picture
+
+This can also be achieved through the GeoServer REST API :doc:`http://docs.geoserver.org/stable/en/user/rest/index.html`
+which is beyond the scope of this tutorial.
+
+Explaining WFS requests are beyond the scope of this tutorial, however listed below are some links to relevant documentation.
+A detailed description of WFS can be found here :doc:`http://docs.geoserver.org/stable/en/user/services/wfs/reference.html` .
+Further details on ECQL predicates are listed here: doc:`http://docs.geoserver.org/stable/en/user/filter/ecql_reference.html#filter-ecql-reference` .
+
+Request for all features of provided type:
+
+.. code-block:: bash
+
+    $ curl -X GET 'http://localhost:9090/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob'
+
+Request for all filenames contained in index:
+
+.. code-block:: bash
+
+    $ curl -X GET 'http://localhost:9090/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=<workspace>:blob'
+
+Request for all features within a BBOX via ECQL:
+
+.. code-block:: bash
+
+    $ curl -X GET 'http://localhost:9090/geoserver/wfs?service=wfs&version=2.0.0&request=GetFeature&typeNames=workspace:blob&cql_filter=BBOX(geom,0,0,90,180)'
+
 
 Downloading Blobs
 -----------------
 
+After performing a WFS query for relevant blob ids, you can use the BlobStore RESTful api to download a given blob by
+the blob id and alias for the BlobStore.
 
+.. code-block:: bash
+
+    $ curl -JO http://localhost:8080/geoserver/geomesa/blobstore/blob/:alias/some-id/
+
+You can also use the GZip support to minimize network utilization by running
+
+.. code-block:: bash
+
+    $ curl --compressed -JO http://localhost:8080/geoserver/geomesa/blobstore/blob/:alias/some-id
 
