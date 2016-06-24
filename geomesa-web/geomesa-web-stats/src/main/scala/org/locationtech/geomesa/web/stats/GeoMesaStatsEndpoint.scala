@@ -9,22 +9,23 @@
 package org.locationtech.geomesa.web.stats
 
 import com.typesafe.scalalogging.LazyLogging
-import com.vividsolutions.jts.geom.Geometry
 import org.geotools.filter.text.ecql.ECQL
 import org.json4s.{DefaultFormats, Formats}
-import org.locationtech.geomesa.accumulo.data.stats.GeoMesaStats
-import org.locationtech.geomesa.tools.accumulo.commands.stats.{StatsHistogramCommand, StatsCommand}
-import org.locationtech.geomesa.utils.stats.{Histogram, Stat, MinMax}
+import org.locationtech.geomesa.tools.accumulo.commands.stats.StatsCommand
+import org.locationtech.geomesa.utils.stats.{Histogram, MinMax, Stat}
 import org.locationtech.geomesa.web.core.GeoMesaServletCatalog.GeoMesaLayerInfo
 import org.locationtech.geomesa.web.core.{GeoMesaScalatraServlet, GeoMesaServletCatalog}
-import org.scalatra.BadRequest
+import org.scalatra.{Ok, BadRequest}
 import org.scalatra.json._
+import org.scalatra.swagger._
 
 import scala.collection.JavaConversions._
 import scala.reflect.ClassTag
 
-class GeoMesaStatsEndpoint extends GeoMesaScalatraServlet with LazyLogging with NativeJsonSupport {
+class GeoMesaStatsEndpoint(implicit val swagger: Swagger) extends GeoMesaScalatraServlet with LazyLogging with NativeJsonSupport with SwaggerSupport {
   override def root: String = "stats"
+
+  override protected def applicationDescription: String = "The GeoMesa Stats API"
 
   override def defaultFormat: Symbol = 'json
   override protected implicit def jsonFormats: Formats = DefaultFormats
@@ -35,6 +36,30 @@ class GeoMesaStatsEndpoint extends GeoMesaScalatraServlet with LazyLogging with 
     contentType = formats(format)
   }
 
+  val getCount =
+    (apiOperation[Long]("getCount")
+      summary "Retrieves an estimated count of simple features."
+      notes "Retrieves an estimated count of simple features from the stats table in Accumulo."
+
+      parameters (
+      pathParam[String]("workspace").description("GeoServer workspace"),
+      pathParam[String]("layer").description("GeoServer layer"),
+      queryParam[Option[String]]("cql_filter").description("A CQL filter to compute the count of simple features against. If omitted, the CQL filter will be Filter.INCLUDE."))
+      )
+
+  get("/") {
+    GeoMesaServletCatalog.getKeys.foreach { case (ws, layer) =>
+      logger.info(s"***  WS: $ws layer: $layer")
+    }
+    Ok()
+  }
+
+  get("/foo") {
+    GeoMesaServletCatalog.getKeys.map { case (ws, layer) =>
+      logger.info(s"***  WS: $ws layer: $layer")
+    }
+  }
+
   /**
     * Retrieves an estimated count of the features.
     * (only works against attributes which are cached in the stats table)
@@ -42,7 +67,7 @@ class GeoMesaStatsEndpoint extends GeoMesaScalatraServlet with LazyLogging with 
     * params:
     *   'cql_filter' - Optional CQL filter.
     */
-  get("/:workspace/:layer/count") {
+  get("/:workspace/:layer/count", operation(getCount)) {
     retrieveLayerInfo("count") match {
       case Some(statInfo) =>
         val layer = params("layer")

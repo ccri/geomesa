@@ -6,7 +6,7 @@
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
-package org.locationtech.geomesa.web.core
+package org.locationtech.geomesa.web.stats
 
 import javax.servlet.ServletContext
 import javax.servlet.http.{HttpServletRequestWrapper, HttpServletResponse, HttpServletRequest}
@@ -64,13 +64,17 @@ class SpringScalatraBootstrap extends ApplicationContextAware with ServletContex
   @BeanProperty var servletContext: ServletContext = _
   @BeanProperty var rootPath: String = _
 
+  implicit val swagger = new GeoMesaStatsSwagger
+
   def init(): Unit = {
     val richCtx = new RichServletContext(servletContext)
-    val servlets = applicationContext.getBeansOfType(classOf[GeoMesaScalatraServlet])
-    for ((name, servlet) <- servlets) {
-      val path = s"/$rootPath/${servlet.root}"
-      logger.info(s"Mounting servlet bean '$name' at path '$path'")
-      richCtx.mount(servlet, s"$path/*", s"$path")
-    }
+//    val servlets = applicationContext.getBeansOfType(classOf[GeoMesaScalatraServlet])
+//    for ((name, servlet) <- servlets) {
+//      val path = s"/$rootPath/${servlet.root}"
+//      logger.info(s"Mounting servlet bean '$name' at path '$path'")
+//      richCtx.mount(servlet, s"$path/*", s"$path")
+//    }
+    richCtx.mount(new GeoMesaStatsEndpoint, "/stats", "stats")
+    richCtx.mount(new ResourcesApp, "/api-docs")
   }
 }
