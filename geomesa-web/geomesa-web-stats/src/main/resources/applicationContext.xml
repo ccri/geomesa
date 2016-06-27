@@ -3,8 +3,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean name="scalatraBootstrap" class="org.locationtech.geomesa.web.stats.SpringScalatraBootstrap" init-method="init">
-        <property name="rootPath" value="geomesa"/>
+    <bean name="scalatraBootstrap" class="org.locationtech.geomesa.web.stats.SpringStatsScalatraBootstrap" init-method="init">
     </bean>
 
     <!--<bean name="geomesaStatsEndpoint" class="org.locationtech.geomesa.web.stats.GeoMesaStatsEndpoint"/>-->

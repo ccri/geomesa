@@ -15,9 +15,9 @@ import org.locationtech.geomesa.tools.accumulo.commands.stats.StatsCommand
 import org.locationtech.geomesa.utils.stats.{Histogram, MinMax, Stat}
 import org.locationtech.geomesa.web.core.GeoMesaServletCatalog.GeoMesaLayerInfo
 import org.locationtech.geomesa.web.core.{GeoMesaScalatraServlet, GeoMesaServletCatalog}
-import org.scalatra.{Ok, BadRequest}
 import org.scalatra.json._
 import org.scalatra.swagger._
+import org.scalatra.{BadRequest, Ok}
 
 import scala.collection.JavaConversions._
 import scala.reflect.ClassTag
@@ -37,14 +37,14 @@ class GeoMesaStatsEndpoint(implicit val swagger: Swagger) extends GeoMesaScalatr
   }
 
   val getCount =
-    (apiOperation[Long]("getCount")
+    (apiOperation[String]("getCount")
       summary "Retrieves an estimated count of simple features."
       notes "Retrieves an estimated count of simple features from the stats table in Accumulo."
-
       parameters (
       pathParam[String]("workspace").description("GeoServer workspace"),
       pathParam[String]("layer").description("GeoServer layer"),
       queryParam[Option[String]]("cql_filter").description("A CQL filter to compute the count of simple features against. If omitted, the CQL filter will be Filter.INCLUDE."))
+//      endpoint "{count}"
       )
 
   get("/") {
