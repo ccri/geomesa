@@ -8,6 +8,8 @@
 
 package org.locationtech.geomesa.web.stats
 
+import javax.servlet.http.{HttpServletRequestWrapper, HttpServletResponse, HttpServletRequest}
+
 import com.typesafe.scalalogging.LazyLogging
 import org.geotools.filter.text.ecql.ECQL
 import org.json4s.{DefaultFormats, Formats}
@@ -29,6 +31,18 @@ class GeoMesaStatsEndpoint(implicit val swagger: Swagger) extends GeoMesaScalatr
 
   override def defaultFormat: Symbol = 'json
   override protected implicit def jsonFormats: Formats = DefaultFormats
+
+  // GeoServer's AdvancedDispatcherFilter tries to help us out, but it gets in the way.
+  //  For our purposes, we want to unwrap those filters.
+  // CorsSupport and other Scalatra classes/traits override handle, and will choke on GS's ADF:(
+  // To fix this, we need to have this unwrapping happen.
+  //  We can achieve that in one of two ways:
+  //  1.  Put the below override in this class.
+  //  2.  Make a trait which has this override in and make sure it appears last (or merely latter than CorsSupport, etc.)
+  override def handle(req: HttpServletRequest, res: HttpServletResponse): Unit = req match {
+    case r: HttpServletRequestWrapper => super.handle(r.getRequest.asInstanceOf[HttpServletRequest], res)
+    case _ => super.handle(req, res)
+  }
 
   logger.info("*** Starting the stats REST API endpoint!")
 
