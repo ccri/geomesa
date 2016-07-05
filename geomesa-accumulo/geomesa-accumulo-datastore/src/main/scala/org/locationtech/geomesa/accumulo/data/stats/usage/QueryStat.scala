@@ -27,6 +27,7 @@ case class QueryStat(typeName: String,
                      hints:    String,
                      planTime: Long,
                      scanTime: Long,
+                     totalTime: Long,
                      hits:     Long) extends UsageStat
 
 /**
@@ -86,7 +87,7 @@ object QueryStatTransform extends UsageStatTransform[QueryStat] {
     val scanTime = values.getOrElse(CQ_SCANTIME, 0L).asInstanceOf[Long]
     val hits = values.getOrElse(CQ_HITS, 0).asInstanceOf[Int]
 
-    QueryStat(featureName, date, user, queryFilter, queryHints, planTime, scanTime, hits)
+    QueryStat(featureName, date, user, queryFilter, queryHints, planTime, scanTime, planTime + scanTime, hits)
   }
 
   // list of query hints we want to persist
