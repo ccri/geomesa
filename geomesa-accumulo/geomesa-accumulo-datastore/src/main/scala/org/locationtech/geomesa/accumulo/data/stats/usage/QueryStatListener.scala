@@ -35,7 +35,6 @@ object QueryStatListener {
 
   case class Column(name: String, binding: ColumnType)
 
-
   object Columns {
     val Id =                  Column("id",                  ColumnType.STRING)
     val TypeName =            Column("typeName",            ColumnType.STRING)
@@ -74,23 +73,16 @@ object QueryStatListener {
       override def run(callback: UpdateCallback): Unit = {
         val update = callback.insertInto(table)
         update.value(Id.name, UUID.randomUUID().toString)
+
         if (data.typeName != null) { update.value(TypeName.name, data.typeName) }
         if (data.user != null) { update.value(User.name, data.user) }
-        if (data.filter != null) {
-          val filter: String = data.filter
-          update.value(Filter.name, filter)
-
-          /*val filter: Array[String] = query.split("&").filter(_.startsWith("CQL_FILTER")).map(_.substring(11))
-          if (filter.length == 1) {
-            update.value(Filter.name, filter(0))
-          }*/
-        }
-        if (data.planTime != null) { update.value(PlanTime.name, data.planTime)}
-        if (data.scanTime != null) { update.value(ScanTime.name, data.scanTime)}
-        update.value(TotalTime.name, data.totalTime)
-        if (data.date != null) { update.value(Date.name, data.date)}
+        if (data.filter != null) { update.value(Filter.name, data.filter) }
+        update.value(PlanTime.name, data.planTime)
+        update.value(ScanTime.name, data.scanTime)
+        update.value(TotalTime.name, data.planTime + data.scanTime)
+        update.value(Date.name, data.date)
         if (data.hints != null) { update.value(Hints.name, data.hints)}
-        if (data.hits != null) { update.value(Hits.name, data.hits)}
+        update.value(Hits.name, data.hits)
         update.execute()
       }
     }
