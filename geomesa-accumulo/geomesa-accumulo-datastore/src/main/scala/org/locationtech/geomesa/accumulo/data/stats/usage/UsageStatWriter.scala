@@ -1,7 +1,6 @@
 package org.locationtech.geomesa.accumulo.data.stats.usage
 
 import java.io.Closeable
-import java.util.ServiceLoader
 import org.springframework.context.{ApplicationContext, ApplicationContextAware}
 
 trait UsageStatWriter extends Closeable {
@@ -15,8 +14,6 @@ object UsageStatWriter extends ApplicationContextAware  {
   def getUsageStatWriter: Option[UsageStatWriter] = {
 
     val writers = context.getBeansOfType(classOf[UsageStatWriter]).values().iterator()
-
-    //ServiceLoader.load(classOf[UsageStatWriter]).iterator()
 
     if (writers.hasNext) {
       val ret = writers.next
