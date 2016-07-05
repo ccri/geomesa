@@ -50,6 +50,7 @@ object MetaModelUsageStatWriter {
     val Filter =              Column("filter",              ColumnType.STRING)
     val Hints =               Column("hints",               ColumnType.STRING)
     val Hits  =               Column("hits",                ColumnType.INTEGER)
+    val QueryPlan =           Column("queryPlan",           ColumnType.STRING)
   }
 
   def createTableScript(schema: Schema, table: String): UpdateScript =
@@ -67,6 +68,7 @@ object MetaModelUsageStatWriter {
         update.withColumn(Filter.name).ofType(Filter.binding)
         update.withColumn(Hints.name).ofType(Hints.binding)
         update.withColumn(Hits.name).ofType(Hits.binding)
+        update.withColumn(QueryPlan.name).ofType(QueryPlan.binding)
         update.execute()
       }
     }
@@ -87,8 +89,8 @@ object MetaModelUsageStatWriter {
         update.value(Date.name, data.date)
         if (data.hints != null) { update.value(Hints.name, data.hints)}
         update.value(Hits.name, data.hits)
+        if (data.queryPlan != null) { update.value(QueryPlan.name, data.queryPlan)}
         update.execute()
       }
     }
-
 }
