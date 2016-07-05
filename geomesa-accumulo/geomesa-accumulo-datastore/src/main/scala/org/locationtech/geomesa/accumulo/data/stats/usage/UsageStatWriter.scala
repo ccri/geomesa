@@ -1,83 +1,35 @@
-/***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
-
 package org.locationtech.geomesa.accumulo.data.stats.usage
 
 import java.io.Closeable
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
+import java.util.ServiceLoader
+import org.springframework.context.{ApplicationContext, ApplicationContextAware}
 
-import com.google.common.util.concurrent.MoreExecutors
-import com.typesafe.scalalogging.LazyLogging
-import org.apache.accumulo.core.client.{BatchWriter, Connector}
-import org.apache.accumulo.core.data.Mutation
-import org.locationtech.geomesa.accumulo.AccumuloVersion
-import org.locationtech.geomesa.accumulo.util.GeoMesaBatchWriterConfig
+trait UsageStatWriter extends Closeable {
+  def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit
+}
 
-/**
- * Manages writing of usage stats in a background thread.
- */
-class UsageStatWriter(connector: Connector, table: String) extends Runnable with Closeable with LazyLogging {
+object UsageStatWriter extends ApplicationContextAware  {
 
-  // initial schedule
-  UsageStatWriter.executor.schedule(this, writeDelayMillis, TimeUnit.MILLISECONDS)
+  var context: ApplicationContext = null
 
-  private val writeDelayMillis = 5000
+  def getUsageStatWriter: Option[UsageStatWriter] = {
 
-  private val batchWriterConfig = GeoMesaBatchWriterConfig().setMaxMemory(10000L).setMaxWriteThreads(5)
+    val writers = context.getBeansOfType(classOf[UsageStatWriter]).values().iterator()
 
-  private var maybeWriter: BatchWriter = null
+    //ServiceLoader.load(classOf[UsageStatWriter]).iterator()
 
-  private val running = new AtomicBoolean(true)
-
-  private val queue = new java.util.concurrent.ConcurrentLinkedQueue[() => Mutation]
-
-  /**
-   * Queues a stat for writing
-   */
-  def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit =
-    queue.offer(() => transform.statToMutation(stat))
-
-  override def run() = {
-    var toMutation = queue.poll()
-    if (toMutation != null) {
-      val writer = getWriter
-      do {
-        writer.addMutation(toMutation())
-        toMutation = queue.poll()
-      } while (toMutation != null && running.get)
-      writer.flush()
-    }
-
-    if (running.get) {
-      UsageStatWriter.executor.schedule(this, writeDelayMillis, TimeUnit.MILLISECONDS)
+    if (writers.hasNext) {
+      val ret = writers.next
+      println(s"Found a Service loaded $ret")
+      Some(ret)
+    } else {
+      None
     }
   }
 
-  override def close(): Unit = {
-    running.set(false)
-    synchronized {
-      if (maybeWriter != null) {
-        maybeWriter.close()
-      }
-    }
-  }
-
-  private def getWriter: BatchWriter = synchronized {
-    if (maybeWriter == null) {
-      AccumuloVersion.ensureTableExists(connector, table)
-      maybeWriter = connector.createBatchWriter(table, batchWriterConfig)
-    }
-    maybeWriter
+  override def setApplicationContext(applicationContext: ApplicationContext): Unit = {
+    println("*** In Set ApplicationContext.")
+    this.context = applicationContext
   }
 }
 
-object UsageStatWriter {
-  private val executor = MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(5))
-  sys.addShutdownHook(executor.shutdownNow())
-}

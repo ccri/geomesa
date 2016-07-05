@@ -10,9 +10,9 @@ import org.apache.metamodel.{UpdateCallback, UpdateScript, UpdateableDataContext
   * @param context metamodel data context
   * @param tableName table to write to, in the default schema.
   */
-class QueryStatListener(context: UpdateableDataContext, tableName: String) {
+class MetaModelUsageStatWriter(context: UpdateableDataContext, tableName: String) extends UsageStatWriter {
 
-  import QueryStatListener._
+  import MetaModelUsageStatWriter._
 
   val table = {
     val schema = context.getDefaultSchema
@@ -25,13 +25,17 @@ class QueryStatListener(context: UpdateableDataContext, tableName: String) {
     }
   }
 
-  def requestCompleted(queryStatData: QueryStat): Unit =
-    context.executeUpdate(createAuditScript(table, queryStatData))
+  override def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit = {
+    stat match {
+      case qs: QueryStat =>  context.executeUpdate(createAuditScript(table, qs))
+      case _ => throw new Exception("Can't handle RasterQuery Stats")
+    }
+  }
 
-  def requestPostProcessed(queryStatData: QueryStat): Unit = {}
+  override def close(): Unit = { }
 }
 
-object QueryStatListener {
+object MetaModelUsageStatWriter {
 
   case class Column(name: String, binding: ColumnType)
 
