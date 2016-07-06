@@ -38,24 +38,24 @@ class MetaModelUsageStatWriter(context: UpdateableDataContext, tableName: String
   }
 
   override def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit = {
+//
+//    val jsonStat = gson.toJson(stat)
+//    println(s"Json version of stat: $jsonStat")
+//
+//    val post = new HttpPost("http://elderberry:9200/gs-query-stats/1")
+//    val contentType: ContentType = ContentType.APPLICATION_JSON
+//    post.setEntity(new StringEntity(jsonStat, contentType))
+//    post.setHeader(new BasicHeader("Content-type", contentType.getMimeType))
+//
+//    println("\n Trying to write to elderberry")
+//    val response = client.execute(post)
+//    post.releaseConnection()
+//    println(s" Finished write attempt... $response")
 
-    val jsonStat = gson.toJson(stat)
-    println(s"Json version of stat: $jsonStat")
-
-    val post = new HttpPost("http://elderberry:9200/gs-query-stats/1")
-    val contentType: ContentType = ContentType.APPLICATION_JSON
-    post.setEntity(new StringEntity(jsonStat, contentType))
-    post.setHeader(new BasicHeader("Content-type", contentType.getMimeType))
-
-    println("\n Trying to write to elderberry")
-    val response = client.execute(post)
-    post.releaseConnection()
-    println(s" Finished write attempt... $response")
-
-//    stat match {
-//      case qs: QueryStat =>  context.executeUpdate(createAuditScript(table, qs))
-//      case _ => throw new Exception("Can't handle RasterQuery Stats")
-//    }
+    stat match {
+      case qs: QueryStat =>  context.executeUpdate(createAuditScript(table, qs))
+      case _ => throw new Exception("Can't handle RasterQuery Stats")
+    }
   }
 
   override def close(): Unit = { }

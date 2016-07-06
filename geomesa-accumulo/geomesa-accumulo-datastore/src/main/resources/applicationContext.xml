@@ -9,16 +9,23 @@ http://www.springframework.org/schema/data/elasticsearch/spring-elasticsearch-1.
 
     <!---->
     <bean id="mmUsageStatWriter" class="org.locationtech.geomesa.accumulo.data.stats.usage.MetaModelUsageStatWriter">
-        <constructor-arg index="0" ref="esDataContext"/>
+        <constructor-arg index="0" ref="auditDataContext"/>
         <constructor-arg index="1" value="geomesa.audit"/>
     </bean>
 
-    <bean id="esDataContext" class="org.apache.metamodel.elasticsearch.nativeclient.ElasticSearchDataContext">
-        <constructor-arg index="0" ref="esClient"/>
-        <constructor-arg index="1" value="gs-query-stats"/>
+    <bean id="auditDataContext" class="org.apache.metamodel.csv.CsvDataContext">
+        <constructor-arg index="0" ref="auditFile"/>
+    </bean>
+    <bean id="auditFile" class="java.io.File">
+        <constructor-arg index="0" value="/tmp/geomesa-audit.csv"/>
     </bean>
 
-    <elasticsearch:transport-client id="esClient" cluster-nodes="elderberry:9300" />
+    <!--<bean id="esDataContext" class="org.apache.metamodel.elasticsearch.nativeclient.ElasticSearchDataContext">-->
+        <!--<constructor-arg index="0" ref="esClient"/>-->
+        <!--<constructor-arg index="1" value="gs-query-stats"/>-->
+    <!--</bean>-->
+
+    <!--<elasticsearch:transport-client id="esClient" cluster-nodes="elderberry:9300" />-->
 
     <bean class="org.locationtech.geomesa.accumulo.data.stats.usage.UsageStatWriter$" />
 
