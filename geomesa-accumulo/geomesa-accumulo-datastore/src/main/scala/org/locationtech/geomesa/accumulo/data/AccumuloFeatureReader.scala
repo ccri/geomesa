@@ -82,13 +82,23 @@ class AccumuloFeatureReaderWithStats(query: Query,
     extends AccumuloFeatureReader(query, timeout, maxFeatures) with MethodProfiling {
 
   implicit val timings = new TimingsImpl
-  private val iter = profile(qp.runQuery(query), "planning")
+
+  val explainer = new ExplainerOutputType {
+    val sb = new StringBuilder
+
+    override protected def output(s: => String): Unit = {
+      sb.append(s)
+    }
+  }
+
+  private val iter = profile(qp.runQuery(query, output = explainer), "planning")
 
   override def next(): SimpleFeature = profile(iter.next(), "next")
   override def hasNext: Boolean = profile(iter.hasNext, "hasNext")
 
   override protected def closeOnce(): Unit = {
     iter.close()
+
     val stat = QueryStat(qp.sft.getTypeName,
       System.currentTimeMillis(),
       auditProvider.getCurrentUserId,
@@ -96,7 +106,8 @@ class AccumuloFeatureReaderWithStats(query: Query,
       QueryStatTransform.hintsToString(query.getHints),
       timings.time("planning"),
       timings.time("next") + timings.time("hasNext"),
-      count
+      count,
+      explainer.sb.mkString
     )
     sw.writeUsageStat(stat) // note: implementation is asynchronous
   }

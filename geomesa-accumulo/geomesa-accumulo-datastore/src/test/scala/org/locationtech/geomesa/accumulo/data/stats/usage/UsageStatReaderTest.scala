@@ -30,7 +30,7 @@ class UsageStatReaderTest extends Specification {
 
   val auths = new Authorizations()
 
-  val writer = new UsageStatWriter(connector, statsTable)
+  val writer = new AccumuloUsageStatWriter(connector, statsTable)
 
   def writeStat(stats: Seq[QueryStat], tableName: String) = {
     stats.foreach(writer.queueStat(_))

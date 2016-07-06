@@ -50,7 +50,10 @@ trait HasGeoMesaUsageStats {
 class GeoMesaUsageStatsImpl(connector: Connector, usageStatsTable: String, collectUsageStats: Boolean)
     extends GeoMesaUsageStats {
 
-  private val usageWriter = if (collectUsageStats) new UsageStatWriter(connector, usageStatsTable) else null
+  private lazy val usageWriter: UsageStatWriter = if (collectUsageStats) {
+    UsageStatWriter.getUsageStatWriter.getOrElse(new AccumuloUsageStatWriter(connector, usageStatsTable))
+  } else null
+
   private val usageReader = new UsageStatReader(connector, usageStatsTable)
 
   override def writeUsageStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit =
