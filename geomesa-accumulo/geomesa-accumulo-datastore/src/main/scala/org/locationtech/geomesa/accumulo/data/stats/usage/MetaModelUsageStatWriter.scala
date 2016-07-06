@@ -2,8 +2,15 @@ package org.locationtech.geomesa.accumulo.data.stats.usage
 
 import java.util.UUID
 
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.entity.{ContentType, StringEntity}
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.message.BasicHeader
 import org.apache.metamodel.schema.{ColumnType, Schema, Table}
 import org.apache.metamodel.{UpdateCallback, UpdateScript, UpdateableDataContext}
+
+import com.google.gson.Gson
+
 /**
   *
   *
@@ -11,6 +18,11 @@ import org.apache.metamodel.{UpdateCallback, UpdateScript, UpdateableDataContext
   * @param tableName table to write to, in the default schema.
   */
 class MetaModelUsageStatWriter(context: UpdateableDataContext, tableName: String) extends UsageStatWriter {
+
+  val gson = new Gson()
+
+  val client = new DefaultHttpClient
+  //val client = HttpClients.createDefault()
 
   import MetaModelUsageStatWriter._
 
@@ -26,10 +38,24 @@ class MetaModelUsageStatWriter(context: UpdateableDataContext, tableName: String
   }
 
   override def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit = {
-    stat match {
-      case qs: QueryStat =>  context.executeUpdate(createAuditScript(table, qs))
-      case _ => throw new Exception("Can't handle RasterQuery Stats")
-    }
+
+    val jsonStat = gson.toJson(stat)
+    println(s"Json version of stat: $jsonStat")
+
+    val post = new HttpPost("http://elderberry:9200/gs-query-stats/1")
+    val contentType: ContentType = ContentType.APPLICATION_JSON
+    post.setEntity(new StringEntity(jsonStat, contentType))
+    post.setHeader(new BasicHeader("Content-type", contentType.getMimeType))
+
+    println("\n Trying to write to elderberry")
+    val response = client.execute(post)
+    post.releaseConnection()
+    println(s" Finished write attempt... $response")
+
+//    stat match {
+//      case qs: QueryStat =>  context.executeUpdate(createAuditScript(table, qs))
+//      case _ => throw new Exception("Can't handle RasterQuery Stats")
+//    }
   }
 
   override def close(): Unit = { }
