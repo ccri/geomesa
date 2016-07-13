@@ -13,35 +13,38 @@ import java.util.Date
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Coordinate
 import org.geotools.data.Query
+import org.geotools.data.simple.SimpleFeatureSource
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.accumulo.TestWithDataStore
 import org.locationtech.geomesa.accumulo.filter.TestFilters._
 import org.locationtech.geomesa.accumulo.iterators.TestData
+import org.locationtech.geomesa.accumulo.{TestWithDataStore, TestWithMultipleSfts}
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.avro.AvroSimpleFeatureFactory
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.SimpleFeature
 import org.opengis.filter._
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-
 @RunWith(classOf[JUnitRunner])
-class FilterTester extends Specification with TestWithDataStore with LazyLogging {
+class FilterTest extends Specification with TestWithMultipleSfts with LazyLogging {
 
-  override val spec = SimpleFeatureTypes.encodeType(TestData.featureType)
+  lazy val defaultSft = createNewSchema(SimpleFeatureTypes.encodeType(TestData.featureType, true))
+  lazy val defaultTypeName = defaultSft.getTypeName
 
-  val mediumDataFeatures: Seq[SimpleFeature] =
-    TestData.mediumData.map(TestData.createSF).map(f => new ScalaSimpleFeature(f.getID, sft, f.getAttributes.toArray))
-
-  addFeatures(mediumDataFeatures)
+  lazy val mediumDataFeatures: Seq[SimpleFeature] =
+    TestData.mediumData.map(TestData.createSF).map(f => new ScalaSimpleFeature(f.getID, defaultSft, f.getAttributes.toArray))
 
   "Filters" should {
+
+    addFeatures(defaultSft, mediumDataFeatures)
+
     "filter correctly for all predicates" >> {
       runTest(goodSpatialPredicates)
     }
@@ -55,7 +58,7 @@ class FilterTester extends Specification with TestWithDataStore with LazyLogging
     }
 
     "filter correctly for OR geom predicates with projections" >> {
-      runTest(oredSpatialPredicates, Array("geom"))
+      runTest(oredSpatialPredicates, projection = Array("geom"))
     }
 
     "filter correctly for basic temporal predicates" >> {
@@ -66,7 +69,7 @@ class FilterTester extends Specification with TestWithDataStore with LazyLogging
       runTest(spatioTemporalPredicates)
     }
 
-    "filter correctly for basic spariotemporal predicates with namespaces" >> {
+    "filter correctly for basic spatiotemporal predicates with namespaces" >> {
       runTest(spatioTemporalPredicatesWithNS)
     }
 
@@ -89,20 +92,45 @@ class FilterTester extends Specification with TestWithDataStore with LazyLogging
     "filter correctly for ID predicates" >> {
       runTest(idPredicates)
     }
+
+    "filter correctly for CONTAINS filters against schemas with MultiPolygon geoms" >> {
+      val sft = createNewSchema("geom:MultiPolygon:srid=4326,dtg:Date")
+      val sftName = sft.getTypeName
+      val feature = new ScalaSimpleFeature("1", sft)
+      val multiPolygon = "MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)), ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35), (30 20, 20 15, 20 25, 30 20)))"
+
+      feature.setAttribute(0, WKTUtils.read(multiPolygon))
+      feature.setAttribute(1, "2014-01-01T00:00:00.000Z")
+
+      addFeature(sft, feature)
+
+      val filter = "CONTAINS(geom, POINT(23 20))"
+      runTest(Seq(filter), sftName, Seq(feature))
+    }
   }
 
-  def compareFilter(filter: Filter, projection: Array[String]) = {
-    val filterCount = mediumDataFeatures.count(filter.evaluate)
-    val query = new Query(sftName, filter)
+  def compareFilter(filter: Filter,
+                    fs: SimpleFeatureSource,
+                    dataFeatures: Seq[SimpleFeature],
+                    projection: Array[String]) = {
+
+    val filterCount = dataFeatures.count(filter.evaluate)
+    val query = new Query(defaultTypeName, filter)
     Option(projection).foreach(query.setPropertyNames)
     val queryCount = fs.getFeatures(query).size
-    logger.debug(s"\nFilter: ${ECQL.toCQL(filter)}\nFullData size: ${mediumDataFeatures.size}: " +
+    logger.info(s"\nFilter: ${ECQL.toCQL(filter)}\nFullData size: ${dataFeatures.size}: " +
         s"filter hits: $filterCount query hits: $queryCount")
     queryCount mustEqual filterCount
   }
 
-  def runTest(filters: Seq[String], projection: Array[String] = null) =
-    forall(filters.map(ECQL.toFilter))(compareFilter(_, projection))
+  def runTest(filters: Seq[String],
+              sftName: String = defaultTypeName,
+              dataFeatures: Seq[SimpleFeature] = mediumDataFeatures,
+              projection: Array[String] = null) = {
+
+    val fs = ds.getFeatureSource(sftName)
+    forall(filters.map(ECQL.toFilter))(compareFilter(_, fs, dataFeatures, projection))
+  }
 }
 
 @RunWith(classOf[JUnitRunner])

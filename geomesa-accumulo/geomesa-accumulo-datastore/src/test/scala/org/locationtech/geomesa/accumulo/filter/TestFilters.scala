@@ -98,7 +98,8 @@ object TestFilters {
       "INTERSECTS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
       "OVERLAPS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
       "WITHIN(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
-      "CONTAINS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
+      "CONTAINS(POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)), geom)",
+      "CONTAINS(MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)), ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35), (30 20, 20 15, 20 25, 30 20))), geom)",
       "CROSSES(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
       "BBOX(geom, 45, 23, 48, 27)"
     )
