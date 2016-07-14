@@ -17,7 +17,6 @@ import org.geotools.data.{FilteringFeatureReader, Query}
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.feature.NameImpl
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
-import org.geotools.filter.FidFilterImpl
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.locationtech.geomesa.filter.FilterHelper._
 import org.locationtech.geomesa.kafka.KafkaDataStore.FeatureSourceFactory
@@ -28,8 +27,8 @@ import org.locationtech.geomesa.utils.geotools._
 import org.locationtech.geomesa.utils.index.QuadTreeFeatureStore
 import org.opengis.feature.`type`.Name
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.filter.spatial.{BBOX, BinarySpatialOperator, Intersects, Within}
 import org.opengis.filter._
+import org.opengis.filter.spatial.{BBOX, Intersects, Within}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -143,20 +142,20 @@ object KafkaConsumerFeatureSourceFactory {
       Option(KafkaDataStoreFactoryParams.CLEANUP_LIVE_CACHE.lookUp(params).asInstanceOf[Boolean]).getOrElse(false)
     }
 
-    (entry: ContentEntry, schemaManager: KafkaDataStoreSchemaManager) => {
+    (entry: ContentEntry, query: Query, schemaManager: KafkaDataStoreSchemaManager) => {
       val kf = new KafkaConsumerFactory(brokers, zk)
       val fc = schemaManager.getFeatureConfig(entry.getTypeName)
 
       fc.replayConfig match {
         case None =>
-          new LiveKafkaConsumerFeatureSource(entry, fc.sft, fc.topic, kf, expirationPeriod, cleanUpCache)
+          new LiveKafkaConsumerFeatureSource(entry, fc.sft, fc.topic, kf, expirationPeriod, cleanUpCache, query)
 
         case Some(rc) =>
           val replaySFT = fc.sft
           val liveSFT = schemaManager.getLiveFeatureType(replaySFT)
             .getOrElse(throw new IllegalArgumentException(
               "Cannot create Replay FeatureSource because SFT has not been properly prepared."))
-          new ReplayKafkaConsumerFeatureSource(entry, replaySFT, liveSFT, fc.topic, kf, rc)
+          new ReplayKafkaConsumerFeatureSource(entry, replaySFT, liveSFT, fc.topic, kf, rc, query)
       }
     }
   }
