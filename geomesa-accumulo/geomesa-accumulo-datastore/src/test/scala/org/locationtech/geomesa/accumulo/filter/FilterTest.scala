@@ -97,15 +97,26 @@ class FilterTest extends Specification with TestWithMultipleSfts with LazyLoggin
       val sft = createNewSchema("geom:MultiPolygon:srid=4326,dtg:Date")
       val sftName = sft.getTypeName
       val feature = new ScalaSimpleFeature("1", sft)
-      val multiPolygon = "MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)), ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35), (30 20, 20 15, 20 25, 30 20)))"
+      // this multiPolygon is a BBOX within a BBOX
+      val multiPolygon = "MULTIPOLYGON(((0 50, 0 20, 30 20, 30 50, 0 50), (10 40, 10 30, 20 30, 20 40, 10 40)))"
 
       feature.setAttribute(0, WKTUtils.read(multiPolygon))
       feature.setAttribute(1, "2014-01-01T00:00:00.000Z")
 
       addFeature(sft, feature)
 
-      val filter = "CONTAINS(geom, POINT(23 20))"
-      runTest(Seq(filter), sftName, Seq(feature))
+      val filters = Seq(
+        "CONTAINS(geom, POINT (-5 35))",
+        "CONTAINS(geom, POINT (5 35))",
+        "CONTAINS(geom, POINT (15 35))",
+        "CONTAINS(geom, POINT (25 35))",
+        "CONTAINS(geom, POINT (35 35))",
+        "CONTAINS(geom, LINESTRING (-5 35, 5 35))",
+        "CONTAINS(geom, LINESTRING (5 30, 5 40))",
+        "CONTAINS(geom, LINESTRING (5 35, 25 35))"
+      )
+
+      runTest(filters, sftName, Seq(feature))
     }
   }
 
@@ -118,9 +129,16 @@ class FilterTest extends Specification with TestWithMultipleSfts with LazyLoggin
     val query = new Query(defaultTypeName, filter)
     Option(projection).foreach(query.setPropertyNames)
     val queryCount = fs.getFeatures(query).size
-    logger.info(s"\nFilter: ${ECQL.toCQL(filter)}\nFullData size: ${dataFeatures.size}: " +
-        s"filter hits: $filterCount query hits: $queryCount")
-    queryCount mustEqual filterCount
+
+    val logStatement = s"\nFilter: ${ECQL.toCQL(filter)}\nFullData size: ${dataFeatures.size}: " +
+      s"filter hits: $filterCount query hits: $queryCount"
+    if (filterCount != queryCount) {
+      logger.error(logStatement)
+    } else {
+      logger.debug(logStatement)
+    }
+
+    (queryCount, filterCount)
   }
 
   def runTest(filters: Seq[String],
@@ -129,7 +147,8 @@ class FilterTest extends Specification with TestWithMultipleSfts with LazyLoggin
               projection: Array[String] = null) = {
 
     val fs = ds.getFeatureSource(sftName)
-    forall(filters.map(ECQL.toFilter))(compareFilter(_, fs, dataFeatures, projection))
+    val (queryCounts, filterCounts) = filters.map(ECQL.toFilter).map(compareFilter(_, fs, dataFeatures, projection)).unzip
+    queryCounts mustEqual filterCounts
   }
 }
 
