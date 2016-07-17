@@ -2042,6 +2042,9 @@
                     <version>2.10</version>
                     <configuration>
                         <header>build/ccri-copyright.txt</header>
+                        <validHeaders>
+                            <validHeader>build/fsi2016.txt</validHeader>
+                        </validHeaders>
                         <properties>
                             <year>2016</year>
                             <owner>Commonwealth Computer Research, Inc.</owner>
