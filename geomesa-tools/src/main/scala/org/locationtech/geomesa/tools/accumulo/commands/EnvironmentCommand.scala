@@ -24,11 +24,21 @@ class EnvironmentCommand(parent: JCommander) extends Command(parent) with LazyLo
 
   // TODO accumulo environment?
   override def execute(): Unit = {
-    if (params.sfts == null && params.converters == null) {
+    if (params.sfts == null && params.converters == null && !params.listSfts) {
       // default - list all
       listSfts()
       println
       listConverters()
+    } else if (params.listSfts){
+      listSfts()
+      if (params.sfts != null) {
+        println
+        listSfts(params.sfts.toList)
+      }
+      if (params.converters != null) {
+        println
+        listConverters(params.converters.toList)
+      }
     } else if (params.sfts != null) {
       // only list specified
       listSfts(params.sfts.toList)
@@ -74,5 +84,8 @@ object EnvironmentCommand {
 
     @Parameter(names = Array("-c", "--converters"), description = "Examine GeoMesa converters", variableArity = true)
     var converters: java.util.List[String] = null
+
+    @Parameter(names = Array("--listSfts"), description = "List all the Simple Feature Types")
+    var listSfts: Boolean = false
   }
 }
