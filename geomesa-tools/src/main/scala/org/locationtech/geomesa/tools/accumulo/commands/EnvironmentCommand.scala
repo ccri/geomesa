@@ -24,13 +24,17 @@ class EnvironmentCommand(parent: JCommander) extends Command(parent) with LazyLo
 
   // TODO accumulo environment?
   override def execute(): Unit = {
-    if (params.sfts == null && params.converters == null && !params.listSfts) {
+    if (params.sfts == null && params.converters == null && !params.listSfts && !params.listConverters) {
       // default - list all
       listSfts()
       println
       listConverters()
     } else if (params.listSfts){
       listSfts()
+      if (params.listConverters){
+        println
+        listConverterNames()
+      }
       if (params.sfts != null) {
         println
         listSfts(params.sfts.toList)
@@ -39,6 +43,16 @@ class EnvironmentCommand(parent: JCommander) extends Command(parent) with LazyLo
         println
         listConverters(params.converters.toList)
       }
+    } else if (params.listConverters){
+        listConverterNames()
+        if (params.sfts != null) {
+          println
+          listSfts(params.sfts.toList)
+        }
+        if (params.converters != null) {
+          println
+          listConverters(params.converters.toList)
+        }
     } else if (params.sfts != null) {
       // only list specified
       listSfts(params.sfts.toList)
@@ -74,6 +88,11 @@ class EnvironmentCommand(parent: JCommander) extends Command(parent) with LazyLo
       filtered.map { case (name, conf)=> s"\t$name\n\t${render(conf)}\n"}.foreach(println)
     }
   }
+
+  def listConverterNames(): Unit = {
+    val all = ConverterConfigLoader.confs
+    all.map { case (name, conf) => s"\t$name"}.foreach(println)
+  }
 }
 
 object EnvironmentCommand {
@@ -87,5 +106,8 @@ object EnvironmentCommand {
 
     @Parameter(names = Array("--listSfts"), description = "List all the Simple Feature Types")
     var listSfts: Boolean = false
+
+    @Parameter(names = Array("--listConverters"), description = "List all the Converter Names")
+    var listConverters: Boolean = false
   }
 }
