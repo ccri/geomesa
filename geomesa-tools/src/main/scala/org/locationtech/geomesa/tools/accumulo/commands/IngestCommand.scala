@@ -25,6 +25,7 @@ import org.locationtech.geomesa.tools.common.{CLArgResolver, OptionalFeatureType
 import org.locationtech.geomesa.utils.geotools.GeneralShapefileIngest
 
 import scala.collection.JavaConversions._
+import scala.collection.parallel.ForkJoinTaskSupport
 import scala.util.Try
 
 class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging {
@@ -53,7 +54,13 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
         URL.setURLStreamHandlerFactory(factory)
       }
 
-      params.files.foreach(GeneralShapefileIngest.shpToDataStore(_, ds, params.featureName))
+      if (params.threads > 1) {
+        val parfiles =  params.files.par
+        parfiles.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(params.threads))
+        parfiles.foreach(GeneralShapefileIngest.shpToDataStore(_, ds, params.featureName))
+      } else {
+        params.files.foreach(GeneralShapefileIngest.shpToDataStore(_, ds, params.featureName))
+      }
       ds.dispose()
     } else {
       val dsParams = new DataStoreHelper(params).paramMap
