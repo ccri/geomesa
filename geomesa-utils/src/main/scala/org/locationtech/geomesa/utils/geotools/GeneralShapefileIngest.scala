@@ -9,6 +9,7 @@
 package org.locationtech.geomesa.utils.geotools
 
 import java.io.{File, Serializable}
+import java.net.URL
 import java.util.{Map => JMap}
 
 import org.geotools.data._
@@ -24,7 +25,7 @@ object GeneralShapefileIngest {
 
   def shpToDataStoreViaParams(shapefilePath: String,
                               params: JMap[String, Serializable], featureName: String): DataStore = {
-    val shapefile =  FileDataStoreFinder.getDataStore(new File(shapefilePath))
+    val shapefile =  FileDataStoreFinder.getDataStore(new URL(shapefilePath))
     val features = shapefile.getFeatureSource.getFeatures
     val newDS = featuresToDataStoreViaParams(features, params, featureName)
     shapefile.dispose()
@@ -32,7 +33,7 @@ object GeneralShapefileIngest {
   }
 
   def shpToDataStore(shapefilePath: String, ds: DataStore, featureName: String): DataStore = {
-    val shapefile =  FileDataStoreFinder.getDataStore(new File(shapefilePath))
+    val shapefile =  FileDataStoreFinder.getDataStore(new URL(shapefilePath))
     val features = shapefile.getFeatureSource.getFeatures
     val newDS = featuresToDataStore(features, ds, featureName)
     shapefile.dispose()

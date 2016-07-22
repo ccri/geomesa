@@ -8,6 +8,7 @@
 
 package org.locationtech.geomesa.tools.accumulo.commands
 
+import java.net.URL
 import java.util
 import java.util.Locale
 
@@ -30,6 +31,11 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
   override val command = "ingest"
   override val params = new IngestParameters()
 
+  private val remotePrefixes = Seq("hdfs", "s3n", "s3a")
+
+  def isDistributedUrl(url: String) = remotePrefixes.exists(url.startsWith)
+
+
   override def execute(): Unit = {
     ensureSameFs(Seq("hdfs", "s3n", "s3a"))
 
@@ -39,6 +45,14 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
 
     if (fmt == SHP) {
       val ds = new DataStoreHelper(params).getDataStore()
+
+      // If someone is ingesting file from hdfs or S3, we add the Hadoop URL Factories to the JVM.
+      if (params.files.exists(isDistributedUrl)) {
+        import org.apache.hadoop.fs.FsUrlStreamHandlerFactory
+        val factory = new FsUrlStreamHandlerFactory
+        URL.setURLStreamHandlerFactory(factory)
+      }
+
       params.files.foreach(GeneralShapefileIngest.shpToDataStore(_, ds, params.featureName))
       ds.dispose()
     } else {
