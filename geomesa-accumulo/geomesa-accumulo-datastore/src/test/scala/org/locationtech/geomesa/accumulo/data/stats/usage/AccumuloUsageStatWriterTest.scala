@@ -18,7 +18,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class UsageStatWriterTest extends Specification {
+class AccumuloUsageStatWriterTest extends Specification {
 
   val df = DateTimeFormat.forPattern("yyyy.MM.dd HH:mm:ss")
 
@@ -36,7 +36,7 @@ class UsageStatWriterTest extends Specification {
 
     "write query stats asynchronously" in {
       skipped("concurrency issues cause intermittent failures- GEOMESA-323")
-      val writer = new UsageStatWriter(connector, statsTable)
+      val writer = new AccumuloUsageStatWriter(connector, statsTable)
 
       writer.queueStat(QueryStat(featureName,
                                  df.parseMillis("2014.07.26 13:20:01"),
