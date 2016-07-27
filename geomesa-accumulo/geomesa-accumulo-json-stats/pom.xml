@@ -27,7 +27,10 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-accumulo-datastore</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
 
         <!-- test dependencies -->
         <dependency>
