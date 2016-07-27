@@ -12,7 +12,8 @@ import java.io.Closeable
 import java.util.ServiceLoader
 
 trait UsageStatWriter extends Closeable {
-  def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit
+  //def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit
+  def writeStat[T <: UsageStat](stat: T)   // JNH: I'm tempted to make this concrete for QueryStat rather than abstract
 }
 
 object UsageStatWriter {

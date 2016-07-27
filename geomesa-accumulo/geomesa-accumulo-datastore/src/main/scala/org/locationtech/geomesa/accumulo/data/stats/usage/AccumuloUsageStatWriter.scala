@@ -40,8 +40,15 @@ class AccumuloUsageStatWriter(connector: Connector, table: String) extends Runna
   /**
    * Queues a stat for writing
    */
-  def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit =
-    queue.offer(() => transform.statToMutation(stat))
+  def queueStat[T <: UsageStat](stat: T): Unit = {
+      stat match {
+        case qs: QueryStat =>
+          queue.offer(() => QueryStatTransform.statToMutation(qs))
+        case rqs: RasterQueryStat =>
+          queue.offer(() => RasterQueryStatTransform.statToMutation(rqs))
+        case _ => // Won't write
+      }
+    }
 
   override def run() = {
     var toMutation = queue.poll()
@@ -75,6 +82,10 @@ class AccumuloUsageStatWriter(connector: Connector, table: String) extends Runna
     }
     maybeWriter
   }
+
+  import org.locationtech.geomesa.accumulo.data.stats.usage.QueryStatTransform
+  //def queueStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit
+  override def writeStat[T <: UsageStat](stat: T): Unit = queueStat(stat)
 }
 
 object AccumuloUsageStatWriter {

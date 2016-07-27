@@ -57,7 +57,7 @@ class GeoMesaUsageStatsImpl(connector: Connector, usageStatsTable: String, colle
   private val usageReader = new UsageStatReader(connector, usageStatsTable)
 
   override def writeUsageStat[T <: UsageStat](stat: T)(implicit transform: UsageStatTransform[T]): Unit =
-    if (usageWriter != null) { usageWriter.queueStat(stat)(transform) }
+    if (usageWriter != null) { usageWriter.writeStat(stat)}
 
   override def getUsageStats[T <: UsageStat](typeName: String,
                                              dates: Interval,
