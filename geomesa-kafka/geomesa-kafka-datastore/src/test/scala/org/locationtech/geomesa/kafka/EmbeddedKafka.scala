@@ -103,6 +103,9 @@ class EmbeddedKafka extends EmbeddedService[(String, String)] {
   private val brokerConf = {
     val conf = TestKafkaUtilsLoader.testKafkaUtils.createBrokerConfig(1, zkConnect)
     conf.setProperty("zookeeper.connect", zkConnect) // override to use a unique zookeeper
+    val zkTimeout: String = Option[String](System.getProperty("zkTimeout")).getOrElse("6000") // used in Travis CI
+    conf.setProperty("zookeeper.connection.timeout.ms", zkTimeout)
+    conf.setProperty("zookeeper.session.timeout.ms", zkTimeout)
     conf
   }
 
