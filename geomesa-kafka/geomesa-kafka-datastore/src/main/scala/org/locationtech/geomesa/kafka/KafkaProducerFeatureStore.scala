@@ -18,6 +18,7 @@ import kafka.producer.{Producer, ProducerConfig}
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
 import org.geotools.data.{FeatureReader, FeatureWriter, Query}
 import org.geotools.feature.FeatureCollection
+import org.geotools.feature.collection.BridgeIterator
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.kafka.KafkaDataStore.FeatureSourceFactory
@@ -47,10 +48,11 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
   override def addFeatures(featureCollection: FeatureCollection[SimpleFeatureType, SimpleFeature]): ju.List[FeatureId] = {
     writerPool.withResource { fw =>
       val ret = Array.ofDim[FeatureId](featureCollection.size())
+
       val iter = featureCollection.features()
       var i = 0
       while (iter.hasNext) {
-        val sf = fw.next()
+        val sf = iter.next()
         ret(i) = sf.getIdentifier
         fw.write(sf)
         i += 1

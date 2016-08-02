@@ -31,7 +31,6 @@ class MonitoringFeatureReader(query: Query, delegate: FeatureReader[SimpleFeatur
   }
 
   protected def closeOnce(): Unit = {
-    delegate.close()
 
     val stat = GeneralUsageStat(getFeatureType.getTypeName,
       System.currentTimeMillis(),
@@ -39,6 +38,7 @@ class MonitoringFeatureReader(query: Query, delegate: FeatureReader[SimpleFeatur
       timings.time("next") + timings.time("hasNext"),
       counter
     )
+    delegate.close()
     Monitoring.log(stat)
   }
 }
