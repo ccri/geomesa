@@ -15,16 +15,11 @@ import org.apache.accumulo.core.client.Scanner
 import org.apache.accumulo.core.data.{Key, Mutation, Value}
 import org.joda.time.format.DateTimeFormat
 import org.locationtech.geomesa.accumulo.util.{CloseableIterator, SelfClosingIterator}
+import org.locationtech.geomesa.utils.geotools.UsageStat
 
 import scala.util.Random
 
-/**
- * Base trait for all usage stat types
- */
-trait UsageStat {
-  def typeName: String
-  def date: Long
-}
+
 
 /**
  * Trait for mapping stats to accumulo and back

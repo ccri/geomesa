@@ -10,6 +10,7 @@ package org.locationtech.geomesa.accumulo.data
 
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.{FeatureReader, Query}
 import org.locationtech.geomesa.accumulo.data.stats.usage.{GeoMesaUsageStats, QueryStat, QueryStatTransform}
 import org.locationtech.geomesa.accumulo.index.QueryHints.RichHints
@@ -17,6 +18,7 @@ import org.locationtech.geomesa.accumulo.index._
 import org.locationtech.geomesa.accumulo.iterators.BinAggregatingIterator.BIN_ATTRIBUTE_INDEX
 import org.locationtech.geomesa.filter.filterToString
 import org.locationtech.geomesa.security.AuditProvider
+import org.locationtech.geomesa.utils.geotools.Monitoring
 import org.locationtech.geomesa.utils.stats.{MethodProfiling, TimingsImpl}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
@@ -98,6 +100,7 @@ class AccumuloFeatureReaderWithStats(query: Query,
       timings.time("next") + timings.time("hasNext"),
       count
     )
+    Monitoring.log(stat)
     sw.writeUsageStat(stat) // note: implementation is asynchronous
   }
 }
