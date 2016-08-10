@@ -162,7 +162,7 @@ object ExportCommand {
     @Parameter(names = Array("-o", "--output"), description = "name of the file to output to instead of std out")
     var file: File = null
 
-    @Parameter(names = Array("--without-types"), description = "export delimited text without types header", required = false)
+    @Parameter(names = Array("--without-types"), description = "Export as a delimited text format (csv|tsv) without a type header", required = false)
     var withoutTypes: Boolean = false
   }
 }
