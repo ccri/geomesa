@@ -34,6 +34,6 @@ trait ZkUtils {
   def getAllBrokersInCluster: Seq[kafka.cluster.Broker]
   def createAssignmentContext(group: String, consumerId: String, excludeInternalTopics: Boolean): AssignmentContext
   def readData(path: String): (String, Stat)
-  def fetchTopicMetadataFromZk(topic: String): TopicMetadata
+  def fetchTopicMetadataFromZk(topic: String): KafkaTopicMetadata
   def close(): Unit
 }

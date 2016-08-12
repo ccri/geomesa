@@ -53,8 +53,7 @@ class DescribeCommand(parent: JCommander) extends CommandWithKDS(parent) with La
       val topicMetadata = zkUtils.fetchTopicMetadataFromZk(topicName)
 
       println("\nFetching Kafka topic metadata...")
-      println(s"Number of partitions: ${topicMetadata.partitionsMetadata.size}")
-      println(topicMetadata)
+      println(s"Topic: ${topicMetadata.topicName} Number of partitions: ${topicMetadata.numberOfPartitions}")
     } catch {
       case npe: NullPointerException =>
         logger.error(s"Error: feature '${params.featureName}' not found. Check arguments...", npe)

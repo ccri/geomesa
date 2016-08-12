@@ -16,7 +16,7 @@ import kafka.network.BlockingChannel
 import kafka.utils.ZKCheckedEphemeral
 import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
-import org.locationtech.geomesa.kafka.common.ZkUtils
+import org.locationtech.geomesa.kafka.common.{KafkaTopicMetadata, ZkUtils}
 
 case class ZkUtils09(zkUtils: kafka.utils.ZkUtils) extends ZkUtils {
   override def zkClient: ZkClient = zkUtils.zkClient
@@ -42,6 +42,9 @@ case class ZkUtils09(zkUtils: kafka.utils.ZkUtils) extends ZkUtils {
   override def createAssignmentContext(group: String, consumerId: String, excludeInternalTopics: Boolean): AssignmentContext =
     new AssignmentContext(group, consumerId, excludeInternalTopics, zkUtils)
   override def readData(path: String): (String, Stat) = zkUtils.readData(path)
-  override def fetchTopicMetadataFromZk(topic: String) = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils)
+  override def fetchTopicMetadataFromZk(topic: String) = {
+    val metadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils)
+    KafkaTopicMetadata(metadata.topic, metadata.partitionsMetadata.size)
+  }
   override def close(): Unit = zkUtils.close()
 }
