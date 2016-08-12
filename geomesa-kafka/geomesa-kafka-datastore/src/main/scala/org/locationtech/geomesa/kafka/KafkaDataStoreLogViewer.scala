@@ -14,7 +14,9 @@ import java.util.Properties
 
 import com.beust.jcommander.{IParameterValidator, JCommander, Parameter, ParameterException}
 import com.typesafe.scalalogging.LazyLogging
-import kafka.tools.{ConsoleConsumer, MessageFormatter}
+import kafka.common.MessageFormatter
+import kafka.tools.ConsoleConsumer
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.SimpleFeatureType
 
@@ -166,8 +168,8 @@ class KafkaGeoMessageFormatter extends MessageFormatter {
     decoder = new KafkaGeoMessageDecoder(sft)
   }
 
-  override def writeTo(key: Array[Byte], value: Array[Byte], output: PrintStream): Unit = {
-    val msg = decoder.decode(key, value)
+  override def writeTo(consumerRecord: ConsumerRecord[Array[Byte], Array[Byte]], output: PrintStream): Unit = {
+    val msg = decoder.decode(consumerRecord.key, consumerRecord.value)
 
     output.write(msg.toString.getBytes(StandardCharsets.UTF_8))
     output.write(lineSeparator)

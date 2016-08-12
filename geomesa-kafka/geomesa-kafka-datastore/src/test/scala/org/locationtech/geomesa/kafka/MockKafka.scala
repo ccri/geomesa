@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kafka
 import java.util.concurrent.atomic.AtomicLong
 
 import kafka.api._
-import kafka.common.{OffsetAndMetadata, TopicAndPartition}
+import kafka.common.{LongRef, OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException, SimpleConsumer}
 import kafka.message._
 import kafka.producer.KeyedMessage
@@ -68,7 +68,7 @@ class MockKafka {
 
 case class MockMessage(tap: TopicAndPartition, key: Array[Byte], msg: Array[Byte], offset: Long) {
 
-  def asMessage: Message = new Message(msg, key)
+  def asMessage: Message = new Message(msg, key, System.currentTimeMillis(), Message.CurrentMagicValue)
 
   def asMessageAndOffset: MessageAndOffset = new MessageAndOffset(asMessage, offset)
 
@@ -255,6 +255,6 @@ class MockOffsetManager(mk: MockKafka, consumerConfig: ConsumerConfig) extends O
     val offsetCounter = new AtomicLong(offset)
     val msgs = mk.fetch(new TopicAndPartition(topic, partition), offset, maxBytes).map(_.message).toArray
 
-    Success(new ByteBufferMessageSet(NoCompressionCodec, offsetCounter, msgs: _*))
+    Success(new ByteBufferMessageSet(NoCompressionCodec, new LongRef(offsetCounter.get()), msgs: _*))
   }
 }

@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kafka.consumer.offsets
 import java.util.Properties
 import java.util.concurrent.atomic.AtomicLong
 
-import kafka.common.TopicAndPartition
+import kafka.common.{LongRef, TopicAndPartition}
 import kafka.consumer.{ConsumerConfig, SimpleConsumer}
 import kafka.message.{ByteBufferMessageSet, Message, NoCompressionCodec}
 import org.junit.runner.RunWith
@@ -239,11 +239,11 @@ class OffsetTest extends Specification with Mockito {
 
 object OffsetTest {
 
-  def toMessage(key: Byte): Message = new Message(Array.empty[Byte], Array(key))
+  def toMessage(key: Byte): Message = new Message(Array.empty[Byte], Array(key), System.currentTimeMillis(), Message.CurrentMagicValue)
 
   def messageSet(offset: Long, msgs: Array[Message]): ByteBufferMessageSet = {
     val offsetCounter = new AtomicLong(offset)
-    new ByteBufferMessageSet(NoCompressionCodec, offsetCounter, msgs: _*)
+    new ByteBufferMessageSet(NoCompressionCodec, new LongRef(offsetCounter.get()), msgs: _*)
   }
 }
 
