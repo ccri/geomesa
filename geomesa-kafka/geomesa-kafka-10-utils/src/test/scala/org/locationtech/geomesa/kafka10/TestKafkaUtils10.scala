@@ -10,7 +10,7 @@ package org.locationtech.geomesa.kafka10
 
 import java.util.Properties
 
-import kafka.utils.TestUtils
+import _root_.kafka.utils.TestUtils
 import org.locationtech.geomesa.kafka.TestKafkaUtils
 
 class TestKafkaUtils10 extends TestKafkaUtils {

@@ -1460,7 +1460,7 @@
                     <!-- These are included in the datastore jar -->
                     <exclusion>
                         <groupId>org.locationtech.geomesa</groupId>
-                        <artifactId>geomesa-kafka-08-utils</artifactId>
+                        <artifactId>geomesa-kafka-10-utils</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.locationtech.geomesa</groupId>
