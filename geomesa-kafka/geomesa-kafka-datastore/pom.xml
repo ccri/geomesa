@@ -18,7 +18,7 @@
     <name>GeoMesa Kafka Data Store</name>
 
     <properties>
-        <kafka.08.version>0.10.0.1</kafka.08.version>
+        <kafka.10.version>0.10.0.1</kafka.10.version>
     </properties>
     
     <dependencyManagement>
@@ -26,7 +26,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.11</artifactId>
-                <version>${kafka.08.version}</version>
+                <version>${kafka.10.version}</version>
                 <scope>provided</scope>
                 <exclusions>
                     <exclusion>
@@ -111,7 +111,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>${kafka.08.version}</version>
+            <version>${kafka.10.version}</version>
             <classifier>test</classifier>
             <scope>test</scope>
             <exclusions>
