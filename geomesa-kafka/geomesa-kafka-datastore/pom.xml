@@ -37,12 +37,50 @@
                         <groupId>org.xerial.snappy</groupId>
                         <artifactId>snappy-java</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.scala-lang</groupId>
+                        <artifactId>scala-library</artifactId>
+                    </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>0.10.0.1</version>
+                <!--<scope>compile</scope>-->
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_2.11</artifactId>
+                <version>0.10.0.1</version>
+                <!--<scope>compile</scope>-->
+                <classifier>test</classifier>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>0.10.0.1</version>
+            <!--<scope>compile</scope>-->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>0.10.0.1</version>
+            <classifier>test</classifier>
+            <!--<scope>compile</scope>-->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.11</artifactId>
+            <version>0.10.0.1</version>
+            <!--<scope>compile</scope>-->
+            <classifier>test</classifier>
+        </dependency>
+
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-kafka-utils-common</artifactId>
@@ -113,21 +151,25 @@
             <artifactId>kafka_2.11</artifactId>
             <version>${kafka.10.version}</version>
             <classifier>test</classifier>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <artifactId>slf4j-log4j12</artifactId>
-                    <groupId>org.slf4j</groupId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.xerial.snappy</groupId>
-                    <artifactId>snappy-java</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.sf.jopt-simple</groupId>
-                    <artifactId>jopt-simple</artifactId>
-                </exclusion>
-            </exclusions>
+            <!--<scope>test</scope>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<artifactId>slf4j-log4j12</artifactId>-->
+                    <!--<groupId>org.slf4j</groupId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.xerial.snappy</groupId>-->
+                    <!--<artifactId>snappy-java</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>net.sf.jopt-simple</groupId>-->
+                    <!--<artifactId>jopt-simple</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.scala-lang</groupId>-->
+                    <!--<artifactId>scala-library</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
         <dependency>
             <groupId>org.apache.curator</groupId>

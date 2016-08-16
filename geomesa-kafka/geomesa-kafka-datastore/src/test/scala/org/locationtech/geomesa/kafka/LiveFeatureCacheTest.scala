@@ -23,8 +23,8 @@ class LiveFeatureCacheTest extends Specification with Mockito with SimpleFeature
 
   import KafkaConsumerTestData._
 
-  implicit val ticker = Ticker.systemTicker()
-  val wholeWorld = new Envelope(-180, 180, -90, 90)
+  implicit lazy val ticker = Ticker.systemTicker()
+  lazy val wholeWorld = new Envelope(-180, 180, -90, 90)
 
   "LiveFeatureCache" should {
 

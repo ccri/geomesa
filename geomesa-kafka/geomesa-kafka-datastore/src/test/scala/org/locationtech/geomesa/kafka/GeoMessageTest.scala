@@ -33,8 +33,8 @@ class GeoMessageTest extends Specification with Mockito {
   type ProducerMsg = KafkaGeoMessageEncoder#MSG
   type ConsumerMsg = KafkaGeoMessageDecoder#MSG
   
-  val topic = "test_topic"
-  val schema = SimpleFeatureTypes.createType("KafkaGeoMessageTest", "name:String,*geom:Point:srid=4326")
+  lazy val topic = "test_topic"
+  lazy val schema = SimpleFeatureTypes.createType("KafkaGeoMessageTest", "name:String,*geom:Point:srid=4326")
 
   def createSimpleFeature: SimpleFeature = {
     val id = "test_id"

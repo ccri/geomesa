@@ -41,8 +41,8 @@ class ReplayKafkaDataStoreTest
   // skip embedded kafka tests unless explicitly enabled, they often fail randomly
   skipAllUnless(sys.props.get(SYS_PROP_RUN_TESTS).exists(_.toBoolean))
 
-  val zkPath = "/kafkaDS/test"
-  val sftName = sft.getTypeName
+  lazy val zkPath = "/kafkaDS/test"
+  lazy val sftName = sft.getTypeName
 
   var dataStore: DataStore = null
   var liveSFT: SimpleFeatureType = null

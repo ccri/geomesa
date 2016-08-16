@@ -35,7 +35,7 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
   // skip embedded kafka tests unless explicitly enabled, they often fail randomly
   skipAllUnless(sys.props.get(SYS_PROP_RUN_TESTS).exists(_.toBoolean))
 
-  val gf = JTSFactoryFinder.getGeometryFactory
+  lazy val gf = JTSFactoryFinder.getGeometryFactory
 
   "LiveKafkaConsumerFeatureSource" should {
     "allow for configurable expiration" >> {

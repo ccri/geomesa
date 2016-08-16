@@ -26,7 +26,7 @@ class ReplayKafkaConsumerFeatureSourceTest extends Specification with Mockito wi
 
   import KafkaConsumerTestData._
 
-  val topic = "testTopic"
+  lazy val topic = "testTopic"
 
   "feature source" should {
 

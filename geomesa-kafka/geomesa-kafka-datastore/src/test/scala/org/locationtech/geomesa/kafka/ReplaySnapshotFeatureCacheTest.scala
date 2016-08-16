@@ -22,11 +22,11 @@ class ReplaySnapshotFeatureCacheTest extends Specification with SimpleFeatureMat
   import KafkaConsumerTestData._
 
   // the ReplayConfig here doesn't matter
-  val replayType = KafkaDataStoreHelper.createReplaySFT(sft, ReplayConfig(0, 0, 0))
+  lazy val replayType = KafkaDataStoreHelper.createReplaySFT(sft, ReplayConfig(0, 0, 0))
 
   // replay time is arbitrary for this test
-  val replayTime = 1000L
-  val wholeWorld = new Envelope(-180, 180, -90, 90)
+  lazy val replayTime = 1000L
+  lazy val wholeWorld = new Envelope(-180, 180, -90, 90)
 
   "ReplaySnapshotFeatureCache" should {
 
