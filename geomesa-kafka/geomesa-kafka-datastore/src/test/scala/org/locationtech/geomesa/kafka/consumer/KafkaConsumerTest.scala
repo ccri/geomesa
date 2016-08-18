@@ -13,8 +13,8 @@ import java.util.Properties
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException}
 import kafka.message.Message
-import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka.HasEmbeddedKafka
 import org.locationtech.geomesa.kafka.consumer.offsets._
@@ -34,26 +34,30 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
   def getConsumerConfig(group: String) = {
     val consumerProps = new Properties
     consumerProps.put("group.id", group)
-    consumerProps.put("metadata.broker.list", brokerConnect)
+    consumerProps.put("bootstrap.servers", brokerConnect)
     consumerProps.put("zookeeper.connect", zkConnect)
     consumerProps.put("num.consumer.fetchers", "1")
     consumerProps.put("auto.commit.enable", "false")
-    consumerProps.put("consumer.timeout.ms", "100")
+    consumerProps.put("consumer.timeout.ms", "1000")
+    consumerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+    consumerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     new ConsumerConfig(consumerProps)
   }
 
   "KafkaConsumer" should {
     val producerProps = new Properties()
-    producerProps.put("metadata.broker.list", brokerConnect)
+    producerProps.put("bootstrap.servers", brokerConnect)
     producerProps.put("retry.backoff.ms", "100")
-    producerProps.put("message.send.max.retries", "20") // we have to bump this up as zk is pretty flaky
-    producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
-
+    //producerProps.put("message.send.max.retries", "20") // we have to bump this up as zk is pretty flaky
+    producerProps.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
+    producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
 
     def produceMessages(topic: String) = {
-      val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
+      println(s"\t\tTopic: $topic")
+      val producer = new KafkaProducer[Array[Byte], Array[Byte]](producerProps)
       for (i <- 0 until 10) {
-        producer.send(new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
+        // new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8"))
+        producer.send(new ProducerRecord[Array[Byte], Array[Byte]](topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
       }
       producer.close()
     }
@@ -62,14 +66,21 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
       val topic = "read-1"
       val config = getConsumerConfig(topic)
       produceMessages(topic)
-      val consumer = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
-      val stream = consumer.createMessageStreams(1, EarliestOffset).head
+      println("Here?-4....")
+      val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
+      println("Here?-3....")
+      println(s"Consumer: ${consumer.topic} \t${consumer.keyDecoder} \t${consumer.valueDecoder}")
+      val stream: KafkaStreamLike[String, String] = consumer.createMessageStreams(1, EarliestOffset).head
+      println("Here?-2....")
       val messages = stream.iterator.take(10).toList
+      println("Here?-1....")
       messages must haveLength(10)
-
+      println("Here?....")
       stream.iterator.hasNext must throwA[ConsumerTimeoutException]
+      println("Woohoo no fail here")
+      println("Failed prior to shutdown?....")
       consumer.shutdown()
-
+      println("Failed after shutdown")
       stream.iterator.hasNext must beFalse
       for (i <- 0 until 10) {
         messages(i).key() mustEqual i.toString
@@ -84,8 +95,8 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
       val config = getConsumerConfig(topic)
       produceMessages(topic)
 
-      val consumer1 = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
-      val consumer2 = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
+      val consumer1 = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
+      val consumer2 = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
 
       val messages = ArrayBuffer.empty[String]
       val stream1 = consumer1.createMessageStreams(1, EarliestOffset).head
@@ -133,7 +144,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
         val offsetManager = new OffsetManager(config)
         offsetManager.commitOffsets(Map(TopicAndPartition(topic, 0) -> OffsetAndMetadata(3)))
 
-        val consumer = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
+        val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
         val stream = consumer.createMessageStreams(1, GroupOffset).head
         stream.iterator.hasNext must beTrue
         val message = stream.iterator.next()
@@ -150,7 +161,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
         val offsetManager = new OffsetManager(config)
         offsetManager.commitOffsets(Map(TopicAndPartition(topic, 0) -> OffsetAndMetadata(3)))
 
-        val consumer = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
+        val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
         val stream = consumer.createMessageStreams(1, EarliestOffset).head
         stream.iterator.hasNext must beTrue
         val message = stream.iterator.next()
@@ -162,7 +173,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
         val topic = "latest"
         val config = getConsumerConfig(topic)
         produceMessages(topic)
-        val consumer = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
+        val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
         val stream = consumer.createMessageStreams(1, LatestOffset).head
         stream.iterator.hasNext must throwA[ConsumerTimeoutException]
         consumer.shutdown()
@@ -179,7 +190,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
           m.payload.get(bb)
           decoder.fromBytes(bb).substring(5).toInt.compareTo(7)
         })
-        val consumer = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
+        val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
         val stream = consumer.createMessageStreams(1, offset).head
         stream.iterator.hasNext must beTrue
         val message = stream.iterator.next()

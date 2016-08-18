@@ -15,6 +15,7 @@ import kafka.consumer.ConsumerConfig
 import kafka.message.Message
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, HasEmbeddedZookeeper}
 import org.specs2.mutable.Specification
@@ -30,7 +31,7 @@ class OffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
 
   val props = new Properties
   props.put("group.id", "mygroup")
-  props.put("metadata.broker.list", brokerConnect)
+  props.put("bootstrap.servers", brokerConnect)
   props.put("zookeeper.connect", zkConnect)
   val config = new ConsumerConfig(props)
   val offsetManager = new OffsetManager(config)
@@ -39,11 +40,12 @@ class OffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
 
   step {
     val producerProps = new Properties()
-    producerProps.put("metadata.broker.list", brokerConnect)
-    producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
-    val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
+    producerProps.put("bootstrap.servers", brokerConnect)
+    producerProps.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
+    producerProps.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
+    val producer = new KafkaProducer[Array[Byte], Array[Byte]](producerProps)
     for (i <- 0 until 10) {
-      producer.send(new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
+      producer.send(new ProducerRecord[Array[Byte],Array[Byte]](topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
     }
     producer.close()
   }

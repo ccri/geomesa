@@ -103,11 +103,16 @@ class EmbeddedKafka extends EmbeddedService[(String, String)] {
   private val brokerConf = {
     val conf = TestKafkaUtilsLoader.testKafkaUtils.createBrokerConfig(1, zkConnect)
     conf.setProperty("zookeeper.connect", zkConnect) // override to use a unique zookeeper
+    conf.setProperty("host.name","localhost")
+    conf.setProperty("port", "9092")
     conf
   }
 
   val brokerConnect = s"${brokerConf.getProperty("host.name")}:${brokerConf.getProperty("port")}"
-  override def connection = (brokerConnect, zkConnect)
+  override def connection = {
+    println(s"\t\tbroker config: $brokerConf")
+    (brokerConnect, zkConnect)
+  }
 
   private val server = TestUtils.createServer(new KafkaConfig(brokerConf))
 
