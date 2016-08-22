@@ -97,7 +97,8 @@ class CQEngineQueryVisitorTest extends Specification {
 
         println(s"GT: $gtCount CQ: $cqCount Filter: $filter")
 
-        gtCount must equalTo(cqCount)
+        // since GT count is (presumably) correct
+        cqCount must equalTo(gtCount)
       }
 
       def runFilterTests(name: String, filters: Seq[Filter]) = {

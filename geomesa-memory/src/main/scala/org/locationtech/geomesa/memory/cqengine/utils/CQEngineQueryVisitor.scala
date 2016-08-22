@@ -50,6 +50,16 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     new com.googlecode.cqengine.query.logical.Or[SimpleFeature](query)
   }
 
+  override def visit(filter: Not, data: scala.Any): AnyRef = {
+    val subfilter = filter.getFilter
+
+    val subquery = subfilter.accept(this, null) match {
+      case q: Query[SimpleFeature] => q
+      case _ => throw new Exception(s"Filter visitor didn't recognize filter: $subfilter.")
+    }
+    new com.googlecode.cqengine.query.logical.Not[SimpleFeature](subquery)
+  }
+
   override def visit(filter: BBOX, data: scala.Any): AnyRef = {
     val attributeName = filter.getExpression1.asInstanceOf[PropertyName].getPropertyName
     val geom = filter.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry])
