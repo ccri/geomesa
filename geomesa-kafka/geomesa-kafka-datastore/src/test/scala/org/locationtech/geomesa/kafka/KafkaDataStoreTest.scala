@@ -51,18 +51,18 @@ class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLo
       "zookeepers" -> zkConnect,
       "zkPath"     -> zkPath,
       "isProducer" -> false)
-
+    println("Find datastore")
     val consumerDS = DataStoreFinder.getDataStore(consumerParams)
     val producerDS = DataStoreFinder.getDataStore(producerParams)
 
     "consumerDS must not be null" >> { consumerDS must not(beNull) }
     "producerDS must not be null" >> { producerDS must not(beNull) }
-
+    println("Non-null datastores")
     val schema = {
       val sft = SimpleFeatureTypes.createType("test", "name:String,age:Int,dtg:Date,*geom:Point:srid=4326")
       KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
     }
-
+    println("created Schema")
     "allow schemas to be created" >> {
       producerDS.createSchema(schema)
       "and available in other data stores" >> {
@@ -109,6 +109,7 @@ class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLo
       sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
       sf.visibility = "USER|ADMIN"
       fw.write()
+      println("successful write")
       Thread.sleep(2000)
 
       "and read" >> {

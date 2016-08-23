@@ -8,6 +8,7 @@
 
 package org.locationtech.geomesa.kafka.consumer
 
+import java.io.IOException
 import java.util.Properties
 
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
@@ -39,8 +40,6 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
     consumerProps.put("num.consumer.fetchers", "1")
     consumerProps.put("auto.commit.enable", "false")
     consumerProps.put("consumer.timeout.ms", "1000")
-    consumerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-    consumerProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     new ConsumerConfig(consumerProps)
   }
 
@@ -56,7 +55,6 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
       println(s"\t\tTopic: $topic")
       val producer = new KafkaProducer[Array[Byte], Array[Byte]](producerProps)
       for (i <- 0 until 10) {
-        // new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8"))
         producer.send(new ProducerRecord[Array[Byte], Array[Byte]](topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
       }
       producer.close()
@@ -70,24 +68,37 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
       val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
       println("Here?-3....")
       println(s"Consumer: ${consumer.topic} \t${consumer.keyDecoder} \t${consumer.valueDecoder}")
-      val stream: KafkaStreamLike[String, String] = consumer.createMessageStreams(1, EarliestOffset).head
-      println("Here?-2....")
-      val messages = stream.iterator.take(10).toList
-      println("Here?-1....")
-      messages must haveLength(10)
-      println("Here?....")
-      stream.iterator.hasNext must throwA[ConsumerTimeoutException]
-      println("Woohoo no fail here")
-      println("Failed prior to shutdown?....")
-      consumer.shutdown()
-      println("Failed after shutdown")
-      stream.iterator.hasNext must beFalse
-      for (i <- 0 until 10) {
-        messages(i).key() mustEqual i.toString
-        messages(i).message() mustEqual s"test $i"
-      }
+      var stream: KafkaStreamLike[String, String] = null
+      try {
+        stream = consumer.createMessageStreams(1, EarliestOffset).head
+        println(s"$stream")
+        println(s"hasDefiniteSize: ${stream.hasDefiniteSize}")
+        println(s"Bold move: ${stream.iterator.hasNext}")
+      } catch {
+        case a: IOException => println("IOE")
+        case b: ConsumerTimeoutException => b.printStackTrace
+        case c: Throwable => c.printStackTrace
+      } finally {
 
-      success
+
+        println("Here?-2....")
+        val messages = stream.iterator.take(10).toList
+        println("Here?-1....")
+        messages must haveLength(10)
+        println("Here?....")
+        stream.iterator.hasNext must throwA[ConsumerTimeoutException]
+        println("Woohoo no fail here")
+        println("Failed prior to shutdown?....")
+        consumer.shutdown()
+        println("Failed after shutdown")
+        stream.iterator.hasNext must beFalse
+        for (i <- 0 until 10) {
+          messages(i).key() mustEqual i.toString
+          messages(i).message() mustEqual s"test $i"
+        }
+
+      }
+        success
     }
 
     "balance consumers across threads" >> {
