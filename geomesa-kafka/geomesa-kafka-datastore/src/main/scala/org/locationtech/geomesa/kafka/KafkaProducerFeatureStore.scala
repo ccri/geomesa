@@ -89,6 +89,7 @@ abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: KafkaProduce
 
   private [kafka] def send(msg: GeoMessage): Unit = {
     logger.debug("sending message: {}", msg)
+    logger.info("sending message: {} : {}", msg, topic)
     producer.send(msgEncoder.encodeMessage(topic, msg))
   }
 

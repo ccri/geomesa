@@ -75,7 +75,7 @@ trait EmbeddedService[C] extends AnyRef {
   def shutdown(): Unit
 }
 
-class EmbeddedZookeeper extends EmbeddedService[String] {
+class EmbeddedZookeeper extends EmbeddedService[String]{
   val snapshotDir = TestUtils.tempDir()
   val logDir = TestUtils.tempDir()
   val tickTime = 500
