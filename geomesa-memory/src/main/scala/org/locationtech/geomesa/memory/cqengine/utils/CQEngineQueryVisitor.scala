@@ -86,6 +86,12 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     new cqquery.simple.Equal(attribute, value)
   }
 
+  override def visit(filter: PropertyIsNull, data: scala.Any): AnyRef = {
+    val attributeName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
+    val attr = lookup.lookup[Any](attributeName)
+    new cqquery.simple.Has(attr)
+  }
+
   /**
     * name BETWEEN lower AND upper
     * (in the OpenGIS spec, lower and upper are inclusive)
