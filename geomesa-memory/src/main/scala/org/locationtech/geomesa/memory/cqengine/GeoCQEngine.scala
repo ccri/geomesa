@@ -8,7 +8,8 @@
 
 package org.locationtech.geomesa.memory.cqengine
 
-import com.googlecode.cqengine.query.Query
+import com.googlecode.cqengine.query.option.DeduplicationStrategy
+import com.googlecode.cqengine.query.{QueryFactory, Query}
 import com.googlecode.cqengine.query.simple.All
 import org.locationtech.geomesa.memory.cqengine.utils.{CQEngineQueryVisitor, CQIndexingOptions}
 import org.locationtech.geomesa.utils.geotools._
@@ -34,11 +35,11 @@ class GeoCQEngine(sft: SimpleFeatureType) {
   def getReaderForFilter(filter: Filter): FR =
     filter match {
       case f: IncludeFilter => include(f)
-      case f                => queryCQ(f)
+      case f                => queryCQ(f, dedup = true)
       // JNH: Consider testing filter rewrite before passing to CQEngine?
     }
 
-  def queryCQ(f: Filter): FR = {
+  def queryCQ(f: Filter, dedup: Boolean = true): FR = {
     val visitor = new CQEngineQueryVisitor(sft)
 
     val query: Query[SimpleFeature] = f.accept(visitor, null) match {
@@ -47,7 +48,13 @@ class GeoCQEngine(sft: SimpleFeatureType) {
     }
     // TODO: Replace println with logging.
     //println(s"Querying CQEngine with $query")
-    new DFR(sft, new DFI(cqcache.retrieve(query).iterator()))
+    if (dedup) {
+      val dedupOpt = QueryFactory.deduplicate(DeduplicationStrategy.LOGICAL_ELIMINATION)
+      val queryOptions = QueryFactory.queryOptions(dedupOpt)
+      new DFR(sft, new DFI(cqcache.retrieve(query, queryOptions).iterator()))
+    }
+    else
+      new DFR(sft, new DFI(cqcache.retrieve(query).iterator()))
   }
 
   def include(i: IncludeFilter) = {
@@ -56,7 +63,7 @@ class GeoCQEngine(sft: SimpleFeatureType) {
   }
 
   // This is a convenience method to query CQEngine directly.
-  def getReaderForQuery(query: Query[SimpleFeature]): FR = {
+  /*def getReaderForQuery(query: Query[SimpleFeature]): FR = {
     new DFR(sft, new DFI(cqcache.retrieve(query).iterator))
-  }
+  }*/
 }

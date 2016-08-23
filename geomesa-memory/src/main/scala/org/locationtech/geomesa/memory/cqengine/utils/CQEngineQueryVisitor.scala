@@ -88,7 +88,8 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
   override def visit(filter: PropertyIsNull, data: scala.Any): AnyRef = {
     val attributeName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
     val attr = lookup.lookup[Any](attributeName)
-    new cqquery.simple.Has(attr)
+    // ugh
+    new cqquery.logical.Not[SimpleFeature](new cqquery.simple.Has(attr))
   }
 
   /**

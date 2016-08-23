@@ -59,6 +59,14 @@ object SampleFeatures {
 
   def getName: String = names(Random.nextInt(names.length))
 
+  /* get non-uniformly distributed booleans */
+  def randomBoolean(fracTrue: Double): java.lang.Boolean = {
+    if (Random.nextDouble() < fracTrue)
+      true
+    else
+      false
+  }
+
   def getPoint: Point = {
     val minx = -180
     val miny = -90
@@ -78,7 +86,7 @@ object SampleFeatures {
     builder.set("WhatDouble", Random.nextDouble() * 10.0)
     builder.set("When", randDate)
     builder.set("Where", getPoint)
-    if (Random.nextBoolean()) {
+    if (randomBoolean(0.4)) { // make sure n_{null} != n_{not null}
       builder.set("Why", string)
     }
     builder.buildFeature(i.toString)

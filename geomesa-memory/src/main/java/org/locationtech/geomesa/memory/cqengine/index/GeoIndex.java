@@ -139,13 +139,13 @@ public class GeoIndex<A extends Geometry, O extends SimpleFeature> extends Abstr
             // The geoindex size isn't optimal, so I don't know if this is good or not...
             @Override
             public int getMergeCost() {
-                System.out.println("In retrieve's getMergeCost method");
+                //System.out.println("In retrieve's getMergeCost method");
                 return size();
             }
 
             @Override
             public int size() {
-                System.out.println("In retrieve's size method");
+                //System.out.println("In retrieve's size method");
                 return getSimpleFeatureIteratorInternal((Intersects) query, queryOptions).size();
             }
 

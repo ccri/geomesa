@@ -9,7 +9,8 @@
 package org.locationtech.geomesa.memory.cqengine.utils
 
 import com.googlecode.cqengine.IndexedCollection
-import com.googlecode.cqengine.query.{Query, QueryFactory => QF}
+import com.googlecode.cqengine.query.option.DeduplicationStrategy
+import com.googlecode.cqengine.query.{QueryFactory => QF, Query}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.filter.text.ecql.ECQL
 import org.junit.runner.RunWith
@@ -88,7 +89,9 @@ class CQEngineQueryVisitorTest extends Specification {
         val visitor = new CQEngineQueryVisitor(sft)
         val query: Query[SimpleFeature] = filter.accept(visitor, null).asInstanceOf[Query[SimpleFeature]]
         println(s"Query for CQCache: $query")
-        coll.retrieve(query).iterator().toList.size
+        val dedup = QF.deduplicate(DeduplicationStrategy.LOGICAL_ELIMINATION)
+        val queryOptions = QF.queryOptions(dedup)
+        coll.retrieve(query, queryOptions).iterator().toList.size
       }
 
       def checkFilter(filter: Filter, coll: IndexedCollection[SimpleFeature]): MatchResult[Int] = {
