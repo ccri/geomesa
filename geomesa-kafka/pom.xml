@@ -12,9 +12,11 @@
     <name>GeoMesa Kafka Parent</name>
     <modules>
         <module>geomesa-kafka-datastore</module>
-        <module>geomesa-kafka-09-datastore</module>
+        <!--<module>geomesa-kafka-09-datastore</module>
         <module>geomesa-kafka-08-utils</module>
-        <module>geomesa-kafka-09-utils</module>
+        <module>geomesa-kafka-09-utils</module>-->
+        <module>geomesa-kafka-10-utils</module>
+        <!--<module>geomesa-kafka-10-datastore</module>-->
         <module>geomesa-kafka-utils-common</module>
     </modules>
 

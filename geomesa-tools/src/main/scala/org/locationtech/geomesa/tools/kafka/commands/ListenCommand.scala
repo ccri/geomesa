@@ -14,7 +14,9 @@ import java.util.Properties
 
 import com.beust.jcommander.{JCommander, Parameter, Parameters}
 import com.typesafe.scalalogging.LazyLogging
-import kafka.tools.{ConsoleConsumer, MessageFormatter}
+import kafka.tools.ConsoleConsumer
+import kafka.common.MessageFormatter
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.geotools.data.DataUtilities
 import org.locationtech.geomesa.kafka.KafkaDataStoreLogViewer._
 import org.locationtech.geomesa.kafka._
@@ -89,7 +91,7 @@ class ListenMessageFormatter extends MessageFormatter {
     decoder = new KafkaGeoMessageDecoder(sft)
   }
 
-  override def writeTo(key: Array[Byte], value: Array[Byte], output: PrintStream): Unit = {
+  def writeTo(key: Array[Byte], value: Array[Byte], output: PrintStream): Unit = {
     val msg = decoder.decode(key, value)
 
     val msgToWrite = msg match {
@@ -105,9 +107,13 @@ class ListenMessageFormatter extends MessageFormatter {
     output.write(lineSeparator)
   }
 
+  override def writeTo(consumerRecord: ConsumerRecord[Array[Byte], Array[Byte]], output: PrintStream): Unit = {
+    writeTo(consumerRecord.key(),consumerRecord.value(),output)
+  }
   override def close(): Unit = {
     decoder = null
   }
+
 }
 
 object KafkaGeoMessageFormatter {

@@ -14,19 +14,19 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>geomesa-kafka-08-utils</artifactId>
-    <name>GeoMesa Kafka 08 Utils</name>
+    <artifactId>geomesa-kafka-10-utils</artifactId>
+    <name>GeoMesa Kafka 10 Utils</name>
 
     <properties>
-        <kafka.08.version>0.8.2.1</kafka.08.version>
+        <kafka.10.version>0.10.0.1</kafka.10.version>
     </properties>
-
+    
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.11</artifactId>
-                <version>${kafka.08.version}</version>
+                <version>${kafka.10.version}</version>
                 <scope>provided</scope>
                 <exclusions>
                     <exclusion>
@@ -50,7 +50,11 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>${kafka.08.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.11</artifactId>
+            <version>${kafka.10.version}</version>
             <classifier>test</classifier>
             <scope>test</scope>
             <exclusions>

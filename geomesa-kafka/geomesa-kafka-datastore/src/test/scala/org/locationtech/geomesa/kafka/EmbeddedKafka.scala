@@ -22,7 +22,7 @@ trait HasEmbeddedZookeeper {
 
 trait HasEmbeddedKafka {
   val SYS_PROP_RUN_TESTS = "org.locationtech.geomesa.test-kafka"
-  val (brokerConnect, zkConnect) = EmbeddedKafka.connect()
+  lazy val (brokerConnect, zkConnect) = EmbeddedKafka.connect()
   def shutdown(): Unit = EmbeddedKafka.shutdown()
 }
 
@@ -75,7 +75,7 @@ trait EmbeddedService[C] extends AnyRef {
   def shutdown(): Unit
 }
 
-class EmbeddedZookeeper extends EmbeddedService[String] {
+class EmbeddedZookeeper extends EmbeddedService[String]{
   val snapshotDir = TestUtils.tempDir()
   val logDir = TestUtils.tempDir()
   val tickTime = 500
@@ -98,16 +98,19 @@ class EmbeddedZookeeper extends EmbeddedService[String] {
 
 class EmbeddedKafka extends EmbeddedService[(String, String)] {
 
-  private val zkConnect = EmbeddedZookeeper.connect()
+  private lazy val zkConnect = EmbeddedZookeeper.connect()
 
   private val brokerConf = {
     val conf = TestKafkaUtilsLoader.testKafkaUtils.createBrokerConfig(1, zkConnect)
     conf.setProperty("zookeeper.connect", zkConnect) // override to use a unique zookeeper
+    conf.setProperty("host.name","localhost")
+    conf.setProperty("port", "9092")
     conf
   }
 
   val brokerConnect = s"${brokerConf.getProperty("host.name")}:${brokerConf.getProperty("port")}"
   override def connection = (brokerConnect, zkConnect)
+
 
   private val server = TestUtils.createServer(new KafkaConfig(brokerConf))
 

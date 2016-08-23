@@ -33,8 +33,8 @@ class GeoMessageTest extends Specification with Mockito {
   type ProducerMsg = KafkaGeoMessageEncoder#MSG
   type ConsumerMsg = KafkaGeoMessageDecoder#MSG
   
-  val topic = "test_topic"
-  val schema = SimpleFeatureTypes.createType("KafkaGeoMessageTest", "name:String,*geom:Point:srid=4326")
+  lazy val topic = "test_topic"
+  lazy val schema = SimpleFeatureTypes.createType("KafkaGeoMessageTest", "name:String,*geom:Point:srid=4326")
 
   def createSimpleFeature: SimpleFeature = {
     val id = "test_id"
@@ -58,8 +58,8 @@ class GeoMessageTest extends Specification with Mockito {
       encoded must not(beNull)
       encoded.key must not(beNull)
       encoded.key.length mustEqual 10
-      encoded.key(0) mustEqual 1
-      encoded.key(1) mustEqual 'X'
+      encoded.key()(0) mustEqual 1
+      encoded.key()(1) mustEqual 'X'
       encoded.message mustEqual Array.empty[Byte]
 
       val decoder = new KafkaGeoMessageDecoder(schema)
@@ -81,8 +81,8 @@ class GeoMessageTest extends Specification with Mockito {
       encoded must not(beNull)
       encoded.key must not(beNull)
       encoded.key.length mustEqual 10
-      encoded.key(0) mustEqual 1
-      encoded.key(1) mustEqual 'D'
+      encoded.key()(0) mustEqual 1
+      encoded.key()(1) mustEqual 'D'
       encoded.message mustEqual id.getBytes(StandardCharsets.UTF_8)
 
       val decoder = new KafkaGeoMessageDecoder(schema)
@@ -104,8 +104,8 @@ class GeoMessageTest extends Specification with Mockito {
       encoded must not(beNull)
       encoded.key must not(beNull)
       encoded.key.length mustEqual 10
-      encoded.key(0) mustEqual 1
-      encoded.key(1) mustEqual 'C'
+      encoded.key()(0) mustEqual 1
+      encoded.key()(1) mustEqual 'C'
       encoded.message mustEqual encodeSF(sf)
 
       val decoder = new KafkaGeoMessageDecoder(schema)
@@ -174,7 +174,7 @@ class GeoMessageTest extends Specification with Mockito {
   /** The consumer and producer APIs are not symmetric.  Convert a message sent to a producer into a message
     * received by a consumer.
     */
-  implicit def transport(pmsg: ProducerMsg): ConsumerMsg = mockConsumerMessage(pmsg.key, pmsg.message)
+  implicit def transport(pmsg: ProducerMsg): ConsumerMsg = mockConsumerMessage(pmsg.key, pmsg.value)
 
   def mockConsumerMessage(key: Array[Byte], msg: Array[Byte]): ConsumerMsg = {
     val cmsg = mock[ConsumerMsg]

@@ -14,6 +14,7 @@ import java.{util => ju}
 import kafka.admin.AdminUtils
 import kafka.producer.{Producer, ProducerConfig}
 import org.I0Itec.zkclient.ZkClient
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
 import org.geotools.data.{DataStore, Query}
 import org.joda.time.Instant
@@ -41,8 +42,8 @@ class ReplayKafkaDataStoreTest
   // skip embedded kafka tests unless explicitly enabled, they often fail randomly
   skipAllUnless(sys.props.get(SYS_PROP_RUN_TESTS).exists(_.toBoolean))
 
-  val zkPath = "/kafkaDS/test"
-  val sftName = sft.getTypeName
+  lazy val zkPath = "/kafkaDS/test"
+  lazy val sftName = sft.getTypeName
 
   var dataStore: DataStore = null
   var liveSFT: SimpleFeatureType = null
@@ -200,9 +201,10 @@ class ReplayKafkaDataStoreTest
 
   def sendMessages(sft: SimpleFeatureType): Unit = {
     val props = new ju.Properties()
-    props.put("metadata.broker.list", brokerConnect)
-    props.put("serializer.class", "kafka.serializer.DefaultEncoder")
-    val kafkaProducer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(props))
+    props.put("bootstrap.servers", brokerConnect)
+    props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
+    props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
+    val kafkaProducer = new KafkaProducer[Array[Byte], Array[Byte]](props)
 
     val encoder = new KafkaGeoMessageEncoder(sft)
     val topic = KafkaFeatureConfig(sft).topic

@@ -14,13 +14,13 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>geomesa-kafka-datastore</artifactId>
-    <name>GeoMesa Kafka Data Store</name>
+    <artifactId>geomesa-kafka-10-datastore</artifactId>
+    <name>GeoMesa Kafka 10 Data Store</name>
 
     <properties>
         <kafka.10.version>0.10.0.1</kafka.10.version>
     </properties>
-    
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -47,27 +47,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>0.10.0.1</version>
-            <!--<scope>compile</scope>-->
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>0.10.0.1</version>
-            <classifier>test</classifier>
-            <!--<scope>compile</scope>-->
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
-            <version>0.10.0.1</version>
-            <!--<scope>compile</scope>-->
-            <classifier>test</classifier>
-        </dependency>
-
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-kafka-utils-common</artifactId>
@@ -138,25 +117,25 @@
             <artifactId>kafka_2.11</artifactId>
             <version>${kafka.10.version}</version>
             <classifier>test</classifier>
-            <!--<scope>test</scope>-->
-            <!--<exclusions>-->
-                <!--<exclusion>-->
-                    <!--<artifactId>slf4j-log4j12</artifactId>-->
-                    <!--<groupId>org.slf4j</groupId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>org.xerial.snappy</groupId>-->
-                    <!--<artifactId>snappy-java</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>net.sf.jopt-simple</groupId>-->
-                    <!--<artifactId>jopt-simple</artifactId>-->
-                <!--</exclusion>-->
-                <!--<exclusion>-->
-                    <!--<groupId>org.scala-lang</groupId>-->
-                    <!--<artifactId>scala-library</artifactId>-->
-                <!--</exclusion>-->
-            <!--</exclusions>-->
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-log4j12</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.xerial.snappy</groupId>
+                    <artifactId>snappy-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.sf.jopt-simple</groupId>
+                    <artifactId>jopt-simple</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.curator</groupId>
@@ -184,6 +163,18 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>../geomesa-kafka-datastore/src/main/scala</sourceDirectory>
+        <testSourceDirectory>../geomesa-kafka-datastore/src/test/scala</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>../geomesa-kafka-datastore/src/main/resources</directory>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>../geomesa-kafka-datastore/src/test/resources</directory>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
