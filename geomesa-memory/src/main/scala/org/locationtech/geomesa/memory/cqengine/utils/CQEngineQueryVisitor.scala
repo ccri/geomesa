@@ -8,8 +8,11 @@
 
 package org.locationtech.geomesa.memory.cqengine.utils
 
+import java.util.Date
+
 import com.googlecode.cqengine.attribute.Attribute
 import com.googlecode.cqengine.query.Query
+import com.googlecode.cqengine.{query => cqquery}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.filter.visitor.AbstractFilterVisitor
 import org.locationtech.geomesa.filter._
@@ -35,7 +38,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
         case _ => throw new Exception(s"Filter visitor didn't recognize filter: $f.")
       }
     }.toList
-    new com.googlecode.cqengine.query.logical.And[SimpleFeature](query)
+    new cqquery.logical.And[SimpleFeature](query)
   }
 
   override def visit(filter: Or, data: scala.Any): AnyRef = {
@@ -47,7 +50,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
         case _ => throw new Exception(s"Filter visitor didn't recognize filter: $f.")
       }
     }.toList
-    new com.googlecode.cqengine.query.logical.Or[SimpleFeature](query)
+    new cqquery.logical.Or[SimpleFeature](query)
   }
 
   override def visit(filter: Not, data: scala.Any): AnyRef = {
@@ -57,7 +60,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case q: Query[SimpleFeature] => q
       case _ => throw new Exception(s"Filter visitor didn't recognize filter: $subfilter.")
     }
-    new com.googlecode.cqengine.query.logical.Not[SimpleFeature](subquery)
+    new cqquery.logical.Not[SimpleFeature](subquery)
   }
 
   override def visit(filter: BBOX, data: scala.Any): AnyRef = {
@@ -80,7 +83,26 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
   override def visit(filter: PropertyIsEqualTo, data: scala.Any): AnyRef = {
     val (attribute: Attribute[SimpleFeature, Any], value: Any) = extractAttributeAndValue(filter)
-    new com.googlecode.cqengine.query.simple.Equal(attribute, value)
+    new cqquery.simple.Equal(attribute, value)
+  }
+
+  /**
+    * name BETWEEN lower AND upper
+    * (in the OpenGIS spec, lower and upper are inclusive)
+   */
+  override def visit(filter: PropertyIsBetween, data: scala.Any): AnyRef = {
+    val prop = getAttributeProperty(filter).get
+    val attributeName = prop.name
+    val lower = prop.literal
+    val upper = prop.secondary.get
+    sft.getDescriptor(attributeName).getType.getBinding match {
+      case c if classOf[Date].isAssignableFrom(c) => {
+        val attr = lookup.lookupComparable[Date](attributeName)
+        val lowerValue = lower.evaluate(null, classOf[Date])
+        val upperValue = upper.evaluate(null, classOf[Date])
+        new cqquery.simple.Between[SimpleFeature, Date](attr, lowerValue, true, upperValue, true)
+      }
+    }
   }
 
   override def visit(filter: PropertyIsGreaterThan, data: scala.Any): AnyRef = {
