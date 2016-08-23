@@ -15,7 +15,7 @@ import kafka.consumer.AssignmentContext
 import kafka.network.BlockingChannel
 import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
-import org.locationtech.geomesa.kafka.common.ZkUtils
+import org.locationtech.geomesa.kafka.common.{KafkaTopicMetadata, ZkUtils}
 
 case class ZkUtils08(zkClient: ZkClient) extends ZkUtils {
   override def channelToOffsetManager(groupId: String, socketTimeoutMs: Int, retryBackOffMs: Int): BlockingChannel =
@@ -40,6 +40,10 @@ case class ZkUtils08(zkClient: ZkClient) extends ZkUtils {
   override def createAssignmentContext(group: String, consumerId: String, excludeInternalTopics: Boolean): AssignmentContext =
     new AssignmentContext(group, consumerId, excludeInternalTopics, zkClient)
   override def readData(path: String): (String, Stat) = kafka.utils.ZkUtils.readData(zkClient, path)
-  override def fetchTopicMetadataFromZk(topic: String) = AdminUtils.fetchTopicMetadataFromZk(topic, zkClient)
+  override def fetchTopicMetadataFromZk(topic: String) = {
+    val metadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkClient)
+    KafkaTopicMetadata(metadata.topic, metadata.partitionsMetadata.size)
+  }
+
   override def close(): Unit = zkClient.close()
 }

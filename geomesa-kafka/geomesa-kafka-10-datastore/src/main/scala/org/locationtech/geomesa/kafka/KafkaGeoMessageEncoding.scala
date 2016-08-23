@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.kafka
 
 import kafka.message.{Message, MessageAndMetadata}
-import kafka.producer.KeyedMessage
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.opengis.feature.simple.SimpleFeatureType
 
 /** Encodes [[GeoMessage]]s for transport via Kafka.
@@ -18,7 +18,7 @@ import org.opengis.feature.simple.SimpleFeatureType
   */
 class KafkaGeoMessageEncoder(schema: SimpleFeatureType) extends GeoMessageEncoder(schema) {
 
-  type MSG = KeyedMessage[Array[Byte], Array[Byte]]
+  type MSG = ProducerRecord[Array[Byte], Array[Byte]]
 
   def encodeMessage(topic: String, msg: GeoMessage): MSG =
     new MSG(topic, encodeKey(msg), encodeMessage(msg))

@@ -363,8 +363,8 @@ class TestDataStore(override val zookeepers: String,
                     override val zkPath: String)
   extends ContentDataStore with KafkaDataStoreSchemaManager with LazyLogging {
 
-  override val partitions: Int = 1
-  override val replication: Int = 1
+  override lazy val partitions: Int = 1
+  override lazy val replication: Int = 1
 
   override def createFeatureSource(entry: ContentEntry) = {
     throw new UnsupportedOperationException(
@@ -376,12 +376,13 @@ class TestDataStore(override val zookeepers: String,
 
 class ZkContext(val zkConnect: String) extends After with LazyLogging {
 
-  val schema = "name:String,age:Int,dtg:Date,*geom:Point:srid=4326"
+  lazy val schema = "name:String,age:Int,dtg:Date,*geom:Point:srid=4326"
   lazy val replayConfig = new ReplayConfig(new Instant(123L), new Instant(223L), new Duration(5L))
 
-  val zkUtils = KafkaUtilsLoader.kafkaUtils.createZkUtils(zkConnect, Int.MaxValue, Int.MaxValue)
-  val zkClient = zkUtils.zkClient
-  val zkPath = createRandomZkNode(zkClient)
+  lazy val zkUtils = KafkaUtilsLoader.kafkaUtils.createZkUtils(zkConnect, Int.MaxValue, Int.MaxValue)
+  lazy val zkClient = zkUtils.zkClient
+  lazy val zkPath = createRandomZkNode(zkClient)
+
   logger.trace(s"created $zkPath")
 
   def createSFT(typeName: String): SimpleFeatureType = {

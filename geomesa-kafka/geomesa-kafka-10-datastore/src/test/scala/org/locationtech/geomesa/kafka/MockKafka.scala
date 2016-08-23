@@ -16,6 +16,11 @@ import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException, SimpleConsumer}
 import kafka.message._
 import kafka.producer.KeyedMessage
 import kafka.serializer.Decoder
+import kafka.common.{LongRef, OffsetAndMetadata, TopicAndPartition}
+import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException, SimpleConsumer}
+import kafka.message._
+import kafka.serializer.Decoder
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.locationtech.geomesa.kafka.consumer._
 import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset.MessagePredicate
 import org.locationtech.geomesa.kafka.consumer.offsets.OffsetManager._
@@ -39,7 +44,7 @@ class MockKafka {
 
   /** Simulate sending a message to a producer
     */
-  def send(keyedMessage: KeyedMessage[Array[Byte], Array[Byte]], partition: Int = 0): Unit = {
+  def send(keyedMessage: ProducerRecord[Array[Byte], Array[Byte]], partition: Int = 0): Unit = {
     val tap = new TopicAndPartition(keyedMessage.topic, partition)
     val oldMsgs = data.getOrElse(tap, Seq.empty)
     val offset = oldMsgs.size
@@ -68,7 +73,7 @@ class MockKafka {
 
 case class MockMessage(tap: TopicAndPartition, key: Array[Byte], msg: Array[Byte], offset: Long) {
 
-  def asMessage: Message = new Message(msg, key)
+  def asMessage: Message = new Message(msg, key, System.currentTimeMillis(), Message.CurrentMagicValue)
 
   def asMessageAndOffset: MessageAndOffset = new MessageAndOffset(asMessage, offset)
 
@@ -78,9 +83,8 @@ case class MockMessage(tap: TopicAndPartition, key: Array[Byte], msg: Array[Byte
 
 object MockMessage {
   
-  def apply(tap: TopicAndPartition, kMessage: KeyedMessage[Array[Byte], Array[Byte]], offset: Long): MockMessage =
-    MockMessage(tap, kMessage.key, kMessage.message, offset)
-
+  def apply(tap: TopicAndPartition, kMessage: ProducerRecord[Array[Byte], Array[Byte]], offset: Long): MockMessage =
+    MockMessage(tap, kMessage.key, kMessage.value, offset)
 }
 
 class MockKafkaConsumerFactory(val mk: MockKafka)
@@ -255,6 +259,6 @@ class MockOffsetManager(mk: MockKafka, consumerConfig: ConsumerConfig) extends O
     val offsetCounter = new AtomicLong(offset)
     val msgs = mk.fetch(new TopicAndPartition(topic, partition), offset, maxBytes).map(_.message).toArray
 
-    Success(new ByteBufferMessageSet(NoCompressionCodec, offsetCounter, msgs: _*))
+    Success(new ByteBufferMessageSet(NoCompressionCodec, new LongRef(offsetCounter.get()), msgs: _*))
   }
 }

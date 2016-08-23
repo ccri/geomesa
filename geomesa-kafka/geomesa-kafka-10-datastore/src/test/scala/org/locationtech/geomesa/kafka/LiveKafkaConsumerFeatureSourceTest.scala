@@ -1,10 +1,10 @@
 /***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  *************************************************************************/
 
 package org.locationtech.geomesa.kafka
 
@@ -14,6 +14,7 @@ import com.google.common.util.concurrent.AtomicLongMap
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.{Coordinate, Point}
 import org.geotools.data._
+import org.geotools.data.simple.SimpleFeatureIterator
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.identity.FeatureIdImpl
 import org.geotools.filter.text.ecql.ECQL
@@ -21,6 +22,7 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -35,7 +37,7 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
   // skip embedded kafka tests unless explicitly enabled, they often fail randomly
   skipAllUnless(sys.props.get(SYS_PROP_RUN_TESTS).exists(_.toBoolean))
 
-  val gf = JTSFactoryFinder.getGeometryFactory
+  lazy val gf = JTSFactoryFinder.getGeometryFactory
 
   "LiveKafkaConsumerFeatureSource" should {
     "allow for configurable expiration" >> {
@@ -64,31 +66,45 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
       val consumerFC = expiryConsumer.getFeatureSource("expiry")
 
       val fw = producerDS.getFeatureWriter("expiry", null, Transaction.AUTO_COMMIT)
+
+      println(s"fw.hasNext: ${fw.hasNext}\nfw.getFeatureType: ${fw.getFeatureType}")
       val sf = fw.next()
+      println(s"sf: $sf")
       sf.setAttributes(Array("smith", 30, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
       sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
+      println(s"Simple Feature: ${sf.getAttributes}\n${sf.getType}\n$sf")
       fw.write()
+      println(s"\t\tCount: ${consumerFC.getCount(Query.ALL)}")
+
       Thread.sleep(500)
 
       val bbox = ECQL.toFilter("bbox(geom,-10,-10,10,10)")
 
       // verify the feature is written - hit the cache directly
       {
-        val features = consumerFC.getFeatures(Filter.INCLUDE).features()
+        val features: SimpleFeatureIterator = consumerFC.getFeatures(Filter.INCLUDE).features()
+        println(s"1. features.hasNext: ${features.hasNext}")
         features.hasNext must beTrue
         val readSF = features.next()
+        println(s"1. sf.getID: ${sf.getID}")
         sf.getID must be equalTo readSF.getID
+        println(s"2. sf.getAttribute: ${sf.getAttribute("dtg")}")
         sf.getAttribute("dtg") must be equalTo readSF.getAttribute("dtg")
+        println(s"2. features.hasNext: ${features.hasNext}")
         features.hasNext must beFalse
       }
 
       // verify the feature is written - hit the spatial index
       {
         val features = consumerFC.getFeatures(bbox).features()
+        println(s"3. features.hasNext: ${features.hasNext}")
         features.hasNext must beTrue
         val readSF = features.next()
+        println(s"2. sf.getID: ${sf.getID}")
         sf.getID must be equalTo readSF.getID
+        println(s"2. sf.getAttribute: ${sf.getAttribute("dtg")}")
         sf.getAttribute("dtg") must be equalTo readSF.getAttribute("dtg")
+        println(s"4. features.hasNext: ${features.hasNext}")
         features.hasNext must beFalse
       }
 
@@ -113,7 +129,6 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
 
     "support listeners" >> {
       val zkPath = "/geomesa/kafka/testlisteners"
-
       val producerParams = Map(
         "brokers"    -> brokerConnect,
         "zookeepers" -> zkConnect,
@@ -137,36 +152,49 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
         val sft = SimpleFeatureTypes.createType("listeners", "name:String,age:Int,dtg:Date,*geom:Point:srid=4326")
         KafkaDataStoreHelper.createStreamingSFT(sft, zkPath)
       }
+
+      println("\t\t\tGet Data Store")
       val producerDS = DataStoreFinder.getDataStore(producerParams)
+      println("\t\t\tGot Data Store")
+      println("\t\t\tCreate Schema")
       producerDS.createSchema(sft)
-
+      println("\t\t\tCreated Schema")
+      println("\t\t\tGet Data Store")
       val listenerConsumerDS = DataStoreFinder.getDataStore(consumerParams)
+      println("\t\t\tGot Data Store")
+      println("\t\t\tGet Feature Source")
       val consumerFC = listenerConsumerDS.getFeatureSource("listeners")
-
+      println("\t\t\tGot Feature Source")
+      println("\t\t\tCreate Countdown Latch")
       val latch = new CountDownLatch(numUpdates)
-
+      println("\t\t\tCreated Countdown Latch")
       val featureListener = new TestLambdaFeatureListener((fe: KafkaFeatureEvent) => {
         val f = fe.feature
-        val geom: Point = f.getDefaultGeometry.asInstanceOf[Point]
-        latestLon = geom.getX
-        m.incrementAndGet(f.getID)
-        latch.countDown()
       })
-
+      println("\t\t\tTested Feature Listener")
+      println("\t\t\tAdd Feature Listener")
       consumerFC.addFeatureListener(featureListener)
-
+      println("\t\t\tAdded Feature Listener")
+      println("\t\t\tGet Feature Writer")
       val fw = producerDS.getFeatureWriter("listeners", null, Transaction.AUTO_COMMIT)
-
+      println("\t\t\tGet Feature Writer")
+      println("\t\t\tWriting...")
       (numUpdates to 1 by -1).foreach { writeUpdate }
-
+      println("\t\t\tDone writing...")
       def writeUpdate(i: Int) = {
+        println(s"\n\t\t** Write Update called")
         val ll = maxLon - maxLon/i
 
-        val sf = fw.next()
+        val sf: SimpleFeature = fw.next()
         sf.getIdentifier.asInstanceOf[FeatureIdImpl].setID("testlistener")
         sf.setAttributes(Array("smith", 30, DateTime.now().toDate).asInstanceOf[Array[AnyRef]])
         sf.setDefaultGeometry(gf.createPoint(new Coordinate(ll, ll)))
+        m.incrementAndGet(sf.getID)
+        val geom: Point = sf.getDefaultGeometry.asInstanceOf[Point]
+        latestLon = geom.getX
+        latch.countDown()
         fw.write()
+        println(s"Consumer FC Count: ${consumerFC.getCount(Query.ALL)}")
       }
 
       logger.debug("Wrote feature")
@@ -181,7 +209,6 @@ class LiveKafkaConsumerFeatureSourceTest extends Specification with HasEmbeddedK
 
     "handle filters" >> {
       val zkPath = "/geomesa/kafka/testfilters"
-
       val producerParams = Map(
         "brokers"    -> brokerConnect,
         "zookeepers" -> zkConnect,

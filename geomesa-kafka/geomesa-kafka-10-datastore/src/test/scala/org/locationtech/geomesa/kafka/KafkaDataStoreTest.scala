@@ -33,11 +33,11 @@ class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLo
   // skip embedded kafka tests unless explicitly enabled, they often fail randomly
   skipAllUnless(sys.props.get(SYS_PROP_RUN_TESTS).exists(_.toBoolean))
 
-  val gf = JTSFactoryFinder.getGeometryFactory
+  lazy val gf = JTSFactoryFinder.getGeometryFactory
 
-  val zkPath = "/geomesa/kafka/testds"
+  lazy val zkPath = "/geomesa/kafka/testds"
 
-  val producerParams = Map(
+  lazy val producerParams = Map(
     "brokers"    -> brokerConnect,
     "zookeepers" -> zkConnect,
     "zkPath"     -> zkPath,
@@ -109,6 +109,7 @@ class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLo
       sf.setDefaultGeometry(gf.createPoint(new Coordinate(0.0, 0.0)))
       sf.visibility = "USER|ADMIN"
       fw.write()
+
       Thread.sleep(2000)
 
       "and read" >> {

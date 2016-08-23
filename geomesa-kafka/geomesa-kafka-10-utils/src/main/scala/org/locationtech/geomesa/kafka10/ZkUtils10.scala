@@ -6,7 +6,7 @@
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
-package org.locationtech.geomesa.kafka09
+package org.locationtech.geomesa.kafka10
 
 import kafka.admin.AdminUtils
 import kafka.client.ClientUtils
@@ -18,7 +18,7 @@ import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
 import org.locationtech.geomesa.kafka.common.{KafkaTopicMetadata, ZkUtils}
 
-case class ZkUtils09(zkUtils: kafka.utils.ZkUtils) extends ZkUtils {
+case class ZkUtils10(zkUtils: kafka.utils.ZkUtils) extends ZkUtils {
   override def zkClient: ZkClient = zkUtils.zkClient
   override def channelToOffsetManager(groupId: String, socketTimeoutMs: Int, retryBackOffMs: Int): BlockingChannel =
     ClientUtils.channelToOffsetManager(groupId, zkUtils, socketTimeoutMs, retryBackOffMs)
@@ -44,7 +44,7 @@ case class ZkUtils09(zkUtils: kafka.utils.ZkUtils) extends ZkUtils {
   override def readData(path: String): (String, Stat) = zkUtils.readData(path)
   override def fetchTopicMetadataFromZk(topic: String) = {
     val metadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils)
-    KafkaTopicMetadata(metadata.topic, metadata.partitionsMetadata.size)
+    KafkaTopicMetadata(metadata.topic, metadata.partitionMetadata.size)
   }
   override def close(): Unit = zkUtils.close()
 }
