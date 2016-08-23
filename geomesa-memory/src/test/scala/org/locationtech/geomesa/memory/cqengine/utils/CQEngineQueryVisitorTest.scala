@@ -130,6 +130,12 @@ class CQEngineQueryVisitorTest extends Specification {
       )
       runFilterTests("basic", basicFilters)
 
+      val nullFilters: Seq[Filter] = Seq(
+        "Why IS NULL",
+        "Why IS NOT NULL"
+      )
+      runFilterTests("null", nullFilters)
+
       val comparableFilters = Seq[Filter](
         "What = 5",
         "WhatLong = 5",
