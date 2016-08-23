@@ -8,9 +8,11 @@
 
 package org.locationtech.geomesa.memory.cqengine.utils
 
+import java.util.Date
+
 import com.googlecode.cqengine.attribute.Attribute
 import com.googlecode.cqengine.query.Query
-import com.googlecode.cqengine.query.simple.{GreaterThan, LessThan}
+import com.googlecode.cqengine.{query => cqquery}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.filter.visitor.AbstractFilterVisitor
 import org.locationtech.geomesa.filter._
@@ -35,7 +37,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
         case _ => throw new Exception(s"Filter visitor didn't recognize filter: $f.")
       }
     }.toList
-    new com.googlecode.cqengine.query.logical.And[SimpleFeature](query)
+    new cqquery.logical.And[SimpleFeature](query)
   }
 
   override def visit(filter: Or, data: scala.Any): AnyRef = {
@@ -47,7 +49,17 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
         case _ => throw new Exception(s"Filter visitor didn't recognize filter: $f.")
       }
     }.toList
-    new com.googlecode.cqengine.query.logical.Or[SimpleFeature](query)
+    new cqquery.logical.Or[SimpleFeature](query)
+  }
+
+  override def visit(filter: Not, data: scala.Any): AnyRef = {
+    val subfilter = filter.getFilter
+
+    val subquery = subfilter.accept(this, null) match {
+      case q: Query[SimpleFeature] => q
+      case _ => throw new Exception(s"Filter visitor didn't recognize filter: $subfilter.")
+    }
+    new cqquery.logical.Not[SimpleFeature](subquery)
   }
 
   override def visit(filter: BBOX, data: scala.Any): AnyRef = {
@@ -70,10 +82,31 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
   override def visit(filter: PropertyIsEqualTo, data: scala.Any): AnyRef = {
     val (attribute: Attribute[SimpleFeature, Any], value: Any) = extractAttributeAndValue(filter)
-    new com.googlecode.cqengine.query.simple.Equal(attribute, value)
+    new cqquery.simple.Equal(attribute, value)
   }
 
-  override def visit(filter: PropertyIsGreaterThan, data: scala.Any): GreaterThan[SimpleFeature, _] = {
+  override def visit(filter: PropertyIsNull, data: scala.Any): AnyRef = {
+    val attributeName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
+    val attr = lookup.lookup[Any](attributeName)
+    new cqquery.simple.Has(attr)
+  }
+
+  /**
+    * name BETWEEN lower AND upper
+    * (in the OpenGIS spec, lower and upper are inclusive)
+   */
+  override def visit(filter: PropertyIsBetween, data: scala.Any): AnyRef = {
+    val prop = getAttributeProperty(filter).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntBetweenQuery(prop)
+      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongBetweenQuery(prop)
+      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatBetweenQuery(prop)
+      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleBetweenQuery(prop)
+      case c if classOf[Date             ].isAssignableFrom(c) => BuildDateBetweenQuery(prop)
+    }
+  }
+
+  override def visit(filter: PropertyIsGreaterThan, data: scala.Any): cqquery.simple.GreaterThan[SimpleFeature, _] = {
     val prop = getAttributeProperty(filter).get
     sft.getDescriptor(prop.name).getType.getBinding match {
       case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntGTQuery(prop)
@@ -83,7 +116,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
-  override def visit(filter: PropertyIsGreaterThanOrEqualTo, data: scala.Any): GreaterThan[SimpleFeature, _] = {
+  override def visit(filter: PropertyIsGreaterThanOrEqualTo, data: scala.Any): cqquery.simple.GreaterThan[SimpleFeature, _] = {
     val prop = getAttributeProperty(filter).get
     sft.getDescriptor(prop.name).getType.getBinding match {
       case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntGTEQuery(prop)
@@ -93,7 +126,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
-  override def visit(filter: PropertyIsLessThan, data: scala.Any): LessThan[SimpleFeature, _] = {
+  override def visit(filter: PropertyIsLessThan, data: scala.Any): cqquery.simple.LessThan[SimpleFeature, _] = {
     val prop = getAttributeProperty(filter).get
     sft.getDescriptor(prop.name).getType.getBinding match {
       case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntLTQuery(prop)
@@ -103,7 +136,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
-  override def visit(filter: PropertyIsLessThanOrEqualTo, data: scala.Any): LessThan[SimpleFeature, _] = {
+  override def visit(filter: PropertyIsLessThanOrEqualTo, data: scala.Any): cqquery.simple.LessThan[SimpleFeature, _] = {
     val prop = getAttributeProperty(filter).get
     sft.getDescriptor(prop.name).getType.getBinding match {
       case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntLTEQuery(prop)
@@ -123,16 +156,4 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
   // JNH: TODO: revisit if this this needed.
   override def toString = "CQEngineQueryVisit()"
-
-  // Dealing with the comparable business is tough:(
-  /*
-  def extractComparableAttributeAndValue[T](filter: Filter): (Attribute[SimpleFeature, T], T) = {
-    val prop = getAttributeProperty(filter).get
-    val attributeName = prop.name
-
-    val attribute = lookup.lookupComparable[T](attributeName)
-    val value = prop.literal.evaluate(null, attribute.getAttributeType)
-    (attribute, value)
-  }
-  */
 }

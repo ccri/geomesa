@@ -109,12 +109,15 @@ public class GeoIndex<A extends Geometry, O extends SimpleFeature> extends Abstr
 
             @Override
             public boolean contains(O object) {
-                return false;
+                final Intersects intersects = (Intersects) query;
+                String attributeName = intersects.getAttributeName();
+                Geometry geom = (Geometry) object.getAttribute(attributeName);
+                return intersects.matchesValue(geom, queryOptions);
             }
 
             @Override
             public boolean matches(O object) {
-                return false;
+                return query.matches(object, queryOptions);
             }
 
             @Override

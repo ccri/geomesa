@@ -8,11 +8,12 @@
 
 package org.locationtech.geomesa.memory.cqengine.utils
 
+import java.util.Date
+
 import com.googlecode.cqengine.attribute.Attribute
 import com.googlecode.cqengine.query.simple.{Between, GreaterThan, LessThan, SimpleQuery}
 import org.locationtech.geomesa.filter.PropertyLiteral
 import org.opengis.feature.simple.SimpleFeature
-
 
 trait CompQueryBuilder {
   // The type the product queries process, and its class object
@@ -88,6 +89,7 @@ object BuildDoubleGTQuery  extends GTQueryBuilder {
   val valueClass = classOf[java.lang.Double]
   val orEqual = false
 }
+
 object BuildIntGTEQuery    extends GTQueryBuilder {
   type VALUE = java.lang.Integer
   val valueClass = classOf[java.lang.Integer]
@@ -108,6 +110,7 @@ object BuildDoubleGTEQuery extends GTQueryBuilder {
   val valueClass = classOf[java.lang.Double]
   val orEqual = true
 }
+
 object BuildIntLTQuery     extends LTQueryBuilder {
   type VALUE = java.lang.Integer
   val valueClass = classOf[java.lang.Integer]
@@ -128,6 +131,7 @@ object BuildDoubleLTQuery  extends LTQueryBuilder {
   val valueClass = classOf[java.lang.Double]
   val orEqual = false
 }
+
 object BuildIntLTEQuery    extends LTQueryBuilder {
   type VALUE = java.lang.Integer
   val valueClass = classOf[java.lang.Integer]
@@ -147,4 +151,25 @@ object BuildDoubleLTEQuery extends LTQueryBuilder {
   type VALUE = java.lang.Double
   val valueClass = classOf[java.lang.Double]
   val orEqual = true
+}
+
+object BuildIntBetweenQuery    extends BetweenQueryBuilder {
+  type VALUE = java.lang.Integer
+  val valueClass = classOf[java.lang.Integer]
+}
+object BuildLongBetweenQuery   extends BetweenQueryBuilder {
+  type VALUE = java.lang.Long
+  val valueClass = classOf[java.lang.Long]
+}
+object BuildFloatBetweenQuery  extends BetweenQueryBuilder {
+  type VALUE = java.lang.Float
+  val valueClass = classOf[java.lang.Float]
+}
+object BuildDoubleBetweenQuery extends BetweenQueryBuilder {
+  type VALUE = java.lang.Double
+  val valueClass = classOf[java.lang.Double]
+}
+object BuildDateBetweenQuery   extends BetweenQueryBuilder {
+  type VALUE = Date
+  val valueClass = classOf[Date]
 }

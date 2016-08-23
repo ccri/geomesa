@@ -53,6 +53,14 @@ public class Intersects<O, A extends Geometry> extends SimpleQuery<O, A> {
         return value.intersects(aValue);
     }
 
+    public String toString() {
+        return "intersects(" +
+                this.attribute.getAttributeName() +
+                ", " +
+                this.value.toString() +
+                ")";
+    }
+
     //     NB: This is IDEA's auto-generated equals
     @Override
     public boolean equals(Object o) {
