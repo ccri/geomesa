@@ -1,25 +1,22 @@
-/***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+/** *********************************************************************
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  * ************************************************************************/
 
 package org.locationtech.geomesa.kafka
 
 import com.google.common.base.Ticker
-import com.googlecode.cqengine.query.option.QueryOptions
-import com.googlecode.cqengine.query.{Query, QueryFactory => CQF}
-import com.vividsolutions.jts.geom.{Geometry, Point}
+import com.vividsolutions.jts.geom.Point
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.filter.visitor.SimplifyingFilterVisitor
 import org.joda.time.{DateTime, DateTimeZone, Instant}
+import org.junit.runner.RunWith
 import org.locationtech.geomesa.filter._
-import org.locationtech.geomesa.memory.cqengine.index.GeoIndex
-import org.locationtech.geomesa.memory.cqengine.query
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
@@ -27,19 +24,26 @@ import org.opengis.feature.simple.SimpleFeature
 import org.opengis.filter._
 import org.opengis.filter.spatial._
 import org.opengis.filter.temporal._
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.language._
 import scala.util.Random
 
-class AttributeIndexingTest {
+@RunWith(classOf[JUnitRunner])
+class AttributeIndexingTest extends Specification {
   implicit def sfToCreate(feature: SimpleFeature): CreateOrUpdate = CreateOrUpdate(Instant.now, feature)
 
   //
   implicit val ff = CommonFactoryFinder.getFilterFactory2
 
-  val spec = "Who:String:index=full,What:Integer,When:Date,*Where:Point:srid=4326,Why:String"
+  val spec = Seq(
+    "Who:String:cq_index=default",
+    "What:Integer:cq_index=navigable",
+    "When:Date:cq_index=navigable",
+    "*Where:Point:srid=4326",
+    "Why:String").mkString(",")
   val MIN_DATE = new DateTime(2014, 1, 1, 0, 0, 0, DateTimeZone.forID("UTC"))
   val seconds_per_year = 365L * 24L * 60L * 60L
   val string = "foo"
@@ -116,6 +120,34 @@ class AttributeIndexingTest {
     }
   }
 
+  def runQueriesMultiple[T](n: Int,
+                            labels: Seq[String],
+                            genIter: Seq[T => Long],
+                            filters: Seq[T]) = {
+    val sep = "\t"
+    val header = (for (l <- labels; c <- Seq("count", "tmax", "tmean", "tsd", "tmin")) yield l + "_" + c)
+    print(header.mkString(sep))
+    println(sep + "filter")
+
+    for (f <- filters) {
+      val row = genIter.flatMap {
+        g => {
+          val timeRes = (1 to n).map(i => time(g(f)))
+          val counts = timeRes.map(_._1)
+          val times = timeRes.map(_._2)
+          Seq(
+            counts.max,
+            times.max,
+            fd(mean(times)),
+            fd(sd(times)),
+            times.min)
+        }
+      }
+      print(row.mkString(sep))
+      println(sep + f)
+    }
+  }
+
   def time[A](a: => A) = {
     val now = System.currentTimeMillis()
     val result = a
@@ -171,7 +203,31 @@ class AttributeIndexingTest {
   val geoJustCD = ff.and(justifiedCD, bbox2)
   val badOr = ff.or(geoJustAB, geoJustCD)
 
-  val filters = Seq(ab, cd, w14, where, justified, justifiedAB, justifiedCD, just, justBBOX, justBBOX2, bbox2)
+  val overlapWhere1 = ECQL.toFilter("BBOX(Where, -180, 0, 0, 90)")
+  val overlapWhere2 = ECQL.toFilter("BBOX(Where, -90, -90, 0, 90)")
+  val overlapOR1 = ff.or(overlapWhere1, overlapWhere2)
+
+  val overlapOR2 = ECQL.toFilter("Who = 'Addams' OR What = 1")
+
+  val overlapORpathological = ff.or(List[Filter](
+    "Who = 'Addams'",
+    "What = 1",
+    "Who = 'Bierce'",
+    "What = 2",
+    "Who = 'Clemons'",
+    "What = 3",
+    "Who = 'Damon'",
+    "What = 4",
+    "Who = 'Evan'",
+    "What = 5",
+    "Who = 'Fred'",
+    "What = 6",
+    "Who = 'Goliath'",
+    "What = 7",
+    "Who = 'Harry'",
+    "What = 8"))
+
+  val filters = Seq(ab, cd, w14, where, justified, justifiedAB, justifiedCD, just, justBBOX, justBBOX2, bbox2, overlapOR1, overlapOR2, overlapORpathological)
   //val ab_w14 = ff.and(ab, w14)
   //val filters = Seq(ab, cd, w14, ab_w14)
 
@@ -195,7 +251,7 @@ class AttributeIndexingTest {
   val bad1 = ff.or(whereAB, whereCD)
   val nice1 = ff.and(where, abcd)
 
-  val nFeats = 100000
+  val nFeats = 1000000
   val feats = (0 until nFeats).map(buildFeature)
   val featsUpdate = (0 until nFeats).map(buildFeature)
 
@@ -204,7 +260,7 @@ class AttributeIndexingTest {
   implicit val ticker = Ticker.systemTicker()
   val lfc = new LiveFeatureCacheGuava(sft, None)
   //val h2  = new LiveFeatureCacheH2(sft)
-  val cq  = new LiveFeatureCacheCQEngine(sft, None)
+  val cq = new LiveFeatureCacheCQEngine(sft, None)
 
   val sfv = new SimplifyingFilterVisitor
 
@@ -288,95 +344,39 @@ class AttributeIndexingTest {
     "%d in %d ms (%.1f /ms)".format(count, time, count.toDouble / time)
   }
 
-  def benchmarkLFC() = {
-    val lfc_pop = timeUnit(feats.foreach {
-      lfc.createOrUpdateFeature(_)
-    })
-    println("lfc populate: "+countPopulate(feats.size, lfc_pop))
+  "LiveFeatureCacheCQEngine " should {
+    "benchmark" >> {
+      val lfc_pop = timeUnit(feats.foreach {
+        lfc.createOrUpdateFeature(_)
+      })
+      println("lfc pop:   " + countPopulate(feats.size, lfc_pop))
 
-    //runQueries[Filter](11, f => lfc.getReaderForFilter(f).getIterator.size, filters)
+      val lfc_repop = timeUnit(featsUpdate.foreach {
+        lfc.createOrUpdateFeature(_)
+      })
+      println("lfc repop: " + countPopulate(featsUpdate.size, lfc_repop))
 
-    val lfc_repop = timeUnit(featsUpdate.foreach {
-      lfc.createOrUpdateFeature(_)
-    })
-    println("lfc repopulate: "+countPopulate(featsUpdate.size, lfc_repop))
+      val cq_pop = timeUnit({
+        for (sf <- feats) cq.createOrUpdateFeature(sf)
+      })
+      println("cq  pop:   " + countPopulate(feats.size, cq_pop))
 
-    runQueries[Filter](11, f => lfc.getReaderForFilter(f).getIterator.size, filters)
-  }
+      val cq_repop = timeUnit({
+        for (sf <- featsUpdate) cq.createOrUpdateFeature(sf)
+      })
+      println("cq  repop: " + countPopulate(featsUpdate.size, cq_repop))
 
-  /*
-  def benchmarkH2() = {
-    val h2_pop = timeUnit(for (sf <- feats) {
-      h2.createOrUpdateFeature(sf)
-    })
-    println("h2 populate time (ms) = " + h2_pop)
+      runQueriesMultiple[Filter](
+        11,
+        Seq("lfc", "cq", "cqdd"),
+        Seq(
+          f => lfc.getReaderForFilter(f).getIterator.size,
+          f => cq.geocq.queryCQ(f, false).getIterator.size,
+          f => cq.geocq.queryCQ(f, true).getIterator.size),
+        filters)
 
-    // run queries
-    runQueries[Filter](11, f => h2.getFeatures(f).features.size, filters)
-
-    //update some of the features
-    val h2_repop = timeUnit(for (sf <- featsUpdate) {
-      h2.createOrUpdateFeature(sf)
-    })
-    println("h2 repopulate time (ms) = " + h2_repop)
-
-    // run queries again
-    runQueries[Filter](11, f => h2.getFeatures(f).features.size, filters)
-  }
-  */
-
-  object CQData {
-
-    //val ID = cq.ID
-    val WHO_ATTR = cq.attrs.lookup[String]("Who")
-    val WHAT_ATTR = cq.attrs.lookup[Integer]("What")
-    val WHERE_ATTR = cq.attrs.lookup[Geometry]("Where")
-
-    val ab = CQF.or(CQF.equal(WHO_ATTR, "Addams"), CQF.equal(WHO_ATTR, "Bierce"))
-    val cd = CQF.or(CQF.equal(WHO_ATTR, "Clemens"), CQF.equal(WHO_ATTR, "Damon"))
-    //val ab_cd = and(ab, cd)
-    val w14 = CQF.or(
-      CQF.equal[SimpleFeature, Integer](WHAT_ATTR, 1),
-      CQF.equal[SimpleFeature, Integer](WHAT_ATTR, 2),
-      CQF.equal[SimpleFeature, Integer](WHAT_ATTR, 3),
-      CQF.equal[SimpleFeature, Integer](WHAT_ATTR, 4))
-    val ab_w14 = CQF.and(ab, w14)
-
-
-    // Geo - CQEngine mojo
-    val qo = new QueryOptions
-
-    import com.googlecode.cqengine.persistence.support._
-
-    val obset = ObjectSet.fromCollection(feats)
-
-    val bboxGeom = WKTUtils.read("POLYGON((0 0, 0 90, 180 90, 180 0, 0 0))")
-
-    val geoIndex = new GeoIndex(WHERE_ATTR)
-    geoIndex.addAll(obset, qo)
-
-    val intersectsQuery = new query.Intersects(WHERE_ATTR, bboxGeom)
-
-    val results = geoIndex.retrieve(intersectsQuery, qo)
-
-    val queries = Seq(ab, cd, w14, ab_w14, intersectsQuery)
-  }
-
-  def benchmarkCQ() = {
-    val cq_pop = timeUnit({
-      for (sf <- feats) cq.createOrUpdateFeature(sf)
-    })
-    println(s"cq populate: ${feats.size} in $cq_pop ms (${feats.size.toDouble / cq_pop}/ms)")
-    //println(s"cache size: ${cqholder.cqcache.size}")
-
-    runQueries[Filter](11, f => cq.getReaderForFilter(f).getIterator.size, filters)
-
-    val cq_repop = timeUnit({
-      for (sf <- featsUpdate) cq.createOrUpdateFeature(sf)
-    })
-    println(s"cq repopulate = ${featsUpdate.size} in $cq_repop ms (${featsUpdate.size.toDouble / cq_repop}/ms)")
-
-    runQueries[Filter](11, f => cq.getReaderForFilter(f).getIterator.size, filters)
+      true must equalTo(true)
+    }
   }
 }
 
@@ -414,36 +414,59 @@ class GraphVizFilterVisitor extends FilterVisitor {
   override def visit(filter: Not, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
 
   override def visit(metBy: MetBy, extraData: scala.Any): AnyRef = printRectangle(metBy, extraData)
+
   override def visit(meets: Meets, extraData: scala.Any): AnyRef = printRectangle(meets, extraData)
+
   override def visit(ends: Ends, extraData: scala.Any): AnyRef = printRectangle(ends, extraData)
+
   override def visit(endedBy: EndedBy, extraData: scala.Any): AnyRef = printRectangle(endedBy, extraData)
+
   override def visit(begunBy: BegunBy, extraData: scala.Any): AnyRef = printRectangle(begunBy, extraData)
+
   override def visit(begins: Begins, extraData: scala.Any): AnyRef = printRectangle(begins, extraData)
+
   override def visit(anyInteracts: AnyInteracts, extraData: scala.Any): AnyRef = printRectangle(anyInteracts, extraData)
 
   override def visit(contains: TOverlaps, extraData: scala.Any): AnyRef = printRectangle(contains, extraData)
+
   override def visit(equals: TEquals, extraData: scala.Any): AnyRef = printRectangle(equals, extraData)
+
   override def visit(contains: TContains, extraData: scala.Any): AnyRef = printRectangle(contains, extraData)
+
   override def visit(overlappedBy: OverlappedBy, extraData: scala.Any): AnyRef = printRectangle(overlappedBy, extraData)
+
   override def visit(filter: Touches, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: Overlaps, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
 
   override def visit(during: During, extraData: scala.Any): AnyRef = printRectangle(during, extraData)
+
   override def visit(before: Before, extraData: scala.Any): AnyRef = printRectangle(before, extraData)
+
   override def visit(after: After, extraData: scala.Any): AnyRef = printRectangle(after, extraData)
+
   override def visit(filter: Id, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: Equals, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: IncludeFilter, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
 
   override def visit(filter: DWithin, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: Within, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
 
   override def visit(filter: PropertyIsLessThanOrEqualTo, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: PropertyIsLessThan, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: PropertyIsGreaterThanOrEqualTo, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: PropertyIsGreaterThan, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: PropertyIsNotEqualTo, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: PropertyIsEqualTo, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
+
   override def visit(filter: PropertyIsBetween, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
 
   override def visit(filter: ExcludeFilter, extraData: scala.Any): AnyRef = printRectangle(filter, extraData)
