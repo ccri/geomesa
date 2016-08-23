@@ -1,10 +1,10 @@
-/***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+/** *********************************************************************
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  * ************************************************************************/
 
 package org.locationtech.geomesa.memory.cqengine.utils
 
@@ -163,6 +163,30 @@ class CQEngineQueryVisitorTest extends Specification {
         s"INTERSECTS(Where, $bbox1) AND When DURING 2010-08-08T00:00:00.000Z/2010-08-08T23:59:59.000Z"
       )
       runFilterTests("one level AND", oneLevelAndFilters)
+
+      val oneLevelMultipleAndsFilters: Seq[Filter] = Seq(
+        s"((INTERSECTS(Where, $bbox1) AND INTERSECTS(Where, $bbox2)) AND Who = 'Addams')",
+        s"(INTERSECTS(Where, $bbox1) AND INTERSECTS(Where, $bbox2) AND Who = 'Addams')",
+        s"(Who = 'Addams' AND ((INTERSECTS(Where, $bbox1) AND What = 5) AND WhatFloat < 5.0))"
+      )
+      runFilterTests("one level multiple AND", oneLevelMultipleAndsFilters)
+
+      val oneLevelOrFilters: Seq[Filter] = Seq(
+        s"(INTERSECTS(Where, $bbox1) OR INTERSECTS(Where, $bbox2))",
+        s"(INTERSECTS(Where, $bbox1) OR Who = 'Addams')",
+        s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1))",
+        s"(Who = 'Addams' OR Who = 'Bierce')",
+        s"(Who = 'Addams' OR What = 1)"
+      )
+      runFilterTests("one level OR", oneLevelOrFilters)
+
+      val oneLevelMultipleOrsFilters: Seq[Filter] = Seq(
+        s"(INTERSECTS(Where, $bbox1) OR INTERSECTS(Where, $bbox1) OR Who = 'Addams')",
+        s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1) OR What = 1)",
+        s"(Who = 'Addams' OR Who = 'Bierce' or What = 1)",
+        s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1) OR Who = 'Bierce')"
+      )
+      runFilterTests("one level multiple OR", oneLevelMultipleOrsFilters)
     }
   }
 }
