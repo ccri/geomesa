@@ -63,7 +63,7 @@ class GeoCQEngine(sft: SimpleFeatureType) {
   }
 
   // This is a convenience method to query CQEngine directly.
-  /*def getReaderForQuery(query: Query[SimpleFeature]): FR = {
+  def getReaderForQuery(query: Query[SimpleFeature]): FR = {
     new DFR(sft, new DFI(cqcache.retrieve(query).iterator))
-  }*/
+  }
 }

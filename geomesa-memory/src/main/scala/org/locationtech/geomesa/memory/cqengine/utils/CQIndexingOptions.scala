@@ -84,12 +84,15 @@ object CQIndexingOptions extends LazyLogging {
     coll.addIndex(GeoIndex.onAttribute(defaultGeom))
   }
 
-  // TODO: Fix this!  The comparable requirement for navigable is tough
   def addNavigableIndex(ad: AttributeDescriptor, coll: IndexedCollection[SimpleFeature]): Unit = {
-    //    val binding = ad.getType.getBinding
-    //    // TODO: Check binding to make sure it makes sense
-    //    val attribute = SFTAttributes.buildSimpleFeatureAttribute[Any](ad)
-    //    coll.addIndex(NavigableIndex.onAttribute(attribute))
+    val binding = ad.getType.getBinding
+    binding match {
+      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntNavIndex(ad, coll)
+      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongNavIndex(ad, coll)
+      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatNavIndex(ad, coll)
+      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleNavIndex(ad, coll)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateNavIndex(ad, coll)
+    }
   }
 
   def addRadixIndex(ad: AttributeDescriptor, coll: IndexedCollection[SimpleFeature]): Unit = {
