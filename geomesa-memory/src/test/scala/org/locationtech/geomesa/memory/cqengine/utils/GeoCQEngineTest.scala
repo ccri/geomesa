@@ -23,7 +23,7 @@ class GeoCQEngineTest extends Specification {
       cqNoIndexes.addAll(feats)
 
       // Set up CQEngine with all indexes
-      val cqWithIndexes = new GeoCQEngine(sft)
+      val cqWithIndexes = new GeoCQEngine(sftWithIndexes)
       cqWithIndexes.addAll(feats)
 
       def getGeoToolsCount(filter: Filter) = feats.count(filter.evaluate)
@@ -71,6 +71,8 @@ class GeoCQEngineTest extends Specification {
       runFilterTests("one level OR", oneLevelOrFilters)
 
       runFilterTests("one level multiple OR", oneLevelMultipleOrsFilters)
+
+      runFilterTests("good spatial predicates", goodSpatialPredicates)
     }
   }
 }

@@ -119,6 +119,16 @@ object SampleFilters {
     "When BETWEEN '2014-01-01T00:00:00.000Z' AND '2014-06-30T00:00:00.000Z'"
   )
 
+  val goodSpatialPredicates =
+    Seq[Filter](
+      s"INTERSECTS(Where, $bbox2)",
+      s"OVERLAPS(Where, $bbox2)",
+      s"WITHIN(Where, $bbox2)",
+      s"CONTAINS(Where, $bbox2)",
+      s"CROSSES(Where, $bbox2)",
+      s"BBOX(Where, -180, 0, 0, 90)"
+    )
+
   val nullFilters: Seq[Filter] = Seq(
     "Why IS NULL",
     "Why IS NOT NULL"
