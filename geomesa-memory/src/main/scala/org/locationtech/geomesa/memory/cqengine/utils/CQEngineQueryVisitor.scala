@@ -16,7 +16,8 @@ import com.googlecode.cqengine.{query => cqquery}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.filter.visitor.AbstractFilterVisitor
 import org.locationtech.geomesa.filter._
-import org.locationtech.geomesa.memory.cqengine.query.{Intersects => CQIntersects}
+import org.locationtech.geomesa.memory.cqengine.attribute.SimpleFeatureAttribute
+import org.locationtech.geomesa.memory.cqengine.query.{CQLQuery, Intersects => CQIntersects}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter._
 import org.opengis.filter.expression.{Literal, PropertyName}
@@ -213,7 +214,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
   override def visit(filter: Contains, data: scala.Any): AnyRef = ???
 
-  override def visit(filter: Crosses, data: scala.Any): AnyRef = ???
+  override def visit(filter: Crosses, data: scala.Any): AnyRef = handleGeneralCQLFilter(filter)
 
   override def visit(filter: Disjoint, data: scala.Any): AnyRef = ???
 
@@ -264,6 +265,13 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
   override def visit(filter: BinaryLogicOperator, data: scala.Any): AnyRef = ???
 
   override def visitNullFilter(data: scala.Any): AnyRef = ???
+
+  def handleGeneralCQLFilter(filter: Filter): Query[SimpleFeature] = {
+    // JNH: HAHAHHAHAHHAHAHA WHWHHAHHAHAHAHAHAHAH!!!!11!!!!
+    val attribute = new SimpleFeatureAttribute(classOf[String], "foo")
+//    val (attribute: Attribute[SimpleFeature, Any], value: Any) = extractAttributeAndValue(filter)
+    new CQLQuery(attribute, filter)
+  }
 
   def extractAttributeAndValue(filter: Filter): (Attribute[SimpleFeature, Any], Any) = {
     val prop = getAttributeProperty(filter).get
