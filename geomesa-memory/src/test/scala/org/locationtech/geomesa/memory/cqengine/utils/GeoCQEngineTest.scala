@@ -62,6 +62,8 @@ class GeoCQEngineTest extends Specification {
 
       runFilterTests("comparable", comparableFilters)
 
+      runFilterTests("temporal", temporalFilters)
+
       runFilterTests("one level AND", oneLevelAndFilters)
 
       runFilterTests("one level multiple AND", oneLevelMultipleAndsFilters)

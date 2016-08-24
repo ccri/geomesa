@@ -21,6 +21,8 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter._
 import org.opengis.filter.expression.{Literal, PropertyName}
 import org.opengis.filter.spatial._
+import org.opengis.filter.temporal._
+import org.opengis.temporal.Period
 
 import scala.collection.JavaConversions._
 import scala.language._
@@ -155,6 +157,113 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case c => throw new RuntimeException(s"PropertyIsLessThanOrEqualTo: $c not supported")
     }
   }
+
+  /**
+    * AFTER: only for time attributes, and is exclusive
+    */
+  override def visit(after: After, extraData: scala.Any): AnyRef = {
+    val prop = getAttributeProperty(after).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[Date].isAssignableFrom(c) => {
+        val attr = lookup.lookupComparable[Date](prop.name)
+        val value = prop.literal.evaluate(null, classOf[Date])
+        new cqquery.simple.GreaterThan[SimpleFeature, Date](attr, value, false)
+      }
+      case c => throw new RuntimeException(s"After: $c not supported")
+    }
+  }
+
+  /**
+    * BEFORE: only for time attributes, and is exclusive
+    */
+  override def visit(before: Before, extraData: scala.Any): AnyRef = {
+    val prop = getAttributeProperty(before).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[Date].isAssignableFrom(c) => {
+        val attr = lookup.lookupComparable[Date](prop.name)
+        val value = prop.literal.evaluate(null, classOf[Date])
+        new cqquery.simple.LessThan[SimpleFeature, Date](attr, value, false)
+      }
+      case c => throw new RuntimeException(s"Before: $c not supported")
+    }
+  }
+
+  /**
+    * DURING: only for time attributes, and is exclusive at both ends
+    */
+  override def visit(during: During, extraData: scala.Any): AnyRef = {
+    val prop = getAttributeProperty(during).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[Date].isAssignableFrom(c) => {
+        val attr = lookup.lookupComparable[Date](prop.name)
+        val p = prop.literal.evaluate(null, classOf[Period])
+        val lower = p.getBeginning.getPosition.getDate
+        val upper = p.getEnding.getPosition.getDate
+        new cqquery.simple.Between[SimpleFeature, java.util.Date](attr, lower, false, upper, false)
+      }
+      case c => throw new RuntimeException(s"During: $c not supported")
+    }
+  }
+
+  override def visit(filter: BinaryComparisonOperator, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: ExcludeFilter, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: IncludeFilter, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Contains, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Crosses, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Disjoint, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: DWithin, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Equals, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Overlaps, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Touches, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: Within, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: PropertyIsLike, data: scala.Any): AnyRef = ???
+
+  override def visit(meets: Meets, extraData: scala.Any): AnyRef = ???
+
+  override def visit(metBy: MetBy, extraData: scala.Any): AnyRef = ???
+
+  override def visit(overlappedBy: OverlappedBy, extraData: scala.Any): AnyRef = ???
+
+  override def visit(contains: TContains, extraData: scala.Any): AnyRef = ???
+
+  override def visit(equals: TEquals, extraData: scala.Any): AnyRef = ???
+
+  override def visit(contains: TOverlaps, extraData: scala.Any): AnyRef = ???
+
+  override def visit(filter: BinaryTemporalOperator, data: scala.Any): AnyRef = ???
+
+  override def visit(anyInteracts: AnyInteracts, extraData: scala.Any): AnyRef = ???
+
+  override def visit(filter: PropertyIsNil, extraData: scala.Any): AnyRef = ???
+
+  override def visit(filter: Beyond, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: BinarySpatialOperator, data: scala.Any): AnyRef = ???
+
+  override def visit(ends: Ends, extraData: scala.Any): AnyRef = ???
+
+  override def visit(endedBy: EndedBy, extraData: scala.Any): AnyRef = ???
+
+  override def visit(begunBy: BegunBy, extraData: scala.Any): AnyRef = ???
+
+  override def visit(begins: Begins, extraData: scala.Any): AnyRef = ???
+
+  override def visit(filter: PropertyIsNotEqualTo, data: scala.Any): AnyRef = ???
+
+  override def visit(filter: BinaryLogicOperator, data: scala.Any): AnyRef = ???
+
+  override def visitNullFilter(data: scala.Any): AnyRef = ???
 
   def extractAttributeAndValue(filter: Filter): (Attribute[SimpleFeature, Any], Any) = {
     val prop = getAttributeProperty(filter).get

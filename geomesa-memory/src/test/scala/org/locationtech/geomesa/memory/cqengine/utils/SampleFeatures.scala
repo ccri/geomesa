@@ -153,11 +153,17 @@ object SampleFilters {
     "When <= '2014-07-01T00:00:00Z'"
   )
 
+  val temporalFilters: Seq[Filter] = Seq(
+    "When DURING 2014-01-01T00:00:00.000Z/2014-07-01T00:00:00.000Z",
+    "When BEFORE 2014-09-01T00:00:00.000Z",
+    "When AFTER  2014-03-01T00:00:00.000Z"
+  )
+
   val oneLevelAndFilters: Seq[Filter] = Seq(
     s"(INTERSECTS(Where, $bbox1) AND INTERSECTS(Where, $bbox2))",
     s"(INTERSECTS(Where, $bbox1) AND Who = 'Addams')",
     s"(Who = 'Addams' AND INTERSECTS(Where, $bbox1))",
-    s"INTERSECTS(Where, $bbox1) AND When DURING 2010-08-08T00:00:00.000Z/2010-08-08T23:59:59.000Z"
+    s"INTERSECTS(Where, $bbox1) AND When DURING 2014-03-01T00:00:00.000Z/2014-09-30T23:59:59.000Z"
   )
 
   val oneLevelMultipleAndsFilters: Seq[Filter] = Seq(
