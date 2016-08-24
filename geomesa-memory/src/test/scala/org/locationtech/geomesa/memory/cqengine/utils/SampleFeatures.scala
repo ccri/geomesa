@@ -11,10 +11,12 @@ package org.locationtech.geomesa.memory.cqengine.utils
 import com.vividsolutions.jts.geom.Point
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.feature.simple.SimpleFeatureBuilder
+import org.geotools.filter.text.ecql.ECQL
 import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.simple.SimpleFeature
+import org.opengis.filter.Filter
 
 import scala.language._
 import scala.util.Random
@@ -40,7 +42,7 @@ object SampleFeatures {
     "WhatDouble:Double:cq_index=navigable",
     "When:Date:cq_index=navigable",
     "*Where:Point:srid=4326",
-    "Why:String"  // Why can have nulls
+    "Why:String" // Why can have nulls
   ).mkString(",")
   val sftWithIndexes = SimpleFeatureTypes.createType("test2", specIndexes)
 
@@ -86,9 +88,92 @@ object SampleFeatures {
     builder.set("WhatDouble", Random.nextDouble() * 10.0)
     builder.set("When", randDate)
     builder.set("Where", getPoint)
-    if (randomBoolean(0.4)) { // make sure n_{null} != n_{not null}
+    if (randomBoolean(0.4)) {
+      // make sure n_{null} != n_{not null}
       builder.set("Why", string)
     }
     builder.buildFeature(i.toString)
   }
+}
+
+/**
+  * List of sample filters to test sample features.
+  * Each is designed so they are likely to return non-zero results over a reasonably
+  * large (>= 1000) set of random features generated with SampleFeatures.buildFeature()
+  */
+object SampleFilters {
+  implicit def stringToFilter(s: String): Filter = ECQL.toFilter(s)
+
+  // big enough so there are likely to be points in them
+  val bbox1 = "POLYGON((-89 89, -1 89, -1 -89, -89 -89, -89 89))"
+  val bbox2 = "POLYGON((-180 90, 0 90, 0 0, -180 0, -180 90))"
+
+  val basicFilters = Seq[Filter](
+    "Who IN('Addams', 'Bierce')",
+    "What = 5",
+    s"INTERSECTS(Where, $bbox1)",
+    s"INTERSECTS(Where, $bbox2) AND Who IN('Addams', 'Bierce')",
+    s"NOT (INTERSECTS(Where, $bbox1))",
+    s"NOT (INTERSECTS(Where, $bbox1))",
+    "When BETWEEN '0000-01-01T00:00:00.000Z' AND '9999-12-31T23:59:59.000Z'",
+    "When BETWEEN '2014-01-01T00:00:00.000Z' AND '2014-06-30T00:00:00.000Z'"
+  )
+
+  val nullFilters: Seq[Filter] = Seq(
+    "Why IS NULL",
+    "Why IS NOT NULL"
+  )
+
+  val comparableFilters = Seq[Filter](
+    "What = 5",
+    "WhatLong = 5",
+
+    "What > 5",
+    "WhatLong > 5",
+    "WhatFloat > 5.0",
+    "WhatDouble > 5.0",
+
+    "What >= 5",
+    "WhatLong >= 5",
+    "WhatFloat >= 5.0",
+    "WhatDouble >= 5.0",
+
+    "What < 5",
+    "WhatLong < 5",
+    "WhatFloat < 5.0",
+    "WhatDouble < 5.0",
+
+    "What <= 5",
+    "WhatLong <= 5",
+    "WhatFloat <= 5.0",
+    "WhatDouble <= 5.0"
+  )
+
+  val oneLevelAndFilters: Seq[Filter] = Seq(
+    s"(INTERSECTS(Where, $bbox1) AND INTERSECTS(Where, $bbox2))",
+    s"(INTERSECTS(Where, $bbox1) AND Who = 'Addams')",
+    s"(Who = 'Addams' AND INTERSECTS(Where, $bbox1))",
+    s"INTERSECTS(Where, $bbox1) AND When DURING 2010-08-08T00:00:00.000Z/2010-08-08T23:59:59.000Z"
+  )
+
+  val oneLevelMultipleAndsFilters: Seq[Filter] = Seq(
+    s"((INTERSECTS(Where, $bbox1) AND INTERSECTS(Where, $bbox2)) AND Who = 'Addams')",
+    s"(INTERSECTS(Where, $bbox1) AND INTERSECTS(Where, $bbox2) AND Who = 'Addams')",
+    s"(Who = 'Addams' AND ((INTERSECTS(Where, $bbox1) AND What <= 9) AND WhatFloat > 1.0))"
+  )
+
+  val oneLevelOrFilters: Seq[Filter] = Seq(
+    s"(INTERSECTS(Where, $bbox1) OR INTERSECTS(Where, $bbox2))",
+    s"(INTERSECTS(Where, $bbox1) OR Who = 'Addams')",
+    s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1))",
+    s"(Who = 'Addams' OR Who = 'Bierce')",
+    s"(Who = 'Addams' OR What = 1)"
+  )
+
+  val oneLevelMultipleOrsFilters: Seq[Filter] = Seq(
+    s"(INTERSECTS(Where, $bbox1) OR INTERSECTS(Where, $bbox2) OR Who = 'Addams')",
+    s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1) OR What = 1)",
+    s"(Who = 'Addams' OR Who = 'Bierce' or What = 1)",
+    s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1) OR Who = 'Bierce')"
+  )
 }

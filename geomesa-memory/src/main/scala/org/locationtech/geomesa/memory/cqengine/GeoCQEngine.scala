@@ -8,6 +8,8 @@
 
 package org.locationtech.geomesa.memory.cqengine
 
+import java.util
+
 import com.googlecode.cqengine.query.option.DeduplicationStrategy
 import com.googlecode.cqengine.query.{QueryFactory, Query}
 import com.googlecode.cqengine.query.simple.All
@@ -25,6 +27,10 @@ class GeoCQEngine(sft: SimpleFeatureType) {
 
   def add(sf: SimpleFeature) {
     cqcache.add(sf)
+  }
+
+  def addAll(sfs: util.Collection[SimpleFeature]) {
+    cqcache.addAll(sfs)
   }
 
   def clear() {
