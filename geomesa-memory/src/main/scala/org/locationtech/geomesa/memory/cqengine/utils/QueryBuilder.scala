@@ -1,14 +1,12 @@
 /***********************************************************************
-  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-  * All rights reserved. This program and the accompanying materials
-  * are made available under the terms of the Apache License, Version 2.0
-  * which accompanies this distribution and is available at
-  * http://www.opensource.org/licenses/apache2.0.php.
-  *************************************************************************/
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.memory.cqengine.utils
-
-import java.util.Date
 
 import com.googlecode.cqengine.attribute.Attribute
 import com.googlecode.cqengine.query.simple.{Between, GreaterThan, LessThan, SimpleQuery}
@@ -89,6 +87,11 @@ object BuildDoubleGTQuery  extends GTQueryBuilder {
   val valueClass = classOf[java.lang.Double]
   val orEqual = false
 }
+object BuildDateGTQuery    extends GTQueryBuilder {
+  type VALUE = java.util.Date
+  val valueClass = classOf[java.util.Date]
+  val orEqual = false
+}
 
 object BuildIntGTEQuery    extends GTQueryBuilder {
   type VALUE = java.lang.Integer
@@ -108,6 +111,11 @@ object BuildFloatGTEQuery  extends GTQueryBuilder {
 object BuildDoubleGTEQuery extends GTQueryBuilder {
   type VALUE = java.lang.Double
   val valueClass = classOf[java.lang.Double]
+  val orEqual = true
+}
+object BuildDateGTEQuery   extends GTQueryBuilder {
+  type VALUE = java.util.Date
+  val valueClass = classOf[java.util.Date]
   val orEqual = true
 }
 
@@ -131,6 +139,11 @@ object BuildDoubleLTQuery  extends LTQueryBuilder {
   val valueClass = classOf[java.lang.Double]
   val orEqual = false
 }
+object BuildDateLTQuery    extends LTQueryBuilder {
+  type VALUE = java.util.Date
+  val valueClass = classOf[java.util.Date]
+  val orEqual = false
+}
 
 object BuildIntLTEQuery    extends LTQueryBuilder {
   type VALUE = java.lang.Integer
@@ -152,6 +165,11 @@ object BuildDoubleLTEQuery extends LTQueryBuilder {
   val valueClass = classOf[java.lang.Double]
   val orEqual = true
 }
+object BuildDateLTEQuery   extends LTQueryBuilder {
+  type VALUE = java.util.Date
+  val valueClass = classOf[java.util.Date]
+  val orEqual = true
+}
 
 object BuildIntBetweenQuery    extends BetweenQueryBuilder {
   type VALUE = java.lang.Integer
@@ -170,6 +188,6 @@ object BuildDoubleBetweenQuery extends BetweenQueryBuilder {
   val valueClass = classOf[java.lang.Double]
 }
 object BuildDateBetweenQuery   extends BetweenQueryBuilder {
-  type VALUE = Date
-  val valueClass = classOf[Date]
+  type VALUE = java.util.Date
+  val valueClass = classOf[java.util.Date]
 }

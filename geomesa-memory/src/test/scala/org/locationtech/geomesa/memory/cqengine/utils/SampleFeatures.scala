@@ -132,21 +132,25 @@ object SampleFilters {
     "WhatLong > 5",
     "WhatFloat > 5.0",
     "WhatDouble > 5.0",
+    "When > '2014-07-01T00:00:00Z'",
 
     "What >= 5",
     "WhatLong >= 5",
     "WhatFloat >= 5.0",
     "WhatDouble >= 5.0",
+    "When >= '2014-07-01T00:00:00Z'",
 
     "What < 5",
     "WhatLong < 5",
     "WhatFloat < 5.0",
     "WhatDouble < 5.0",
+    "When < '2014-07-01T00:00:00Z'",
 
     "What <= 5",
     "WhatLong <= 5",
     "WhatFloat <= 5.0",
-    "WhatDouble <= 5.0"
+    "WhatDouble <= 5.0",
+    "When <= '2014-07-01T00:00:00Z'"
   )
 
   val oneLevelAndFilters: Seq[Filter] = Seq(

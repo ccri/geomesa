@@ -103,7 +103,8 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongBetweenQuery(prop)
       case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatBetweenQuery(prop)
       case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleBetweenQuery(prop)
-      case c if classOf[Date             ].isAssignableFrom(c) => BuildDateBetweenQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateBetweenQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsBetween: $c not supported")
     }
   }
 
@@ -114,6 +115,8 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongGTQuery(prop)
       case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatGTQuery(prop)
       case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleGTQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateGTQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsGreaterThan: $c not supported")
     }
   }
 
@@ -124,6 +127,8 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongGTEQuery(prop)
       case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatGTEQuery(prop)
       case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleGTEQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateGTEQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsGreaterThanOrEqualTo: $c not supported")
     }
   }
 
@@ -134,6 +139,8 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongLTQuery(prop)
       case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatLTQuery(prop)
       case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleLTQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateLTQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsLessThan: $c not supported")
     }
   }
 
@@ -144,6 +151,8 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
       case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongLTEQuery(prop)
       case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatLTEQuery(prop)
       case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleLTEQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateLTEQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsLessThanOrEqualTo: $c not supported")
     }
   }
 
