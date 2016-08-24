@@ -1,10 +1,10 @@
-/** *********************************************************************
-  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-  * All rights reserved. This program and the accompanying materials
-  * are made available under the terms of the Apache License, Version 2.0
-  * which accompanies this distribution and is available at
-  * http://www.opensource.org/licenses/apache2.0.php.
-  * ************************************************************************/
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
 
 package org.locationtech.geomesa.kafka
 
@@ -148,6 +148,23 @@ class AttributeIndexingTest extends Specification {
     }
   }
 
+  def runQueriesMultipleRaw[T](n: Int,
+                               labels: Seq[String],
+                               genIter: Seq[T => Long],
+                               filters: Seq[T]) = {
+    val sep = ","
+    val header = for (i <- 1 to filters.size ; l <- labels) yield s"f$i.$l"
+    println(header.mkString(sep))
+
+    for (i <- 1 to n) {
+      val row = for (f <- filters; g <- genIter) yield {
+        val (counts, t) = time(g(f))
+        t
+      }
+      println(row.toList.mkString(sep))
+    }
+  }
+
   def time[A](a: => A) = {
     val now = System.currentTimeMillis()
     val result = a
@@ -251,7 +268,7 @@ class AttributeIndexingTest extends Specification {
   val bad1 = ff.or(whereAB, whereCD)
   val nice1 = ff.and(where, abcd)
 
-  val nFeats = 1000000
+  val nFeats = 100000
   val feats = (0 until nFeats).map(buildFeature)
   val featsUpdate = (0 until nFeats).map(buildFeature)
 
@@ -366,7 +383,7 @@ class AttributeIndexingTest extends Specification {
       })
       println("cq  repop: " + countPopulate(featsUpdate.size, cq_repop))
 
-      runQueriesMultiple[Filter](
+      runQueriesMultipleRaw[Filter](
         11,
         Seq("lfc", "cq", "cqdd"),
         Seq(
