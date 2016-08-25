@@ -16,8 +16,7 @@ import com.googlecode.cqengine.{query => cqquery}
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.filter.visitor.AbstractFilterVisitor
 import org.locationtech.geomesa.filter._
-import org.locationtech.geomesa.memory.cqengine.attribute.SimpleFeatureAttribute
-import org.locationtech.geomesa.memory.cqengine.query.{CQLQuery, Intersects => CQIntersects}
+import org.locationtech.geomesa.memory.cqengine.query.{GeoToolsFilterQuery, Intersects => CQIntersects}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter._
 import org.opengis.filter.expression.{Literal, PropertyName}
@@ -206,6 +205,9 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
+  override def visit(filter: BinarySpatialOperator, data: scala.Any): AnyRef = handleGeneralCQLFilter(filter)
+
+  /*
   override def visit(filter: BinaryComparisonOperator, data: scala.Any): AnyRef = ???
 
   override def visit(filter: ExcludeFilter, data: scala.Any): AnyRef = ???
@@ -250,7 +252,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
   override def visit(filter: Beyond, data: scala.Any): AnyRef = ???
 
-  override def visit(filter: BinarySpatialOperator, data: scala.Any): AnyRef = ???
+
 
   override def visit(ends: Ends, extraData: scala.Any): AnyRef = ???
 
@@ -263,14 +265,12 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
   override def visit(filter: PropertyIsNotEqualTo, data: scala.Any): AnyRef = ???
 
   override def visit(filter: BinaryLogicOperator, data: scala.Any): AnyRef = ???
+  */
 
   override def visitNullFilter(data: scala.Any): AnyRef = ???
 
   def handleGeneralCQLFilter(filter: Filter): Query[SimpleFeature] = {
-    // JNH: HAHAHHAHAHHAHAHA WHWHHAHHAHAHAHAHAHAH!!!!11!!!!
-    val attribute = new SimpleFeatureAttribute(classOf[String], "foo")
-//    val (attribute: Attribute[SimpleFeature, Any], value: Any) = extractAttributeAndValue(filter)
-    new CQLQuery(attribute, filter)
+    new GeoToolsFilterQuery(filter)
   }
 
   def extractAttributeAndValue(filter: Filter): (Attribute[SimpleFeature, Any], Any) = {
