@@ -12,7 +12,7 @@ import java.util.UUID
 
 import com.googlecode.cqengine.attribute.Attribute
 import com.vividsolutions.jts.geom.Geometry
-import org.locationtech.geomesa.memory.cqengine.attribute.SimpleFeatureAttribute
+import org.locationtech.geomesa.memory.cqengine.attribute.{SimpleFeatureFidAttribute, SimpleFeatureAttribute}
 import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
@@ -37,6 +37,8 @@ case class SFTAttributes(sft: SimpleFeatureType) {
 }
 
 object SFTAttributes {
+  val fidAttribute: Attribute[SimpleFeature, String] = new SimpleFeatureFidAttribute()
+
   def buildSimpleFeatureAttribute(ad: AttributeDescriptor): Attribute[SimpleFeature, _] = {
     buildSimpleFeatureAttribute(ad.getType.getBinding, ad.getLocalName)
   }
@@ -55,11 +57,3 @@ object SFTAttributes {
     }
   }
 }
-
-//// TODO: optimize by using field number rather than name.
-//class SimpleFeatureAttribute[A](name: String)(implicit ct: ClassTag[A]) extends
-//  SimpleAttribute[SimpleFeature, A](classOf[SimpleFeature], ct.runtimeClass.asInstanceOf[Class[A]], name) {
-//  override def getValue(feature: SimpleFeature, queryOptions: QueryOptions): A = {
-//    feature.getAttribute(name).asInstanceOf[A]
-//  }
-//}

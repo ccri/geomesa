@@ -77,7 +77,14 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
   /* Null, nil, exclude, include */
 
-  override def visit(filter: Id, extractData: scala.AnyRef): AnyRef = ???
+  /**
+    * Id
+    */
+  override def visit(filter: Id, extractData: scala.AnyRef): AnyRef = {
+    val attr = SFTAttributes.fidAttribute
+    val values = filter.getIDs.map(_.toString)
+    new cqquery.simple.In[SimpleFeature, String](attr, true, values)
+  }
 
   /**
     * PropertyIsNil:

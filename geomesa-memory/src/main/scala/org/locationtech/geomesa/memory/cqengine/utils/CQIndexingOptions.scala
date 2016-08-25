@@ -44,6 +44,11 @@ object CQIndexingOptions extends LazyLogging {
     // Add Geometry index on default geometry first.
     addGeoIndex(sft.getGeometryDescriptor, cqcache)
 
+    // Add fid index
+    // TODO: should we always build this or expose building this as an option?
+    addFidIndex(cqcache)
+
+    // Add other indexes
     sft.getAttributeDescriptors.foreach {
       addIndex(_, cqcache)
     }
@@ -75,6 +80,11 @@ object CQIndexingOptions extends LazyLogging {
       case CQIndexType.HASH      => addHashIndex(ad, coll)
       case CQIndexType.NONE      => // NO-OP
     }
+  }
+
+  def addFidIndex(coll: IndexedCollection[SimpleFeature]): Unit = {
+    val attribute = SFTAttributes.fidAttribute
+    coll.addIndex(HashIndex.onAttribute(attribute))
   }
 
   def addGeoIndex(ad: AttributeDescriptor, coll: IndexedCollection[SimpleFeature]): Unit = {

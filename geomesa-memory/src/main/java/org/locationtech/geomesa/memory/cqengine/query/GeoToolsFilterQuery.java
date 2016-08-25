@@ -13,7 +13,7 @@ import org.opengis.filter.Filter;
  * make use of indexes, so it should be considered a "last chance" fallback.
  */
 public class GeoToolsFilterQuery extends SimpleQuery<SimpleFeature, SimpleFeature> {
-    // create an "identity" selfAttribute that just returns the SF (currently not used)
+    // create an "identity" attribute that just returns the SF (currently not used)
     private final static Attribute<SimpleFeature, SimpleFeature> selfAttribute = new SelfAttribute<>(SimpleFeature.class);
 
     private final Filter filter;
