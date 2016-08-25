@@ -28,6 +28,7 @@ object SampleFeatures {
     "WhatLong:Long",
     "WhatFloat:Float",
     "WhatDouble:Double",
+    "WhatBool:Boolean",
     "When:Date",
     "*Where:Point:srid=4326",
     "Why:String"
@@ -40,6 +41,7 @@ object SampleFeatures {
     "WhatLong:Long:cq_index=navigable",
     "WhatFloat:Float:cq_index=navigable",
     "WhatDouble:Double:cq_index=navigable",
+    "WhatBool:Boolean",
     "When:Date:cq_index=navigable",
     "*Where:Point:srid=4326",
     "Why:String" // Why can have nulls
@@ -86,6 +88,7 @@ object SampleFeatures {
     builder.set("WhatLong", Random.nextInt(10).toLong)
     builder.set("WhatFloat", Random.nextFloat * 10.0F)
     builder.set("WhatDouble", Random.nextDouble() * 10.0)
+    builder.set("WhatBool", randomBoolean(0.4))
     builder.set("When", randDate)
     builder.set("Where", getPoint)
     if (randomBoolean(0.4)) {
@@ -126,18 +129,23 @@ object SampleFilters {
     "WhatLong = 5",
     "WhatLong <> 5",
     "When = '2014-07-01T00:00:00.000Z'",
-    "When <> '2014-07-01T00:00:00.000Z'"
+    "When <> '2014-07-01T00:00:00.000Z'",
+    "WhatBool = true",
+    "WhatBool = false"
   )
 
   val specialFilters: Seq[Filter] = Seq(
     Filter.INCLUDE,
     ff.and("What = 5", Filter.INCLUDE),
-    Filter.EXCLUDE
+    Filter.EXCLUDE,
+    "IN (1)",
+    "IN (1, 2, 3)"
   )
 
   val nullFilters: Seq[Filter] = Seq(
     "Why IS NULL",
-    "Why IS NOT NULL"
+    "Why IS NOT NULL",
+    ff.isNil(ff.property("Why"), null)
   )
 
   val comparableFilters = Seq[Filter](

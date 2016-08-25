@@ -30,6 +30,11 @@ import scala.language._
 class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor {
   implicit val lookup = SFTAttributes(sft)
 
+  /* Logical operators */
+
+  /**
+    * And
+    */
   override def visit(filter: And, data: scala.Any): AnyRef = {
     val children = filter.getChildren
 
@@ -42,6 +47,9 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     new cqquery.logical.And[SimpleFeature](query)
   }
 
+  /**
+    * Or
+    */
   override def visit(filter: Or, data: scala.Any): AnyRef = {
     val children = filter.getChildren
 
@@ -54,6 +62,9 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     new cqquery.logical.Or[SimpleFeature](query)
   }
 
+  /**
+    * Not
+    */
   override def visit(filter: Not, data: scala.Any): AnyRef = {
     val subfilter = filter.getFilter
 
@@ -64,38 +75,118 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     new cqquery.logical.Not[SimpleFeature](subquery)
   }
 
-  override def visit(filter: BBOX, data: scala.Any): AnyRef = {
-    val attributeName = filter.getExpression1.asInstanceOf[PropertyName].getPropertyName
-    val geom = filter.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry])
+  /* Null, nil, exclude, include */
 
-    val geomAttribute = lookup.lookup[Geometry](attributeName)
+  override def visit(filter: Id, extractData: scala.AnyRef): AnyRef = ???
 
-    new CQIntersects(geomAttribute, geom)
+  /**
+    * PropertyIsNil:
+    * follows the example of IsNilImpl by using the same implementation as PropertyIsNull
+    */
+  override def visit(filter: PropertyIsNil, extraData: scala.Any): AnyRef = {
+    val attributeName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
+    val attr = lookup.lookup[Any](attributeName)
+    new cqquery.logical.Not[SimpleFeature](new cqquery.simple.Has(attr))
   }
 
-  override def visit(filter: Intersects, data: scala.Any): AnyRef = {
-    val attributeName = filter.getExpression1.asInstanceOf[PropertyName].getPropertyName
-    val geom = filter.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry])
-
-    val geomAttribute = lookup.lookup[Geometry](attributeName)
-
-    new CQIntersects(geomAttribute, geom)
+  /**
+    * PropertyIsNull
+    */
+  override def visit(filter: PropertyIsNull, data: scala.Any): AnyRef = {
+    val attributeName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
+    val attr = lookup.lookup[Any](attributeName)
+    // ugh, this could be done better
+    new cqquery.logical.Not[SimpleFeature](new cqquery.simple.Has(attr))
   }
 
+  /**
+    * ExcludeFilter
+    */
+  override def visit(filter: ExcludeFilter, data: scala.Any): AnyRef = new cqquery.simple.None(classOf[SimpleFeature])
+
+  /**
+    * IncludeFilter
+    * (handled a level above if IncludeFilter is the root node)
+    */
+  override def visit(filter: IncludeFilter, data: scala.Any): AnyRef = new cqquery.simple.All(classOf[SimpleFeature])
+
+  /* MultiValuedFilters */
+
+  /**
+    * PropertyIsEqualTo
+    */
   override def visit(filter: PropertyIsEqualTo, data: scala.Any): AnyRef = {
     val (attribute: Attribute[SimpleFeature, Any], value: Any) = extractAttributeAndValue(filter)
     new cqquery.simple.Equal(attribute, value)
   }
 
-  override def visit(filter: PropertyIsNull, data: scala.Any): AnyRef = {
-    val attributeName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
-    val attr = lookup.lookup[Any](attributeName)
-    // ugh
-    new cqquery.logical.Not[SimpleFeature](new cqquery.simple.Has(attr))
+  /**
+    * PropertyIsGreaterThan
+    */
+  override def visit(filter: PropertyIsGreaterThan, data: scala.Any): cqquery.simple.GreaterThan[SimpleFeature, _] = {
+    val prop = getAttributeProperty(filter).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntGTQuery(prop)
+      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongGTQuery(prop)
+      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatGTQuery(prop)
+      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleGTQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateGTQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsGreaterThan: $c not supported")
+    }
   }
 
   /**
-    * name BETWEEN lower AND upper
+    * PropertyIsGreaterThanOrEqualTo
+    */
+  override def visit(filter: PropertyIsGreaterThanOrEqualTo, data: scala.Any): cqquery.simple.GreaterThan[SimpleFeature, _] = {
+    val prop = getAttributeProperty(filter).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntGTEQuery(prop)
+      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongGTEQuery(prop)
+      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatGTEQuery(prop)
+      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleGTEQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateGTEQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsGreaterThanOrEqualTo: $c not supported")
+    }
+  }
+
+  /**
+    * PropertyIsLessThan
+    */
+  override def visit(filter: PropertyIsLessThan, data: scala.Any): cqquery.simple.LessThan[SimpleFeature, _] = {
+    val prop = getAttributeProperty(filter).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntLTQuery(prop)
+      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongLTQuery(prop)
+      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatLTQuery(prop)
+      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleLTQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateLTQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsLessThan: $c not supported")
+    }
+  }
+
+  /**
+    * PropertyIsLessThanOrEqualTo
+    */
+  override def visit(filter: PropertyIsLessThanOrEqualTo, data: scala.Any): cqquery.simple.LessThan[SimpleFeature, _] = {
+    val prop = getAttributeProperty(filter).get
+    sft.getDescriptor(prop.name).getType.getBinding match {
+      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntLTEQuery(prop)
+      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongLTEQuery(prop)
+      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatLTEQuery(prop)
+      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleLTEQuery(prop)
+      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateLTEQuery(prop)
+      case c => throw new RuntimeException(s"PropertyIsLessThanOrEqualTo: $c not supported")
+    }
+  }
+
+  /**
+    * PropertyIsNotEqualTo
+    */
+  override def visit(filter: PropertyIsNotEqualTo, data: scala.Any): AnyRef = ???
+
+  /**
+    * PropertyIsBetween
     * (in the OpenGIS spec, lower and upper are inclusive)
    */
   override def visit(filter: PropertyIsBetween, data: scala.Any): AnyRef = {
@@ -110,56 +201,48 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
-  override def visit(filter: PropertyIsGreaterThan, data: scala.Any): cqquery.simple.GreaterThan[SimpleFeature, _] = {
-    val prop = getAttributeProperty(filter).get
-    sft.getDescriptor(prop.name).getType.getBinding match {
-      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntGTQuery(prop)
-      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongGTQuery(prop)
-      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatGTQuery(prop)
-      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleGTQuery(prop)
-      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateGTQuery(prop)
-      case c => throw new RuntimeException(s"PropertyIsGreaterThan: $c not supported")
-    }
-  }
+  /**
+    * PropertyIsLike
+    */
+  override def visit(filter: PropertyIsLike, data: scala.Any): AnyRef = ???
 
-  override def visit(filter: PropertyIsGreaterThanOrEqualTo, data: scala.Any): cqquery.simple.GreaterThan[SimpleFeature, _] = {
-    val prop = getAttributeProperty(filter).get
-    sft.getDescriptor(prop.name).getType.getBinding match {
-      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntGTEQuery(prop)
-      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongGTEQuery(prop)
-      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatGTEQuery(prop)
-      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleGTEQuery(prop)
-      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateGTEQuery(prop)
-      case c => throw new RuntimeException(s"PropertyIsGreaterThanOrEqualTo: $c not supported")
-    }
-  }
+  /* Spatial filters */
 
-  override def visit(filter: PropertyIsLessThan, data: scala.Any): cqquery.simple.LessThan[SimpleFeature, _] = {
-    val prop = getAttributeProperty(filter).get
-    sft.getDescriptor(prop.name).getType.getBinding match {
-      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntLTQuery(prop)
-      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongLTQuery(prop)
-      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatLTQuery(prop)
-      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleLTQuery(prop)
-      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateLTQuery(prop)
-      case c => throw new RuntimeException(s"PropertyIsLessThan: $c not supported")
-    }
-  }
+  /**
+    * BBOX
+    */
+  override def visit(filter: BBOX, data: scala.Any): AnyRef = {
+    val attributeName = filter.getExpression1.asInstanceOf[PropertyName].getPropertyName
+    val geom = filter.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry])
 
-  override def visit(filter: PropertyIsLessThanOrEqualTo, data: scala.Any): cqquery.simple.LessThan[SimpleFeature, _] = {
-    val prop = getAttributeProperty(filter).get
-    sft.getDescriptor(prop.name).getType.getBinding match {
-      case c if classOf[java.lang.Integer].isAssignableFrom(c) => BuildIntLTEQuery(prop)
-      case c if classOf[java.lang.Long   ].isAssignableFrom(c) => BuildLongLTEQuery(prop)
-      case c if classOf[java.lang.Float  ].isAssignableFrom(c) => BuildFloatLTEQuery(prop)
-      case c if classOf[java.lang.Double ].isAssignableFrom(c) => BuildDoubleLTEQuery(prop)
-      case c if classOf[java.util.Date   ].isAssignableFrom(c) => BuildDateLTEQuery(prop)
-      case c => throw new RuntimeException(s"PropertyIsLessThanOrEqualTo: $c not supported")
-    }
+    val geomAttribute = lookup.lookup[Geometry](attributeName)
+
+    new CQIntersects(geomAttribute, geom)
   }
 
   /**
-    * AFTER: only for time attributes, and is exclusive
+    * Intersects
+    */
+  override def visit(filter: Intersects, data: scala.Any): AnyRef = {
+    val attributeName = filter.getExpression1.asInstanceOf[PropertyName].getPropertyName
+    val geom = filter.getExpression2.asInstanceOf[Literal].evaluate(null, classOf[Geometry])
+
+    val geomAttribute = lookup.lookup[Geometry](attributeName)
+
+    new CQIntersects(geomAttribute, geom)
+  }
+
+  /**
+    * BinarySpatialOperator: fallback non-indexable implementation of other spatial operators.
+    * Handles:
+    *    Contains, Crosses, Disjoint, Beyond, DWithin, Equals, Overlaps, Touches, Within
+    */
+  override def visit(filter: BinarySpatialOperator, data: scala.Any): AnyRef = handleGeneralCQLFilter(filter)
+
+  /* Temporal filters */
+
+  /**
+    * After: only for time attributes, and is exclusive
     */
   override def visit(after: After, extraData: scala.Any): AnyRef = {
     val prop = getAttributeProperty(after).get
@@ -174,7 +257,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
   }
 
   /**
-    * BEFORE: only for time attributes, and is exclusive
+    * Before: only for time attributes, and is exclusive
     */
   override def visit(before: Before, extraData: scala.Any): AnyRef = {
     val prop = getAttributeProperty(before).get
@@ -189,7 +272,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
   }
 
   /**
-    * DURING: only for time attributes, and is exclusive at both ends
+    * During: only for time attributes, and is exclusive at both ends
     */
   override def visit(during: During, extraData: scala.Any): AnyRef = {
     val prop = getAttributeProperty(during).get
@@ -205,67 +288,13 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
-  override def visit(filter: BinarySpatialOperator, data: scala.Any): AnyRef = handleGeneralCQLFilter(filter)
-
-  /*
-  override def visit(filter: BinaryComparisonOperator, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: ExcludeFilter, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: IncludeFilter, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: Contains, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: Crosses, data: scala.Any): AnyRef = handleGeneralCQLFilter(filter)
-
-  override def visit(filter: Disjoint, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: DWithin, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: Equals, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: Overlaps, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: Touches, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: Within, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: PropertyIsLike, data: scala.Any): AnyRef = ???
-
-  override def visit(meets: Meets, extraData: scala.Any): AnyRef = ???
-
-  override def visit(metBy: MetBy, extraData: scala.Any): AnyRef = ???
-
-  override def visit(overlappedBy: OverlappedBy, extraData: scala.Any): AnyRef = ???
-
-  override def visit(contains: TContains, extraData: scala.Any): AnyRef = ???
-
-  override def visit(equals: TEquals, extraData: scala.Any): AnyRef = ???
-
-  override def visit(contains: TOverlaps, extraData: scala.Any): AnyRef = ???
-
-  override def visit(filter: BinaryTemporalOperator, data: scala.Any): AnyRef = ???
-
-  override def visit(anyInteracts: AnyInteracts, extraData: scala.Any): AnyRef = ???
-
-  override def visit(filter: PropertyIsNil, extraData: scala.Any): AnyRef = ???
-
-  override def visit(filter: Beyond, data: scala.Any): AnyRef = ???
-
-
-
-  override def visit(ends: Ends, extraData: scala.Any): AnyRef = ???
-
-  override def visit(endedBy: EndedBy, extraData: scala.Any): AnyRef = ???
-
-  override def visit(begunBy: BegunBy, extraData: scala.Any): AnyRef = ???
-
-  override def visit(begins: Begins, extraData: scala.Any): AnyRef = ???
-
-  override def visit(filter: PropertyIsNotEqualTo, data: scala.Any): AnyRef = ???
-
-  override def visit(filter: BinaryLogicOperator, data: scala.Any): AnyRef = ???
-  */
+  /**
+    * BinaryTemporalOperator: Fallback non-indexable implementation of other temporal operators.
+    * Handles:
+    *     AnyInteracts, Begins, BegunBy, EndedBy, Ends, Meets,
+    *     MetBy, OverlappedBy, TContains, TEquals, TOverlaps
+    */
+  override def visit(filter: BinaryTemporalOperator, data: scala.Any): AnyRef = handleGeneralCQLFilter(filter)
 
   override def visitNullFilter(data: scala.Any): AnyRef = ???
 
