@@ -58,6 +58,10 @@ class GeoCQEngineTest extends Specification {
 
       runFilterTests("basic", basicFilters)
 
+      runFilterTests("equality", equalityFilters)
+
+      runFilterTests("special", specialFilters)
+
       runFilterTests("null", nullFilters)
 
       runFilterTests("comparable", comparableFilters)
@@ -72,7 +76,13 @@ class GeoCQEngineTest extends Specification {
 
       runFilterTests("one level multiple OR", oneLevelMultipleOrsFilters)
 
-      runFilterTests("good spatial predicates", goodSpatialPredicates)
+      runFilterTests("one level NOT", simpleNotFilters)
+
+      runFilterTests("basic spatial predicates", spatialPredicates)
+
+      runFilterTests("attribute predicates", attributePredicates)
+
+
     }
   }
 }

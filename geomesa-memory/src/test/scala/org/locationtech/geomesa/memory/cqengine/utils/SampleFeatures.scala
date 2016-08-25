@@ -103,6 +103,7 @@ object SampleFeatures {
   */
 object SampleFilters {
   implicit def stringToFilter(s: String): Filter = ECQL.toFilter(s)
+  val ff = CommonFactoryFinder.getFilterFactory2
 
   // big enough so there are likely to be points in them
   val bbox1 = "POLYGON((-89 89, -1 89, -1 -89, -89 -89, -89 89))"
@@ -119,15 +120,20 @@ object SampleFilters {
     "When BETWEEN '2014-01-01T00:00:00.000Z' AND '2014-06-30T00:00:00.000Z'"
   )
 
-  val goodSpatialPredicates =
-    Seq[Filter](
-      s"INTERSECTS(Where, $bbox2)",
-      s"OVERLAPS(Where, $bbox2)",
-      s"WITHIN(Where, $bbox2)",
-      s"CONTAINS(Where, $bbox2)",
-      s"CROSSES(Where, $bbox2)",
-      s"BBOX(Where, -180, 0, 0, 90)"
-    )
+  val equalityFilters: Seq[Filter] = Seq(
+    "What = 5",
+    "What <> 5",
+    "WhatLong = 5",
+    "WhatLong <> 5",
+    "When = '2014-07-01T00:00:00.000Z'",
+    "When <> '2014-07-01T00:00:00.000Z'"
+  )
+
+  val specialFilters: Seq[Filter] = Seq(
+    Filter.INCLUDE,
+    ff.and("What = 5", Filter.INCLUDE),
+    Filter.EXCLUDE
+  )
 
   val nullFilters: Seq[Filter] = Seq(
     "Why IS NULL",
@@ -135,9 +141,6 @@ object SampleFilters {
   )
 
   val comparableFilters = Seq[Filter](
-    "What = 5",
-    "WhatLong = 5",
-
     "What > 5",
     "WhatLong > 5",
     "WhatFloat > 5.0",
@@ -195,5 +198,61 @@ object SampleFilters {
     s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1) OR What = 1)",
     s"(Who = 'Addams' OR Who = 'Bierce' or What = 1)",
     s"(Who = 'Addams' OR INTERSECTS(Where, $bbox1) OR Who = 'Bierce')"
+  )
+
+  val simpleNotFilters: Seq[Filter] = Seq(
+    s"NOT (INTERSECTS(Where, $bbox1))",
+    s"NOT (INTERSECTS(Where, $bbox2))",
+    s"NOT (Who = 'Addams')",
+    s"NOT (What = 1)",
+    s"NOT (When BETWEEN '0000-01-01T00:00:00.000Z' AND '9999-12-31T23:59:59.000Z')",
+    s"NOT (When BETWEEN '2014-01-01T00:00:00.000Z' AND '2014-04-30T23:59:59.000Z')"
+  )
+
+  val spatialPredicates: Seq[Filter] = Seq(
+    s"INTERSECTS(Where, $bbox2)",
+    s"OVERLAPS(Where, $bbox2)",
+    s"WITHIN(Where, $bbox2)",
+    s"CONTAINS(Where, $bbox2)",
+    s"CROSSES(Where, $bbox2)",
+    s"BBOX(Where, -180, 0, 0, 90)"
+  )
+
+  val andedSpatialPredicates: Seq[Filter] = Seq(
+    s"INTERSECTS(Where, $bbox1) AND OVERLAPS(Where, $bbox2)",
+    s"INTERSECTS(Where, $bbox1) AND WITHIN(Where, $bbox2)",
+    s"INTERSECTS(Where, $bbox1) AND DISJOINT(Where, $bbox2)",
+    s"INTERSECTS(Where, $bbox1) AND CROSSES(Where, $bbox2)",
+    s"OVERLAPS(Where, $bbox1) AND INTERSECTS(Where, $bbox2)",
+    s"OVERLAPS(Where, $bbox1) AND WITHIN(Where, $bbox2)",
+    s"OVERLAPS(Where, $bbox1) AND DISJOINT(Where, $bbox2)",
+    s"OVERLAPS(Where, $bbox1) AND CROSSES(Where, $bbox2)",
+    s"WITHIN(Where, $bbox1) AND INTERSECTS(Where, $bbox2)",
+    s"WITHIN(Where, $bbox1) AND OVERLAPS(Where, $bbox2)",
+    s"WITHIN(Where, $bbox1) AND DISJOINT(Where, $bbox2)",
+    s"WITHIN(Where, $bbox1) AND CROSSES(Where, $bbox2)",
+    s"DISJOINT(Where, $bbox1) AND INTERSECTS(Where, $bbox2)",
+    s"DISJOINT(Where, $bbox1) AND OVERLAPS(Where, $bbox2)",
+    s"DISJOINT(Where, $bbox1) AND WITHIN(Where, $bbox2)",
+    s"DISJOINT(Where, $bbox1) AND CROSSES(Where, $bbox2)",
+    s"CROSSES(Where, $bbox1) AND INTERSECTS(Where, $bbox2)",
+    s"CROSSES(Where, $bbox1) AND OVERLAPS(Where, $bbox2)",
+    s"CROSSES(Where, $bbox1) AND WITHIN(Where, $bbox2)",
+    s"CROSSES(Where, $bbox1) AND DISJOINT(Where, $bbox2)")
+
+  val attributePredicates: Seq[Filter] = Seq(
+    s"Who ILIKE  '%ams'",
+    s"Who ILIKE 'Add%'",
+    s"Who ILIKE  '%da%'"
+  )
+
+  val attributeAndGeometricPredicates: Seq[Filter] = Seq(
+    // For mediumData, this next filter will hit and the one after will not.
+    "attr2 = '2nd100001' AND INTERSECTS(geom, POLYGON ((45 20, 48 20, 48 27, 45 27, 45 20)))",
+    "attr2 = '2nd100001' AND INTERSECTS(geom, POLYGON ((41 28, 42 28, 42 29, 41 29, 41 28)))",
+    "attr2 ILIKE '2nd1%' AND CROSSES(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
+    "attr2 ILIKE '2nd1%' AND INTERSECTS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
+    "attr2 ILIKE '2nd1%' AND OVERLAPS(geom, POLYGON ((41 28, 42 28, 42 29, 41 29, 41 28)))",
+    "attr2 ILIKE '2nd1%' AND WITHIN(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))"
   )
 }
