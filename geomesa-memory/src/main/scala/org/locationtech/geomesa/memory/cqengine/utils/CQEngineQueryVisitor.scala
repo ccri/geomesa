@@ -43,7 +43,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     val query = children.map { f =>
       f.accept(this, null) match {
         case q: Query[SimpleFeature] => q
-        case _ => throw new Exception(s"Filter visitor didn't recognize filter: $f.")
+        case _ => throw new RuntimeException(s"Can't parse filter: $f.")
       }
     }.toList
     new cqquery.logical.And[SimpleFeature](query)
@@ -58,7 +58,7 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     val query = children.map { f =>
       f.accept(this, null) match {
         case q: Query[SimpleFeature] => q
-        case _ => throw new Exception(s"Filter visitor didn't recognize filter: $f.")
+        case _ => throw new RuntimeException(s"Can't parse filter: $f.")
       }
     }.toList
     new cqquery.logical.Or[SimpleFeature](query)
@@ -72,12 +72,12 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
 
     val subquery = subfilter.accept(this, null) match {
       case q: Query[SimpleFeature] => q
-      case _ => throw new Exception(s"Filter visitor didn't recognize filter: $subfilter.")
+      case _ => throw new RuntimeException(s"Can't parse filter: $subfilter.")
     }
     new cqquery.logical.Not[SimpleFeature](subquery)
   }
 
-  /* Null, nil, exclude, include */
+  /* Id, null, nil, exclude, include */
 
   /**
     * Id
@@ -330,10 +330,15 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     new GeoToolsFilterQuery(filter)
   }
 
+  /**
+    * Build a PropertyLiteral for every expression with a property name in it
+    * (essentially a wrapper around getAttributeProperty)
+    */
   def getProp(filter: Filter): PropertyLiteral = {
     val prop = filter match {
       case f: BinarySpatialOperator => checkOrder(f.getExpression1, f.getExpression2)
-      case f: PropertyIsNotEqualTo  => checkOrder(f.getExpression1, f.getExpression2)
+      case f: BinaryTemporalOperator => checkOrder(f.getExpression1, f.getExpression2)
+      case f: PropertyIsNotEqualTo => checkOrder(f.getExpression1, f.getExpression2)
       // we support a wider range of PropertyIsLike filters than getAttributeProperty does
       case f: PropertyIsLike => {
         val propName = f.getExpression.asInstanceOf[PropertyName].getPropertyName
@@ -355,14 +360,6 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
     }
   }
 
-  /*def extractAttributeAndValue(filter: Filter): (Attribute[SimpleFeature, Any], Any) = {
-    val prop = getProp(filter)
-    val attributeName = prop.name
-    val attribute = lookup.lookup[Any](attributeName)
-    val value = prop.literal.evaluate(null, attribute.getAttributeType)
-    (attribute, value)
-  }*/
-
-  // JNH: TODO: revisit if this this needed.
+  // TODO: revisit this if needed.
   override def toString = "CQEngineQueryVisit()"
 }
