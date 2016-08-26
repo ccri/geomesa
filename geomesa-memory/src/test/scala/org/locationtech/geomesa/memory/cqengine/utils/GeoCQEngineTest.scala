@@ -56,8 +56,6 @@ class GeoCQEngineTest extends Specification {
         }
       }
 
-      runFilterTests("basic", basicFilters)
-
       runFilterTests("equality", equalityFilters)
 
       runFilterTests("special", specialFilters)

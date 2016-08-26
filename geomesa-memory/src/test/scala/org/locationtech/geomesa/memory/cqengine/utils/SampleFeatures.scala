@@ -112,26 +112,25 @@ object SampleFilters {
   val bbox1 = "POLYGON((-89 89, -1 89, -1 -89, -89 -89, -89 89))"
   val bbox2 = "POLYGON((-180 90, 0 90, 0 0, -180 0, -180 90))"
 
-  val basicFilters = Seq[Filter](
-    "Who IN('Addams', 'Bierce')",
-    "What = 5",
-    s"INTERSECTS(Where, $bbox1)",
-    s"INTERSECTS(Where, $bbox2) AND Who IN('Addams', 'Bierce')",
-    s"NOT (INTERSECTS(Where, $bbox1))",
-    s"NOT (INTERSECTS(Where, $bbox1))",
-    "When BETWEEN '0000-01-01T00:00:00.000Z' AND '9999-12-31T23:59:59.000Z'",
-    "When BETWEEN '2014-01-01T00:00:00.000Z' AND '2014-06-30T00:00:00.000Z'"
-  )
-
   val equalityFilters: Seq[Filter] = Seq(
+    "Who = 'Addams'",
+    "Who IN ('Addams', 'Bierce')",
+
     "What = 5",
+    "What IN (1, 2, 3, 4)",
     "What <> 5",
+
     "WhatLong = 5",
     "WhatLong <> 5",
+    "WhatLong IN (1, 2, 3, 4)",
+
     "When = '2014-07-01T00:00:00.000Z'",
     "When <> '2014-07-01T00:00:00.000Z'",
+
     "WhatBool = true",
-    "WhatBool = false"
+    "WhatBool = false",
+
+    ff.notEqual(ff.property("What"), ff.literal(5))  // CQL parser doesn't like "What != 5"
   )
 
   val specialFilters: Seq[Filter] = Seq(
@@ -145,7 +144,7 @@ object SampleFilters {
   val nullFilters: Seq[Filter] = Seq(
     "Why IS NULL",
     "Why IS NOT NULL",
-    ff.isNil(ff.property("Why"), null)
+    ff.isNil(ff.property("Why"), null)  // Not sure how to put in (E)CQL
   )
 
   val comparableFilters = Seq[Filter](
@@ -171,7 +170,12 @@ object SampleFilters {
     "WhatLong <= 5",
     "WhatFloat <= 5.0",
     "WhatDouble <= 5.0",
-    "When <= '2014-07-01T00:00:00Z'"
+    "When <= '2014-07-01T00:00:00Z'",
+
+    "What BETWEEN 1 AND 5",
+    "WhatLong BETWEEN 1 AND 5",
+    "When BETWEEN '0000-01-01T00:00:00.000Z' AND '9999-12-31T23:59:59.000Z'",
+    "When BETWEEN '2014-01-01T00:00:00.000Z' AND '2014-06-30T00:00:00.000Z'"
   )
 
   val temporalFilters: Seq[Filter] = Seq(
@@ -252,18 +256,9 @@ object SampleFilters {
     "Who LIKE '%ams'",
     "Who LIKE 'Add%'",
     "Who LIKE '%da%'",
+    "Who LIKE 'Ad_dams'",
     "Who ILIKE '%AMS'",
     "Who ILIKE 'ADD%'",
     "Who ILIKE '%DA%'"
-  )
-
-  val attributeAndGeometricPredicates: Seq[Filter] = Seq(
-    // For mediumData, this next filter will hit and the one after will not.
-    "attr2 = '2nd100001' AND INTERSECTS(geom, POLYGON ((45 20, 48 20, 48 27, 45 27, 45 20)))",
-    "attr2 = '2nd100001' AND INTERSECTS(geom, POLYGON ((41 28, 42 28, 42 29, 41 29, 41 28)))",
-    "attr2 ILIKE '2nd1%' AND CROSSES(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
-    "attr2 ILIKE '2nd1%' AND INTERSECTS(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))",
-    "attr2 ILIKE '2nd1%' AND OVERLAPS(geom, POLYGON ((41 28, 42 28, 42 29, 41 29, 41 28)))",
-    "attr2 ILIKE '2nd1%' AND WITHIN(geom, POLYGON ((45 23, 48 23, 48 27, 45 27, 45 23)))"
   )
 }

@@ -60,11 +60,14 @@ trait BetweenQueryBuilder extends CompQueryBuilder {
 
   type QUERY = Between[SimpleFeature, VALUE]
   type DATA = (VALUE, VALUE)
+  // GeoTools PropertyIsBetween is inclusive at both ends
+  val lowerInclusive = true
+  val upperInclusive = true
 
   protected[this] def extractData(prop: PropertyLiteral): DATA = // will throw an exception if prop has no second value; use Trys?
     (prop.literal.evaluate(null, valueClass), prop.secondary.get.evaluate(null, valueClass))
   protected[this] def mkQuery(attr: ATTRIBUTE, data: DATA): QUERY =
-    new Between(attr, data._1, false, data._2, false)
+    new Between(attr, data._1, lowerInclusive, data._2, upperInclusive)
 }
 
 object BuildIntGTQuery     extends GTQueryBuilder {
