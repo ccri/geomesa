@@ -9,11 +9,14 @@
 package org.locationtech.geomesa.memory.cqengine.utils
 
 import java.util.Date
+import java.util.regex.Pattern
 
 import com.googlecode.cqengine.attribute.Attribute
 import com.googlecode.cqengine.query.Query
+import com.googlecode.cqengine.query.simple.StringMatchesRegex
 import com.googlecode.cqengine.{query => cqquery}
 import com.vividsolutions.jts.geom.Geometry
+import org.geotools.filter.LikeToRegexConverter
 import org.geotools.filter.visitor.AbstractFilterVisitor
 import org.locationtech.geomesa.filter._
 import org.locationtech.geomesa.memory.cqengine.query.{GeoToolsFilterQuery, Intersects => CQIntersects}
@@ -211,7 +214,18 @@ class CQEngineQueryVisitor(sft: SimpleFeatureType) extends AbstractFilterVisitor
   /**
     * PropertyIsLike
     */
-  override def visit(filter: PropertyIsLike, data: scala.Any): AnyRef = ???
+  override def visit(filter: PropertyIsLike, data: scala.Any): AnyRef = {
+    val attrName = filter.getExpression.asInstanceOf[PropertyName].getPropertyName
+    val attr = lookup.lookup[String](attrName)
+
+    val converter = new LikeToRegexConverter(filter)
+    val pattern = if (filter.isMatchingCase)
+                    Pattern.compile(converter.getPattern)
+                  else
+                    Pattern.compile(converter.getPattern, Pattern.CASE_INSENSITIVE)
+
+    new cqquery.simple.StringMatchesRegex[SimpleFeature, String](attr, pattern)
+  }
 
   /* Spatial filters */
 

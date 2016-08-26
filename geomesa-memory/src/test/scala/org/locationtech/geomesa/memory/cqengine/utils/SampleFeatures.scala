@@ -249,9 +249,12 @@ object SampleFilters {
     s"CROSSES(Where, $bbox1) AND DISJOINT(Where, $bbox2)")
 
   val attributePredicates: Seq[Filter] = Seq(
-    s"Who ILIKE  '%ams'",
-    s"Who ILIKE 'Add%'",
-    s"Who ILIKE  '%da%'"
+    "Who LIKE '%ams'",
+    "Who LIKE 'Add%'",
+    "Who LIKE '%da%'",
+    "Who ILIKE '%AMS'",
+    "Who ILIKE 'ADD%'",
+    "Who ILIKE '%DA%'"
   )
 
   val attributeAndGeometricPredicates: Seq[Filter] = Seq(
