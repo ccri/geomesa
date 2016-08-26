@@ -36,13 +36,13 @@ object SampleFeatures {
   val sft = SimpleFeatureTypes.createType("test", spec)
 
   val specIndexes = List(
-    "Who:String:cq_index=default",
-    "What:Integer:cq_index=navigable",
-    "WhatLong:Long:cq_index=navigable",
-    "WhatFloat:Float:cq_index=navigable",
-    "WhatDouble:Double:cq_index=navigable",
+    "Who:String:cq-index=default",
+    "What:Integer:cq-index=navigable",
+    "WhatLong:Long:cq-index=navigable",
+    "WhatFloat:Float:cq-index=navigable",
+    "WhatDouble:Double:cq-index=navigable",
     "WhatBool:Boolean",
-    "When:Date:cq_index=navigable",
+    "When:Date:cq-index=navigable",
     "*Where:Point:srid=4326",
     "Why:String" // Why can have nulls
   ).mkString(",")

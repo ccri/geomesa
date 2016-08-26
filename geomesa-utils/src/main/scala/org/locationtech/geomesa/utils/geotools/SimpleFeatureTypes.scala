@@ -44,7 +44,7 @@ object SimpleFeatureTypes {
   val OPT_STATS                = "keep-stats"
   val OPT_CARDINALITY          = "cardinality"
   val OPT_BIN_TRACK_ID         = "bin-track-id"
-  val OPT_CQ_INDEX             = "cq_index"
+  val OPT_CQ_INDEX             = "cq-index"
 
   val OPTS = Seq(OPT_DEFAULT, OPT_SRID, OPT_INDEX, OPT_STATS, OPT_INDEX_VALUE, OPT_CARDINALITY, OPT_BIN_TRACK_ID, OPT_CQ_INDEX)
 

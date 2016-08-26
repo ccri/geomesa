@@ -30,11 +30,11 @@ import scala.collection.JavaConversions._
 @RunWith(classOf[JUnitRunner])
 class CQIndexingOptionsTest extends Specification {
 
-  val spec = "Who:String:cq_index=default," +
-             "What:Integer:cq_index=unique," +
-             "When:Date:cq_index=navigable," +
+  val spec = "Who:String:cq-index=default," +
+             "What:Integer:cq-index=unique," +
+             "When:Date:cq-index=navigable," +
              "*Where:Point:srid=4326," +
-             "Why:String:cq_index=hash"
+             "Why:String:cq-index=hash"
 
   "CQ Indexing options" should {
     "be configurable from SimpleFeatureTypes" >> {
