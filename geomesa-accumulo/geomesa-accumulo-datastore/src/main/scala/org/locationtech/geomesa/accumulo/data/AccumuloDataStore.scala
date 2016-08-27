@@ -11,10 +11,12 @@ package org.locationtech.geomesa.accumulo.data
 
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicLong
 import java.util.{List => jList}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client._
+import org.apache.accumulo.core.security.Authorizations
 import org.geotools.data._
 import org.geotools.factory.Hints
 import org.geotools.feature.{FeatureTypes, NameImpl}
@@ -26,13 +28,15 @@ import org.locationtech.geomesa.accumulo.data.stats._
 import org.locationtech.geomesa.accumulo.data.tables._
 import org.locationtech.geomesa.accumulo.index.Strategy.StrategyType.StrategyType
 import org.locationtech.geomesa.accumulo.index._
+import org.locationtech.geomesa.accumulo.iterators.ProjectVersionIterator
 import org.locationtech.geomesa.accumulo.util.{DistributedLocking, GeoMesaBatchWriterConfig, Releasable}
 import org.locationtech.geomesa.accumulo.{AccumuloVersion, GeomesaSystemProperties}
 import org.locationtech.geomesa.features.SerializationOption.SerializationOptions
 import org.locationtech.geomesa.features.SerializationType.SerializationType
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
-import org.locationtech.geomesa.features.{SerializationType, SimpleFeatureSerializers}
+import org.locationtech.geomesa.features.{SerializationType, SimpleFeatureSerializer, SimpleFeatureSerializers}
 import org.locationtech.geomesa.security.{AuditProvider, AuthorizationsProvider}
+import org.locationtech.geomesa.utils.conf.GeoMesaProperties
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.{FeatureSpec, NonGeomAttributeSpec}
 import org.locationtech.geomesa.utils.geotools.{GeoToolsDateFormat, SimpleFeatureTypes}
@@ -42,6 +46,7 @@ import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.Filter
 
 import scala.collection.JavaConversions._
+import scala.util.control.NonFatal
 
 
 /**
@@ -78,6 +83,8 @@ class AccumuloDataStore(val connector: Connector,
   private val tableOps = connector.tableOperations()
   private val statsTable = GeoMesaTable.concatenateNameParts(catalogTable, "stats")
   private val usageStatsTable = GeoMesaTable.concatenateNameParts(catalogTable, "queries")
+
+  private val projectVersionCheck = new AtomicLong(0)
 
   override val metadata: GeoMesaMetadata[String] =
     new MultiRowAccumuloMetadata(connector, catalogTable, MetadataStringSerializer)
@@ -119,6 +126,11 @@ class AccumuloDataStore(val connector: Connector,
           // inspect and update the simple feature type for various components
           // do this before anything else so that any modifications will be in place
           GeoMesaSchemaValidator.validate(sft)
+
+          // TODO GEOMESA-1322 support tilde in feature name
+          if (sft.getTypeName.contains("~")) {
+            throw new IllegalArgumentException("AccumuloDataStore does not currently support '~' in feature type names")
+          }
 
           // write out the metadata to the catalog table
           writeMetadata(sft)
@@ -178,6 +190,8 @@ class AccumuloDataStore(val connector: Connector,
 
     attributes.map { attributes =>
       val sft = SimpleFeatureTypes.createType(name.getURI, attributes)
+
+      checkProjectVersion()
 
       // back compatible check if user data wasn't encoded with the sft
       if (!sft.getUserData.containsKey(SCHEMA_VERSION_KEY)) {
@@ -387,12 +401,7 @@ class AccumuloDataStore(val connector: Connector,
     if (sft == null) {
       throw new IOException(s"Schema '$typeName' has not been initialized. Please call 'createSchema' first.")
     }
-    val fe = if (sft.getSchemaVersion < 9) {
-      SimpleFeatureSerializers(sft, getFeatureEncoding(sft))
-    } else {
-      new KryoFeatureSerializer(sft, SerializationOptions.withoutId)
-    }
-    new ModifyAccumuloFeatureWriter(sft, fe, this, defaultVisibilities, filter)
+    new ModifyAccumuloFeatureWriter(sft, getSerializer(sft), this, defaultVisibilities, filter)
   }
 
   /**
@@ -408,12 +417,7 @@ class AccumuloDataStore(val connector: Connector,
     if (sft == null) {
       throw new IOException(s"Schema '$typeName' has not been initialized. Please call 'createSchema' first.")
     }
-    val fe = if (sft.getSchemaVersion < 9) {
-      SimpleFeatureSerializers(sft, getFeatureEncoding(sft))
-    } else {
-      new KryoFeatureSerializer(sft, SerializationOptions.withoutId)
-    }
-    new AppendAccumuloFeatureWriter(sft, fe, this, defaultVisibilities)
+    new AppendAccumuloFeatureWriter(sft, getSerializer(sft), this, defaultVisibilities)
   }
 
   /**
@@ -478,6 +482,8 @@ class AccumuloDataStore(val connector: Connector,
       case RecordTable         => RECORD_TABLE_KEY
       case Z2Table             => Z2_TABLE_KEY
       case Z3Table             => Z3_TABLE_KEY
+      case XZ2Table            => XZ2_TABLE_KEY
+      case XZ3Table            => XZ3_TABLE_KEY
       case AttributeTable      => ATTR_IDX_TABLE_KEY
       // noinspection ScalaDeprecation
       case AttributeTableV5    => ATTR_IDX_TABLE_KEY
@@ -500,6 +506,8 @@ class AccumuloDataStore(val connector: Connector,
       case RecordTable         => config.recordThreads
       case Z2Table             => config.queryThreads
       case Z3Table             => config.queryThreads
+      case XZ2Table            => config.queryThreads
+      case XZ3Table            => config.queryThreads
       case AttributeTable      => config.queryThreads
       // noinspection ScalaDeprecation
       case AttributeTableV5    => 1
@@ -537,6 +545,20 @@ class AccumuloDataStore(val connector: Connector,
     metadata.read(sft.getTypeName, "featureEncoding")
         .map(SerializationType.withName)
         .getOrElse(SerializationType.KRYO)
+
+  /**
+    * Gets a simple feature serializer for writing values
+    *
+    * @param sft simple feature type
+    * @return
+    */
+  def getSerializer(sft: SimpleFeatureType): SimpleFeatureSerializer = {
+    if (sft.getSchemaVersion < 9) {
+      SimpleFeatureSerializers(sft, getFeatureEncoding(sft))
+    } else {
+      new KryoFeatureSerializer(sft, SerializationOptions.withoutId)
+    }
+  }
 
   /**
    * Used to update the attributes that are marked as indexed - partial implementation of updateSchema.
@@ -594,20 +616,6 @@ class AccumuloDataStore(val connector: Connector,
 
   // end public methods
 
-  // equivalent to: s"%~#s%$maxShard#r%${name}#cstr%0,3#gh%yyyyMMddHH#d::%~#s%3,2#gh::%~#s%#id"
-  private def buildDefaultSpatioTemporalSchema(name: String, maxShard: Int = defaultMaxShard): String =
-    new IndexSchemaBuilder("~")
-        .randomNumber(maxShard)
-        .indexOrDataFlag()
-        .constant(name)
-        .geoHash(0, 3)
-        .date("yyyyMMddHH")
-        .nextPart()
-        .geoHash(3, 2)
-        .nextPart()
-        .id()
-        .build()
-
   /**
    * Computes and writes the metadata for this feature type
    */
@@ -624,10 +632,8 @@ class AccumuloDataStore(val connector: Connector,
     val schemaIdString = new String(Array(schemaId.asInstanceOf[Byte]), StandardCharsets.UTF_8)
 
     // set user data so that it gets persisted
-    if (sft.getSchemaVersion == CURRENT_SCHEMA_VERSION) {
-      // explicitly set it in case this was just the default
-      sft.setSchemaVersion(CURRENT_SCHEMA_VERSION)
-    }
+    sft.setSchemaVersion(CURRENT_SCHEMA_VERSION)
+
     if (sft.isTableSharing) {
       sft.setTableSharing(true) // explicitly set it in case this was just the default
       sft.setTableSharingPrefix(schemaIdString)
@@ -638,19 +644,12 @@ class AccumuloDataStore(val connector: Connector,
       sft.getUserData.put(SimpleFeatureTypes.ENABLED_INDEXES, old)
     }
 
-    // only set spatio-temporal fields if z2 isn't supported
-    val stTable = if (sft.getSchemaVersion > 7) { None } else {
-      // get the requested index schema or build the default
-      if (sft.getStIndexSchema == null) {
-        sft.setStIndexSchema(buildDefaultSpatioTemporalSchema(sft.getTypeName))
-      }
-      Some(SpatioTemporalTable.formatTableName(catalogTable, sft))
-    }
-
     // compute the metadata values - IMPORTANT: encode type has to be called after all user data is set
     val attributesValue   = SimpleFeatureTypes.encodeType(sft, includeUserData = true)
     val z2TableValue      = Z2Table.formatTableName(catalogTable, sft)
     val z3TableValue      = Z3Table.formatTableName(catalogTable, sft)
+    val xz2TableValue     = XZ2Table.formatTableName(catalogTable, sft)
+    val xz3TableValue     = XZ3Table.formatTableName(catalogTable, sft)
     val attrIdxTableValue = AttributeTable.formatTableName(catalogTable, sft)
     val recordTableValue  = RecordTable.formatTableName(catalogTable, sft)
     val statDateValue     = GeoToolsDateFormat.print(DateTimeUtils.currentTimeMillis())
@@ -661,17 +660,14 @@ class AccumuloDataStore(val connector: Connector,
       ATTRIBUTES_KEY        -> attributesValue,
       Z2_TABLE_KEY          -> z2TableValue,
       Z3_TABLE_KEY          -> z3TableValue,
+      XZ2_TABLE_KEY         -> xz2TableValue,
+      XZ3_TABLE_KEY         -> xz3TableValue,
       ATTR_IDX_TABLE_KEY    -> attrIdxTableValue,
       RECORD_TABLE_KEY      -> recordTableValue,
       STATS_GENERATION_KEY  -> statDateValue,
       VERSION_KEY           -> dataStoreVersion,
-      SCHEMA_ID_KEY         -> schemaIdString,
-      // noinspection ScalaDeprecation
-      ST_IDX_TABLE_KEY      -> stTable
-    ).collect {
-      case (k: String, v: String) => (k, v)
-      case (k: String, v: Some[String]) => (k, v.get)
-    }
+      SCHEMA_ID_KEY         -> schemaIdString
+    )
 
     metadata.insert(sft.getTypeName, metadataMap)
 
@@ -698,6 +694,30 @@ class AccumuloDataStore(val connector: Connector,
   // NB: We are *not* currently deleting the query table and/or query information.
   private def deleteStandAloneTables(sft: SimpleFeatureType) =
     GeoMesaTable.getTableNames(sft, this).filter(tableOps.exists).foreach(tableOps.delete)
+
+  /**
+    * Checks that the distributed runtime jar matches the project version of this client. We cache
+    * successful checks for 10 minutes.
+    */
+  private def checkProjectVersion(): Unit = {
+    if (projectVersionCheck.get() < System.currentTimeMillis()) {
+      val clientVersion = GeoMesaProperties.GeoMesaProjectVersion
+      val scanner = connector.createScanner(catalogTable, new Authorizations())
+      val iteratorVersion = try {
+        ProjectVersionIterator.scanProjectVersion(scanner)
+      } catch {
+        case NonFatal(e) => "unavailable"
+      } finally {
+        scanner.close()
+      }
+      if (iteratorVersion != clientVersion) {
+        val versionMsg = "Configured server-side iterators do not match client version - " +
+            s"client version: $clientVersion, server version: $iteratorVersion"
+        logger.warn(versionMsg)
+      }
+      projectVersionCheck.set(System.currentTimeMillis() + 3600000) // 1 hour
+    }
+  }
 
   /**
    * Acquires a distributed lock for all accumulo data stores sharing this catalog table.

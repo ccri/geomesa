@@ -16,7 +16,7 @@
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa</artifactId>
     <packaging>pom</packaging>
-    <version>1.2.5-SNAPSHOT</version>
+    <version>1.2.7-SNAPSHOT</version>
 
     <modules>
         <module>geomesa-utils</module>
@@ -49,7 +49,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- bump version right before performing releases for the README and the documentation -->
-        <geomesa.release.version>1.2.4</geomesa.release.version>
+        <geomesa.release.version>1.2.6</geomesa.release.version>
+        <geomesa.devel.version>1.2.6-SNAPSHOT</geomesa.devel.version>
 
         <scala.version>2.11.7</scala.version>
         <scala.xml.version>1.0.5</scala.xml.version>
@@ -142,7 +143,7 @@
         <profile>
             <id>travis-ci</id>
             <properties>
-                <maven.test.jvmargs>-Duser.timezone=UTC -Xms512m -Xmx3g -XX:-UseGCOverheadLimit -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dgeomesa.scan.ranges.target=500 -Dgeomesa.scan.ranges.batch=2000</maven.test.jvmargs>
+                <maven.test.jvmargs>-Duser.timezone=UTC -Xms512m -Xmx3g -XX:-UseGCOverheadLimit -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dgeomesa.scan.ranges.target=500 -Dgeomesa.scan.ranges.batch=2000 -DcassandraReadTimeout=1800000</maven.test.jvmargs>
                 <test.fork.count>1</test.fork.count>
                 <test.fork.reuse>false</test.fork.reuse>
             </properties>

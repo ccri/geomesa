@@ -8,6 +8,7 @@
 
 package org.locationtech.geomesa.utils.geotools
 
+import java.nio.charset.StandardCharsets
 import java.util.{Date, Locale}
 
 import com.typesafe.config.Config
@@ -70,6 +71,14 @@ object Conversions {
   implicit class RichGeometry(val geom: Geometry) extends AnyVal {
     def bufferMeters(meters: Double): Geometry = geom.buffer(distanceDegrees(meters))
     def distanceDegrees(meters: Double) = GeometryUtils.distanceDegrees(geom, meters)
+    def safeCentroid(): Point = {
+      val centroid = geom.getCentroid
+      if (java.lang.Double.isNaN(centroid.getCoordinate.x) || java.lang.Double.isNaN(centroid.getCoordinate.y)) {
+        geom.getEnvelope.getCentroid
+      } else {
+        centroid
+      }
+    }
   }
 
   implicit class RichSimpleFeature(val sf: SimpleFeature) extends AnyVal {
@@ -242,7 +251,10 @@ object RichSimpleFeatureType {
       val gd = sft.getGeometryDescriptor
       gd != null && gd.getType.getBinding == classOf[Point]
     }
-    def nonPoints = !isPoints
+    def nonPoints = {
+      val gd = sft.getGeometryDescriptor
+      gd != null && gd.getType.getBinding != classOf[Point]
+    }
     def isLines = {
       val gd = sft.getGeometryDescriptor
       gd != null && gd.getType.getBinding == classOf[LineString]
@@ -266,6 +278,12 @@ object RichSimpleFeatureType {
 
     def getTableSharingPrefix: String = userData[String](SHARING_PREFIX_KEY).getOrElse("")
     def setTableSharingPrefix(prefix: String): Unit = sft.getUserData.put(SHARING_PREFIX_KEY, prefix)
+
+    def getTableSharingBytes: Array[Byte] = if (sft.isTableSharing) {
+      sft.getTableSharingPrefix.getBytes(StandardCharsets.UTF_8)
+    } else {
+      Array.empty[Byte]
+    }
 
     // gets suffixes of enabled tables
     def getEnabledTables: Seq[String] =

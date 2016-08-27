@@ -38,9 +38,10 @@ class LiveKafkaConsumerFeatureSource(e: ContentEntry,
                                      expirationPeriod: Option[Long] = None,
                                      cleanUpCache: Boolean,
                                      useCQCache: Boolean,
-                                     q: Query)
+                                     q: Query,
+                                     monitor: Boolean)
                                     (implicit ticker: Ticker = Ticker.systemTicker())
-  extends KafkaConsumerFeatureSource(e, sft, q) with Runnable with Closeable with LazyLogging {
+  extends KafkaConsumerFeatureSource(e, sft, q, monitor) with Runnable with Closeable with LazyLogging {
 
   val featureCache: LiveFeatureCache = if (useCQCache)
     new LiveFeatureCacheCQEngine(sft, expirationPeriod)

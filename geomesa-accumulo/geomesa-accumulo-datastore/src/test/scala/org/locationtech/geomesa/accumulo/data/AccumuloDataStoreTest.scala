@@ -13,7 +13,7 @@ import java.util.Date
 
 import com.google.common.collect.ImmutableSet
 import com.typesafe.config.ConfigFactory
-import com.vividsolutions.jts.geom.Geometry
+import com.vividsolutions.jts.geom.{Geometry, Point}
 import org.apache.accumulo.core.client.Connector
 import org.apache.commons.codec.binary.Hex
 import org.apache.hadoop.io.Text
@@ -72,6 +72,11 @@ class AccumuloDataStoreTest extends Specification with TestWithMultipleSfts {
 
     "create a schema" in {
       ds.getSchema(defaultSft.getTypeName) mustEqual defaultSft
+    }
+
+    "reject a schema with a ~" in {
+      val sft = SimpleFeatureTypes.createType("name~name", "name:String,geom:Point:srid=4326")
+      ds.createSchema(sft) must throwAn[IllegalArgumentException]
     }
 
     "create a schema with keywords" in {
@@ -294,6 +299,16 @@ class AccumuloDataStoreTest extends Specification with TestWithMultipleSfts {
       "allow for override" >> {
         val sft = createNewSchema("name:String,dtg:Date,*geom:Geometry:srid=4326;geomesa.mixed.geometries=true")
         sft.getGeometryDescriptor.getType.getBinding mustEqual classOf[Geometry]
+      }
+    }
+
+    "Prevent reserved words in spec" in {
+      "throw an exception if reserved words are found" >> {
+        createNewSchema("name:String,dtg:Date,*Location:Point:srid=4326") must throwAn[IllegalArgumentException]
+      }
+      "allow for override" >> {
+        val sft = createNewSchema("name:String,dtg:Date,*Location:Point:srid=4326;override.reserved.words=true")
+        sft.getGeometryDescriptor.getType.getBinding mustEqual classOf[Point]
       }
     }
 
