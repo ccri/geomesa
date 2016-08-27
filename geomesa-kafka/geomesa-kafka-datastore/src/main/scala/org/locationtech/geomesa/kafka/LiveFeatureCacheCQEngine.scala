@@ -15,7 +15,6 @@ import com.google.common.cache._
 import com.googlecode.cqengine.query.Query
 import com.typesafe.scalalogging.LazyLogging
 import org.locationtech.geomesa.memory.cqengine.GeoCQEngine
-import org.locationtech.geomesa.memory.cqengine.utils.SFTAttributes
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -29,18 +28,7 @@ class LiveFeatureCacheCQEngine(sft: SimpleFeatureType,
                                expirationPeriod: Option[Long])(implicit ticker: Ticker)
   extends LiveFeatureCache with LazyLogging {
 
-  // NB: This is for testing at the minute.
-  val attrs = SFTAttributes(sft)
-
   val geocq = new GeoCQEngine(sft)
-
-//  val defaultGeom: Attribute[SimpleFeature, Geometry] =
-//    new SimpleFeatureAttribute(classOf[Geometry], sft.getGeometryDescriptor.getLocalName)
-//
-//  val cqcache: IndexedCollection[SimpleFeature] = new ConcurrentIndexedCollection[SimpleFeature]()
-//  cqcache.addIndex(GeoIndex.onAttribute(defaultGeom))
-
-  // JNH: TODO: Add additional CQEngine indices ?
 
   // JNH: Do we need FeatureHolder anymore?
   private val cache: Cache[String, FeatureHolder] = {

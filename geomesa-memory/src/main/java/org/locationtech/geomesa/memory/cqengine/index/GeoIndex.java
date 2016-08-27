@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-
 public class GeoIndex<A extends Geometry, O extends SimpleFeature> extends AbstractAttributeIndex<A, O> implements OnHeapTypeIndex {
 
     private static final int INDEX_RETRIEVAL_COST = 40;
