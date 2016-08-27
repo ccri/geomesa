@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{Executors, LinkedBlockingQueue, ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.google.common.base.Ticker
-import com.google.common.cache._
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.{Envelope, Point}
 import org.geotools.data.FeatureEvent.Type
@@ -25,14 +24,11 @@ import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.identity.FeatureIdImpl
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumerFactory
-import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools._
-import org.locationtech.geomesa.utils.index.{BucketIndex, SpatialIndex}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 import org.opengis.filter.identity.FeatureId
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 class LiveKafkaConsumerFeatureSource(e: ContentEntry,
@@ -41,11 +37,15 @@ class LiveKafkaConsumerFeatureSource(e: ContentEntry,
                                      kf: KafkaConsumerFactory,
                                      expirationPeriod: Option[Long] = None,
                                      cleanUpCache: Boolean,
+                                     useCQCache: Boolean,
                                      q: Query)
                                     (implicit ticker: Ticker = Ticker.systemTicker())
   extends KafkaConsumerFeatureSource(e, sft, q) with Runnable with Closeable with LazyLogging {
 
-  /*private[kafka] for testing only */val featureCache: LiveFeatureCache = new LiveFeatureCacheCQEngine(sft, expirationPeriod)
+  val featureCache: LiveFeatureCache = if (useCQCache)
+    new LiveFeatureCacheCQEngine(sft, expirationPeriod)
+  else
+    new LiveFeatureCacheGuava(sft, expirationPeriod)
 
   private lazy val contentState = entry.getState(getTransaction)
 

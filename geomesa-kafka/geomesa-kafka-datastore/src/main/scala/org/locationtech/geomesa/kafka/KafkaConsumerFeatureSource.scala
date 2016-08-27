@@ -179,13 +179,17 @@ object KafkaConsumerFeatureSourceFactory {
       Option(KafkaDataStoreFactoryParams.CLEANUP_LIVE_CACHE.lookUp(params).asInstanceOf[Boolean]).getOrElse(false)
     }
 
+    val useCQCache: Boolean = {
+      Option(KafkaDataStoreFactoryParams.USE_CQ_LIVE_CACHE.lookUp(params).asInstanceOf[Boolean]).getOrElse(false)
+    }
+
     (entry: ContentEntry, query: Query, schemaManager: KafkaDataStoreSchemaManager) => {
       val kf = new KafkaConsumerFactory(brokers, zk)
       val fc = schemaManager.getFeatureConfig(entry.getTypeName)
 
       fc.replayConfig match {
         case None =>
-          new LiveKafkaConsumerFeatureSource(entry, fc.sft, fc.topic, kf, expirationPeriod, cleanUpCache, query)
+          new LiveKafkaConsumerFeatureSource(entry, fc.sft, fc.topic, kf, expirationPeriod, cleanUpCache, useCQCache, query)
 
         case Some(rc) =>
           val replaySFT = fc.sft

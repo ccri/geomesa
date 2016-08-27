@@ -86,6 +86,7 @@ object KafkaDataStoreFactoryParams {
   val IS_PRODUCER_PARAM  = new Param("isProducer", classOf[java.lang.Boolean], "Is Producer", false, false)
   val EXPIRATION_PERIOD  = new Param("expirationPeriod", classOf[java.lang.Long], "Features will be auto-dropped (expired) after this delay in milliseconds. Leave blank or use -1 to not drop features.", false)
   val CLEANUP_LIVE_CACHE = new Param("cleanUpCache", classOf[java.lang.Boolean], "Run a thread to clean up the live feature cache every second if set to true. False by default.", false)
+  val USE_CQ_LIVE_CACHE  = new Param("useCQCache", classOf[java.lang.Boolean], "Use CQEngine-based implementation of live feature cache. False by default.", false, false)
 }
 
 object KafkaDataStore {
@@ -132,7 +133,7 @@ class KafkaDataStoreFactory extends DataStoreFactorySpi {
   override def getDescription: String = "Apache Kafka\u2122 distributed messaging queue"
 
   override def getParametersInfo: Array[Param] =
-    Array(KAFKA_BROKER_PARAM, ZOOKEEPERS_PARAM, ZK_PATH, EXPIRATION_PERIOD, CLEANUP_LIVE_CACHE, TOPIC_PARTITIONS, TOPIC_REPLICATION, NAMESPACE_PARAM)
+    Array(KAFKA_BROKER_PARAM, ZOOKEEPERS_PARAM, ZK_PATH, EXPIRATION_PERIOD, CLEANUP_LIVE_CACHE, USE_CQ_LIVE_CACHE, TOPIC_PARTITIONS, TOPIC_REPLICATION, NAMESPACE_PARAM)
 
   override def canProcess(params: ju.Map[String, Serializable]): Boolean =
     params.containsKey(KAFKA_BROKER_PARAM.key) && params.containsKey(ZOOKEEPERS_PARAM.key)
