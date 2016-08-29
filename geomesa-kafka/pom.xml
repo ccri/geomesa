@@ -3,7 +3,7 @@
     <parent>
         <artifactId>geomesa</artifactId>
         <groupId>org.locationtech.geomesa</groupId>
-        <version>1.2.6-SNAPSHOT</version>
+        <version>1.3.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,10 +13,10 @@
     <modules>
         <module>geomesa-kafka-datastore</module>
         <module>geomesa-kafka-09-datastore</module>
+        <module>geomesa-kafka-10-datastore</module>
         <module>geomesa-kafka-08-utils</module>
         <module>geomesa-kafka-09-utils</module>
         <module>geomesa-kafka-10-utils</module>
-        <module>geomesa-kafka-10-datastore</module>
         <module>geomesa-kafka-utils-common</module>
     </modules>
 

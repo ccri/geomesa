@@ -31,14 +31,17 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
   // skip embedded kafka tests unless explicitly enabled, they often fail randomly
   skipAllUnless(sys.props.get(SYS_PROP_RUN_TESTS).exists(_.toBoolean))
 
-  def getConsumerConfig(group: String) = {
+  def getConsumerConfig(group: String, threads: Int = 1) = {
     val consumerProps = new Properties
     consumerProps.put("group.id", group)
     consumerProps.put("metadata.broker.list", brokerConnect)
     consumerProps.put("zookeeper.connect", zkConnect)
-    consumerProps.put("num.consumer.fetchers", "1")
+    consumerProps.put("num.consumer.fetchers", threads.toString)
     consumerProps.put("auto.commit.enable", "false")
-    consumerProps.put("consumer.timeout.ms", "100")
+    consumerProps.put("consumer.timeout.ms", "1000")
+    consumerProps.put("rebalance.max.retries", "100")
+    consumerProps.put("auto.offset.reset", "smallest")
+
     new ConsumerConfig(consumerProps)
   }
 
@@ -48,7 +51,6 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
     producerProps.put("retry.backoff.ms", "100")
     producerProps.put("message.send.max.retries", "20") // we have to bump this up as zk is pretty flaky
     producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
-
 
     def produceMessages(topic: String) = {
       val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
@@ -87,7 +89,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
       val consumer1 = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
       val consumer2 = new KafkaConsumer(topic, config, new StringDecoder, new StringDecoder)
 
-      val messages = ArrayBuffer.empty[String]
+      val messages: ArrayBuffer[String] = ArrayBuffer.empty[String]
       val stream1 = consumer1.createMessageStreams(1, EarliestOffset).head
       val stream2 = consumer2.createMessageStreams(1, EarliestOffset).head
 
@@ -118,11 +120,10 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
       for (i <- 0 until 10) {
         messages(i) mustEqual i.toString
       }
-
       success
     }
 
-    "read messages from various offsets" >> {
+    "read meZNRecordSerializerssages from various offsets" >> {
 
       "by group" >> {
         val topic = "group"
