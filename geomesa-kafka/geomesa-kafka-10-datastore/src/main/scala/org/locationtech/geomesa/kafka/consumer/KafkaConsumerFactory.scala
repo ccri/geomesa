@@ -67,7 +67,7 @@ class KafkaConsumerFactory(brokers: String, zookeepers: String) {
     val client = consumerConnector
     val whiteList = new Whitelist(topic)
     val decoder = KafkaConsumerFactory.defaultDecoder
-    (client, client.createMessageStreamsByFilter(whiteList, 1, decoder, decoder))
+    (client, client.createMessageStreamsByFilter(whiteList, numStreams, decoder, decoder))
   }
 
   private def config(extraConfig: Map[String, String]): ConsumerConfig = {
