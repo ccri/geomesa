@@ -696,12 +696,11 @@ class AccumuloDataStore(val connector: Connector,
     GeoMesaTable.getTableNames(sft, this).filter(tableOps.exists).foreach(tableOps.delete)
 
   /**
-    * Checks that the distributed runtime jar matches the project version of this client. We cache
-    * successful checks for 10 minutes.
+    * Checks that the iterators match the client version
+    * @return The version if they are the same or a tuple containing (clientVersion, iteratorVersion)
     */
-  private def checkProjectVersion(): Unit = {
-    if (projectVersionCheck.get() < System.currentTimeMillis()) {
-      val clientVersion = GeoMesaProperties.GeoMesaProjectVersion
+  def checkIteratorVersion(): Either[String, (String, String)] = {
+    val clientVersion = GeoMesaProperties.GeoMesaProjectVersion
       val scanner = connector.createScanner(catalogTable, new Authorizations())
       val iteratorVersion = try {
         ProjectVersionIterator.scanProjectVersion(scanner)
@@ -710,10 +709,20 @@ class AccumuloDataStore(val connector: Connector,
       } finally {
         scanner.close()
       }
-      if (iteratorVersion != clientVersion) {
-        val versionMsg = "Configured server-side iterators do not match client version - " +
-            s"client version: $clientVersion, server version: $iteratorVersion"
-        logger.warn(versionMsg)
+    if (iteratorVersion != clientVersion) Right((clientVersion, iteratorVersion))
+    else Left(iteratorVersion)
+  }
+
+  /**
+    * Checks that the distributed runtime jar matches the project version of this client. We cache
+    * successful checks for 10 minutes.
+    */
+  private def checkProjectVersion(): Unit = {
+    if (projectVersionCheck.get() < System.currentTimeMillis()) {
+      checkIteratorVersion() match {
+        case Left(s) =>
+        case Right(t) => logger.warn(s"Configured server-side iterators do not match client version - " +
+            s"client version: ${t._1}, server version: ${t._2}")
       }
       projectVersionCheck.set(System.currentTimeMillis() + 3600000) // 1 hour
     }
