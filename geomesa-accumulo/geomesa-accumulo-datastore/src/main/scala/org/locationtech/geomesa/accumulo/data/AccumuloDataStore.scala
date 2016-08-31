@@ -23,8 +23,8 @@ import org.geotools.feature.{FeatureTypes, NameImpl}
 import org.joda.time.DateTimeUtils
 import org.locationtech.geomesa.CURRENT_SCHEMA_VERSION
 import org.locationtech.geomesa.accumulo.data.GeoMesaMetadata._
-import org.locationtech.geomesa.accumulo.data.stats.usage.{GeoMesaUsageStats, GeoMesaUsageStatsImpl, HasGeoMesaUsageStats}
 import org.locationtech.geomesa.accumulo.data.stats._
+import org.locationtech.geomesa.accumulo.data.stats.usage.{GeoMesaUsageStats, GeoMesaUsageStatsImpl, HasGeoMesaUsageStats}
 import org.locationtech.geomesa.accumulo.data.tables._
 import org.locationtech.geomesa.accumulo.index.Strategy.StrategyType.StrategyType
 import org.locationtech.geomesa.accumulo.index._
@@ -46,7 +46,7 @@ import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.Filter
 
 import scala.collection.JavaConversions._
-import scala.util.control.NonFatal
+import scala.util.Try
 
 
 /**
@@ -695,20 +695,21 @@ class AccumuloDataStore(val connector: Connector,
   private def deleteStandAloneTables(sft: SimpleFeatureType) =
     GeoMesaTable.getTableNames(sft, this).filter(tableOps.exists).foreach(tableOps.delete)
 
+  def getClientVersion: String = GeoMesaProperties.GeoMesaProjectVersion
+
+  def getIteratorVersion: String = Try(ProjectVersionIterator
+    .scanProjectVersion(connector.createScanner(catalogTable, new Authorizations())))
+    .getOrElse("unavailable")
+
+  def checkVersionMatch(): Boolean = getClientVersion == getIteratorVersion
+
   /**
     * Checks that the iterators match the client version
     * @return The version if they are the same or a tuple containing (clientVersion, iteratorVersion)
     */
   def checkIteratorVersion(): Either[String, (String, String)] = {
-    val clientVersion = GeoMesaProperties.GeoMesaProjectVersion
-      val scanner = connector.createScanner(catalogTable, new Authorizations())
-      val iteratorVersion = try {
-        ProjectVersionIterator.scanProjectVersion(scanner)
-      } catch {
-        case NonFatal(e) => "unavailable"
-      } finally {
-        scanner.close()
-      }
+    val clientVersion = getClientVersion
+    val iteratorVersion = getIteratorVersion
     if (iteratorVersion != clientVersion) Right((clientVersion, iteratorVersion))
     else Left(iteratorVersion)
   }
