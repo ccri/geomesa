@@ -65,22 +65,29 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
         val sft = CLArgResolver.getSft(params.spec, params.featureName)
         val converterConfig = CLArgResolver.getConfig(params.config)
         val infile = new File(params.files.get(0))
-        val tempReader = new BufferedReader(new FileReader(infile))
         val testfmt = converterConfig.getString("format").toUpperCase
         println(s"Converter specified format: $testfmt")
 
-        val temp = tempReader.readLine()
-        tempReader.close()
-        val len: Int = infile.length().toInt // Not particularly Safe
-        val bArray = new Array[Byte](len)
-        val inStream: InputStream = new FileInputStream(infile)
+        /*val temp = tempReader.readLine()
+        tempReader.close()*/
+        // Files may be larger than Int.MaxValue which
+        val longLen = infile.length()
+        val len: Int = {
+          if (longLen > 0) {
+            val tempLen = longLen.toInt
+            if (longLen <= 0) Int.MaxValue else tempLen
+          }
+          else 0
+        }
+        val cbuf = new Array[Char](len)
+        val reader = new FileReader(infile)
         var offset = 0
         while (offset < len) {
-          offset += inStream.read(bArray,offset, len-offset)
+          offset += reader.read(cbuf,offset,len-offset)
         }
-        inStream.close()
-        val bigTest = new String(bArray)
-        if (bigTest.contains("\r")){
+        reader.close()
+        val temp = new String(cbuf)
+        if (temp.contains("\r")){
           if(!temp.contains("\t") || temp.matches("((^[^\\t\\,]*|\"(.*[\\,]?)*\")),.*")) // Quick and Dirty
             println("Most likely CSV, RFC4180, or EXCEL")
           else println("TSV")
