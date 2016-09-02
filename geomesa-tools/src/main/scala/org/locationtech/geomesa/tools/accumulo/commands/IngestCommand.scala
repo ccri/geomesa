@@ -8,12 +8,15 @@
 
 package org.locationtech.geomesa.tools.accumulo.commands
 
+import java.io._
 import java.util
 import java.util.Locale
 
 import com.beust.jcommander.{JCommander, Parameter, ParameterException, Parameters}
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.csv.{CSVFormat, QuoteMode}
 import org.geotools.data.DataStoreFinder
+import org.locationtech.geomesa.accumulo.csv.CSVParser
 import org.locationtech.geomesa.tools.accumulo.Utils.Formats
 import org.locationtech.geomesa.tools.accumulo.Utils.Formats._
 import org.locationtech.geomesa.tools.accumulo.commands.IngestCommand._
@@ -61,6 +64,28 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
       } else {
         val sft = CLArgResolver.getSft(params.spec, params.featureName)
         val converterConfig = CLArgResolver.getConfig(params.config)
+        val infile = new File(params.files.get(0))
+        val tempReader = new BufferedReader(new FileReader(infile))
+        val testfmt = converterConfig.getString("format").toUpperCase
+        println(s"Converter specified format: $testfmt")
+
+        val temp = tempReader.readLine()
+        tempReader.close()
+        val len: Int = infile.length().toInt // Not particularly Safe
+        val bArray = new Array[Byte](len)
+        val inStream: InputStream = new FileInputStream(infile)
+        var offset = 0
+        while (offset < len) {
+          offset += inStream.read(bArray,offset, len-offset)
+        }
+        inStream.close()
+        val bigTest = new String(bArray)
+        if (bigTest.contains("\r")){
+          if(!temp.contains("\t") || temp.matches("((^[^\\t\\,]*|\"(.*[\\,]?)*\")),.*")) // Quick and Dirty
+            println("Most likely CSV, RFC4180, or EXCEL")
+          else println("TSV")
+        }
+        else println("MySQL is most likely")
         new ConverterIngest(dsParams, params.files, params.threads, sft, converterConfig).run()
       }
     }
