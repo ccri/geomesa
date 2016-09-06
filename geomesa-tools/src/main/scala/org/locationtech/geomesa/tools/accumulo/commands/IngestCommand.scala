@@ -13,6 +13,7 @@ import java.util
 import java.util.Locale
 
 import com.beust.jcommander.{JCommander, Parameter, ParameterException, Parameters}
+import com.typesafe.config.{ConfigMergeable, _}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.csv.{CSVFormat, QuoteMode}
 import org.geotools.data.DataStoreFinder
@@ -63,28 +64,27 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
         new AutoIngest(dsParams, params.featureName, params.files, params.threads, fmt).run()
       } else {
         val sft = CLArgResolver.getSft(params.spec, params.featureName)
-        val converterConfig = CLArgResolver.getConfig(params.config)
+        var converterConfig = CLArgResolver.getConfig(params.config)
         val infile = new File(params.files.get(0))
         val testfmt = converterConfig.getString("format").toUpperCase
         println(s"Converter specified format: $testfmt")
-
+        val configMap = converterConfig.root().unwrapped()
+        configMap.put("format", "CSV")
+        converterConfig = ConfigFactory.parseMap(configMap)
         /*val temp = tempReader.readLine()
         tempReader.close()*/
-        // Files may be larger than Int.MaxValue which
         val longLen = infile.length()
         val len: Int = {
           if (longLen > 0) {
             val tempLen = longLen.toInt
-            if (longLen <= 0) Int.MaxValue else tempLen
+            if (tempLen > 1000000 && tempLen < 5000000) tempLen else 1000000
           }
-          else 0
+          else -1
         }
-        val cbuf = new Array[Char](len)
+        var cbuf: Array[Char] = null
+        if (len > 0) cbuf = new Array[Char](len)
         val reader = new FileReader(infile)
-        var offset = 0
-        while (offset < len) {
-          offset += reader.read(cbuf,offset,len-offset)
-        }
+        if (cbuf != null) reader.read(cbuf,0,len)
         reader.close()
         val temp = new String(cbuf)
         if (temp.contains("\r")){
@@ -105,6 +105,9 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
         throw new ParameterException(s"Files must all be on the same file system: ($pre) or all be local")
       }
     }
+  def fileFormat(infile: String): String = {
+    return null
+  }
 }
 
 object IngestCommand {
