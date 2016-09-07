@@ -16,7 +16,7 @@ import kafka.message.Message
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, HasEmbeddedZookeeper}
+import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, HasEmbeddedZookeeper, KafkaUtilsLoader}
 import org.specs2.mutable.Specification
 import org.specs2.runner
 
@@ -30,7 +30,7 @@ class OffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
 
   val props = new Properties
   props.put("group.id", "mygroup")
-  props.put("metadata.broker.list", brokerConnect)
+  props.put(KafkaUtilsLoader.kafkaUtils.brokerParam(), brokerConnect)
   props.put("zookeeper.connect", zkConnect)
   val config = new ConsumerConfig(props)
   val offsetManager = new OffsetManager(config)
@@ -39,7 +39,7 @@ class OffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
 
   step {
     val producerProps = new Properties()
-    producerProps.put("metadata.broker.list", brokerConnect)
+    producerProps.put(KafkaUtilsLoader.kafkaUtils.brokerParam(), brokerConnect)
     producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
     val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
     for (i <- 0 until 10) {

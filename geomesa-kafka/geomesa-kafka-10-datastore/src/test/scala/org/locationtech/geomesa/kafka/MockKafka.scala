@@ -14,6 +14,7 @@ import kafka.api._
 import kafka.common.{LongRef, OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException, SimpleConsumer}
 import kafka.message._
+import kafka.producer.KeyedMessage
 import kafka.serializer.Decoder
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.locationtech.geomesa.kafka.consumer._
@@ -39,7 +40,7 @@ class MockKafka {
 
   /** Simulate sending a message to a producer
     */
-  def send(keyedMessage: ProducerRecord[Array[Byte], Array[Byte]], partition: Int = 0): Unit = {
+  def send(keyedMessage: KeyedMessage[Array[Byte], Array[Byte]], partition: Int = 0): Unit = {
     val tap = new TopicAndPartition(keyedMessage.topic, partition)
     val oldMsgs = data.getOrElse(tap, Seq.empty)
     val offset = oldMsgs.size
@@ -78,8 +79,8 @@ case class MockMessage(tap: TopicAndPartition, key: Array[Byte], msg: Array[Byte
 
 object MockMessage {
   
-  def apply(tap: TopicAndPartition, kMessage: ProducerRecord[Array[Byte], Array[Byte]], offset: Long): MockMessage =
-    MockMessage(tap, kMessage.key, kMessage.value, offset)
+  def apply(tap: TopicAndPartition, kMessage: KeyedMessage[Array[Byte], Array[Byte]], offset: Long): MockMessage =
+    MockMessage(tap, kMessage.key, kMessage.message, offset)
 
 }
 

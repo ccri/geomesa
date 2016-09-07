@@ -19,7 +19,7 @@ import org.opengis.feature.simple.SimpleFeatureType
   */
 class KafkaGeoMessageEncoder(schema: SimpleFeatureType) extends GeoMessageEncoder(schema) {
 
-  type MSG = ProducerRecord[Array[Byte], Array[Byte]]
+  type MSG = KeyedMessage[Array[Byte], Array[Byte]]
 
   def encodeMessage(topic: String, msg: GeoMessage): MSG =
     new MSG(topic, encodeKey(msg), encodeMessage(msg))

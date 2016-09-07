@@ -15,11 +15,8 @@ import java.util.Properties
 import kafka.common.MessageFormatter
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.locationtech.geomesa.kafka.common.KafkaGeoMessageFormatterCommon
-import org.locationtech.geomesa.kafka.{KafkaDataStoreLogViewer, KafkaGeoMessageDecoder}
+import org.locationtech.geomesa.kafka.{KafkaDataStoreLogViewer, KafkaGeoMessageDecoder, KafkaGeoMessageFormatter}
 
-/**
-  * Created by ckelly on 9/7/16.
-  */
 class KafkaGeoMessageFormatter10 extends MessageFormatter with KafkaGeoMessageFormatterCommon{
 
   import KafkaGeoMessageFormatter._
@@ -52,11 +49,4 @@ class KafkaGeoMessageFormatter10 extends MessageFormatter with KafkaGeoMessageFo
   override def close: Unit = {
     decoder = null
   }
-}
-
-object KafkaGeoMessageFormatter {
-  private[kafka] val sftNameKey = "sft.name"
-  private[kafka] val sftSpecKey = "sft.spec"
-
-  val lineSeparator = "\n".getBytes(StandardCharsets.UTF_8)
 }

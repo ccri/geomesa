@@ -129,11 +129,9 @@ object KafkaDataStoreLogViewerParameters {
   }
 }
 
-
-
 object KafkaGeoMessageFormatter {
-  private[kafka] val sftNameKey = "sft.name"
-  private[kafka] val sftSpecKey = "sft.spec"
+  val sftNameKey = "sft.name"
+  val sftSpecKey = "sft.spec"
 
   val lineSeparator = "\n".getBytes(StandardCharsets.UTF_8)
 }

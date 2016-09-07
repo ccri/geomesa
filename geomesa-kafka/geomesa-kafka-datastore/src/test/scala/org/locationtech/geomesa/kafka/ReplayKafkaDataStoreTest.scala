@@ -200,7 +200,7 @@ class ReplayKafkaDataStoreTest
 
   def sendMessages(sft: SimpleFeatureType): Unit = {
     val props = new ju.Properties()
-    props.put("metadata.broker.list", brokerConnect)
+    props.put(KafkaUtilsLoader.kafkaUtils.brokerParam(), brokerConnect)
     props.put("serializer.class", "kafka.serializer.DefaultEncoder")
     val kafkaProducer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(props))
 

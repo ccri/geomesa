@@ -14,13 +14,13 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>geomesa-kafka-datastore</artifactId>
-    <name>GeoMesa Kafka Data Store</name>
+    <artifactId>geomesa-kafka-08-datastore</artifactId>
+    <name>GeoMesa Kafka 08 Data Store</name>
 
     <properties>
         <kafka.08.version>0.8.2.1</kafka.08.version>
     </properties>
-    
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -47,11 +47,11 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-kafka-utils-common</artifactId>
         </dependency>
-        <!--<dependency>
+        <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-kafka-08-utils</artifactId>
             <version>${project.version}</version>
-        </dependency>-->
+        </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-main</artifactId>
@@ -137,6 +137,13 @@
         </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-kafka-08-utils</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-kafka-utils-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
@@ -148,7 +155,19 @@
     </dependencies>
 
     <build>
-        <!--<plugins>
+        <sourceDirectory>../geomesa-kafka-datastore/src/main/scala</sourceDirectory>
+        <testSourceDirectory>../geomesa-kafka-datastore/src/test/scala</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>../geomesa-kafka-datastore/src/main/resources</directory>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>../geomesa-kafka-datastore/src/test/resources</directory>
+            </testResource>
+        </testResources>
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -184,7 +203,7 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>-->
+        </plugins>
     </build>
 
 </project>

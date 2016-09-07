@@ -24,4 +24,5 @@ class KafkaUtils09 extends KafkaUtils {
     ZkUtils09(kafka.utils.ZkUtils(zkConnect, sessionTimeout, connectTimeout, JaasUtils.isZkSecurityEnabled))
   override def rm(file: File): Unit = Utils.delete(file)
   override def messageFormatClassName: String = classOf[KafkaGeoMessageFormatter09].getName
+  override def brokerParam(): String = "metadata.broker.list"
 }

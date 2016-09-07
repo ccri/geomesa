@@ -12,7 +12,7 @@ import java.io.File
 import java.nio.ByteBuffer
 
 import kafka.common.TopicAndPartition
-import kafka.consumer.{ConsumerConfig, ConsumerThreadId, AssignmentContext, PartitionAssignor}
+import kafka.consumer.{AssignmentContext, ConsumerConfig, ConsumerThreadId, PartitionAssignor}
 import kafka.network.BlockingChannel
 
 trait KafkaUtils {
@@ -22,8 +22,8 @@ trait KafkaUtils {
     createZkUtils(config.zkConnect, config.zkSessionTimeoutMs, config.zkConnectionTimeoutMs)
   def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): ZkUtils
   def rm(file: File): Unit
-
   def messageFormatClassName: String
+  def brokerParam(): String
 }
 
 case class KafkaTopicMetadata(topicName: String, numberOfPartitions: Int)

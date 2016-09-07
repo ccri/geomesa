@@ -26,4 +26,5 @@ class KafkaUtils08 extends KafkaUtils {
   }
   override def rm(file: File): Unit = Utils.rm(file)
   override def messageFormatClassName: String = classOf[KafkaGeoMessageFormatter08].getName
+  override def brokerParam(): String = "metadata.broker.list"
 }

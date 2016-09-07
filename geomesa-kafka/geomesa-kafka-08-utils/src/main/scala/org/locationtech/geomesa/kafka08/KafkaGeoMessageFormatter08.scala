@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets
 import java.util.Properties
 
 import kafka.tools.MessageFormatter
-import org.locationtech.geomesa.kafka.{KafkaDataStoreLogViewer, KafkaGeoMessageDecoder}
+import org.locationtech.geomesa.kafka.{KafkaDataStoreLogViewer, KafkaGeoMessageDecoder, KafkaGeoMessageFormatter}
 import org.locationtech.geomesa.kafka.common.KafkaGeoMessageFormatterCommon
 
 class KafkaGeoMessageFormatter08 extends MessageFormatter with KafkaGeoMessageFormatterCommon{
@@ -47,11 +47,4 @@ class KafkaGeoMessageFormatter08 extends MessageFormatter with KafkaGeoMessageFo
   override def close(): Unit = {
     decoder = null
   }
-}
-
-object KafkaGeoMessageFormatter {
-  private[kafka] val sftNameKey = "sft.name"
-  private[kafka] val sftSpecKey = "sft.spec"
-
-  val lineSeparator = "\n".getBytes(StandardCharsets.UTF_8)
 }

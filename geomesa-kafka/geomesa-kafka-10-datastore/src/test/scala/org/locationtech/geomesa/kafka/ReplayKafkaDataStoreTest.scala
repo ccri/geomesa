@@ -204,7 +204,8 @@ class ReplayKafkaDataStoreTest
     props.put("bootstrap.servers", brokerConnect)
     props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
     props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
-    val kafkaProducer = new KafkaProducer[Array[Byte], Array[Byte]](props)
+    val config = new ProducerConfig(props)
+    val kafkaProducer = new Producer[Array[Byte], Array[Byte]](config)
 
     val encoder = new KafkaGeoMessageEncoder(sft)
     val topic = KafkaFeatureConfig(sft).topic

@@ -16,7 +16,7 @@ import kafka.message.Message
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.HasEmbeddedKafka
+import org.locationtech.geomesa.kafka.{HasEmbeddedKafka, KafkaUtilsLoader}
 import org.locationtech.geomesa.kafka.consumer.offsets._
 import org.specs2.mutable.Specification
 import org.specs2.runner
@@ -34,7 +34,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
   def getConsumerConfig(group: String, threads: Int = 1) = {
     val consumerProps = new Properties
     consumerProps.put("group.id", group)
-    consumerProps.put("metadata.broker.list", brokerConnect)
+    consumerProps.put(KafkaUtilsLoader.kafkaUtils.brokerParam(), brokerConnect)
     consumerProps.put("zookeeper.connect", zkConnect)
     consumerProps.put("num.consumer.fetchers", threads.toString)
     consumerProps.put("auto.commit.enable", "false")
@@ -47,7 +47,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
 
   "KafkaConsumer" should {
     val producerProps = new Properties()
-    producerProps.put("metadata.broker.list", brokerConnect)
+    producerProps.put(KafkaUtilsLoader.kafkaUtils.brokerParam(), brokerConnect)
     producerProps.put("retry.backoff.ms", "100")
     producerProps.put("message.send.max.retries", "20") // we have to bump this up as zk is pretty flaky
     producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
