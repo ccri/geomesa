@@ -176,11 +176,11 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>../geomesa-kafka-10-datastore/src/main/scala</sourceDirectory>
+        <sourceDirectory>../geomesa-kafka-datastore/src/main/scala</sourceDirectory>
         <testSourceDirectory>../geomesa-kafka-10-datastore/src/test/scala</testSourceDirectory>
         <resources>
             <resource>
-                <directory>../geomesa-kafka-10-datastore/src/main/resources</directory>
+                <directory>../geomesa-kafka-datastore/src/main/resources</directory>
             </resource>
         </resources>
         <testResources>

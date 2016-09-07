@@ -48,6 +48,10 @@
             <artifactId>geomesa-kafka-utils-common</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-kafka-datastore</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
             <version>${kafka.08.version}</version>

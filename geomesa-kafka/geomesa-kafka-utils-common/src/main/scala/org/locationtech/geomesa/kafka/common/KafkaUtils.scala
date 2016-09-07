@@ -22,6 +22,8 @@ trait KafkaUtils {
     createZkUtils(config.zkConnect, config.zkSessionTimeoutMs, config.zkConnectionTimeoutMs)
   def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): ZkUtils
   def rm(file: File): Unit
+
+  def messageFormatClassName: String
 }
 
 case class KafkaTopicMetadata(topicName: String, numberOfPartitions: Int)

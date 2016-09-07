@@ -23,4 +23,5 @@ class KafkaUtils10 extends KafkaUtils {
   override def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): ZkUtils =
     ZkUtils10(kafka.utils.ZkUtils(zkConnect, sessionTimeout, connectTimeout, JaasUtils.isZkSecurityEnabled))
   override def rm(file: File): Unit = Utils.delete(file)
+  override def messageFormatClassName: String = classOf[KafkaGeoMessageFormatter10].getName
 }

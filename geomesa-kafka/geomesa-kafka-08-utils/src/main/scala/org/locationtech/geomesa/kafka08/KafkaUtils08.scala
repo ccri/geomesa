@@ -25,4 +25,5 @@ class KafkaUtils08 extends KafkaUtils {
     ZkUtils08(new ZkClient(zkConnect, sessionTimeout, connectTimeout, ZKStringSerializer))
   }
   override def rm(file: File): Unit = Utils.rm(file)
+  override def messageFormatClassName: String = classOf[KafkaGeoMessageFormatter08].getName
 }
