@@ -17,8 +17,8 @@ import com.typesafe.scalalogging.LazyLogging
 import kafka.tools.ConsoleConsumer
 import kafka.tools.MessageFormatter
 import org.geotools.data.DataUtilities
-import org.locationtech.geomesa.kafka.KafkaDataStoreLogViewer._
-import org.locationtech.geomesa.kafka._
+import org.locationtech.geomesa.kafka09.KafkaDataStoreLogViewer._
+import org.locationtech.geomesa.kafka09._
 import org.locationtech.geomesa.tools.common.FeatureTypeNameParam
 import org.locationtech.geomesa.tools.kafka.ConsumerKDSConnectionParams
 import org.locationtech.geomesa.tools.kafka.commands.ListenCommand.ListenParameters

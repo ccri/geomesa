@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.tools.kafka
 
-import org.locationtech.geomesa.kafka.{KafkaDataStoreFactory, KafkaDataStoreFactoryParams => dsParams}
+import org.locationtech.geomesa.kafka09.{KafkaDataStoreFactory, KafkaDataStoreFactoryParams => dsParams}
 import org.locationtech.geomesa.tools.kafka.KafkaConnectionParams
 
 import scala.collection.JavaConversions._

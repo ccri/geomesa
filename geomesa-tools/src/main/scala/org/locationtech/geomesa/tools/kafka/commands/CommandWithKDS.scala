@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.tools.kafka.commands
 
 import com.beust.jcommander.JCommander
-import org.locationtech.geomesa.kafka.KafkaUtilsLoader
+import org.locationtech.geomesa.kafka09.KafkaUtilsLoader
 import org.locationtech.geomesa.tools.common.commands.Command
 import org.locationtech.geomesa.tools.kafka.{DataStoreHelper, KafkaConnectionParams}
 

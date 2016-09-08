@@ -15,7 +15,7 @@ import kafka.consumer.{AssignmentContext, PartitionAssignor}
 import kafka.network.BlockingChannel
 import org.apache.kafka.common.security.JaasUtils
 import org.apache.kafka.common.utils.Utils
-import org.locationtech.geomesa.kafka.common.{ZkUtils, KafkaUtils}
+import org.locationtech.geomesa.kafka09.common.{ZkUtils, KafkaUtils}
 
 class KafkaUtils10 extends KafkaUtils {
   override def channelToPayload: (BlockingChannel) => ByteBuffer = _.receive().payload()

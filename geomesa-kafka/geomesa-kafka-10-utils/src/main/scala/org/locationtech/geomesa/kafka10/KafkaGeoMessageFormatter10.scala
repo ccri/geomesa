@@ -14,8 +14,8 @@ import java.util.Properties
 
 import kafka.common.MessageFormatter
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.locationtech.geomesa.kafka.common.KafkaGeoMessageFormatterCommon
-import org.locationtech.geomesa.kafka.{KafkaDataStoreLogViewer, KafkaGeoMessageDecoder, KafkaGeoMessageFormatter}
+import org.locationtech.geomesa.kafka09.common.KafkaGeoMessageFormatterCommon
+import org.locationtech.geomesa.kafka09.{KafkaDataStoreLogViewer, KafkaGeoMessageDecoder, KafkaGeoMessageFormatter}
 
 class KafkaGeoMessageFormatter10 extends MessageFormatter with KafkaGeoMessageFormatterCommon{
 

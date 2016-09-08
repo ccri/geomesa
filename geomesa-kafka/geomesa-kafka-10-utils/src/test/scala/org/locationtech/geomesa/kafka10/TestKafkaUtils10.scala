@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kafka10
 import java.util.Properties
 
 import _root_.kafka.utils.TestUtils
-import org.locationtech.geomesa.kafka.TestKafkaUtils
+import org.locationtech.geomesa.kafka09.TestKafkaUtils
 
 class TestKafkaUtils10 extends TestKafkaUtils {
   override def createBrokerConfig(nodeId: Int, zkConnect: String): Properties = TestUtils.createBrokerConfig(nodeId, zkConnect)
