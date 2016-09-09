@@ -20,6 +20,7 @@ import kafka.network.BlockingChannel
 import org.locationtech.geomesa.kafka09.{KafkaUtils09, ZkUtils09}
 import org.locationtech.geomesa.kafka09.consumer.offsets.FindOffset.MessagePredicate
 import org.locationtech.geomesa.kafka09.consumer.{Broker, Brokers, Fetcher, WrappedConsumer}
+import org.locationtech.geomesa.kafka09.consumer.KafkaConsumer._
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success}

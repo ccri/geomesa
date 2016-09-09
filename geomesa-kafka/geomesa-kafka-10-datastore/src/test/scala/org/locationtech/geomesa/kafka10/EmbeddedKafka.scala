@@ -6,7 +6,7 @@
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
-package org.locationtech.geomesa.kafka08
+package org.locationtech.geomesa.kafka10
 
 import java.net.InetSocketAddress
 
@@ -22,7 +22,7 @@ trait HasEmbeddedZookeeper {
 
 trait HasEmbeddedKafka {
   val SYS_PROP_RUN_TESTS = "org.locationtech.geomesa.test-kafka"
-  val (brokerConnect, zkConnect) = EmbeddedKafka.connect()
+  lazy val (brokerConnect, zkConnect) = EmbeddedKafka.connect()
   def shutdown(): Unit = EmbeddedKafka.shutdown()
 }
 
@@ -75,13 +75,13 @@ trait EmbeddedService[C] extends AnyRef {
   def shutdown(): Unit
 }
 
-class EmbeddedZookeeper extends EmbeddedService[String] {
+class EmbeddedZookeeper extends EmbeddedService[String]{
   val snapshotDir = TestUtils.tempDir()
   val logDir = TestUtils.tempDir()
   val tickTime = 500
   val zookeeper = new ZooKeeperServer(snapshotDir, logDir, tickTime)
   val factory = new NIOServerCnxnFactory()
-  factory.configure(new InetSocketAddress("127.0.0.1", new TestKafkaUtils08().choosePort), 1024)
+  factory.configure(new InetSocketAddress("127.0.0.1", new TestKafkaUtils10().choosePort), 1024)
   factory.startup(zookeeper)
 
   private val zkPort = zookeeper.getClientPort
@@ -91,23 +91,26 @@ class EmbeddedZookeeper extends EmbeddedService[String] {
   override def shutdown(): Unit = {
     try { zookeeper.shutdown() } catch { case _: Throwable => }
     try { factory.shutdown() } catch { case _: Throwable => }
-    new KafkaUtils08().rm(logDir)
-    new KafkaUtils08().rm(snapshotDir)
+    new KafkaUtils10().rm(logDir)
+    new KafkaUtils10().rm(snapshotDir)
   }
 }
 
 class EmbeddedKafka extends EmbeddedService[(String, String)] {
 
-  private val zkConnect = EmbeddedZookeeper.connect()
+  private lazy val zkConnect = EmbeddedZookeeper.connect()
 
   private val brokerConf = {
-    val conf = new TestKafkaUtils08().createBrokerConfig(1, zkConnect)
+    val conf = new TestKafkaUtils10().createBrokerConfig(1, zkConnect)
     conf.setProperty("zookeeper.connect", zkConnect) // override to use a unique zookeeper
+    conf.setProperty("host.name","localhost")
+    conf.setProperty("port", "9092")
     conf
   }
 
   val brokerConnect = s"${brokerConf.getProperty("host.name")}:${brokerConf.getProperty("port")}"
   override def connection = (brokerConnect, zkConnect)
+
 
   private val server = TestUtils.createServer(new KafkaConfig(brokerConf))
 

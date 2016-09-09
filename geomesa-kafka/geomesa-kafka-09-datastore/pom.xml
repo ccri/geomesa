@@ -160,8 +160,6 @@
                             <artifactSet>
                                 <includes>
                                     <include>org.locationtech.geomesa:geomesa-kafka-09-datastore</include>
-                                    <include>org.locationtech.geomesa:geomesa-kafka-utils-common</include>
-                                    <include>org.locationtech.geomesa:geomesa-kafka-09-utils</include>
                                 </includes>
                             </artifactSet>
                             <filters>

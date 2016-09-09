@@ -141,7 +141,7 @@ trait KafkaDataStoreSchemaManager extends DataStore with LazyLogging {
 
     // Get previous schema and user data
     val previousSft = getSchema(typeName)
-    val schemaTypeName = sft.getTypeName()
+    val schemaTypeName = sft.getTypeName
 
     // Prevent modifying wrong type if type names don't match
     if (!schemaTypeName.equals(typeName.toString)) {

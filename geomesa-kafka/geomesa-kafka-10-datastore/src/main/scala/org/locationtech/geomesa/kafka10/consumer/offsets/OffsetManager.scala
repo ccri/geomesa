@@ -1,12 +1,12 @@
-/***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+/** *********************************************************************
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  * ************************************************************************/
 
-package org.locationtech.geomesa.kafka08.consumer.offsets
+package org.locationtech.geomesa.kafka10.consumer.offsets
 
 import java.io.{Closeable, IOException}
 
@@ -17,30 +17,30 @@ import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.ConsumerConfig
 import kafka.message.{ByteBufferMessageSet, MessageAndOffset}
 import kafka.network.BlockingChannel
-import org.locationtech.geomesa.kafka08.{KafkaUtils08, ZkUtils08}
-import org.locationtech.geomesa.kafka08.consumer.offsets.FindOffset.MessagePredicate
-import org.locationtech.geomesa.kafka08.consumer.{Broker, Brokers, Fetcher, WrappedConsumer}
-import org.locationtech.geomesa.kafka08.consumer.KafkaConsumer._
+import org.locationtech.geomesa.kafka10.{KafkaUtils10, ZkUtils10}
+import org.locationtech.geomesa.kafka10.consumer.offsets.FindOffset.MessagePredicate
+import org.locationtech.geomesa.kafka10.consumer.{Broker, Brokers, Fetcher, WrappedConsumer}
+import org.locationtech.geomesa.kafka10.consumer.KafkaConsumer._
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success}
 
 /**
- * Manages storing and retrieving of offsets for a consumer group
- */
+  * Manages storing and retrieving of offsets for a consumer group
+  */
 class OffsetManager(val config: ConsumerConfig)
   extends Fetcher with Closeable with LazyLogging {
 
   import OffsetManager._
 
   lazy private val channel = WrappedChannel(zkUtils, config)
-  lazy private val zkUtils = new KafkaUtils08().createZkUtils(config)
+  lazy private val zkUtils = new KafkaUtils10().createZkUtils(config)
 
   /**
-   * Get a saved offset.
-   *
-   * @param when what offset to get (latest, earliest, etc)
-   */
+    * Get a saved offset.
+    *
+    * @param when what offset to get (latest, earliest, etc)
+    */
   def getOffsets(topic: String, when: RequestedOffset): Offsets = {
     val partitions = findPartitions(topic, config)
     assert(partitions.nonEmpty, s"Topic $topic does not exist in brokers ${Brokers(config).mkString(",")}")
@@ -48,26 +48,26 @@ class OffsetManager(val config: ConsumerConfig)
   }
 
   /**
-   * Get a saved offset.
-   *
-   * @param when what offset to get (latest, earliest, etc)
-   */
+    * Get a saved offset.
+    *
+    * @param when what offset to get (latest, earliest, etc)
+    */
   def getOffsets(topic: String, partitions: Seq[PartitionMetadata], when: RequestedOffset): Offsets = {
     assert(partitions.nonEmpty, "Topic and partitions are required")
     val function: () => Offsets = when match {
-      case EarliestOffset    => () => getOffsetsBefore(topic, partitions, OffsetRequest.EarliestTime, config)
-      case LatestOffset      => () => getOffsetsBefore(topic, partitions, OffsetRequest.LatestTime, config)
+      case EarliestOffset => () => getOffsetsBefore(topic, partitions, OffsetRequest.EarliestTime, config)
+      case LatestOffset => () => getOffsetsBefore(topic, partitions, OffsetRequest.LatestTime, config)
       case SpecificOffset(s) => () => partitions.map(p => TopicAndPartition(topic, p.partitionId) -> s).toMap
-      case DateOffset(date)  => () => getOffsetsBefore(topic, partitions, date, config)
-      case FindOffset(pred)  => () => findOffsets(topic, partitions, pred, config)
-      case GroupOffset       => () =>
+      case DateOffset(date) => () => getOffsetsBefore(topic, partitions, date, config)
+      case FindOffset(pred) => () => findOffsets(topic, partitions, pred, config)
+      case GroupOffset => () =>
         val taps = partitions.map(p => TopicAndPartition(topic, p.partitionId))
         getGroupOffsets(channel.channel(), taps, config)
 
-      case _  => throw new NotImplementedError()
+      case _ => throw new NotImplementedError()
     }
 
-    val result = retryOffsets(function, 1).filterNot { case (_, offset) => offset < 0}
+    val result = retryOffsets(function, 1).filterNot { case (_, offset) => offset < 0 }
 
     if (result.size == partitions.length) {
       result
@@ -75,7 +75,7 @@ class OffsetManager(val config: ConsumerConfig)
       // fallback to latest available if nothing else works
       val remaining = partitions.filterNot(p => result.contains(TopicAndPartition(topic, p.partitionId)))
       logger.warn(s"Didn't find a valid offset for topic [$topic] partitions " +
-          s"[${remaining.map(_.partitionId).mkString(",")}] looking for [$when] - defaulting to latest")
+        s"[${remaining.map(_.partitionId).mkString(",")}] looking for [$when] - defaulting to latest")
       result ++ getOffsets(topic, remaining, LatestOffset)
     } else {
       throw new RuntimeException(s"Could not find a valid offset for partitions ${partitions.mkString(",")}")
@@ -83,8 +83,8 @@ class OffsetManager(val config: ConsumerConfig)
   }
 
   /**
-   * Find an offset based on a message predicate - messages are assumed to be sorted according to the predicate
-   */
+    * Find an offset based on a message predicate - messages are assumed to be sorted according to the predicate
+    */
   def findOffsets(topic: String,
                   partitions: Seq[PartitionMetadata],
                   predicate: MessagePredicate,
@@ -105,7 +105,7 @@ class OffsetManager(val config: ConsumerConfig)
   }
 
   @tailrec
-  private[kafka08] final def binaryOffsetSearch(consumer: WrappedConsumer,
+  private[kafka10] final def binaryOffsetSearch(consumer: WrappedConsumer,
                                                 predicate: MessagePredicate,
                                                 bounds: (Long, Long)): Option[Long] = {
 
@@ -169,14 +169,14 @@ class OffsetManager(val config: ConsumerConfig)
 
     result match {
       case Right(found) if found != -1 => Some(found)
-      case Right(found)                => None
-      case Left(nextBounds)            => binaryOffsetSearch(consumer, predicate, nextBounds)
+      case Right(found) => None
+      case Left(nextBounds) => binaryOffsetSearch(consumer, predicate, nextBounds)
     }
   }
 
   // `messageSet` may contain data at or beyond end, if so trim
-  private[kafka08] def trim(messageSet: ByteBufferMessageSet, end: Long): Array[MessageAndOffset] =
-    // use an array to allow direct access to the last element
+  private[kafka10] def trim(messageSet: ByteBufferMessageSet, end: Long): Array[MessageAndOffset] =
+  // use an array to allow direct access to the last element
     messageSet.takeWhile(msg => msg.offset < end).toArray
 
   @tailrec
@@ -195,8 +195,8 @@ class OffsetManager(val config: ConsumerConfig)
     }
 
   /**
-   * Commit group offsets read
-   */
+    * Commit group offsets read
+    */
   def commitOffsets(offsets: Map[TopicAndPartition, OffsetAndMetadata], isAutoCommit: Boolean = false): Unit =
     if (isAutoCommit) {
       // auto commits will not be retried on failures
@@ -213,7 +213,7 @@ class OffsetManager(val config: ConsumerConfig)
 
     try {
       channel.channel().send(request)
-      val response = OffsetCommitResponse.readFrom(new KafkaUtils08().channelToPayload(channel.channel()))
+      val response = OffsetCommitResponse.readFrom(new KafkaUtils10().channelToPayload(channel.channel()))
       val errors = response.commitStatus.filter { case (_, code) => code != NoError }
       errors.foreach { case (topicAndPartition, code) =>
         if (code == OffsetMetadataTooLargeCode) {
@@ -251,22 +251,22 @@ object OffsetManager extends LazyLogging {
   private val clientId = "offsetManager"
 
   /**
-   * Gets the last saved offset for a group
-   */
+    * Gets the last saved offset for a group
+    */
   def getGroupOffsets(channel: BlockingChannel,
                       partitions: Seq[TopicAndPartition],
                       config: ConsumerConfig): Offsets = {
     val version = OffsetFetchRequest.CurrentVersion
     val request = new OffsetFetchRequest(config.groupId, partitions, version, 0, clientId)
     channel.send(request)
-    val response = OffsetFetchResponse.readFrom(new KafkaUtils08().channelToPayload(channel))
+    val response = OffsetFetchResponse.readFrom(new KafkaUtils10().channelToPayload(channel))
     handleOffsetErrors(response.requestInfo.values.map(_.error))
     response.requestInfo.map { case (topicAndPartion, metadata) => (topicAndPartion, metadata.offset) }
   }
 
   /**
-   * Gets offset based on a time - this is only accurate to the log file level, not message time level
-   */
+    * Gets offset based on a time - this is only accurate to the log file level, not message time level
+    */
   def getOffsetsBefore(topic: String,
                        partitions: Seq[PartitionMetadata],
                        time: Long,
@@ -297,17 +297,17 @@ object OffsetManager extends LazyLogging {
 }
 
 /**
- * Container for passing around a channel so that it can be rebuilt without losing the reference to it
- */
-case class WrappedChannel(zkUtils: ZkUtils08, config: ConsumerConfig) {
+  * Container for passing around a channel so that it can be rebuilt without losing the reference to it
+  */
+case class WrappedChannel(zkUtils: ZkUtils10, config: ConsumerConfig) {
 
   private var reusableChannel: BlockingChannel = null
   private val timeout = config.offsetsChannelSocketTimeoutMs
   private val backoff = config.offsetsChannelBackoffMs
 
   /**
-   * Gets the channel, connecting if not already connected
-   */
+    * Gets the channel, connecting if not already connected
+    */
   def channel() = synchronized {
     if (reusableChannel == null || !reusableChannel.isConnected) {
       reconnect()
@@ -316,16 +316,16 @@ case class WrappedChannel(zkUtils: ZkUtils08, config: ConsumerConfig) {
   }
 
   /**
-   * Disconnects then reconnects the channel
-   */
+    * Disconnects then reconnects the channel
+    */
   def reconnect(): Unit = synchronized {
     disconnect()
     reusableChannel = zkUtils.channelToOffsetManager(config.groupId, timeout, backoff)
   }
 
   /**
-   * Disconnects the channel
-   */
+    * Disconnects the channel
+    */
   def disconnect(): Unit = synchronized {
     if (reusableChannel != null) {
       reusableChannel.disconnect()

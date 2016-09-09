@@ -81,7 +81,7 @@ class EmbeddedZookeeper extends EmbeddedService[String] {
   val tickTime = 500
   val zookeeper = new ZooKeeperServer(snapshotDir, logDir, tickTime)
   val factory = new NIOServerCnxnFactory()
-  factory.configure(new InetSocketAddress("127.0.0.1", TestKafkaUtilsLoader.testKafkaUtils.choosePort), 1024)
+  factory.configure(new InetSocketAddress("127.0.0.1", new TestKafkaUtils09().choosePort), 1024)
   factory.startup(zookeeper)
 
   private val zkPort = zookeeper.getClientPort
@@ -101,7 +101,7 @@ class EmbeddedKafka extends EmbeddedService[(String, String)] {
   private val zkConnect = EmbeddedZookeeper.connect()
 
   private val brokerConf = {
-    val conf = TestKafkaUtilsLoader.testKafkaUtils.createBrokerConfig(1, zkConnect)
+    val conf = new TestKafkaUtils09().createBrokerConfig(1, zkConnect)
     conf.setProperty("zookeeper.connect", zkConnect) // override to use a unique zookeeper
     conf
   }

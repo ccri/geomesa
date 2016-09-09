@@ -7,7 +7,7 @@
         </layout>
     </appender>
 
-    <category name="org.locationtech.geomesa.kafka09">
+    <category name="org.locationtech.geomesa.kafka10">
         <priority value="info"/>
     </category>
 

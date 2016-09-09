@@ -165,8 +165,8 @@ class KafkaGeoMessageFormatter extends MessageFormatter{
 }
 
 object KafkaGeoMessageFormatter {
-  val sftNameKey = "sft.name"
-  val sftSpecKey = "sft.spec"
+  private[kafka08] val sftNameKey = "sft.name"
+  private[kafka08] val sftSpecKey = "sft.spec"
 
   val lineSeparator = "\n".getBytes(StandardCharsets.UTF_8)
 }
