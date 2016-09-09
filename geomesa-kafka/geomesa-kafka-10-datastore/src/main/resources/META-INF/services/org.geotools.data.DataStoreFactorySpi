@@ -1,1 +1,1 @@
-kafka10.KafkaDataStoreFactory
+org.locationtech.geomesa.kafka10.KafkaDataStoreFactory
