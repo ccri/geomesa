@@ -16,6 +16,8 @@ import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
+import scala.collection.JavaConverters._
+
 @RunWith(classOf[JUnitRunner])
 class LiveFeatureCacheTest extends Specification with Mockito with SimpleFeatureMatchers {
 

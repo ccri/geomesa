@@ -10,7 +10,7 @@ package org.locationtech.geomesa.tools.kafka.commands
 
 import com.beust.jcommander.{JCommander, Parameters}
 import com.typesafe.scalalogging.LazyLogging
-import org.locationtech.geomesa.kafka09.KafkaDataStore
+import org.locationtech.geomesa.kafka08.KafkaDataStore
 import org.locationtech.geomesa.tools.common.FeatureTypeNameParam
 import org.locationtech.geomesa.tools.kafka.ConsumerKDSConnectionParams
 import org.locationtech.geomesa.tools.kafka.commands.DescribeCommand._
