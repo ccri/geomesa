@@ -205,7 +205,7 @@ class ReplayKafkaDataStoreTest
 
     val encoder = new KafkaGeoMessageEncoder(sft)
     val topic = KafkaFeatureConfig(sft).topic
-    messages.foreach(msg => kafkaProducer.send(new ProducerRecord(topic, encoder.encodeMessage(topic, msg).message)))
+    messages.foreach(msg => kafkaProducer.send(new ProducerRecord(topic, encoder.encodeMessage(topic, msg).key, encoder.encodeMessage(topic, msg).message)))
   }
 
   trait ReplayContext extends After {

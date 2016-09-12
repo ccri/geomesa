@@ -13,7 +13,7 @@ import java.util.Properties
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{ConsumerConfig, ConsumerTimeoutException}
 import kafka.message.Message
-import kafka.producer.{KeyedMessage, KafkaProducer, ProducerConfig}
+import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka08.{HasEmbeddedKafka, KafkaUtils08}
@@ -53,7 +53,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
     producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
 
     def produceMessages(topic: String) = {
-      val producer = new KafkaProducer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
+      val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
       for (i <- 0 until 10) {
         producer.send(new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
       }

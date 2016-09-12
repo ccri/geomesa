@@ -202,7 +202,7 @@ class ReplayKafkaDataStoreTest
     val props = new ju.Properties()
     props.put(new KafkaUtils08().brokerParam(), brokerConnect)
     props.put("serializer.class", "kafka.serializer.DefaultEncoder")
-    val kafkaProducer = new KafkaProducer[Array[Byte], Array[Byte]](new ProducerConfig(props))
+    val kafkaProducer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(props))
 
     val encoder = new KafkaGeoMessageEncoder(sft)
     val topic = KafkaFeatureConfig(sft).topic
