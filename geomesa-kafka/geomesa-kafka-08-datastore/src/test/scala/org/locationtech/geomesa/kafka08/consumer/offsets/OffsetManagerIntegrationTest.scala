@@ -41,7 +41,7 @@ class OffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
     val producerProps = new Properties()
     producerProps.put(new KafkaUtils08().brokerParam(), brokerConnect)
     producerProps.put("serializer.class", "kafka.serializer.DefaultEncoder")
-    val producer = new Producer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
+    val producer = new KafkaProducer[Array[Byte], Array[Byte]](new ProducerConfig(producerProps))
     for (i <- 0 until 10) {
       producer.send(new KeyedMessage(topic, i.toString.getBytes("UTF-8"), s"test $i".getBytes("UTF-8")))
     }

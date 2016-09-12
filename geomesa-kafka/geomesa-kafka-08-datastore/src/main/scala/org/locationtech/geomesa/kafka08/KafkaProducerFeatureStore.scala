@@ -33,7 +33,7 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
                                 sft: SimpleFeatureType,
                                 topic: String,
                                 broker: String,
-                                producer: Producer[Array[Byte], Array[Byte]],
+                                producer: KafkaProducer[Array[Byte], Array[Byte]],
                                 q: Query)
   extends ContentFeatureStore(entry, q) with Closeable with LazyLogging {
 
@@ -80,7 +80,7 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
   override def close(): Unit = producer.close()
 }
 
-abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: Producer[Array[Byte], Array[Byte]], topic: String)
+abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: KafkaProducer[Array[Byte], Array[Byte]], topic: String)
     extends FeatureWriter[SimpleFeatureType, SimpleFeature] with LazyLogging {
 
   protected val msgEncoder = new KafkaGeoMessageEncoder(sft)
@@ -96,7 +96,7 @@ abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: Producer[Arr
   override def close(): Unit = {}
 }
 
-class KafkaFeatureWriterAppend(sft: SimpleFeatureType, producer: Producer[Array[Byte], Array[Byte]], topic: String)
+class KafkaFeatureWriterAppend(sft: SimpleFeatureType, producer: KafkaProducer[Array[Byte], Array[Byte]], topic: String)
     extends KafkaFeatureWriter(sft, producer, topic) {
 
   protected val reuse = new ScalaSimpleFeature("", sft)
@@ -122,7 +122,7 @@ class KafkaFeatureWriterAppend(sft: SimpleFeatureType, producer: Producer[Array[
   override def remove(): Unit = throw new NotImplementedError("Remove called on FeatureWriterAppend")
 }
 
-class KafkaFeatureWriterModify(sft: SimpleFeatureType, producer: Producer[Array[Byte], Array[Byte]], topic: String, query: Query)
+class KafkaFeatureWriterModify(sft: SimpleFeatureType, producer: KafkaProducer[Array[Byte], Array[Byte]], topic: String, query: Query)
     extends KafkaFeatureWriterAppend(sft, producer, topic) {
 
   private val ids = query.getFilter match {
@@ -152,7 +152,7 @@ object KafkaProducerFeatureStoreFactory {
 
     (entry: ContentEntry, query: Query, schemaManager: KafkaDataStoreSchemaManager) => {
       val fc = schemaManager.getFeatureConfig(entry.getTypeName)
-      val kafkaProducer = new Producer[Array[Byte], Array[Byte]](config)
+      val kafkaProducer = new KafkaProducer[Array[Byte], Array[Byte]](config)
       new KafkaProducerFeatureStore(entry, fc.sft, fc.topic, broker, kafkaProducer, query)
     }
   }

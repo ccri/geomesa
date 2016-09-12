@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kafka10
 import java.io.Serializable
 import java.{util => ju}
 
-import kafka.producer.{Producer, ProducerConfig}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
 import org.geotools.data.{DataStore, Query}
 import org.joda.time.Instant
@@ -201,13 +201,11 @@ class ReplayKafkaDataStoreTest
     props.put("bootstrap.servers", brokerConnect)
     props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
     props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
-    val config = new ProducerConfig(props)
-    val kafkaProducer = new Producer[Array[Byte], Array[Byte]](config)
+    val kafkaProducer = new KafkaProducer[Array[Byte], Array[Byte]](props)
 
     val encoder = new KafkaGeoMessageEncoder(sft)
     val topic = KafkaFeatureConfig(sft).topic
-
-    messages.foreach(msg => kafkaProducer.send(encoder.encodeMessage(topic, msg)))
+    messages.foreach(msg => kafkaProducer.send(new ProducerRecord(topic, encoder.encodeMessage(topic, msg).message)))
   }
 
   trait ReplayContext extends After {

@@ -26,5 +26,5 @@ class KafkaUtils10 {
     ZkUtils10(kafka.utils.ZkUtils(zkConnect, sessionTimeout, connectTimeout, JaasUtils.isZkSecurityEnabled))
   def rm(file: File): Unit = Utils.delete(file)
   def messageFormatClassName: String = classOf[KafkaGeoMessageFormatter].getName
-  def brokerParam(): String = "bootstrap.server"
+  def brokerParam(): String = "bootstrap.servers"
 }

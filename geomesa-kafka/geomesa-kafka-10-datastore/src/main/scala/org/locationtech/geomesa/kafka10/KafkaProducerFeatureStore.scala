@@ -14,7 +14,7 @@ import java.{util => ju}
 
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Envelope
-import kafka.producer.{Producer, ProducerConfig}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
 import org.geotools.data.{FeatureReader, FeatureWriter, Query}
 import org.geotools.feature.FeatureCollection
@@ -33,7 +33,7 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
                                 sft: SimpleFeatureType,
                                 topic: String,
                                 broker: String,
-                                producer: Producer[Array[Byte], Array[Byte]],
+                                producer: KafkaProducer[Array[Byte], Array[Byte]],
                                 q: Query)
   extends ContentFeatureStore(entry, q) with Closeable with LazyLogging {
 
@@ -81,7 +81,7 @@ class KafkaProducerFeatureStore(entry: ContentEntry,
   override def close(): Unit = producer.close()
 }
 
-abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: Producer[Array[Byte], Array[Byte]], topic: String)
+abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: KafkaProducer[Array[Byte], Array[Byte]], topic: String)
   extends FeatureWriter[SimpleFeatureType, SimpleFeature] with LazyLogging {
 
   protected val msgEncoder = new KafkaGeoMessageEncoder(sft)
@@ -91,7 +91,7 @@ abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: Producer[Arr
   private[kafka10] def send(msg: GeoMessage): Unit = {
     logger.debug("sending message: {}", msg)
     logger.info("sending message: {} : {}", msg, topic)
-    producer.send(msgEncoder.encodeMessage(topic, msg))
+    producer.send(new ProducerRecord[Array[Byte], Array[Byte]](topic, msgEncoder.encodeMessage(topic, msg).message))
   }
 
   override def getFeatureType: SimpleFeatureType = sft
@@ -99,7 +99,7 @@ abstract class KafkaFeatureWriter(sft: SimpleFeatureType, producer: Producer[Arr
   override def close(): Unit = {}
 }
 
-class KafkaFeatureWriterAppend(sft: SimpleFeatureType, producer: Producer[Array[Byte], Array[Byte]], topic: String)
+class KafkaFeatureWriterAppend(sft: SimpleFeatureType, producer: KafkaProducer[Array[Byte], Array[Byte]], topic: String)
   extends KafkaFeatureWriter(sft, producer, topic) {
 
   protected val reuse = new ScalaSimpleFeature("", sft)
@@ -125,7 +125,7 @@ class KafkaFeatureWriterAppend(sft: SimpleFeatureType, producer: Producer[Array[
   override def remove(): Unit = throw new NotImplementedError("Remove called on FeatureWriterAppend")
 }
 
-class KafkaFeatureWriterModify(sft: SimpleFeatureType, producer: Producer[Array[Byte], Array[Byte]], topic: String, query: Query)
+class KafkaFeatureWriterModify(sft: SimpleFeatureType, producer: KafkaProducer[Array[Byte], Array[Byte]], topic: String, query: Query)
   extends KafkaFeatureWriterAppend(sft, producer, topic) {
 
   private val ids = query.getFilter match {
@@ -147,14 +147,13 @@ object KafkaProducerFeatureStoreFactory {
   def apply(broker: String): FeatureSourceFactory = {
 
     val props = new ju.Properties()
-    props.put("bootstrap.servers", broker)
+    props.put(new KafkaUtils10().brokerParam, broker)
     props.put("key.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
     props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
 
     (entry: ContentEntry, query: Query, schemaManager: KafkaDataStoreSchemaManager) => {
       val fc = schemaManager.getFeatureConfig(entry.getTypeName)
-      val config = new ProducerConfig(props)
-      val kafkaProducer = new Producer[Array[Byte], Array[Byte]](config)
+      val kafkaProducer = new KafkaProducer[Array[Byte], Array[Byte]](props)
       new KafkaProducerFeatureStore(entry, fc.sft, fc.topic, broker, kafkaProducer, query)
     }
   }

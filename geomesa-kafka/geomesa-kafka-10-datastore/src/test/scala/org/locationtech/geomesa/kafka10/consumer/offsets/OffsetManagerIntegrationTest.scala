@@ -13,11 +13,9 @@ import java.util.Properties
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.ConsumerConfig
 import kafka.message.Message
-import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.serializer.StringDecoder
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka10.HasEmbeddedKafka
 import org.locationtech.geomesa.kafka10.HasEmbeddedKafka
 import org.specs2.mutable.Specification
 import org.specs2.runner
