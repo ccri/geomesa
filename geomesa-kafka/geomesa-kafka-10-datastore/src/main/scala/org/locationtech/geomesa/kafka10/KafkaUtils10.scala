@@ -16,7 +16,7 @@ import kafka.network.BlockingChannel
 import org.apache.kafka.common.security.JaasUtils
 import org.apache.kafka.common.utils.Utils
 
-class KafkaUtils10{
+class KafkaUtils10 {
   def channelToPayload: (BlockingChannel) => ByteBuffer = _.receive().payload()
   def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext) =
     partitionAssignor.assign(ac).get(ac.consumerId).toMap
@@ -26,5 +26,5 @@ class KafkaUtils10{
     ZkUtils10(kafka.utils.ZkUtils(zkConnect, sessionTimeout, connectTimeout, JaasUtils.isZkSecurityEnabled))
   def rm(file: File): Unit = Utils.delete(file)
   def messageFormatClassName: String = classOf[KafkaGeoMessageFormatter].getName
-  def brokerParam(): String = "metadata.broker.list"
+  def brokerParam(): String = "bootstrap.server"
 }

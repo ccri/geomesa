@@ -35,7 +35,7 @@ object Broker {
 object Brokers {
   def apply(brokers: String): Seq[Broker] = brokers.split(",").map(Broker.apply)
   def apply(config: ConsumerConfig): Seq[Broker] = {
-    val brokers : String = config.props.getString("metadata.broker.list")
+    val brokers : String = config.props.getString("bootstrap.servers")
     apply(brokers)
   }
 }
