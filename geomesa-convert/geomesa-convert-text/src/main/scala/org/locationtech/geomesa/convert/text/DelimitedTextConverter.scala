@@ -85,8 +85,7 @@ class DelimitedTextConverter(format: CSVFormat,
     if (string == null || string.isEmpty) {
       throw new IllegalArgumentException("Invalid input (empty)")
     }
-    val parser = format.parse(new StringReader(string)).iterator()
-    val rec = parser.next()
+    val rec = format.parse(new StringReader(string)).iterator().next()
     val len = rec.size()
     val ret = Array.ofDim[Any](len + 1)
     ret(0) = string
