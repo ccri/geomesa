@@ -13,6 +13,7 @@ import java.util
 import java.util.Locale
 
 import com.beust.jcommander.{JCommander, Parameter, ParameterException, Parameters}
+import com.typesafe.config.ConfigValueFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.DataStoreFinder
 import org.locationtech.geomesa.tools.accumulo.GeoMesaConnectionParams
@@ -22,7 +23,8 @@ import org.locationtech.geomesa.tools.accumulo.commands.IngestCommand._
 import org.locationtech.geomesa.tools.accumulo.ingest.{AutoIngest, ConverterIngest}
 import org.locationtech.geomesa.tools.common.commands._
 import org.locationtech.geomesa.tools.common.{CLArgResolver, OptionalFeatureTypeNameParam, OptionalFeatureTypeSpecParam}
-import org.locationtech.geomesa.utils.geotools.GeneralShapefileIngest
+import org.locationtech.geomesa.utils.geotools.{GeneralShapefileIngest, SimpleFeatureTypes}
+import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.collection.JavaConversions._
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -31,6 +33,8 @@ import scala.util.Try
 class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging {
   override val command = "ingest"
   override val params = new IngestParameters()
+  private val tilde = '~'
+  private val replaceChar = '-'
 
   // If you change this, update the regex in GeneralShapefileIngest for URLs
   private val remotePrefixes = Seq("hdfs", "s3n", "s3a")
@@ -79,8 +83,18 @@ class IngestCommand(parent: JCommander) extends Command(parent) with LazyLogging
         logger.info("No schema or converter defined - will attempt to detect schema from input files")
         new AutoIngest(params.dataStoreParams, params.featureName, params.files, params.threads, fmt).run()
       } else {
-        val sft = CLArgResolver.getSft(params.spec, params.featureName)
+        var sft = CLArgResolver.getSft(params.spec, params.featureName)
         val converterConfig = CLArgResolver.getConfig(params.config)
+        if (sft.getTypeName.contains('~')){
+          val typeName = sft.getTypeName.replace(tilde, replaceChar)
+          val sftConf = SimpleFeatureTypes.toConfig(sft)
+          sftConf.withValue("type-name", ConfigValueFactory.fromAnyRef(typeName))
+          sft = SimpleFeatureTypes.createType(sftConf)
+          converterConfig.withValue("name", ConfigValueFactory.fromAnyRef(typeName))
+          logger.warn(s"The Simple Feature Type feature name (either specified in command or in conf) " +
+                      s"contains a \'$tilde\'. Each \'$tilde\' will be replaced with a \'$replaceChar\'.")
+        }
+
         new ConverterIngest(params.dataStoreParams, params.files, params.threads, sft, converterConfig).run()
       }
     }
