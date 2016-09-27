@@ -75,6 +75,43 @@ class IngestCommandTest extends Specification {
       features.map(_.get[String]("name")) must containTheSameElementsAs(Seq("Hermione", "Harry", "Severus"))
     }
 
+    "ingest csv to tsv " >> {
+      val id = nextId
+
+      val confFile = new File(this.getClass.getClassLoader.getResource("examples/example2.conf").getFile)
+      val dataFile = new File(this.getClass.getClassLoader.getResource("examples/example1.csv").getFile)
+
+      val args = Array("ingest", "--mock", "-i", id, "-u", "foo", "-p", "bar", "-c", id,
+        "--converter", confFile.getPath, "-s", confFile.getPath, dataFile.getPath)
+      args.length mustEqual 15
+
+      val command = AccumuloRunner.createCommand(args)
+      command.execute()
+
+      val ds = command.params.asInstanceOf[GeoMesaConnectionParams].createDataStore()
+      import Conversions._
+      val features = ds.getFeatureSource("renegades2").getFeatures.features().toList
+      features.size mustEqual 0
+    }
+
+    "ingest mysql to tsv" >> {
+      val id = nextId
+
+      val confFile = new File(this.getClass.getClassLoader.getResource("examples/city1.conf").getFile)
+      val dataFile = new File(this.getClass.getClassLoader.getResource("examples/city.mysql").getFile)
+
+      val args = Array("ingest", "--mock", "-i", id, "-u", "foo", "-p", "bar", "-c", id,
+        "--converter", confFile.getPath, "-s", confFile.getPath, dataFile.getPath)
+      args.length mustEqual 15
+
+      val command = AccumuloRunner.createCommand(args)
+      command.execute()
+
+      val ds = command.params.asInstanceOf[GeoMesaConnectionParams].createDataStore()
+      import Conversions._
+      val features = ds.getFeatureSource("geonames").getFeatures.features().toList
+      features.size mustEqual 3
+    }
     // TODO GEOMESA-529 more testing of explicit commands
 
   }
