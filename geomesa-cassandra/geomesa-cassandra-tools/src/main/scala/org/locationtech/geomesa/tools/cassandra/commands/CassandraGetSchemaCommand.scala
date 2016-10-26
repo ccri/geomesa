@@ -6,27 +6,27 @@
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
-package org.locationtech.geomesa.tools.accumulo.commands
+package org.locationtech.geomesa.tools.cassandra.commands
 
 import com.beust.jcommander.{JCommander, Parameters}
 import com.typesafe.scalalogging.LazyLogging
-import org.locationtech.geomesa.tools.accumulo.GeoMesaConnectionParams
-import org.locationtech.geomesa.tools.accumulo.commands.AccumuloDescribeCommand._
+import org.locationtech.geomesa.tools.cassandra.CassandraConnectionParams
+import org.locationtech.geomesa.tools.cassandra.commands.CassandraGetSchemaCommand.CassandraGetSchemaParameters
 import org.locationtech.geomesa.tools.common.FeatureTypeNameParam
-import org.locationtech.geomesa.tools.common.commands.DescribeCommand
+import org.locationtech.geomesa.tools.common.commands.GetSchemaCommand
 
 
-class AccumuloDescribeCommand(parent: JCommander)
-  extends CommandWithAccumuloDataStore(parent)
-    with DescribeCommand
+class CassandraGetSchemaCommand(parent: JCommander)
+  extends CommandWithCassandraDataStore(parent)
+    with GetSchemaCommand
     with LazyLogging {
 
-  override val params = new AccumuloDescribeParameters
+  override val params = new CassandraGetSchemaParameters {}
 
 }
 
-object AccumuloDescribeCommand {
-  @Parameters(commandDescription = "Describe the attributes of a given GeoMesa feature type")
-  class AccumuloDescribeParameters extends GeoMesaConnectionParams
+object CassandraGetSchemaCommand {
+  @Parameters(commandDescription = "describe")
+  class CassandraGetSchemaParameters extends CassandraConnectionParams
     with FeatureTypeNameParam {}
 }

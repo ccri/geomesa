@@ -6,25 +6,24 @@
 * http://www.opensource.org/licenses/apache2.0.php.
 *************************************************************************/
 
-package org.locationtech.geomesa.tools.cassandra.commands
+package org.locationtech.geomesa.tools.accumulo.commands
 
 import com.beust.jcommander.{JCommander, Parameters}
 import com.typesafe.scalalogging.LazyLogging
-import org.locationtech.geomesa.tools.cassandra.CassandraConnectionParams
-import org.locationtech.geomesa.tools.cassandra.commands.CassandraListCommand.CassandraListParameters
-import org.locationtech.geomesa.tools.common.commands.ListCommand
+import org.locationtech.geomesa.tools.accumulo.GeoMesaConnectionParams
+import org.locationtech.geomesa.tools.accumulo.commands.AccumuloGetNamesCommand._
+import org.locationtech.geomesa.tools.common.commands.GetNamesCommand
 
-
-class CassandraListCommand(parent: JCommander)
-  extends CommandWithCassandraDataStore(parent)
-    with ListCommand
+class AccumuloGetNamesCommand(parent: JCommander)
+  extends CommandWithAccumuloDataStore(parent)
+    with GetNamesCommand
     with LazyLogging {
 
-  override val params = new CassandraListParameters()
+  override val params = new AccumuloGetNamesParameters
 
 }
 
-object CassandraListCommand {
+object AccumuloGetNamesCommand {
   @Parameters(commandDescription = "List GeoMesa feature types for a given catalog")
-  class CassandraListParameters extends CassandraConnectionParams {}
+  class AccumuloGetNamesParameters extends GeoMesaConnectionParams {}
 }

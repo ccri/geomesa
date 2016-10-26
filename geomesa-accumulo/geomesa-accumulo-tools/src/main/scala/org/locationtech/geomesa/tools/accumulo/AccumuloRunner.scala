@@ -12,7 +12,7 @@ import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
 import org.apache.accumulo.server.client.HdfsZooInstance
 import org.locationtech.geomesa.tools.accumulo.commands._
 import org.locationtech.geomesa.tools.accumulo.commands.stats._
-import org.locationtech.geomesa.tools.common.commands.{Command, GenerateAvroSchemaCommand}
+import org.locationtech.geomesa.tools.common.commands.{Command, GenerateAvroSchemaCommand, GetSchemaCommand}
 import org.locationtech.geomesa.tools.common.{Prompt, Runner}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -30,7 +30,7 @@ object AccumuloRunner extends Runner {
     new DeleteCatalogCommand(jc),
     new DeleteFeaturesCommand(jc),
     new DeleteRasterCommand(jc),
-    new GetSchemaCommand(jc),
+    new AccumuloGetSchemaCommand(jc),
     new EnvironmentCommand(jc),
     new ExplainCommand(jc),
     new ExportCommand(jc),
@@ -38,10 +38,11 @@ object AccumuloRunner extends Runner {
     new IngestCommand(jc),
     new IngestRasterCommand(jc),
     new KeywordCommand(jc),
-    new GetNamesCommand(jc),
+    new AccumuloGetNamesCommand(jc),
     new RemoveSchemaCommand(jc),
     new TableConfCommand(jc),
     new AccumuloVersionCommand(jc),
+    new QueryRasterStatsCommand(jc),
     new GetSftConfigCommand(jc),
     new GenerateAvroSchemaCommand(jc),
     new StatsAnalyzeCommand(jc),

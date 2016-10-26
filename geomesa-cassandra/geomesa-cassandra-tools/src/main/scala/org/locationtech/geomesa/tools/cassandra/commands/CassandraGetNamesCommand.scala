@@ -11,22 +11,20 @@ package org.locationtech.geomesa.tools.cassandra.commands
 import com.beust.jcommander.{JCommander, Parameters}
 import com.typesafe.scalalogging.LazyLogging
 import org.locationtech.geomesa.tools.cassandra.CassandraConnectionParams
-import org.locationtech.geomesa.tools.cassandra.commands.CassandraDescribeCommand.CassandraDescribeParameters
-import org.locationtech.geomesa.tools.common.FeatureTypeNameParam
-import org.locationtech.geomesa.tools.common.commands.DescribeCommand
+import org.locationtech.geomesa.tools.cassandra.commands.CassandraGetNamesCommand.CassandraGetNamesParameters
+import org.locationtech.geomesa.tools.common.commands.GetNamesCommand
 
 
-class CassandraDescribeCommand(parent: JCommander)
+class CassandraGetNamesCommand(parent: JCommander)
   extends CommandWithCassandraDataStore(parent)
-    with DescribeCommand
+    with GetNamesCommand
     with LazyLogging {
 
-  override val params = new CassandraDescribeParameters {}
+  override val params = new CassandraGetNamesParameters()
 
 }
 
-object CassandraDescribeCommand {
-  @Parameters(commandDescription = "describe")
-  class CassandraDescribeParameters extends CassandraConnectionParams
-    with FeatureTypeNameParam {}
+object CassandraGetNamesCommand {
+  @Parameters(commandDescription = "List GeoMesa feature types for a given catalog")
+  class CassandraGetNamesParameters extends CassandraConnectionParams {}
 }
