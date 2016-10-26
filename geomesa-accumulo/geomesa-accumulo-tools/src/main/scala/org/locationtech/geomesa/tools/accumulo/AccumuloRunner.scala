@@ -103,3 +103,4 @@ object AccumuloRunner extends Runner {
     }
   }
 }
+

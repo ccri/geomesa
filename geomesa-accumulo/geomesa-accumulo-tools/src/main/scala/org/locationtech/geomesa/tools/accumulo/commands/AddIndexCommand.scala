@@ -30,7 +30,7 @@ import scala.util.control.NonFatal
   * 4. Turn old index off, put new index in read/write mode
   * 5. Pause and indicate that the user should bounce live ingestion again
   */
-class AddIndexCommand(parent: JCommander) extends CommandWithCatalog(parent) with LazyLogging {
+class AddIndexCommand(parent: JCommander) extends CommandWithAccumuloDataStore(parent) with LazyLogging {
 
   import org.locationtech.geomesa.index.utils.GeoMesaMetadata.ATTRIBUTES_KEY
   import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
