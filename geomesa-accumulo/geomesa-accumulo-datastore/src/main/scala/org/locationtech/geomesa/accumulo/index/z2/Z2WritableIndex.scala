@@ -22,7 +22,14 @@ import org.locationtech.geomesa.curve.Z2SFC
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.opengis.feature.simple.SimpleFeatureType
 
+trait Z2SplitArrays {
+  var numSplits: Int
+  val splitArrays : Seq[Array[Byte]]
+}
+
 trait Z2WritableIndex extends AccumuloWritableIndex {
+
+  writable : Z2SplitArrays =>
 
   import AccumuloWritableIndex.{BinColumnFamily, FullColumnFamily}
   import Z2Index._
@@ -35,7 +42,7 @@ trait Z2WritableIndex extends AccumuloWritableIndex {
   // split(1 byte), z value (8 bytes), id (n bytes)
   protected def getPointRowKey(tableSharing: Array[Byte])(wf: AccumuloFeature): Seq[Array[Byte]] = {
     import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeature
-    val split = SPLIT_ARRAYS(wf.idHash % NUM_SPLITS)
+    val split = splitArrays(wf.idHash % numSplits)
     val id = wf.feature.getID.getBytes(StandardCharsets.UTF_8)
     val pt = wf.feature.point
     val z = Z2SFC.index(pt.getX, pt.getY).z
@@ -44,7 +51,7 @@ trait Z2WritableIndex extends AccumuloWritableIndex {
 
   // split(1 byte), z value (3 bytes), id (n bytes)
   protected def getGeomRowKeys(tableSharing: Array[Byte])(wf: AccumuloFeature): Seq[Array[Byte]] = {
-    val split = SPLIT_ARRAYS(wf.idHash % NUM_SPLITS)
+    val split = splitArrays(wf.idHash % numSplits)
     val geom = wf.feature.getDefaultGeometry.asInstanceOf[Geometry]
     val zs = zBox(geom)
     val id = wf.feature.getID.getBytes(StandardCharsets.UTF_8)
@@ -114,9 +121,9 @@ trait Z2WritableIndex extends AccumuloWritableIndex {
     // drop first split, otherwise we get an empty tablet
     val splits = if (sft.isTableSharing) {
       val ts = sft.getTableSharingPrefix.getBytes(StandardCharsets.UTF_8)
-      SPLIT_ARRAYS.drop(1).map(s => new Text(ts ++ s)).toSet
+      splitArrays.drop(1).map(s => new Text(ts ++ s)).toSet
     } else {
-      SPLIT_ARRAYS.drop(1).map(new Text(_)).toSet
+      splitArrays.drop(1).map(new Text(_)).toSet
     }
     val splitsToAdd = splits -- ds.tableOps.listSplits(table).toSet
     if (splitsToAdd.nonEmpty) {

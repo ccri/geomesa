@@ -200,6 +200,8 @@ trait AccumuloWritableIndex extends AccumuloFeatureIndexType {
 }
 
 object AccumuloWritableIndex {
+
+  //TODO: Remove below two vals
   import org.locationtech.geomesa.accumulo.AccumuloProperties.IndexProperties.NUM_SPLITS
   val DefaultNumSplits = NUM_SPLITS.get.toByte // can't be more than Byte.MaxValue (127)
   val DefaultSplitArrays = (0 until DefaultNumSplits).map(_.toByte).toArray.map(Array(_)).toSeq

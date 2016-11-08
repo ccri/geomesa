@@ -15,13 +15,32 @@ import org.locationtech.geomesa.accumulo.data._
 import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex._
 import org.opengis.feature.simple.SimpleFeatureType
 
+case class Z2Index(var numSplits: Int = Z2Index.DEFAULT_NUM_SPLITS)
+  extends AccumuloFeatureIndexType with Z2SplitArrays with Z2WritableIndex with Z2QueryableIndex {
+
+  val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
+  override val name: String = Z2Index.name
+
+  override val version: Int = Z2Index.version
+
+  override val serializedWithId: Boolean = Z2Index.serializedWithId
+
+  override def supports(sft: SimpleFeatureType): Boolean = Z2Index.supports(sft)
+
+  override def writer(sft: SimpleFeatureType, ds: AccumuloDataStore): (AccumuloFeature) => Seq[Mutation] =
+    Z2Index.writer(sft, ds)
+
+  override def remover(sft: SimpleFeatureType, ds: AccumuloDataStore): (AccumuloFeature) => Seq[Mutation] =
+    Z2Index.remover(sft,ds)
+}
+
 // current version - deprecated non-point support in favor of xz, ids in row key, per-attribute vis
-case object Z2Index extends AccumuloFeatureIndexType with Z2WritableIndex with Z2QueryableIndex {
-  import org.locationtech.geomesa.accumulo.AccumuloProperties.IndexProperties
+case object Z2Index extends AccumuloFeatureIndexType with Z2SplitArrays with Z2WritableIndex with Z2QueryableIndex {
   val Z2IterPriority = 23
 
-  val NUM_SPLITS = IndexProperties.NUM_SPLITS.get.toByte // can't be more than Byte.MaxValue (127)
-  val SPLIT_ARRAYS = (0 until NUM_SPLITS).map(_.toByte).toArray.map(Array(_)).toSeq
+  val DEFAULT_NUM_SPLITS = 4 // can't be more than Byte.MaxValue (127)
+  var numSplits = DEFAULT_NUM_SPLITS
+  val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
 
   // the bytes of z we keep for complex geoms
   // 3 bytes is 22 bits of geometry (not including the first 2 bits which aren't used)
@@ -71,7 +90,10 @@ case object Z2Index extends AccumuloFeatureIndexType with Z2WritableIndex with Z
 }
 
 // initial implementation - supports points and non-points
-case object Z2IndexV1 extends AccumuloFeatureIndexType with Z2WritableIndex with Z2QueryableIndex {
+case object Z2IndexV1 extends AccumuloFeatureIndexType with Z2SplitArrays with Z2WritableIndex with Z2QueryableIndex {
+
+  override var numSplits: Int = 4
+  val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
 
   override val name: String = "z2"
 

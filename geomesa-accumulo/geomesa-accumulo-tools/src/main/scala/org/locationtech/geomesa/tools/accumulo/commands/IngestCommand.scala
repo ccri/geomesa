@@ -36,6 +36,7 @@ class IngestCommand(parent: JCommander) extends CommandWithCatalog(parent) with 
   def isDistributedUrl(url: String) = remotePrefixes.exists(url.startsWith)
 
   override def execute(): Unit = {
+    //TODO: Take advantage of AH's System properties overhaul
     import org.locationtech.geomesa.accumulo.AccumuloProperties.IndexProperties.NUM_SPLITS
 
     ensureSameFs(remotePrefixes)
