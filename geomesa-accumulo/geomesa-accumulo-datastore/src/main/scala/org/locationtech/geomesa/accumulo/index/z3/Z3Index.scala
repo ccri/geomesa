@@ -13,14 +13,45 @@ import org.apache.hadoop.io.Text
 import org.locationtech.geomesa.accumulo.AccumuloFeatureIndexType
 import org.locationtech.geomesa.accumulo.data._
 import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex._
+import org.locationtech.geomesa.accumulo.index.{DefaultConfig, IndexConfig}
 import org.locationtech.geomesa.curve.{BinnedTime, Z3SFC}
 import org.opengis.feature.simple.SimpleFeatureType
 
+case class Z3Config(var numSplits: Int = DefaultConfig.numSplits) extends IndexConfig {
+  val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
+}
+
+case class Z3Index(conf: IndexConfig = DefaultConfig)
+  extends AccumuloFeatureIndexType with IndexConfig with Z3WritableIndex with Z3QueryableIndex {
+
+  var numSplits: Int = conf.numSplits
+
+  val splitArrays: Seq[Array[Byte]] = conf.splitArrays
+
+  override val name: String = Z3Index.name
+
+  override val version: Int = Z3Index.version
+
+  override val serializedWithId: Boolean = Z3Index.serializedWithId
+
+  override val hasSplits: Boolean = Z3Index.hasSplits
+
+  override def supports(sft: SimpleFeatureType): Boolean = Z3Index.supports(sft)
+
+  override def writer(sft: SimpleFeatureType, ds: AccumuloDataStore): (AccumuloFeature) => Seq[Mutation] =
+    Z3Index.writer(sft, ds)
+
+  override def remover(sft: SimpleFeatureType, ds: AccumuloDataStore): (AccumuloFeature) => Seq[Mutation] =
+    Z3Index.remover(sft, ds)
+}
+
 // current version - deprecated polygon support in favor of xz, ids in row key, per-attribute vis
-case object Z3Index extends AccumuloFeatureIndexType with Z3WritableIndex with Z3QueryableIndex {
+case object Z3Index extends AccumuloFeatureIndexType with IndexConfig with Z3WritableIndex with Z3QueryableIndex {
 
   val Z3IterPriority = 23
-
+  val DEFAULT_NUM_SPLITS = DefaultConfig.numSplits
+  var numSplits = DEFAULT_NUM_SPLITS
+  val splitArrays = DefaultConfig.splitArrays
   // the bytes of z we keep for complex geoms
   // 3 bytes is 15 bits of geometry (not including time bits and the first 2 bits which aren't used)
   // roughly equivalent to 3 digits of geohash (32^3 == 2^15) and ~78km resolution
@@ -79,9 +110,11 @@ case object Z3Index extends AccumuloFeatureIndexType with Z3WritableIndex with Z
     }
   }
 }
-
 // polygon support and splits
-case object Z3IndexV2 extends AccumuloFeatureIndexType with Z3WritableIndex with Z3QueryableIndex {
+case object Z3IndexV2 extends AccumuloFeatureIndexType with IndexConfig with Z3WritableIndex with Z3QueryableIndex {
+
+  var numSplits = DefaultConfig.numSplits
+  val splitArrays = DefaultConfig.splitArrays
 
   override val name: String = "z3"
 
@@ -139,7 +172,10 @@ case object Z3IndexV2 extends AccumuloFeatureIndexType with Z3WritableIndex with
 }
 
 // initial z3 implementation - only supports points
-case object Z3IndexV1 extends AccumuloFeatureIndexType with Z3WritableIndex with Z3QueryableIndex {
+case object Z3IndexV1 extends AccumuloFeatureIndexType with IndexConfig with Z3WritableIndex with Z3QueryableIndex {
+
+  var numSplits = DefaultConfig.numSplits
+  val splitArrays = DefaultConfig.splitArrays
 
   override val name: String = "z3"
 

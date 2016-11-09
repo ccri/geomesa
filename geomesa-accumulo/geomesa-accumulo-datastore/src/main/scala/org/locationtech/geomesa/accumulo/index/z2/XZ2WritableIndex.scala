@@ -18,18 +18,14 @@ import org.apache.accumulo.core.data.Mutation
 import org.apache.hadoop.io.Text
 import org.locationtech.geomesa.accumulo.AccumuloVersion
 import org.locationtech.geomesa.accumulo.data._
-import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex
+import org.locationtech.geomesa.accumulo.index.{AccumuloWritableIndex, IndexConfig}
 import org.locationtech.geomesa.curve.XZ2SFC
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.opengis.feature.simple.SimpleFeatureType
 
-trait XZ2SplitArrays {
-  var numSplits: Int
-  val splitArrays : Seq[Array[Byte]]
-}
-
 trait XZ2WritableIndex extends AccumuloWritableIndex {
-  self : XZ2SplitArrays =>
+
+  writable : IndexConfig =>
 
   override def writer(sft: SimpleFeatureType, ds: AccumuloDataStore): (AccumuloFeature) => Seq[Mutation] = {
     val sfc = XZ2SFC(sft.getXZPrecision)

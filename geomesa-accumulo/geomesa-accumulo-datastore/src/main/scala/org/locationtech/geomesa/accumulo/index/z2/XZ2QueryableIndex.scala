@@ -31,7 +31,7 @@ trait XZ2QueryableIndex extends AccumuloFeatureIndexType
     with SpatialFilterStrategy[AccumuloDataStore, AccumuloFeature, Seq[Mutation], Entry[Key, Value]]
     with LazyLogging {
 
-  writable: XZ2SplitArrays with AccumuloWritableIndex =>
+  writable: IndexConfig with AccumuloWritableIndex =>
 
   override def getQueryPlan(sft: SimpleFeatureType,
                             ds: AccumuloDataStore,

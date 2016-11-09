@@ -9,11 +9,18 @@
 package org.locationtech.geomesa.accumulo.index.z2
 
 import org.locationtech.geomesa.accumulo.AccumuloFeatureIndexType
+import org.locationtech.geomesa.accumulo.index.{DefaultConfig, IndexConfig}
 import org.opengis.feature.simple.SimpleFeatureType
 
-case class XZ2Index(var numSplits: Int = XZ2Index.numSplits )
-  extends AccumuloFeatureIndexType with XZ2SplitArrays with XZ2WritableIndex with XZ2QueryableIndex {
+case class XZ2Config(var numSplits: Int = XZ2Index.DEFAULT_NUM_SPLITS) extends IndexConfig {
   val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
+}
+
+case class XZ2Index(conf: IndexConfig = DefaultConfig)
+  extends AccumuloFeatureIndexType with IndexConfig with XZ2WritableIndex with XZ2QueryableIndex {
+
+  var numSplits = conf.numSplits
+  val splitArrays = conf.splitArrays
 
   override val name: String = XZ2Index.name
 
@@ -25,7 +32,7 @@ case class XZ2Index(var numSplits: Int = XZ2Index.numSplits )
 
 }
 
-case object XZ2Index extends AccumuloFeatureIndexType with XZ2SplitArrays with XZ2WritableIndex with XZ2QueryableIndex {
+case object XZ2Index extends AccumuloFeatureIndexType with IndexConfig with XZ2WritableIndex with XZ2QueryableIndex {
 
   override val name: String = "xz2"
 
@@ -37,7 +44,7 @@ case object XZ2Index extends AccumuloFeatureIndexType with XZ2SplitArrays with X
     import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
     sft.nonPoints
   }
-
-  override var numSplits: Int = 4
+  val DEFAULT_NUM_SPLITS = 4
+  override var numSplits: Int = DEFAULT_NUM_SPLITS
   val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
 }

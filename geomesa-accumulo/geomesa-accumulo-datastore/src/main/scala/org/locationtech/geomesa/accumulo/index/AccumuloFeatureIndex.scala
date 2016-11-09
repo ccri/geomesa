@@ -37,6 +37,8 @@ import org.locationtech.geomesa.security.SecurityUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 // noinspection ScalaDeprecation
+// TODO: Case class more appropriate? Drop in a config?
+
 object AccumuloFeatureIndex extends AccumuloIndexManagerType with LazyLogging {
 
   private val SpatialIndices        = Seq(Z2Index, XZ2Index, Z2IndexV1)

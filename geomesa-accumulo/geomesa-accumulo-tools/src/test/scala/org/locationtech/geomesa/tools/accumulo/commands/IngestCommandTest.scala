@@ -134,7 +134,7 @@ class IngestCommandTest extends Specification {
       features.size mustEqual 3
     }
 
-     "not ingest tsv to mysql" >> {
+    "not ingest tsv to mysql" >> {
       val id = nextId
 
       val confFile = new File(this.getClass.getClassLoader.getResource("examples/city-mysql.conf").getFile)
@@ -152,8 +152,5 @@ class IngestCommandTest extends Specification {
       val features = ds.getFeatureSource("geonames").getFeatures.features().toList
       features.size mustEqual 0
     }
-    // TODO GEOMESA-529 more testing of explicit commands
-
   }
-
 }

@@ -9,9 +9,33 @@
 package org.locationtech.geomesa.accumulo.index.z3
 
 import org.locationtech.geomesa.accumulo.AccumuloFeatureIndexType
+import org.locationtech.geomesa.accumulo.index.{DefaultConfig, IndexConfig}
 import org.opengis.feature.simple.SimpleFeatureType
 
-case object XZ3Index extends AccumuloFeatureIndexType with XZ3WritableIndex with XZ3QueryableIndex {
+case class XZ3Config(var numSplits: Int = XZ3Index.DEFAULT_NUM_SPLITS) extends IndexConfig {
+  val splitArrays = (0 until numSplits).map(_.toByte).toArray.map(Array(_)).toSeq
+}
+
+case class XZ3Index(conf: IndexConfig = DefaultConfig) extends AccumuloFeatureIndexType with IndexConfig with XZ3WritableIndex with XZ3QueryableIndex {
+
+  override var numSplits: Int = conf.numSplits
+
+  override val splitArrays: Seq[Array[Byte]] = conf.splitArrays
+
+  override val name: String = XZ3Index.name
+
+  override val version: Int = XZ3Index.version
+
+  override val serializedWithId: Boolean = XZ3Index.serializedWithId
+
+  override def supports(sft: SimpleFeatureType): Boolean = XZ3Index.supports(sft)
+}
+
+case object XZ3Index extends AccumuloFeatureIndexType with IndexConfig with XZ3WritableIndex with XZ3QueryableIndex {
+
+  val DEFAULT_NUM_SPLITS = DefaultConfig.numSplits
+  override var numSplits: Int = DEFAULT_NUM_SPLITS
+  override val splitArrays: Seq[Array[Byte]] = DefaultConfig.splitArrays
 
   override val name: String = "xz3"
 

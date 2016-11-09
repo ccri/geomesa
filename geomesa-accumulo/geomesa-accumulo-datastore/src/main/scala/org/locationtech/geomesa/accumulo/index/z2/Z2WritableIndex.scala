@@ -17,19 +17,14 @@ import org.apache.accumulo.core.conf.Property
 import org.apache.hadoop.io.Text
 import org.locationtech.geomesa.accumulo.AccumuloVersion
 import org.locationtech.geomesa.accumulo.data._
-import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex
+import org.locationtech.geomesa.accumulo.index.{AccumuloWritableIndex, IndexConfig}
 import org.locationtech.geomesa.curve.Z2SFC
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.opengis.feature.simple.SimpleFeatureType
 
-trait Z2SplitArrays {
-  var numSplits: Int
-  val splitArrays : Seq[Array[Byte]]
-}
-
 trait Z2WritableIndex extends AccumuloWritableIndex {
 
-  writable : Z2SplitArrays =>
+  writable : IndexConfig =>
 
   import AccumuloWritableIndex.{BinColumnFamily, FullColumnFamily}
   import Z2Index._
