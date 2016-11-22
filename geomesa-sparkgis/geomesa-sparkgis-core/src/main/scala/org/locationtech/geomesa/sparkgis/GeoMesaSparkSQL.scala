@@ -82,8 +82,6 @@ class GeoMesaDataSource extends DataSourceRegister with RelationProvider with Sc
     builder.buildFeatureType()
   }
 
-
-
   private def ad2field(ad: AttributeDescriptor): StructField = {
     import java.{lang => jl}
     val dt = ad.getType.getBinding match {
