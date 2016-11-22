@@ -1,8 +1,9 @@
 package org.apache.spark.sql
 
+import java.lang.Double
+
 import com.vividsolutions.jts.geom._
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
@@ -12,9 +13,10 @@ import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}
+import org.geotools.referencing.GeodeticCalculator
+import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.geomesa.sparkgis.GeoMesaRelation
 import org.locationtech.geomesa.utils.text.WKTUtils
-import org.opengis.feature.`type`.GeometryType
 import org.slf4j.LoggerFactory
 
 class GeoMesaSQL
@@ -52,10 +54,29 @@ object SQLTypes {
   val ST_Within: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.within(geom2)
 
 
-  val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
+  // geometry constructors
   val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
   val ST_MakeBBOX: (Double, Double, Double, Double) => Polygon = (lx, ly, ux, uy) => JTS.toGeometry(new Envelope(lx, ux, ly, uy))
+
+  // geometry functions
+  val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
   val ST_Centroid: Geometry => Point = g => g.getCentroid
+
+  @transient private val geoCalcs = new ThreadLocal[GeodeticCalculator] {
+    override def initialValue(): GeodeticCalculator = new GeodeticCalculator(DefaultGeographicCRS.WGS84)
+  }
+
+  def fastDistance(s: Point, e: Point): Double = {
+    val calc = geoCalcs.get()
+    val c1 = s.getCoordinate
+    calc.setStartingGeographicPoint(c1.x, c1.y)
+    val c2 = e.getCoordinate
+    calc.setDestinationGeographicPoint(c2.x, c2.y)
+    calc.getOrthodromicDistance
+  }
+
+  // TODO: Make this work for geometry
+  val ST_DistanceSpheroid: (Point, Point) => java.lang.Double = (s, e) => fastDistance(s, e)
 
   val ST_CastToPoint:      Geometry => Point       = g => g.asInstanceOf[Point]
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
@@ -92,6 +113,8 @@ object SQLTypes {
     sqlContext.udf.register("st_makeBBOX"      , ST_MakeBBOX)
     sqlContext.udf.register("st_centroid"      , ST_Centroid)
     sqlContext.udf.register("st_castToPoint"   , ST_CastToPoint)
+
+    sqlContext.udf.register("st_distanceSpheroid"  , ST_DistanceSpheroid)
 
     // JNH: The next two lines demonstrate adding ScalaUDFs directly.
 //    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(GeometryType, GeometryType))

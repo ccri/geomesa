@@ -129,6 +129,12 @@ object SparkSQLTest extends App {
 
   println("Done testing predicates")
 
+  println("Compute distances")
+  $(
+    """
+      |select st_distanceSpheroid(geom, st_castToPoint(st_geomFromWKT('POINT(-78 37)'))) as dist
+      |from chicago
+    """.stripMargin).show()
 
   val res: DataFrame = $(
     """
