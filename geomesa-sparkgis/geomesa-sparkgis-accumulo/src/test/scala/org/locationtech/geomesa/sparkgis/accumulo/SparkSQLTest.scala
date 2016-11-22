@@ -30,15 +30,15 @@ object SparkSQLTest extends App {
   val instanceName = mac.getInstanceName
   val connector = mac.getConnector("root", "password")
 
-  val dsParams = Map(
-//    "connector" -> connector,
+  val dsParams: Map[String, String] = Map(
+    //    "connector" -> connector,
     GM.zookeepersParam.getName -> mac.getZooKeepers,
     GM.instanceIdParam.getName -> instanceName,
     GM.userParam.getName -> "root",
     GM.passwordParam.getName -> "password",
-    "caching"   -> false,
+    "caching"   -> "false",
     // note the table needs to be different to prevent testing errors
-    "tableName" -> "sparksql")
+    GM.tableNameParam.getName -> "sparksql")
 
   val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
@@ -64,16 +64,17 @@ object SparkSQLTest extends App {
 
   val df: DataFrame = spark.read
     .format("geomesa")
-    .option(GM.instanceIdParam.getName, instanceName)
-    .option(GM.userParam.getName, "root")
-    .option(GM.passwordParam.getName, "password")
-    .option(GM.tableNameParam.getName, "sparksql")
-    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
-//    .option(GM.mockParam.getName, "true")
+    .options(dsParams)
+    //    .option(GM.instanceIdParam.getName, instanceName)
+    //    .option(GM.userParam.getName, "root")
+    //    .option(GM.passwordParam.getName, "password")
+    //    .option(GM.tableNameParam.getName, "sparksql")
+    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
+    ////    .option(GM.mockParam.getName, "true")
     .option("geomesa.feature", "chicago")
     .load()
 
-//  df.printSchema()
+  //  df.printSchema()
 
   df.createOrReplaceTempView("chicago")
 
@@ -84,11 +85,11 @@ object SparkSQLTest extends App {
   //$("select * from chicago where (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp))").show()
   //$("select * from chicago where arrest = 'true' and (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp)) and st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
   //$("select st_castToPoint(st_geomFromWKT('POINT(-77 38)')) as p").show()
-    //$("select st_contains(st_castToPoint(st_geomFromWKT('POINT(-77 38)')),st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
+  //$("select st_contains(st_castToPoint(st_geomFromWKT('POINT(-77 38)')),st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
 
   //$("select st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')),arrest from chicago limit 10").show()
 
-//  $("select arrest,case_number,geom from chicago limit 5").show()
+  //  $("select arrest,case_number,geom from chicago limit 5").show()
 
   //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
   $("""
@@ -98,7 +99,7 @@ object SparkSQLTest extends App {
       |  st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
       |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
     """.stripMargin).show()
-//  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+  //  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
 
 
   val res: DataFrame = $(
@@ -112,25 +113,27 @@ object SparkSQLTest extends App {
 
   res.write
     .format("geomesa")
-    .option(GM.instanceIdParam.getName, instanceName)
-    .option(GM.userParam.getName, "root")
-    .option(GM.passwordParam.getName, "password")
-    .option(GM.tableNameParam.getName, "sparksql")
-    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
+    .options(dsParams)
+    //    .option(GM.instanceIdParam.getName, instanceName)
+    //    .option(GM.userParam.getName, "root")
+    //    .option(GM.passwordParam.getName, "password")
+    //    .option(GM.tableNameParam.getName, "sparksql")
+    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
     .option("geomesa.feature", "chicago2")
     .save()
 
+
   println(s"After the save: ${ds.getTypeNames.mkString(", ")}")
 
-/*
-  res.show()
-*/
+  /*
+    res.show()
+  */
 
-/*
-  res
-    .where("st_contains(geom, st_geomFromWKT('POLYGON((-78 38.1,-76 38.1,-76 39,-78 39,-78 38.1))'))")
-    .select("id").show()
-*/
+  /*
+    res
+      .where("st_contains(geom, st_geomFromWKT('POLYGON((-78 38.1,-76 38.1,-76 39,-78 39,-78 38.1))'))")
+      .select("id").show()
+  */
 
 
   val dataset = $(

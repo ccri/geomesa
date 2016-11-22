@@ -271,5 +271,5 @@ class GeoMesaRecordReader(sft: SimpleFeatureType,
 
   override def getCurrentKey = new Text(currentFeature.getID)
 
-  override def close() = {} // delegate Accumulo readers have a no-op close
+  override def close() = { readers.foreach { _.close() } } // delegate Accumulo readers have a no-op close
 }
