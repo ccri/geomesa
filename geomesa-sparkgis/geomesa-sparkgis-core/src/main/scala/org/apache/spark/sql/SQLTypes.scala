@@ -319,7 +319,9 @@ private [spark] class GeometryUDT extends UserDefinedType[Geometry] {
 
   private[sql] override def acceptsType(dataType: DataType): Boolean = {
     println(s"In GeometryUDT with class $dataType")
-    super.acceptsType(dataType) || dataType.getClass == SQLTypes.PointType.getClass
+    super.acceptsType(dataType) ||
+      dataType.getClass == SQLTypes.PointType.getClass ||
+      dataType.getClass == SQLTypes.LineStringType.getClass
   }
 }
 
