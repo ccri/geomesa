@@ -129,6 +129,12 @@ object SparkSQLTest extends App {
 
   println("Done testing predicates")
 
+  println("Compute distances")
+  $(
+    """
+      |select st_distanceSpheroid(geom, st_geomFromWKT('POINT(-78 37)')) as dist
+      |from chicago
+    """.stripMargin).show()
 
   $("""
       |select  arrest, geom, st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom) as contains,
