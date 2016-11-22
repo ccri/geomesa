@@ -37,19 +37,19 @@ object SQLTypes {
   // Spatial Predicates
   //val ST_Contains: (Geometry, Geometry) => Boolean = (p, geom) => geom.contains(p)
   // JNH: Not sure about this one
-  val ST_ContainsProperly: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.contains(geom1) && !geom1.intersects(geom2.getBoundary)
+  //val ST_ContainsProperly: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.contains(geom1) && !geom1.intersects(geom2.getBoundary)
 
-  val ST_Contains: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.contains(geom1)
-  //val ST_ContainsProperly: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.containsproperly(geom1)
-  val ST_Covers: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.covers(geom1)
-  //val ST_CoveredBy: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.coveredby(geom1)
-  val ST_Crosses: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.crosses(geom1)
-  val ST_Disjoint: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.disjoint(geom1)
-  val ST_Equals: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.equals(geom1)
-  val ST_Intersects: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.intersects(geom1)
-  val ST_Overlaps: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.overlaps(geom1)
-  val ST_Touches: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.touches(geom1)
-  val ST_Within: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.within(geom1)
+  val ST_Contains: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.contains(geom2)
+  //val ST_ContainsProperly: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.containsproperly(geom2)
+  val ST_Covers: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.covers(geom2)
+  //val ST_CoveredBy: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.coveredby(geom2)
+  val ST_Crosses: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.crosses(geom2)
+  val ST_Disjoint: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.disjoint(geom2)
+  val ST_Equals: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.equals(geom2)
+  val ST_Intersects: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.intersects(geom2)
+  val ST_Overlaps: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.overlaps(geom2)
+  val ST_Touches: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.touches(geom2)
+  val ST_Within: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.within(geom2)
 
 
   val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
@@ -74,7 +74,7 @@ object SQLTypes {
 //    sqlContext.udf.register("st_within"        , ST_Contains) // TODO: is contains different than within?
 
     sqlContext.udf.register("st_contains"      , ST_Contains)
-    sqlContext.udf.register("st_containsproperly"      , ST_ContainsProperly)
+//    sqlContext.udf.register("st_containsproperly"      , ST_ContainsProperly)
     sqlContext.udf.register("st_covers"      , ST_Covers)
 //    sqlContext.udf.register("st_coveredby"      , ST_CoveredBy)
     sqlContext.udf.register("st_crosses"      , ST_Crosses)
@@ -140,7 +140,7 @@ object SQLTypes {
             // CQL filter
 
             // TODO: only dealing with one st_contains at the moment
-            val ScalaUDF(_, _, Seq(_, GeometryLiteral(_, geom)), _) = st_contains.head
+            val ScalaUDF(_, _, Seq(GeometryLiteral(_, geom), _), _) = st_contains.head
             log.warn("Optimizing 'st_contains'")
             val geomDescriptor = gmRel.sft.getGeometryDescriptor.getLocalName
             val cqlFilter = ff.within(ff.property(geomDescriptor), ff.literal(geom))
@@ -318,7 +318,6 @@ private [spark] class GeometryUDT extends UserDefinedType[Geometry] {
   }
 
   private[sql] override def acceptsType(dataType: DataType): Boolean = {
-    println(s"In GeometryUDT with class $dataType")
     super.acceptsType(dataType) ||
       dataType.getClass == SQLTypes.PointType.getClass ||
       dataType.getClass == SQLTypes.LineStringType.getClass

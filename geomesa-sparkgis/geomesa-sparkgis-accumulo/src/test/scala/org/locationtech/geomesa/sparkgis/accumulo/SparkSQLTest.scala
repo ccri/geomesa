@@ -92,14 +92,42 @@ object SparkSQLTest extends App {
   //  $("select arrest,case_number,geom from chicago limit 5").show()
 
   //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+
+  println("Testing predicates")
+
   $("""
-      |select  arrest, geom, st_centroid(geom), st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+      |select  arrest, geom
       |from    chicago
       |where
-      |  st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+      |  st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom)
       |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
     """.stripMargin).show()
-  //  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+
+  $("""
+      |select  arrest, geom
+      |from    chicago
+      |where
+      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+    """.stripMargin).show()
+
+  $("""
+      |select  arrest, geom
+      |from    chicago
+      |where
+      |  st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+    """.stripMargin).show()
+
+  $("""
+      |select  arrest, geom
+      |from    chicago
+      |where
+      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+    """.stripMargin).show()
+
+  println("Done testing predicates")
 
 
   val res: DataFrame = $(
