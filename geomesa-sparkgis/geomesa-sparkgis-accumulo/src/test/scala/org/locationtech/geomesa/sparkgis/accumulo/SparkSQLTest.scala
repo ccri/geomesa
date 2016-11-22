@@ -136,6 +136,17 @@ object SparkSQLTest extends App {
       |from chicago
     """.stripMargin).show()
 
+  $("""
+      |select  arrest, geom, st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom) as contains,
+      |                      st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')) as crosses,
+      |                      st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')) as intersects
+      |
+      |from    chicago
+      |where
+      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+    """.stripMargin).show()
+
   val res: DataFrame = $(
     """
       |select __fid__ as id,arrest,geom from chicago

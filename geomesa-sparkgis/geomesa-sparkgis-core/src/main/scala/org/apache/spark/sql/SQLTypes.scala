@@ -166,7 +166,7 @@ object SQLTypes {
             val ScalaUDF(_, _, Seq(GeometryLiteral(_, geom), _), _) = st_contains.head
             log.warn("Optimizing 'st_contains'")
             val geomDescriptor = gmRel.sft.getGeometryDescriptor.getLocalName
-            val cqlFilter = ff.within(ff.property(geomDescriptor), ff.literal(geom))
+            val cqlFilter = ff.contains(ff.property(geomDescriptor), ff.literal(geom))
             val relation = gmRel.copy(filt = ff.and(gmRel.filt, cqlFilter))
             // need to maintain expectedOutputAttributes so identifiers don't change in projections
             val newrel = lr.copy(expectedOutputAttributes = Some(lr.output), relation = relation)
