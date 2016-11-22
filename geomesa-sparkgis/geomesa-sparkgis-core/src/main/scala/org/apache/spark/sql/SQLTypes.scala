@@ -55,7 +55,7 @@ object SQLTypes {
 
   def registerFunctions(sqlContext: SQLContext): Unit = {
     // Register spatial predicates.
-    //sqlContext.udf.register("st_contains"      , ST_Contains)
+    sqlContext.udf.register("st_contains"      , ST_Contains)
     sqlContext.udf.register("st_within"        , ST_Contains) // TODO: is contains different than within?
 
 
@@ -67,9 +67,9 @@ object SQLTypes {
     sqlContext.udf.register("st_centroid"      , ST_Centroid)
     sqlContext.udf.register("st_castToPoint"   , ST_CastToPoint)
 
-    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(GeometryType, GeometryType))
-
-    sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_contains", containsBuilder)
+    // JNH: The next two lines demonstrate adding ScalaUDFs directly.
+//    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(GeometryType, GeometryType))
+//    sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_contains", containsBuilder)
 
 
   }

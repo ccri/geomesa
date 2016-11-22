@@ -93,7 +93,7 @@ object SparkSQLTest extends App {
 
   //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
   $("""
-      |select  arrest, geom
+      |select  arrest, geom, st_centroid(geom), st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
       |from    chicago
       |where
       |  st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
