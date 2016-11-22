@@ -66,17 +66,17 @@ object SQLTypes {
     override def initialValue(): GeodeticCalculator = new GeodeticCalculator(DefaultGeographicCRS.WGS84)
   }
 
-  def fastDistance(s: Point, e: Point): Double = {
+  def fastDistance(s: Geometry, e: Geometry): Double = {
     val calc = geoCalcs.get()
-    val c1 = s.getCoordinate
+    val c1 = s.getCentroid.getCoordinate
     calc.setStartingGeographicPoint(c1.x, c1.y)
-    val c2 = e.getCoordinate
+    val c2 = e.getCentroid.getCoordinate
     calc.setDestinationGeographicPoint(c2.x, c2.y)
     calc.getOrthodromicDistance
   }
 
   // TODO: Make this work for geometry
-  val ST_DistanceSpheroid: (Point, Point) => java.lang.Double = (s, e) => fastDistance(s, e)
+  val ST_DistanceSpheroid: (Geometry, Geometry) => java.lang.Double = (s, e) => fastDistance(s, e)
 
   val ST_CastToPoint:      Geometry => Point       = g => g.asInstanceOf[Point]
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]

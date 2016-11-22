@@ -132,7 +132,7 @@ object SparkSQLTest extends App {
   println("Compute distances")
   $(
     """
-      |select st_distanceSpheroid(geom, st_castToPoint(st_geomFromWKT('POINT(-78 37)'))) as dist
+      |select st_distanceSpheroid(geom, st_geomFromWKT('POINT(-78 37)')) as dist
       |from chicago
     """.stripMargin).show()
 
