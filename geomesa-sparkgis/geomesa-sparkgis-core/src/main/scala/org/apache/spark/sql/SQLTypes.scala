@@ -14,6 +14,7 @@ import org.geotools.factory.CommonFactoryFinder
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}
 import org.locationtech.geomesa.sparkgis.GeoMesaRelation
 import org.locationtech.geomesa.utils.text.WKTUtils
+import org.opengis.feature.`type`.GeometryType
 import org.slf4j.LoggerFactory
 
 class GeoMesaSQL
@@ -33,7 +34,9 @@ object SQLTypes {
   UDTRegistration.register(classOf[Polygon].getCanonicalName, classOf[PolygonUDT].getCanonicalName)
   UDTRegistration.register(classOf[Geometry].getCanonicalName, classOf[GeometryUDT].getCanonicalName)
 
-  val ST_Contains: (Point, Geometry) => Boolean = (p, geom) => geom.contains(p)
+  // Spatial Predicates
+  val ST_Contains: (Geometry, Geometry) => Boolean = (p, geom) => geom.contains(p)
+
   val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
   val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
   val ST_MakeBBOX: (Double, Double, Double, Double) => Polygon = (lx, ly, ux, uy) => JTS.toGeometry(new Envelope(lx, ux, ly, uy))
@@ -51,16 +54,27 @@ object SQLTypes {
   val ST_GeomFromWKT: String => Geometry = s => WKTUtils.read(s)
 
   def registerFunctions(sqlContext: SQLContext): Unit = {
-    sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
-    sqlContext.udf.register("st_contains"      , ST_Contains)
+    // Register spatial predicates.
+    //sqlContext.udf.register("st_contains"      , ST_Contains)
     sqlContext.udf.register("st_within"        , ST_Contains) // TODO: is contains different than within?
+
+
+    sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
+
     sqlContext.udf.register("st_envelope"      , ST_Envelope)
     sqlContext.udf.register("st_makeBox2D"     , ST_MakeBox2D)
     sqlContext.udf.register("st_makeBBOX"      , ST_MakeBBOX)
     sqlContext.udf.register("st_centroid"      , ST_Centroid)
     sqlContext.udf.register("st_castToPoint"   , ST_CastToPoint)
 
+    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(PointType, GeometryType))
+
+    sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_contains", containsBuilder)
+
+
   }
+
+
 
   // new AST expressions
   case class GeometryLiteral(repr: InternalRow, geom: Geometry) extends LeafExpression  with CodegenFallback {
@@ -276,6 +290,8 @@ private [spark] class GeometryUDT extends UserDefinedType[Geometry] {
       case 3 => PolygonUDT.deserialize(ir)
     }
   }
+
+  private[sql] override def acceptsType(dataType: DataType): Boolean = super.acceptsType(dataType) || dataType.getClass == PointUDT.getClass
 }
 
 case object GeometryUDT extends GeometryUDT
