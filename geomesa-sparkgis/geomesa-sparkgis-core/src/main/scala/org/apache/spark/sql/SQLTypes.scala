@@ -35,7 +35,22 @@ object SQLTypes {
   UDTRegistration.register(classOf[Geometry].getCanonicalName, classOf[GeometryUDT].getCanonicalName)
 
   // Spatial Predicates
-  val ST_Contains: (Geometry, Geometry) => Boolean = (p, geom) => geom.contains(p)
+  //val ST_Contains: (Geometry, Geometry) => Boolean = (p, geom) => geom.contains(p)
+  // JNH: Not sure about this one
+  val ST_ContainsProperly: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.contains(geom1) && !geom1.intersects(geom2.getBoundary)
+
+  val ST_Contains: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.contains(geom1)
+  //val ST_ContainsProperly: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.containsproperly(geom1)
+  val ST_Covers: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.covers(geom1)
+  //val ST_CoveredBy: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.coveredby(geom1)
+  val ST_Crosses: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.crosses(geom1)
+  val ST_Disjoint: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.disjoint(geom1)
+  val ST_Equals: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.equals(geom1)
+  val ST_Intersects: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.intersects(geom1)
+  val ST_Overlaps: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.overlaps(geom1)
+  val ST_Touches: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.touches(geom1)
+  val ST_Within: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom2.within(geom1)
+
 
   val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
   val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
@@ -55,9 +70,20 @@ object SQLTypes {
 
   def registerFunctions(sqlContext: SQLContext): Unit = {
     // Register spatial predicates.
-    sqlContext.udf.register("st_contains"      , ST_Contains)
-    sqlContext.udf.register("st_within"        , ST_Contains) // TODO: is contains different than within?
+//    sqlContext.udf.register("st_contains"      , ST_Contains)
+//    sqlContext.udf.register("st_within"        , ST_Contains) // TODO: is contains different than within?
 
+    sqlContext.udf.register("st_contains"      , ST_Contains)
+    sqlContext.udf.register("st_containsproperly"      , ST_ContainsProperly)
+    sqlContext.udf.register("st_covers"      , ST_Covers)
+//    sqlContext.udf.register("st_coveredby"      , ST_CoveredBy)
+    sqlContext.udf.register("st_crosses"      , ST_Crosses)
+    sqlContext.udf.register("st_disjoint"      , ST_Disjoint)
+    sqlContext.udf.register("st_equals"      , ST_Equals)
+    sqlContext.udf.register("st_intersects"      , ST_Intersects)
+    sqlContext.udf.register("st_overlaps"      , ST_Overlaps)
+    sqlContext.udf.register("st_touches"      , ST_Touches)
+    sqlContext.udf.register("st_within"      , ST_Within)
 
     sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
 
