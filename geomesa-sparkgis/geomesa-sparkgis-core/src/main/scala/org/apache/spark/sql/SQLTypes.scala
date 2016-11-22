@@ -67,7 +67,7 @@ object SQLTypes {
     sqlContext.udf.register("st_centroid"      , ST_Centroid)
     sqlContext.udf.register("st_castToPoint"   , ST_CastToPoint)
 
-    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(PointType, GeometryType))
+    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(GeometryType, GeometryType))
 
     sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_contains", containsBuilder)
 
@@ -291,7 +291,10 @@ private [spark] class GeometryUDT extends UserDefinedType[Geometry] {
     }
   }
 
-  private[sql] override def acceptsType(dataType: DataType): Boolean = super.acceptsType(dataType) || dataType.getClass == PointUDT.getClass
+  private[sql] override def acceptsType(dataType: DataType): Boolean = {
+    println(s"In GeometryUDT with class $dataType")
+    super.acceptsType(dataType) || dataType.getClass == SQLTypes.PointType.getClass
+  }
 }
 
 case object GeometryUDT extends GeometryUDT
