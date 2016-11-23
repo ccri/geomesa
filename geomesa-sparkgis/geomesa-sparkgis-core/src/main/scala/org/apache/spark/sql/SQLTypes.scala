@@ -16,7 +16,7 @@ import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}
 import org.geotools.referencing.GeodeticCalculator
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.geomesa.sparkgis.GeoMesaRelation
-import org.locationtech.geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.opengis.filter.expression.{Expression => GTExpression}
 import org.slf4j.LoggerFactory
 
@@ -28,13 +28,16 @@ object SQLTypes {
   @transient val geomFactory = JTSFactoryFinder.getGeometryFactory
   @transient val ff = CommonFactoryFinder.getFilterFactory2
 
-  val PointType       = new PointUDT
-  val LineStringType  = new LineStringUDT
-  val GeometryType    = new GeometryUDT
+  val PointType        = new PointUDT
+  val LineStringType   = new LineStringUDT
+  val PolygonType      = new PolygonUDT
+  val MultipolygonType = new MultiPolygonUDT
+  val GeometryType     = new GeometryUDT
 
   UDTRegistration.register(classOf[Point].getCanonicalName, classOf[PointUDT].getCanonicalName)
   UDTRegistration.register(classOf[LineString].getCanonicalName, classOf[LineStringUDT].getCanonicalName)
   UDTRegistration.register(classOf[Polygon].getCanonicalName, classOf[PolygonUDT].getCanonicalName)
+  UDTRegistration.register(classOf[MultiPolygon].getCanonicalName, classOf[MultiPolygonUDT].getCanonicalName)
   UDTRegistration.register(classOf[Geometry].getCanonicalName, classOf[GeometryUDT].getCanonicalName)
 
   // Spatial Predicates
@@ -358,6 +361,33 @@ private [spark] class PolygonUDT extends UserDefinedType[Polygon] {
 
 }
 
+object MultiPolygonUDT extends MultiPolygonUDT
+
+//@SQLUserDefinedType
+private [spark] class MultiPolygonUDT extends UserDefinedType[MultiPolygon] {
+
+  override def sqlType: DataType = StructType(
+    Seq(
+      StructField("type", DataTypes.ByteType),
+      StructField("geometry", DataTypes.createArrayType(DataTypes.ByteType))
+    )
+  )
+  import org.apache.spark.sql.catalyst.util._
+
+  override def serialize(obj: MultiPolygon): InternalRow = {
+    val bytes: Array[Byte] = WKBUtils.write(obj)
+    new GenericInternalRow(Array[Any](4.asInstanceOf[Byte], new GenericArrayData(bytes)))
+  }
+
+  override def userClass: Class[MultiPolygon] = classOf[MultiPolygon]
+
+  override def deserialize(datum: Any): MultiPolygon = {
+    val ir = datum.asInstanceOf[InternalRow]
+    WKBUtils.read(ir.getArray(1).toByteArray()).asInstanceOf[MultiPolygon]  // Need cast?
+  }
+
+}
+
 object PolygonUDT extends PolygonUDT
 
 //@SQLUserDefinedType
@@ -378,24 +408,29 @@ private [spark] class GeometryUDT extends UserDefinedType[Geometry] {
       case "Point"      => PointUDT.serialize(obj.asInstanceOf[Point])
       case "LineString" => LineStringUDT.serialize(obj.asInstanceOf[LineString])
       case "Polygon"    => PolygonUDT.serialize(obj.asInstanceOf[Polygon])
+      case "MultiPolygon" => MultiPolygonUDT.serialize(obj.asInstanceOf[MultiPolygon])
     }
   }
 
   override def userClass: Class[Geometry] = classOf[Geometry]
 
+  // JNH: Deal with Multipolygon or something
   override def deserialize(datum: Any): Geometry = {
     val ir = datum.asInstanceOf[InternalRow]
     ir.getByte(0) match {
       case 1 => PointUDT.deserialize(ir)
       case 2 => LineStringUDT.deserialize(ir)
       case 3 => PolygonUDT.deserialize(ir)
+      case 4 => MultiPolygonUDT.deserialize(ir)
     }
   }
 
   private[sql] override def acceptsType(dataType: DataType): Boolean = {
     super.acceptsType(dataType) ||
       dataType.getClass == SQLTypes.PointType.getClass ||
-      dataType.getClass == SQLTypes.LineStringType.getClass
+      dataType.getClass == SQLTypes.LineStringType.getClass ||
+      dataType.getClass == SQLTypes.PolygonType.getClass ||
+      dataType.getClass == SQLTypes.MultipolygonType.getClass
   }
 }
 

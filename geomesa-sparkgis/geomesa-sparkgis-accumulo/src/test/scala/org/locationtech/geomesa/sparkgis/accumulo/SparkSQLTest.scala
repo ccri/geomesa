@@ -47,7 +47,7 @@ object SparkSQLTest extends App {
   ingest.run
 
   // States shapefile ingest
-  GeneralShapefileIngest.shpToDataStoreViaParams("/opt/data/states/cb_2015_us_state_500k.shp", dsParams)
+  GeneralShapefileIngest.shpToDataStoreViaParams("/opt/data/states/states.shp", dsParams)
 
   val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
   ds.createSchema(sft)
@@ -76,45 +76,32 @@ object SparkSQLTest extends App {
   val df: DataFrame = spark.read
     .format("geomesa")
     .options(dsParams)
-    //    .option(GM.instanceIdParam.getName, instanceName)
-    //    .option(GM.userParam.getName, "root")
-    //    .option(GM.passwordParam.getName, "password")
-    //    .option(GM.tableNameParam.getName, "sparksql")
-    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
-    ////    .option(GM.mockParam.getName, "true")
     .option("geomesa.feature", "chicago")
     .load()
 
-  //  df.printSchema()
+  df.printSchema()
 
   df.createOrReplaceTempView("chicago")
 
   val gndf: DataFrame = spark.read
     .format("geomesa")
     .options(dsParams)
-    //    .option(GM.instanceIdParam.getName, instanceName)
-    //    .option(GM.userParam.getName, "root")
-    //    .option(GM.passwordParam.getName, "password")
-    //    .option(GM.tableNameParam.getName, "sparksql")
-    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
-    ////    .option(GM.mockParam.getName, "true")
     .option("geomesa.feature", "geonames")
     .load()
 
-//  val df: DataFrame = spark.read
-//    .format("geomesa")
-//    .options(dsParams)
-//    //    .option(GM.instanceIdParam.getName, instanceName)
-//    //    .option(GM.userParam.getName, "root")
-//    //    .option(GM.passwordParam.getName, "password")
-//    //    .option(GM.tableNameParam.getName, "sparksql")
-//    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
-//    ////    .option(GM.mockParam.getName, "true")
-//    .option("geomesa.feature", "chicago")
-//    .load()
+  gndf.printSchema()
 
   gndf.createOrReplaceTempView("geonames")
-  println(s"*** Length of GeoNames DF:  ${gndf.collect().length}")
+
+  val sdf: DataFrame = spark.read
+    .format("geomesa")
+    .options(dsParams)
+    .option("geomesa.feature", "states")
+    .load()
+
+  sdf.printSchema()
+  sdf.createOrReplaceTempView("states")
+  println(s"*** Length of States DF:  ${sdf.collect().length}")
 
   import spark.sqlContext.{sql => $}
 
@@ -128,6 +115,13 @@ object SparkSQLTest extends App {
   //  $("select arrest,case_number,geom from chicago limit 5").show()
 
   //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+
+  $(
+    """
+      | select STUSPS, NAME
+      | from states
+      | order By(name)
+    """.stripMargin).show(100)
 
   println("Testing predicates")
 

@@ -76,6 +76,8 @@ class GeoMesaDataSource extends DataSourceRegister with RelationProvider with Sc
 
           case SQLTypes.PointType => builder.add(field.name, classOf[com.vividsolutions.jts.geom.Point])
           case SQLTypes.LineStringType => builder.add(field.name, classOf[com.vividsolutions.jts.geom.LineString])
+          case SQLTypes.PolygonType  => builder.add(field.name, classOf[com.vividsolutions.jts.geom.Polygon])
+          case SQLTypes.MultipolygonType  => builder.add(field.name, classOf[com.vividsolutions.jts.geom.MultiPolygon])
           case SQLTypes.GeometryType => builder.add(field.name, classOf[com.vividsolutions.jts.geom.Geometry])
         }
     }
@@ -91,10 +93,17 @@ class GeoMesaDataSource extends DataSourceRegister with RelationProvider with Sc
       case t if t == classOf[jl.Integer]                      => DataTypes.IntegerType
       case t if t == classOf[jl.String]                       => DataTypes.StringType
       case t if t == classOf[jl.Boolean]                      => DataTypes.BooleanType
-      case t if      classOf[Geometry].isAssignableFrom(t)    => SQLTypes.PointType
       case t if t == classOf[jl.Long]                         => DataTypes.LongType
-        // JNH: Add Geometry types here.
       case t if t == classOf[java.util.Date]                  => DataTypes.TimestampType
+
+      case t if t == classOf[com.vividsolutions.jts.geom.Point]        => SQLTypes.PointType
+      case t if t == classOf[com.vividsolutions.jts.geom.LineString]   => SQLTypes.LineStringType
+      case t if t == classOf[com.vividsolutions.jts.geom.Polygon]      => SQLTypes.PolygonType
+      case t if t == classOf[com.vividsolutions.jts.geom.MultiPolygon] => SQLTypes.MultipolygonType
+      // JNH: Add Geometry types here.
+
+      case t if      classOf[Geometry].isAssignableFrom(t)    => SQLTypes.GeometryType
+
       case _                                                  => null
     }
     StructField(ad.getLocalName, dt)
