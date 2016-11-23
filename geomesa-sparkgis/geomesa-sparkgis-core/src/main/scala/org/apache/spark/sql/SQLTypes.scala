@@ -130,13 +130,15 @@ object SQLTypes {
   }
 
   class ConvexHull extends UserDefinedAggregateFunction {
-    val geomtryType = DataTypes.createStructField("inputGeometry", SQLTypes.GeometryType, true)
+    val geometryType = DataTypes.createStructField("inputGeometry", SQLTypes.GeometryType, true)
 
-    override def inputSchema: StructType = DataTypes.createStructType(Array(geomtryType))
+    override def inputSchema: StructType = DataTypes.createStructType(Array(geometryType))
 
-    override def bufferSchema: StructType = DataTypes.createStructType(Array(geomtryType))
+    override def bufferSchema: StructType = DataTypes.createStructType(Array(geometryType))
 
-    override def dataType: DataType = DataTypes.createStructType(Array(geomtryType))
+    val outputType = DataTypes.createStructField("outputGeometry", SQLTypes.PolygonType, true)
+
+    override def dataType: DataType = DataTypes.createStructType(Array(outputType))
 
     override def deterministic: Boolean = true
 
@@ -182,7 +184,8 @@ object SQLTypes {
       if (buffer.isNullAt(0)) {
         null
       } else {
-        buffer.get(0).asInstanceOf[Geometry]
+        //buffer.get(0).asInstanceOf[Polygon]
+        buffer
       }
     }
   }
