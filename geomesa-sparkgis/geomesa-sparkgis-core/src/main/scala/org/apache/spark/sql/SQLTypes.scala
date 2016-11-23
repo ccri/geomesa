@@ -9,6 +9,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, Sort}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.datasources.LogicalRelation
+import org.apache.spark.sql.expressions.{MutableAggregationBuffer, UserDefinedAggregateFunction}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.geotools.factory.CommonFactoryFinder
@@ -86,7 +87,7 @@ object SQLTypes {
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
   val ST_CastToLineString: Geometry => LineString  = g => g.asInstanceOf[LineString]
 
-
+  val ch = new ConvexHull
 
   // TODO: optimize when used as a literal
   // e.g. select * from feature where st_contains(geom, geomFromText('POLYGON((....))'))
@@ -120,10 +121,43 @@ object SQLTypes {
 
     sqlContext.udf.register("st_distanceSpheroid"  , ST_DistanceSpheroid)
 
+    sqlContext.udf.register("st_convexhull", ch)
+
+
     // JNH: The next two lines demonstrate adding ScalaUDFs directly.
 //    def containsBuilder(e: Seq[Expression]) = ScalaUDF(ST_Contains, BooleanType, e, Seq(GeometryType, GeometryType))
 //    sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_contains", containsBuilder)
   }
+
+  class ConvexHull extends UserDefinedAggregateFunction {
+    val geomtryType = DataTypes.createStructField("inputGeometry", SQLTypes.GeometryType, true)
+
+    override def inputSchema: StructType = DataTypes.createStructType(Array(geomtryType))
+
+    override def bufferSchema: StructType = DataTypes.createStructType(Array(geomtryType))
+
+    override def dataType: DataType = DataTypes.createStructType(Array(geomtryType))
+
+    override def deterministic: Boolean = true
+
+    override def initialize(buffer: MutableAggregationBuffer): Unit = {
+      buffer.update(0, null)
+    }
+
+    override def update(buffer: MutableAggregationBuffer, input: Row): Unit = {
+      println(s"In update with $buffer and $input")
+    }
+
+    override def merge(buffer1: MutableAggregationBuffer, buffer2: Row): Unit = {
+      println(s"In merge with $buffer1 and $buffer2")
+    }
+
+    override def evaluate(buffer: Row): Any = {
+      println(s"In evaluate with $buffer")
+
+    }
+  }
+
 
   // new AST expressions
   case class GeometryLiteral(repr: InternalRow, geom: Geometry) extends LeafExpression  with CodegenFallback {
