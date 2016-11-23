@@ -146,15 +146,44 @@ object SQLTypes {
 
     override def update(buffer: MutableAggregationBuffer, input: Row): Unit = {
       println(s"In update with $buffer and $input")
+      val start = buffer.get(0)
+
+      val gf = new GeometryFactory()
+      if (start == null) {
+        buffer.update(0, input.get(0).asInstanceOf[Geometry])
+      } else {
+        val ch = new com.vividsolutions.jts.algorithm.ConvexHull(
+          new GeometryCollection(Array(start.asInstanceOf[Geometry], input.get(0).asInstanceOf[Geometry]), gf).union()
+        ).getConvexHull
+        buffer.update(0, ch)
+      }
+
     }
 
     override def merge(buffer1: MutableAggregationBuffer, buffer2: Row): Unit = {
       println(s"In merge with $buffer1 and $buffer2")
+
+      if(!buffer2.isNullAt(0)) {
+        if(buffer1.isNullAt(0)) {
+          buffer1.update(0, buffer2.get(0).asInstanceOf[Geometry])
+        } else {
+          val gf = new GeometryFactory()
+          val ch = new com.vividsolutions.jts.algorithm.ConvexHull(
+            new GeometryCollection(Array(buffer1.get(0).asInstanceOf[Geometry],
+                                         buffer2.get(0).asInstanceOf[Geometry]), gf).union()
+          ).getConvexHull
+          buffer1.update(0, ch)
+        }
+      }
     }
 
     override def evaluate(buffer: Row): Any = {
       println(s"In evaluate with $buffer")
-
+      if (buffer.isNullAt(0)) {
+        null
+      } else {
+        buffer.get(0).asInstanceOf[Geometry]
+      }
     }
   }
 
@@ -352,7 +381,7 @@ private [spark] class LineStringUDT extends UserDefinedType[LineString] {
 
   override def deserialize(datum: Any): LineString = {
     val ir = datum.asInstanceOf[InternalRow]
-    val coords = ir.getArray(2).toDoubleArray().grouped(2).map { case Array(l, r) => new Coordinate(l, r) }
+    val coords = ir.getArray(1).toDoubleArray().grouped(2).map { case Array(l, r) => new Coordinate(l, r) }
     SQLTypes.geomFactory.createLineString(coords.toArray)
   }
 }

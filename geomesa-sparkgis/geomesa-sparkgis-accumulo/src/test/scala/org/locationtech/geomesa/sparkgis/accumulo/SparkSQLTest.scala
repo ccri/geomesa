@@ -61,7 +61,8 @@ object SparkSQLTest extends App {
 
   val features = DataUtilities.collection(List(
     new ScalaSimpleFeature("1", sft, initialValues = Array("true","1",parseDate("20160101T000000.000Z").toDate, createPoint(new Coordinate(-76.5, 38.5)))),
-    new ScalaSimpleFeature("2", sft, initialValues = Array("true","2",parseDate("20160102T000000.000Z").toDate, createPoint(new Coordinate(-77.0, 38.0))))
+    new ScalaSimpleFeature("2", sft, initialValues = Array("true","2",parseDate("20160102T000000.000Z").toDate, createPoint(new Coordinate(-77.0, 38.0)))),
+    new ScalaSimpleFeature("3", sft, initialValues = Array("true","3",parseDate("20160103T000000.000Z").toDate, createPoint(new Coordinate(-78.0, 39.0))))
   ))
 
   fs.addFeatures(features)
@@ -145,7 +146,7 @@ object SparkSQLTest extends App {
 
   $(
     """
-      | select arrest, geom, st_convexhull(geom)
+      | select st_convexhull(geom)
       | from chicago
       | where
       |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
