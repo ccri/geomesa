@@ -6,15 +6,15 @@ import com.vividsolutions.jts.geom.{Coordinate, Geometry}
 import org.apache.accumulo.minicluster.{MiniAccumuloCluster, MiniAccumuloConfig}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.geotools.data.simple.SimpleFeatureStore
-import org.geotools.data.{DataStoreFinder, DataUtilities}
+import org.geotools.data.{DataStoreFinder, DataUtilities, Query}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.format.ISODateTimeFormat
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreParams => GM}
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.index.conf.QueryProperties
-import org.locationtech.geomesa.sparkgis.GeoMesaDataSource
-import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
+import org.locationtech.geomesa.tools.ingest.ConverterIngest
+import org.locationtech.geomesa.utils.geotools.{GeneralShapefileIngest, SimpleFeatureTypes}
 
 import scala.collection.JavaConversions._
 
@@ -42,6 +42,13 @@ object SparkSQLTest extends App {
 
   val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
+  // GeoNames ingest
+  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/opt/data/geonames/sample2.txt"), "", Iterator.empty, 16)
+  ingest.run
+
+  // States shapefile ingest
+  GeneralShapefileIngest.shpToDataStoreViaParams("/opt/data/states/cb_2015_us_state_500k.shp", dsParams)
+
   val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
   ds.createSchema(sft)
 
@@ -62,6 +69,10 @@ object SparkSQLTest extends App {
 
   val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
+  println(s"DS typenames: ${ds.getTypeNames.mkString(", ")}.")
+  val fs2 = ds.getFeatureSource("geonames")
+  println(s" GeoNames count: ${fs2.getCount(Query.ALL)}")
+
   val df: DataFrame = spark.read
     .format("geomesa")
     .options(dsParams)
@@ -78,7 +89,32 @@ object SparkSQLTest extends App {
 
   df.createOrReplaceTempView("chicago")
 
-  println(s"*** Length of DF:  ${df.collect().length}")
+  val gndf: DataFrame = spark.read
+    .format("geomesa")
+    .options(dsParams)
+    //    .option(GM.instanceIdParam.getName, instanceName)
+    //    .option(GM.userParam.getName, "root")
+    //    .option(GM.passwordParam.getName, "password")
+    //    .option(GM.tableNameParam.getName, "sparksql")
+    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
+    ////    .option(GM.mockParam.getName, "true")
+    .option("geomesa.feature", "geonames")
+    .load()
+
+//  val df: DataFrame = spark.read
+//    .format("geomesa")
+//    .options(dsParams)
+//    //    .option(GM.instanceIdParam.getName, instanceName)
+//    //    .option(GM.userParam.getName, "root")
+//    //    .option(GM.passwordParam.getName, "password")
+//    //    .option(GM.tableNameParam.getName, "sparksql")
+//    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
+//    ////    .option(GM.mockParam.getName, "true")
+//    .option("geomesa.feature", "chicago")
+//    .load()
+
+  gndf.createOrReplaceTempView("geonames")
+  println(s"*** Length of GeoNames DF:  ${gndf.collect().length}")
 
   import spark.sqlContext.{sql => $}
 

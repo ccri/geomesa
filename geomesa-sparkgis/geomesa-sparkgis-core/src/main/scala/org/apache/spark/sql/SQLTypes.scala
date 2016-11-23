@@ -6,7 +6,7 @@ import com.vividsolutions.jts.geom._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
-import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
+import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, Sort}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types._
@@ -138,6 +138,7 @@ object SQLTypes {
   // new optimizations rules
  object STContainsRule extends Rule[LogicalPlan] with PredicateHelper {
 
+    // JNH: NB: Unused.
     def extractGeometry(e: org.apache.spark.sql.catalyst.expressions.Expression): Option[Geometry] = e match {
        case And(l, r) => extractGeometry(l).orElse(extractGeometry(r))
        case ScalaUDF(ST_Contains, _, Seq(_, GeometryLiteral(_, geom)), _) => Some(geom)
@@ -147,11 +148,13 @@ object SQLTypes {
     override def apply(plan: LogicalPlan): LogicalPlan = {
       println("HERE!")
       plan.transform {
+        case sort @ Sort(_, _, _) => sort    // No-op.  Just realizing what we can do:)
         case filt @ Filter(f, lr@LogicalRelation(gmRel: GeoMesaRelation, _, _)) =>
           // TODO: deal with `or`
 
           // split up conjunctive predicates and extract the st_contains variable
           val (st_contains, xs) = splitConjunctivePredicates(f).partition {
+            // TODO: Add guard which checks to see if the function can be pushed down
             case ScalaUDF(_, _, _, _) => true
             case _                              => false
           }

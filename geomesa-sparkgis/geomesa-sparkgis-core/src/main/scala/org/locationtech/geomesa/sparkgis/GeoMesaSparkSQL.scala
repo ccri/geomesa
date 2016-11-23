@@ -72,6 +72,7 @@ class GeoMesaDataSource extends DataSourceRegister with RelationProvider with Sc
           case DataTypes.IntegerType => builder.add(field.name, classOf[jl.Integer])
           case DataTypes.DoubleType => builder.add(field.name, classOf[jl.Double])
           case DataTypes.StringType => builder.add(field.name, classOf[jl.String])
+          case DataTypes.LongType   => builder.add(field.name, classOf[jl.Long])
 
           case SQLTypes.PointType => builder.add(field.name, classOf[com.vividsolutions.jts.geom.Point])
           case SQLTypes.LineStringType => builder.add(field.name, classOf[com.vividsolutions.jts.geom.LineString])
@@ -91,6 +92,7 @@ class GeoMesaDataSource extends DataSourceRegister with RelationProvider with Sc
       case t if t == classOf[jl.String]                       => DataTypes.StringType
       case t if t == classOf[jl.Boolean]                      => DataTypes.BooleanType
       case t if      classOf[Geometry].isAssignableFrom(t)    => SQLTypes.PointType
+      case t if t == classOf[jl.Long]                         => DataTypes.LongType
         // JNH: Add Geometry types here.
       case t if t == classOf[java.util.Date]                  => DataTypes.TimestampType
       case _                                                  => null

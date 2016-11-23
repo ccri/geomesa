@@ -25,6 +25,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-catalyst_2.11</artifactId>
             <version>${spark.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.vividsolutions</groupId>
