@@ -31,14 +31,14 @@ trait TypeNameParam {
 }
 
 trait RequiredTypeNameParam extends TypeNameParam {
-  private val ESCAPE = "\u223C" // For escaping tilde - may be better to use null '\0' instead
+  private val ESCAPE = "\u0000" // For escaping tilde
   @Parameter(names = Array("-f", "--feature-name"), description = "Simple Feature Type name on which to operate", required = true)
   var featureName: String = null
   if (featureName != null) featureName = featureName.replace("~", ESCAPE)
 }
 
 trait OptionalTypeNameParam extends TypeNameParam {
-  private val ESCAPE = "\u223C" // For escaping tilde - may be better to use null '\0' instead
+  private val ESCAPE = "\u0000" // For escaping tilde
   @Parameter(names = Array("-f", "--feature-name"), description = "Simple Feature Type name on which to operate")
   var featureName: String = null
   if (featureName != null) featureName = featureName.replace("~", ESCAPE)
