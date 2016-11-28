@@ -8,6 +8,7 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.data.{DataStoreFinder, DataUtilities, Query}
 import org.geotools.geometry.jts.JTSFactoryFinder
+import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreParams => GM}
@@ -40,16 +41,15 @@ object SparkSQLTest extends App {
     // note the table needs to be different to prevent testing errors
     GM.tableNameParam.getName -> "sparksql")
 
-    val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
+  val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
+
+  // GeoNames ingest
+  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/opt/data/geonames/sample2.txt"), "", Iterator.empty, 16)
+  ingest.run
 
 
-  //  // GeoNames ingest
-//  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/opt/data/geonames/sample2.txt"), "", Iterator.empty, 16)
-//  ingest.run
-//
-//
-//  // States shapefile ingest
-//  GeneralShapefileIngest.shpToDataStore("/opt/data/states/states.shp", ds, "states")
+  // States shapefile ingest
+  GeneralShapefileIngest.shpToDataStore("/opt/data/states/states.shp", ds, "states")
 
   val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
   ds.createSchema(sft)
@@ -73,8 +73,8 @@ object SparkSQLTest extends App {
   val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
   println(s"DS typenames: ${ds.getTypeNames.mkString(", ")}.")
-//  val fs2 = ds.getFeatureSource("geonames")
-//  println(s" GeoNames count: ${fs2.getCount(Query.ALL)}")
+  val fs2 = ds.getFeatureSource("geonames")
+  println(s" GeoNames count: ${fs2.getCount(Query.ALL)}")
 
   val df: DataFrame = spark.read
     .format("geomesa")
@@ -86,25 +86,26 @@ object SparkSQLTest extends App {
 
   df.createOrReplaceTempView("chicago")
 
-//  val gndf: DataFrame = spark.read
-//    .format("geomesa")
-//    .options(dsParams)
-//    .option("geomesa.feature", "geonames")
-//    .load()
-//
-//  gndf.printSchema()
-//
-//  gndf.createOrReplaceTempView("geonames")
-//
-//  val sdf: DataFrame = spark.read
-//    .format("geomesa")
-//    .options(dsParams)
-//    .option("geomesa.feature", "states")
-//    .load()
-//
-//  sdf.printSchema()
-//  sdf.createOrReplaceTempView("states")
-//  println(s"*** Length of States DF:  ${sdf.collect().length}")
+    val gndf: DataFrame = spark.read
+      .format("geomesa")
+      .options(dsParams)
+      .option("geomesa.feature", "geonames")
+      .load()
+
+    gndf.printSchema()
+
+    gndf.createOrReplaceTempView("geonames")
+  println(s"*** Length of GeoNames DF:  ${gndf.collect().length}")
+
+    val sdf: DataFrame = spark.read
+      .format("geomesa")
+      .options(dsParams)
+      .option("geomesa.feature", "states")
+      .load()
+
+    sdf.printSchema()
+    sdf.createOrReplaceTempView("states")
+    println(s"*** Length of States DF:  ${sdf.collect().length}")
 
   import spark.sqlContext.{sql => $}
 
@@ -119,12 +120,55 @@ object SparkSQLTest extends App {
 
   //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
 
-//  $(
-//    """
-//      | select STUSPS, NAME
-//      | from states
-//      | order By(name)
-//    """.stripMargin).show(100)
+  import org.apache.spark.sql.functions.broadcast
+
+  spark.sqlContext.setConf("spark.sql.crossJoin.enabled", "true")
+
+  broadcast(sdf).createOrReplaceTempView("broadcastStates")
+
+  $(
+    """
+      |  explain select geonames.name, broadcastStates.STUSPS
+      |  from geonames, broadcastStates
+      |  where st_contains(broadcastStates.the_geom, geonames.geom)
+    """.stripMargin).show(100, false)
+
+  println(s"time: ${new DateTime}")
+  $(
+    """
+      |  select geonames.name, broadcastStates.STUSPS
+      |  from geonames, broadcastStates
+      |  where st_contains(broadcastStates.the_geom, geonames.geom)
+    """.stripMargin).show(100, false)
+
+  println(s"time: ${new DateTime}")
+
+  $(
+    """
+      |  select geonames.name, states.STUSPS
+      |  from geonames, states
+      |  where st_contains(states.the_geom, geonames.geom)
+    """.stripMargin).show(100, false)
+
+  println(s"time: ${new DateTime}")
+
+  $(
+    """
+      |  explain select geonames.name, states.STUSPS
+      |  from geonames, states
+      |  where st_contains(states.the_geom, geonames.geom)
+    """.stripMargin).show(100, false)
+
+  println(s"*** Length of States DF:  ${sdf.collect().length}")
+//
+//  System.exit(0)
+//
+  val qdf = $(
+    """
+      | select STUSPS, NAME
+      | from states
+      | order By(name)
+    """.stripMargin) //.show(100)
 
   $(
     """
@@ -152,8 +196,6 @@ object SparkSQLTest extends App {
       |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
       |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
     """.stripMargin).show()
-
-  System.exit(0)
 
   println("Testing predicates")
 
