@@ -1,5 +1,6 @@
 package org.apache.spark.sql
 
+import java.awt.geom.AffineTransform
 import java.lang.Double
 
 import com.vividsolutions.jts.geom._
@@ -16,6 +17,7 @@ import org.geotools.factory.CommonFactoryFinder
 import org.geotools.geometry.jts.{JTS, JTSFactoryFinder}
 import org.geotools.referencing.GeodeticCalculator
 import org.geotools.referencing.crs.DefaultGeographicCRS
+import org.geotools.referencing.operation.transform.AffineTransform2D
 import org.locationtech.geomesa.sparkgis.GeoMesaRelation
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.opengis.filter.expression.{Expression => GTExpression}
@@ -87,6 +89,15 @@ object SQLTypes {
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
   val ST_CastToLineString: Geometry => LineString  = g => g.asInstanceOf[LineString]
 
+  def translate(g: Geometry, deltax: Double, deltay: Double): Geometry = {
+    val affineTransform = AffineTransform.getTranslateInstance(deltax, deltay)
+    val transform = new AffineTransform2D(affineTransform)
+    JTS.transform(g, transform)
+  }
+
+  val ST_Translate: (Geometry, Double, Double) => Geometry =
+    (g, deltaX, deltaY) => translate(g, deltaX, deltaY)
+
   val ch = new ConvexHull
 
   // TODO: optimize when used as a literal
@@ -122,6 +133,8 @@ object SQLTypes {
     sqlContext.udf.register("st_distanceSpheroid"  , ST_DistanceSpheroid)
 
     sqlContext.udf.register("st_convexhull", ch)
+
+    sqlContext.udf.register("st_translate", ST_Translate)
 
 
     // JNH: The next two lines demonstrate adding ScalaUDFs directly.

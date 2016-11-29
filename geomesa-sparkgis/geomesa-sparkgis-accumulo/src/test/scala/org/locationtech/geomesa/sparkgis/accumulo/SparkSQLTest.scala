@@ -186,6 +186,17 @@ object SparkSQLTest extends App {
 
   executeSQL(sqlDistanceToCentroid, 100, true)
 
+  val sqlConstant = "select pi()"
+
+  executeSQL(sqlConstant, 100, true)
+
+  val sql_st_translate =
+    """
+      |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
+    """.stripMargin
+
+  executeSQL(sql_st_translate, 100, true)
+
 //  println(s"time: ${new DateTime}")
 //
 //  $(
