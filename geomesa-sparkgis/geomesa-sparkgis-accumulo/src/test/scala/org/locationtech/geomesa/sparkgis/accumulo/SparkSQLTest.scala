@@ -44,12 +44,12 @@ object SparkSQLTest extends App {
   val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
   // GeoNames ingest
-  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/opt/data/geonames/sample2.txt"), "", Iterator.empty, 16)
+  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/home/mzimmerman/sparksql/sample2.txt"), "", Iterator.empty, 16)
   ingest.run
 
 
   // States shapefile ingest
-  GeneralShapefileIngest.shpToDataStore("/opt/data/states/states.shp", ds, "states")
+  GeneralShapefileIngest.shpToDataStore("/home/mzimmerman/sparksql/states.shp", ds, "states")
 
   val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
   ds.createSchema(sft)
@@ -140,6 +140,24 @@ object SparkSQLTest extends App {
       |  from geonames, broadcastStates
       |  where st_contains(broadcastStates.the_geom, geonames.geom)
     """.stripMargin).show(100, false)
+
+  def executeSQL(query: String, rows: Integer, explain: Boolean) = {
+    $(query).show(rows, false)
+    if (explain) {
+      $("explain "+query).show(1, false)
+    }
+  }
+
+  val sqlGroupBy = """
+    |  select broadcastStates.STUSPS, count(*), sum(population)
+    |  from geonames, broadcastStates
+    |  where st_contains(broadcastStates.the_geom, geonames.geom)
+    |        and featurecode = "PPL"
+    |  group by broadcastStates.STUSPS
+    |  order by broadcastStates.STUSPS
+  """.stripMargin
+
+  executeSQL(sqlGroupBy, 100, true)
 
   println(s"time: ${new DateTime}")
 
@@ -284,7 +302,6 @@ object SparkSQLTest extends App {
       .select("id").show()
   */
 
-
   val dataset = $(
     """
       |select st_makeBox2D(ll,ur) as bounds from (select p[0] as ll,p[1] as ur from (select collect_list(geom) as p from chicago group by arrest))
@@ -297,5 +314,4 @@ object SparkSQLTest extends App {
       bounds
   }.apply(0)
   println(s"Bounds = $bounds")
-
 }
