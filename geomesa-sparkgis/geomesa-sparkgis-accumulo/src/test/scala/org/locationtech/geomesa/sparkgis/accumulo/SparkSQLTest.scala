@@ -126,20 +126,20 @@ object SparkSQLTest extends App {
 
   broadcast(sdf).createOrReplaceTempView("broadcastStates")
 
-  $(
-    """
-      |  explain select geonames.name, broadcastStates.STUSPS
-      |  from geonames, broadcastStates
-      |  where st_contains(broadcastStates.the_geom, geonames.geom)
-    """.stripMargin).show(100, false)
-
-  println(s"time: ${new DateTime}")
-  $(
-    """
-      |  select geonames.name, broadcastStates.STUSPS
-      |  from geonames, broadcastStates
-      |  where st_contains(broadcastStates.the_geom, geonames.geom)
-    """.stripMargin).show(100, false)
+//  $(
+//    """
+//      |  explain select geonames.name, broadcastStates.STUSPS
+//      |  from geonames, broadcastStates
+//      |  where st_contains(broadcastStates.the_geom, geonames.geom)
+//    """.stripMargin).show(100, false)
+//
+//  println(s"time: ${new DateTime}")
+//  $(
+//    """
+//      |  select geonames.name, broadcastStates.STUSPS
+//      |  from geonames, broadcastStates
+//      |  where st_contains(broadcastStates.the_geom, geonames.geom)
+//    """.stripMargin).show(100, false)
 
   def executeSQL(query: String, rows: Integer, explain: Boolean) = {
     $(query).show(rows, false)
@@ -148,6 +148,8 @@ object SparkSQLTest extends App {
     }
   }
 
+  // find number of populated places (PPL) in the geonames set
+  // in each state, and sum their population
   val sqlGroupBy = """
     |  select broadcastStates.STUSPS, count(*), sum(population)
     |  from geonames, broadcastStates
@@ -159,159 +161,184 @@ object SparkSQLTest extends App {
 
   executeSQL(sqlGroupBy, 100, true)
 
-  println(s"time: ${new DateTime}")
-
-  $(
+  // find centroid of each state
+  val sqlStateCentroid =
     """
-      |  select geonames.name, states.STUSPS
-      |  from geonames, states
-      |  where st_contains(states.the_geom, geonames.geom)
-    """.stripMargin).show(100, false)
+      |select broadcastStates.STUSPS, st_centroid(broadcastStates.the_geom)
+      |from broadcastStates
+    """.stripMargin
 
-  println(s"time: ${new DateTime}")
+  executeSQL(sqlStateCentroid, 100, true)
 
-  $(
+  // find points in geonames closest to the centroid of their state
+  val sqlDistanceToCentroid =
     """
-      |  explain select geonames.name, states.STUSPS
-      |  from geonames, states
-      |  where st_contains(states.the_geom, geonames.geom)
-    """.stripMargin).show(100, false)
+      |select geonames.name,
+      |       stateCentroids.abbrev,
+      |       st_distanceSpheroid(stateCentroids.geom, geonames.geom) as dist
+      |from geonames,
+      |     (select broadcastStates.STUSPS as abbrev,
+      |      st_centroid(broadcastStates.the_geom) as geom
+      |      from broadcastStates) as stateCentroids
+      |where geonames.admin1code = stateCentroids.abbrev
+      |order by dist
+    """.stripMargin
 
-  println(s"*** Length of States DF:  ${sdf.collect().length}")
+  executeSQL(sqlDistanceToCentroid, 100, true)
+
+//  println(s"time: ${new DateTime}")
 //
-//  System.exit(0)
+//  $(
+//    """
+//      |  select geonames.name, states.STUSPS
+//      |  from geonames, states
+//      |  where st_contains(states.the_geom, geonames.geom)
+//    """.stripMargin).show(100, false)
 //
-  val qdf = $(
-    """
-      | select STUSPS, NAME
-      | from states
-      | order By(name)
-    """.stripMargin) //.show(100)
-
-  $(
-    """
-      | select *
-      | from chicago
-      | where
-      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  $(
-    """
-      | select arrest, geom
-      | from chicago
-      | where
-      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  $(
-    """
-      | select st_convexhull(geom)
-      | from chicago
-      | where
-      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  println("Testing predicates")
-
-  $("""
-      |select  arrest, geom
-      |from    chicago
-      |where
-      |  st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom)
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  $("""
-      |select  arrest, geom
-      |from    chicago
-      |where
-      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  $("""
-      |select  arrest, geom
-      |from    chicago
-      |where
-      |  st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  $("""
-      |select  arrest, geom
-      |from    chicago
-      |where
-      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  println("Done testing predicates")
-
-  println("Compute distances")
-  $(
-    """
-      |select st_distanceSpheroid(geom, st_geomFromWKT('POINT(-78 37)')) as dist
-      |from chicago
-    """.stripMargin).show()
-
-  $("""
-      |select  arrest, geom, st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom) as contains,
-      |                      st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')) as crosses,
-      |                      st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')) as intersects
-      |
-      |from    chicago
-      |where
-      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-    """.stripMargin).show()
-
-  val res: DataFrame = $(
-    """
-      |select __fid__ as id,arrest,geom from chicago
-    """.stripMargin)
-
-  val results = res.collect()
-  results.length
-  res.show(false)
-
-  res.write
-    .format("geomesa")
-    .options(dsParams)
-    //    .option(GM.instanceIdParam.getName, instanceName)
-    //    .option(GM.userParam.getName, "root")
-    //    .option(GM.passwordParam.getName, "password")
-    //    .option(GM.tableNameParam.getName, "sparksql")
-    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
-    .option("geomesa.feature", "chicago2")
-    .save()
-
-
-  println(s"After the save: ${ds.getTypeNames.mkString(", ")}")
-
-  /*
-    res.show()
-  */
-
-  /*
-    res
-      .where("st_contains(geom, st_geomFromWKT('POLYGON((-78 38.1,-76 38.1,-76 39,-78 39,-78 38.1))'))")
-      .select("id").show()
-  */
-
-  val dataset = $(
-    """
-      |select st_makeBox2D(ll,ur) as bounds from (select p[0] as ll,p[1] as ur from (select collect_list(geom) as p from chicago group by arrest))
-    """.stripMargin)
-
-
-  dataset.show(false)
-  val bounds = dataset.collect.map {
-    case Row(bounds: Geometry) => println("Got geometry")
-      bounds
-  }.apply(0)
-  println(s"Bounds = $bounds")
+//  println(s"time: ${new DateTime}")
+//
+//  $(
+//    """
+//      |  explain select geonames.name, states.STUSPS
+//      |  from geonames, states
+//      |  where st_contains(states.the_geom, geonames.geom)
+//    """.stripMargin).show(100, false)
+//
+//  println(s"*** Length of States DF:  ${sdf.collect().length}")
+////
+////  System.exit(0)
+////
+//  val qdf = $(
+//    """
+//      | select STUSPS, NAME
+//      | from states
+//      | order By(name)
+//    """.stripMargin) //.show(100)
+//
+//  $(
+//    """
+//      | select *
+//      | from chicago
+//      | where
+//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  $(
+//    """
+//      | select arrest, geom
+//      | from chicago
+//      | where
+//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  $(
+//    """
+//      | select st_convexhull(geom)
+//      | from chicago
+//      | where
+//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  println("Testing predicates")
+//
+//  $("""
+//      |select  arrest, geom
+//      |from    chicago
+//      |where
+//      |  st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom)
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  $("""
+//      |select  arrest, geom
+//      |from    chicago
+//      |where
+//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  $("""
+//      |select  arrest, geom
+//      |from    chicago
+//      |where
+//      |  st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  $("""
+//      |select  arrest, geom
+//      |from    chicago
+//      |where
+//      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  println("Done testing predicates")
+//
+//  println("Compute distances")
+//  $(
+//    """
+//      |select st_distanceSpheroid(geom, st_geomFromWKT('POINT(-78 37)')) as dist
+//      |from chicago
+//    """.stripMargin).show()
+//
+//  $("""
+//      |select  arrest, geom, st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom) as contains,
+//      |                      st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')) as crosses,
+//      |                      st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')) as intersects
+//      |
+//      |from    chicago
+//      |where
+//      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+//    """.stripMargin).show()
+//
+//  val res: DataFrame = $(
+//    """
+//      |select __fid__ as id,arrest,geom from chicago
+//    """.stripMargin)
+//
+//  val results = res.collect()
+//  results.length
+//  res.show(false)
+//
+//  res.write
+//    .format("geomesa")
+//    .options(dsParams)
+//    //    .option(GM.instanceIdParam.getName, instanceName)
+//    //    .option(GM.userParam.getName, "root")
+//    //    .option(GM.passwordParam.getName, "password")
+//    //    .option(GM.tableNameParam.getName, "sparksql")
+//    //    .option(GM.zookeepersParam.getName, mac.getZooKeepers)
+//    .option("geomesa.feature", "chicago2")
+//    .save()
+//
+//
+//  println(s"After the save: ${ds.getTypeNames.mkString(", ")}")
+//
+//  /*
+//    res.show()
+//  */
+//
+//  /*
+//    res
+//      .where("st_contains(geom, st_geomFromWKT('POLYGON((-78 38.1,-76 38.1,-76 39,-78 39,-78 38.1))'))")
+//      .select("id").show()
+//  */
+//
+//  val dataset = $(
+//    """
+//      |select st_makeBox2D(ll,ur) as bounds from (select p[0] as ll,p[1] as ur from (select collect_list(geom) as p from chicago group by arrest))
+//    """.stripMargin)
+//
+//
+//  dataset.show(false)
+//  val bounds = dataset.collect.map {
+//    case Row(bounds: Geometry) => println("Got geometry")
+//      bounds
+//  }.apply(0)
+//  println(s"Bounds = $bounds")
 }
