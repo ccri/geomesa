@@ -1,130 +1,93 @@
 package org.locationtech.geomesa.sparkgis.accumulo
 
-import java.nio.file.Files
-
-import com.vividsolutions.jts.geom.{Coordinate, Geometry}
-import org.apache.accumulo.minicluster.{MiniAccumuloCluster, MiniAccumuloConfig}
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.geotools.data.simple.SimpleFeatureStore
-import org.geotools.data.{DataStoreFinder, DataUtilities, Query}
-import org.geotools.geometry.jts.JTSFactoryFinder
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.geotools.data.DataStoreFinder
+import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
-import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreParams => GM}
-import org.locationtech.geomesa.features.ScalaSimpleFeature
+import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.index.conf.QueryProperties
-import org.locationtech.geomesa.tools.ingest.ConverterIngest
-import org.locationtech.geomesa.utils.geotools.{GeneralShapefileIngest, SimpleFeatureTypes}
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
 
-object SparkSQLTest extends App {
-
+@RunWith(classOf[JUnitRunner])
+class SparkSQLTest extends Specification {
   System.setProperty(QueryProperties.SCAN_RANGES_TARGET.property, "1")
   System.setProperty(AccumuloQueryProperties.SCAN_BATCH_RANGES.property, s"${Int.MaxValue}")
-
-  val randomDir = Files.createTempDirectory("mac").toFile
-  val config = new MiniAccumuloConfig(randomDir, "password").setJDWPEnabled(true)
-  val mac = new MiniAccumuloCluster(config)
-  mac.start()
-  val instanceName = mac.getInstanceName
-  val connector = mac.getConnector("root", "password")
-
-  val dsParams: Map[String, String] = Map(
-    //    "connector" -> connector,
-    GM.zookeepersParam.getName -> mac.getZooKeepers,
-    GM.instanceIdParam.getName -> instanceName,
-    GM.userParam.getName -> "root",
-    GM.passwordParam.getName -> "password",
-    "caching"   -> "false",
-    // note the table needs to be different to prevent testing errors
-    GM.tableNameParam.getName -> "sparksql")
-
-  val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
-
-  // GeoNames ingest
-  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/home/mzimmerman/sparksql/sample2.txt"), "", Iterator.empty, 16)
-  ingest.run
-
-
-  // States shapefile ingest
-  GeneralShapefileIngest.shpToDataStore("/home/mzimmerman/sparksql/states.shp", ds, "states")
-
-  val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
-  ds.createSchema(sft)
-
-  val fs = ds.getFeatureSource("chicago").asInstanceOf[SimpleFeatureStore]
-
-  val parseDate = ISODateTimeFormat.basicDateTime().parseDateTime _
-  val createPoint = JTSFactoryFinder.getGeometryFactory.createPoint(_: Coordinate)
-
-  val features = DataUtilities.collection(List(
-    new ScalaSimpleFeature("1", sft, initialValues = Array("true","1",parseDate("20160101T000000.000Z").toDate, createPoint(new Coordinate(-76.5, 38.5)))),
-    new ScalaSimpleFeature("2", sft, initialValues = Array("true","2",parseDate("20160102T000000.000Z").toDate, createPoint(new Coordinate(-77.0, 38.0)))),
-    new ScalaSimpleFeature("3", sft, initialValues = Array("true","3",parseDate("20160103T000000.000Z").toDate, createPoint(new Coordinate(-78.0, 39.0))))
-  ))
-
-  fs.addFeatures(features)
-
   System.setProperty("sun.net.spi.nameservice.nameservers", "192.168.2.77")
   System.setProperty("sun.net.spi.nameservice.provider.1", "dns,sun")
 
-  val spark = SparkSession.builder().master("local[*]").getOrCreate()
+  val mac = SparkSQLTestUtils.setupMiniAccumulo()
+  val dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
+  val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
-  println(s"DS typenames: ${ds.getTypeNames.mkString(", ")}.")
-  val fs2 = ds.getFeatureSource("geonames")
-  println(s" GeoNames count: ${fs2.getCount(Query.ALL)}")
+  SparkSQLTestUtils.ingestChicago(ds)
+  SparkSQLTestUtils.ingestGeoNames(dsParams)
+  SparkSQLTestUtils.ingestStates(ds)
+
+  val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
   val df: DataFrame = spark.read
     .format("geomesa")
     .options(dsParams)
     .option("geomesa.feature", "chicago")
     .load()
-
   df.printSchema()
-
   df.createOrReplaceTempView("chicago")
+  println(s"*** Length of Chicago DF:   ${df.collect().length}")
 
-    val gndf: DataFrame = spark.read
-      .format("geomesa")
-      .options(dsParams)
-      .option("geomesa.feature", "geonames")
-      .load()
-
-    gndf.printSchema()
-
-    gndf.createOrReplaceTempView("geonames")
+  val gndf: DataFrame = spark.read
+    .format("geomesa")
+    .options(dsParams)
+    .option("geomesa.feature", "geonames")
+    .load()
+  gndf.printSchema()
+  gndf.createOrReplaceTempView("geonames")
   println(s"*** Length of GeoNames DF:  ${gndf.collect().length}")
 
-    val sdf: DataFrame = spark.read
-      .format("geomesa")
-      .options(dsParams)
-      .option("geomesa.feature", "states")
-      .load()
+  val sdf: DataFrame = spark.read
+    .format("geomesa")
+    .options(dsParams)
+    .option("geomesa.feature", "states")
+    .load()
+  sdf.printSchema()
+  sdf.createOrReplaceTempView("states")
+  println(s"*** Length of States DF:  ${sdf.collect().length}")
 
-    sdf.printSchema()
-    sdf.createOrReplaceTempView("states")
-    println(s"*** Length of States DF:  ${sdf.collect().length}")
+  "SparkSQL" should {
+    "create chicago data" in {
+      df.collect().length mustEqual 3
+    }
 
-  import spark.sqlContext.{sql => $}
+    "create geonames data" in {
+      gndf.collect().length mustEqual 2550
+    }
 
-  //$("select * from chicago where (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp))").show()
-  //$("select * from chicago where arrest = 'true' and (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp)) and st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
-  //$("select st_castToPoint(st_geomFromWKT('POINT(-77 38)')) as p").show()
-  //$("select st_contains(st_castToPoint(st_geomFromWKT('POINT(-77 38)')),st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
+    "create states data" in {
+      sdf.collect().length mustEqual 56
+    }
+  }
 
-  //$("select st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')),arrest from chicago limit 10").show()
 
-  //  $("select arrest,case_number,geom from chicago limit 5").show()
-
-  //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-
-  import org.apache.spark.sql.functions.broadcast
-
-  spark.sqlContext.setConf("spark.sql.crossJoin.enabled", "true")
-
-  broadcast(sdf).createOrReplaceTempView("broadcastStates")
+//  import spark.sqlContext.{sql => $}
+//
+//  //$("select * from chicago where (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp))").show()
+//  //$("select * from chicago where arrest = 'true' and (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp)) and st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
+//  //$("select st_castToPoint(st_geomFromWKT('POINT(-77 38)')) as p").show()
+//  //$("select st_contains(st_castToPoint(st_geomFromWKT('POINT(-77 38)')),st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
+//
+//  //$("select st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))')),arrest from chicago limit 10").show()
+//
+//  //  $("select arrest,case_number,geom from chicago limit 5").show()
+//
+//  //select  arrest, geom, st_centroid(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+//
+//  import org.apache.spark.sql.functions.broadcast
+//
+//  spark.sqlContext.setConf("spark.sql.crossJoin.enabled", "true")
+//
+//  broadcast(sdf).createOrReplaceTempView("broadcastStates")
 
 //  $(
 //    """
@@ -141,61 +104,61 @@ object SparkSQLTest extends App {
 //      |  where st_contains(broadcastStates.the_geom, geonames.geom)
 //    """.stripMargin).show(100, false)
 
-  def executeSQL(query: String, rows: Integer, explain: Boolean) = {
-    $(query).show(rows, false)
-    if (explain) {
-      $("explain "+query).show(1, false)
-    }
-  }
+//  def executeSQL(query: String, rows: Integer, explain: Boolean) = {
+//    $(query).show(rows, false)
+//    if (explain) {
+//      $("explain "+query).show(1, false)
+//    }
+//  }
+//
+//  // find number of populated places (PPL) in the geonames set
+//  // in each state, and sum their population
+//  val sqlGroupBy = """
+//    |  select broadcastStates.STUSPS, count(*), sum(population)
+//    |  from geonames, broadcastStates
+//    |  where st_contains(broadcastStates.the_geom, geonames.geom)
+//    |        and featurecode = "PPL"
+//    |  group by broadcastStates.STUSPS
+//    |  order by broadcastStates.STUSPS
+//  """.stripMargin
+//
+//  executeSQL(sqlGroupBy, 100, true)
+//
+//  // find centroid of each state
+//  val sqlStateCentroid =
+//    """
+//      |select broadcastStates.STUSPS, st_centroid(broadcastStates.the_geom)
+//      |from broadcastStates
+//    """.stripMargin
+//
+//  executeSQL(sqlStateCentroid, 100, true)
+//
+//  // find points in geonames closest to the centroid of their state
+//  val sqlDistanceToCentroid =
+//    """
+//      |select geonames.name,
+//      |       stateCentroids.abbrev,
+//      |       st_distanceSpheroid(stateCentroids.geom, geonames.geom) as dist
+//      |from geonames,
+//      |     (select broadcastStates.STUSPS as abbrev,
+//      |      st_centroid(broadcastStates.the_geom) as geom
+//      |      from broadcastStates) as stateCentroids
+//      |where geonames.admin1code = stateCentroids.abbrev
+//      |order by dist
+//    """.stripMargin
+//
+//  executeSQL(sqlDistanceToCentroid, 100, true)
+//
+//  val sqlConstant = "select pi()"
+//  executeSQL(sqlConstant, 100, true)
+//
+//  val sql_st_translate =
+//    """
+//      |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
+//    """.stripMargin
+//  executeSQL(sql_st_translate, 100, true)
 
-  // find number of populated places (PPL) in the geonames set
-  // in each state, and sum their population
-  val sqlGroupBy = """
-    |  select broadcastStates.STUSPS, count(*), sum(population)
-    |  from geonames, broadcastStates
-    |  where st_contains(broadcastStates.the_geom, geonames.geom)
-    |        and featurecode = "PPL"
-    |  group by broadcastStates.STUSPS
-    |  order by broadcastStates.STUSPS
-  """.stripMargin
 
-  executeSQL(sqlGroupBy, 100, true)
-
-  // find centroid of each state
-  val sqlStateCentroid =
-    """
-      |select broadcastStates.STUSPS, st_centroid(broadcastStates.the_geom)
-      |from broadcastStates
-    """.stripMargin
-
-  executeSQL(sqlStateCentroid, 100, true)
-
-  // find points in geonames closest to the centroid of their state
-  val sqlDistanceToCentroid =
-    """
-      |select geonames.name,
-      |       stateCentroids.abbrev,
-      |       st_distanceSpheroid(stateCentroids.geom, geonames.geom) as dist
-      |from geonames,
-      |     (select broadcastStates.STUSPS as abbrev,
-      |      st_centroid(broadcastStates.the_geom) as geom
-      |      from broadcastStates) as stateCentroids
-      |where geonames.admin1code = stateCentroids.abbrev
-      |order by dist
-    """.stripMargin
-
-  executeSQL(sqlDistanceToCentroid, 100, true)
-
-  val sqlConstant = "select pi()"
-
-  executeSQL(sqlConstant, 100, true)
-
-  val sql_st_translate =
-    """
-      |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
-    """.stripMargin
-
-  executeSQL(sql_st_translate, 100, true)
 
 //  println(s"time: ${new DateTime}")
 //
