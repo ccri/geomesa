@@ -14,6 +14,7 @@
     <modules>
         <module>geomesa-sparkgis-core</module>
         <module>geomesa-sparkgis-accumulo</module>
+        <module>geomesa-jdbc</module>
     </modules>
 
 

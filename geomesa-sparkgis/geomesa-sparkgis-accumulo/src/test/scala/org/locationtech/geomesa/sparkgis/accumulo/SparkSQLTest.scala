@@ -44,12 +44,12 @@ object SparkSQLTest extends App {
   val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
   // GeoNames ingest
-  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/home/mzimmerman/sparksql/sample2.txt"), "", Iterator.empty, 16)
+  val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/opt/data/geonames/sample2.txt"), "", Iterator.empty, 16)
   ingest.run
 
 
   // States shapefile ingest
-  GeneralShapefileIngest.shpToDataStore("/home/mzimmerman/sparksql/states.shp", ds, "states")
+  GeneralShapefileIngest.shpToDataStore("/opt/data/states/states.shp", ds, "states")
 
   val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
   ds.createSchema(sft)
@@ -70,7 +70,9 @@ object SparkSQLTest extends App {
   System.setProperty("sun.net.spi.nameservice.nameservers", "192.168.2.77")
   System.setProperty("sun.net.spi.nameservice.provider.1", "dns,sun")
 
-  val spark = SparkSession.builder().master("local[*]").getOrCreate()
+
+
+  val spark: SparkSession = SparkSession.builder().master("local[*]").getOrCreate()
 
   println(s"DS typenames: ${ds.getTypeNames.mkString(", ")}.")
   val fs2 = ds.getFeatureSource("geonames")
@@ -310,8 +312,15 @@ object SparkSQLTest extends App {
 
   dataset.show(false)
   val bounds = dataset.collect.map {
-    case Row(bounds: Geometry) => println("Got geometry")
-      bounds
+     r =>
+
+       val foo: Row = r
+       foo.getAs[Geometry]("bounds")
+
+    r match {
+      case Row(bounds: Geometry) => println("Got geometry")
+        bounds
+    }
   }.apply(0)
   println(s"Bounds = $bounds")
 }
