@@ -1,6 +1,7 @@
 package org.locationtech.geomesa.sparkgis.accumulo
 
 import java.nio.file.Files
+import java.util.{Map => JMap}
 
 import com.vividsolutions.jts.geom.Coordinate
 import org.apache.accumulo.minicluster.{MiniAccumuloConfig, MiniAccumuloCluster}
@@ -30,8 +31,8 @@ object SparkSQLTestUtils {
   }
 
   //
-  def createDataStoreParams(mac: MiniAccumuloCluster): Map[String, String] = {
-    val dsParams: Map[String, String] = Map(
+  def createDataStoreParams(mac: MiniAccumuloCluster): JMap[String, String] = {
+    val dsParams: JMap[String, String] = Map(
       // "connector" -> connector,
       AccumuloDataStoreParams.zookeepersParam.getName -> mac.getZooKeepers,
       AccumuloDataStoreParams.instanceIdParam.getName -> mac.getInstanceName,
@@ -64,9 +65,11 @@ object SparkSQLTestUtils {
   }
 
   //
-  def ingestGeoNames(dsParams: Map[String, String]): Unit = {
+  def ingestGeoNames(dsParams: JMap[String, String]): Unit = {
     // GeoNames ingest
-    val ingest = new ConverterIngest(GeoNames.sft, dsParams, GeoNames.conf, Seq("/home/mzimmerman/sparksql/sample2.txt"), "", Iterator.empty, 16)
+    //val file = new File(getClass.getResource("/geonames-sample.tsv").getFile)
+    //println(file.getAbsolutePath)
+    val ingest = new ConverterIngest(GeoNames.sft, dsParams.toMap, GeoNames.conf, Seq("/home/mzimmerman/sparksql/sample2.txt"), "", Iterator.empty, 16)
     ingest.run
   }
 

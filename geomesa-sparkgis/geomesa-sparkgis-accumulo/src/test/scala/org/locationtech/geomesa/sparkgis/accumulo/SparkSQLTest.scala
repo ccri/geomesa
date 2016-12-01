@@ -1,5 +1,8 @@
 package org.locationtech.geomesa.sparkgis.accumulo
 
+import java.util.{Map => JMap}
+
+import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.geotools.data.DataStoreFinder
 import org.junit.runner.RunWith
@@ -13,62 +16,77 @@ import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
 class SparkSQLTest extends Specification {
-  System.setProperty(QueryProperties.SCAN_RANGES_TARGET.property, "1")
-  System.setProperty(AccumuloQueryProperties.SCAN_BATCH_RANGES.property, s"${Int.MaxValue}")
-  System.setProperty("sun.net.spi.nameservice.nameservers", "192.168.2.77")
-  System.setProperty("sun.net.spi.nameservice.provider.1", "dns,sun")
-
-  val mac = SparkSQLTestUtils.setupMiniAccumulo()
-  val dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
-  val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
-
-  SparkSQLTestUtils.ingestChicago(ds)
-  SparkSQLTestUtils.ingestGeoNames(dsParams)
-  SparkSQLTestUtils.ingestStates(ds)
-
-  val spark = SparkSession.builder().master("local[*]").getOrCreate()
-
-  val df: DataFrame = spark.read
-    .format("geomesa")
-    .options(dsParams)
-    .option("geomesa.feature", "chicago")
-    .load()
-  df.printSchema()
-  df.createOrReplaceTempView("chicago")
-  println(s"*** Length of Chicago DF:   ${df.collect().length}")
-
-  val gndf: DataFrame = spark.read
-    .format("geomesa")
-    .options(dsParams)
-    .option("geomesa.feature", "geonames")
-    .load()
-  gndf.printSchema()
-  gndf.createOrReplaceTempView("geonames")
-  println(s"*** Length of GeoNames DF:  ${gndf.collect().length}")
-
-  val sdf: DataFrame = spark.read
-    .format("geomesa")
-    .options(dsParams)
-    .option("geomesa.feature", "states")
-    .load()
-  sdf.printSchema()
-  sdf.createOrReplaceTempView("states")
-  println(s"*** Length of States DF:  ${sdf.collect().length}")
-
   "SparkSQL" should {
-    "create chicago data" in {
+    sequential
+
+    System.setProperty(QueryProperties.SCAN_RANGES_TARGET.property, "1")
+    System.setProperty(AccumuloQueryProperties.SCAN_BATCH_RANGES.property, s"${Int.MaxValue}")
+    System.setProperty("sun.net.spi.nameservice.nameservers", "192.168.2.77")
+    System.setProperty("sun.net.spi.nameservice.provider.1", "dns,sun")
+
+    var mac: MiniAccumuloCluster = null
+    var dsParams: JMap[String, String] = null
+    var ds: AccumuloDataStore = null
+    var spark: SparkSession = null
+
+    var df: DataFrame = null
+    var gndf: DataFrame = null
+    var sdf: DataFrame = null
+
+    "init" >> {
+      mac = SparkSQLTestUtils.setupMiniAccumulo()
+      dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
+      println(dsParams)
+      ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
+
+      spark = SparkSession.builder().master("local[*]").getOrCreate()
+      spark must not beNull
+    }
+
+    "ingest chicago" >> {
+      SparkSQLTestUtils.ingestChicago(ds)
+
+      df = spark.read
+        .format("geomesa")
+        .options(dsParams)
+        .option("geomesa.feature", "chicago")
+        .load()
+      df.printSchema()
+      df.createOrReplaceTempView("chicago")
+
       df.collect().length mustEqual 3
     }
 
-    "create geonames data" in {
+    "ingest geonames" >> {
+      SparkSQLTestUtils.ingestGeoNames(dsParams)
+
+      gndf = spark.read
+        .format("geomesa")
+        .options(dsParams)
+        .option("geomesa.feature", "geonames")
+        .load()
+      Thread.sleep(2000)
+      gndf.printSchema()
+      gndf.createOrReplaceTempView("geonames")
+
       gndf.collect().length mustEqual 2550
     }
 
-    "create states data" in {
-      sdf.collect().length mustEqual 56
+    "ingest states" >> {
+      SparkSQLTestUtils.ingestStates(ds)
+
+      sdf = spark.read
+        .format("geomesa")
+        .options(dsParams)
+        .option("geomesa.feature", "states")
+        .load()
+      Thread.sleep(2000)
+      sdf.printSchema()
+      sdf.createOrReplaceTempView("states")
+
+      sdf.collect.length mustEqual 56
     }
   }
-
 
 //  import spark.sqlContext.{sql => $}
 //
