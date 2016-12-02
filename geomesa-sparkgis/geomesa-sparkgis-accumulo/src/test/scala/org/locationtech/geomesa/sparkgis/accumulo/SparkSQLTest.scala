@@ -2,9 +2,11 @@ package org.locationtech.geomesa.sparkgis.accumulo
 
 import java.util.{Map => JMap}
 
+import com.vividsolutions.jts.geom.{Coordinate, Point}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{SQLContext, DataFrame, SparkSession}
 import org.geotools.data.DataStoreFinder
+import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
@@ -16,6 +18,8 @@ import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
 class SparkSQLTest extends Specification {
+  val createPoint = JTSFactoryFinder.getGeometryFactory.createPoint(_: Coordinate)
+
   "SparkSQL" should {
     sequential
 
@@ -28,6 +32,7 @@ class SparkSQLTest extends Specification {
     var dsParams: JMap[String, String] = null
     var ds: AccumuloDataStore = null
     var spark: SparkSession = null
+    var sc: SQLContext = null
 
     var df: DataFrame = null
     var gndf: DataFrame = null
@@ -40,6 +45,8 @@ class SparkSQLTest extends Specification {
       ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
       spark = SparkSession.builder().master("local[*]").getOrCreate()
+      sc = spark.sqlContext
+
       spark must not beNull
     }
 
@@ -65,7 +72,6 @@ class SparkSQLTest extends Specification {
         .options(dsParams)
         .option("geomesa.feature", "geonames")
         .load()
-      Thread.sleep(2000)
       gndf.printSchema()
       gndf.createOrReplaceTempView("geonames")
 
@@ -80,11 +86,19 @@ class SparkSQLTest extends Specification {
         .options(dsParams)
         .option("geomesa.feature", "states")
         .load()
-      Thread.sleep(2000)
       sdf.printSchema()
       sdf.createOrReplaceTempView("states")
 
       sdf.collect.length mustEqual 56
+    }
+
+    "basic sql 1" >> {
+      val r = sc.sql("select * from chicago where case_number = 1")
+      r.show()
+      val d = r.collect()
+
+      d.length mustEqual 1
+      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
     }
   }
 

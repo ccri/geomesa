@@ -1,5 +1,6 @@
 package org.locationtech.geomesa.sparkgis.accumulo
 
+import java.io.File
 import java.nio.file.Files
 import java.util.{Map => JMap}
 
@@ -67,16 +68,18 @@ object SparkSQLTestUtils {
   //
   def ingestGeoNames(dsParams: JMap[String, String]): Unit = {
     // GeoNames ingest
-    //val file = new File(getClass.getResource("/geonames-sample.tsv").getFile)
-    //println(file.getAbsolutePath)
-    val ingest = new ConverterIngest(GeoNames.sft, dsParams.toMap, GeoNames.conf, Seq("/home/mzimmerman/sparksql/sample2.txt"), "", Iterator.empty, 16)
+    val file = new File(getClass.getResource("/geonames-sample.tsv").getFile)
+    val filePath = file.getAbsolutePath
+    val ingest = new ConverterIngest(GeoNames.sft, dsParams.toMap, GeoNames.conf, Seq(filePath), "", Iterator.empty, 16)
     ingest.run
   }
 
   //
   def ingestStates(ds: AccumuloDataStore) = {
     // States shapefile ingest
-    GeneralShapefileIngest.shpToDataStore("/home/mzimmerman/sparksql/states.shp", ds, "states")
+    val file = new File(getClass.getResource("/states.shp").getFile)
+    val filePath = file.getAbsolutePath
+    GeneralShapefileIngest.shpToDataStore(filePath, ds, "states")
   }
 
 }
