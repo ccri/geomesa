@@ -163,7 +163,8 @@ class SparkSQLTest extends Specification {
           |select st_makeBBOX(0.0, 0.0, 2.0, 2.0)
         """.stripMargin
       )
-      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, 2.0 2.0, 0.0 2.0, 0.0 0.0))")
+      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
+                                                                 "2.0 2.0, 0.0 2.0, 0.0 0.0))")
     }
 
     "st_makeBox2D" >> {
@@ -173,7 +174,8 @@ class SparkSQLTest extends Specification {
           |                    st_castToPoint(st_geomFromWKT('POINT(2 2)')))
         """.stripMargin
       )
-      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, 2.0 2.0, 0.0 2.0, 0.0 0.0))")
+      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
+                                                                 "2.0 2.0, 0.0 2.0, 0.0 0.0))")
     }
   }
     //  import spark.sqlContext.{sql => $}
