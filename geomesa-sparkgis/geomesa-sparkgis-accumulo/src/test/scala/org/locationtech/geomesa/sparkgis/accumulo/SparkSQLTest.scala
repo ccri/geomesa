@@ -1,10 +1,11 @@
 package org.locationtech.geomesa.sparkgis.accumulo
 
 import java.util.{Map => JMap}
+import javafx.geometry.BoundingBox
 
-import com.vividsolutions.jts.geom.{Coordinate, Point}
+import com.vividsolutions.jts.geom.{Coordinate, Point, Polygon}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
-import org.apache.spark.sql.{SQLContext, DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.DataStoreFinder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
@@ -154,6 +155,27 @@ class SparkSQLTest extends Specification {
         """.stripMargin)
 
       r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
+    }
+
+    "st_makeBBOX" >> {
+      val r = sc.sql(
+        """
+          |select st_makeBBOX(0.0, 0.0, 2.0, 2.0)
+        """.stripMargin
+      )
+      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
+                                                                 "2.0 2.0, 0.0 2.0, 0.0 0.0))")
+    }
+
+    "st_makeBox2D" >> {
+      val r = sc.sql(
+        """
+          |select st_makeBox2D(st_castToPoint(st_geomFromWKT('POINT(0 0)')),
+          |                    st_castToPoint(st_geomFromWKT('POINT(2 2)')))
+        """.stripMargin
+      )
+      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
+                                                                 "2.0 2.0, 0.0 2.0, 0.0 0.0))")
     }
   }
     //  import spark.sqlContext.{sql => $}
