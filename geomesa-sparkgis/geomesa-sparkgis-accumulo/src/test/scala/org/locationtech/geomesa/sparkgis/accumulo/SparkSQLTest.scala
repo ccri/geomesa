@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.index.conf.QueryProperties
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -46,6 +47,7 @@ class SparkSQLTest extends Specification {
 
       spark = SparkSession.builder().master("local[*]").getOrCreate()
       sc = spark.sqlContext
+      sc.setConf("spark.sql.crossJoin.enabled", "true")
 
       spark must not beNull
     }
@@ -79,6 +81,8 @@ class SparkSQLTest extends Specification {
     }
 
     "ingest states" >> {
+      import org.apache.spark.sql.functions.broadcast
+
       SparkSQLTestUtils.ingestStates(ds)
 
       sdf = spark.read
@@ -89,7 +93,11 @@ class SparkSQLTest extends Specification {
       sdf.printSchema()
       sdf.createOrReplaceTempView("states")
 
+      broadcast(sdf).createOrReplaceTempView("broadcastStates")
+
       sdf.collect.length mustEqual 56
+
+
     }
 
     "basic sql 1" >> {
@@ -100,9 +108,55 @@ class SparkSQLTest extends Specification {
       d.length mustEqual 1
       d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
     }
-  }
 
-//  import spark.sqlContext.{sql => $}
+
+    "join st_contains" >> {
+      val r = sc.sql(
+        """
+          |select broadcastStates.STUSPS, count(*), sum(population)
+          |from geonames, broadcastStates
+          |where st_contains(broadcastStates.the_geom, geonames.geom)
+          |  and featurecode = "PPL"
+          |group by broadcastStates.STUSPS
+          |order by broadcastStates.STUSPS
+        """.stripMargin
+      )
+      val d = r.collect()
+      val d1 = d.head
+      d.length mustEqual 48
+      d1.getAs[String](0) mustEqual "AL"
+      d1.getAs[Long](1) mustEqual 6
+      d1.getAs[Long](2) mustEqual 2558
+    }
+
+    "join distance to centroid" >> {
+      val r = sc.sql(
+        """
+          |select geonames.name,
+          |       stateCentroids.abbrev,
+          |       st_distanceSpheroid(stateCentroids.geom, geonames.geom) as dist
+          |from geonames,
+          |     (select broadcastStates.STUSPS as abbrev,
+          |      st_centroid(broadcastStates.the_geom) as geom
+          |      from broadcastStates) as stateCentroids
+          |where geonames.admin1code = stateCentroids.abbrev
+          |order by dist
+        """.stripMargin)
+      r.show(100)
+
+      true mustEqual true
+    }
+
+    "st_translate" >> {
+      val r = sc.sql(
+        """
+          |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
+        """.stripMargin)
+
+      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
+    }
+  }
+    //  import spark.sqlContext.{sql => $}
 //
 //  //$("select * from chicago where (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp))").show()
 //  //$("select * from chicago where arrest = 'true' and (dtg >= cast('2016-01-01' as timestamp) and dtg <= cast('2016-02-01' as timestamp)) and st_contains(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))").show()
@@ -117,78 +171,11 @@ class SparkSQLTest extends Specification {
 //
 //  import org.apache.spark.sql.functions.broadcast
 //
-//  spark.sqlContext.setConf("spark.sql.crossJoin.enabled", "true")
+
 //
 //  broadcast(sdf).createOrReplaceTempView("broadcastStates")
+//
 
-//  $(
-//    """
-//      |  explain select geonames.name, broadcastStates.STUSPS
-//      |  from geonames, broadcastStates
-//      |  where st_contains(broadcastStates.the_geom, geonames.geom)
-//    """.stripMargin).show(100, false)
-//
-//  println(s"time: ${new DateTime}")
-//  $(
-//    """
-//      |  select geonames.name, broadcastStates.STUSPS
-//      |  from geonames, broadcastStates
-//      |  where st_contains(broadcastStates.the_geom, geonames.geom)
-//    """.stripMargin).show(100, false)
-
-//  def executeSQL(query: String, rows: Integer, explain: Boolean) = {
-//    $(query).show(rows, false)
-//    if (explain) {
-//      $("explain "+query).show(1, false)
-//    }
-//  }
-//
-//  // find number of populated places (PPL) in the geonames set
-//  // in each state, and sum their population
-//  val sqlGroupBy = """
-//    |  select broadcastStates.STUSPS, count(*), sum(population)
-//    |  from geonames, broadcastStates
-//    |  where st_contains(broadcastStates.the_geom, geonames.geom)
-//    |        and featurecode = "PPL"
-//    |  group by broadcastStates.STUSPS
-//    |  order by broadcastStates.STUSPS
-//  """.stripMargin
-//
-//  executeSQL(sqlGroupBy, 100, true)
-//
-//  // find centroid of each state
-//  val sqlStateCentroid =
-//    """
-//      |select broadcastStates.STUSPS, st_centroid(broadcastStates.the_geom)
-//      |from broadcastStates
-//    """.stripMargin
-//
-//  executeSQL(sqlStateCentroid, 100, true)
-//
-//  // find points in geonames closest to the centroid of their state
-//  val sqlDistanceToCentroid =
-//    """
-//      |select geonames.name,
-//      |       stateCentroids.abbrev,
-//      |       st_distanceSpheroid(stateCentroids.geom, geonames.geom) as dist
-//      |from geonames,
-//      |     (select broadcastStates.STUSPS as abbrev,
-//      |      st_centroid(broadcastStates.the_geom) as geom
-//      |      from broadcastStates) as stateCentroids
-//      |where geonames.admin1code = stateCentroids.abbrev
-//      |order by dist
-//    """.stripMargin
-//
-//  executeSQL(sqlDistanceToCentroid, 100, true)
-//
-//  val sqlConstant = "select pi()"
-//  executeSQL(sqlConstant, 100, true)
-//
-//  val sql_st_translate =
-//    """
-//      |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
-//    """.stripMargin
-//  executeSQL(sql_st_translate, 100, true)
 
 
 
