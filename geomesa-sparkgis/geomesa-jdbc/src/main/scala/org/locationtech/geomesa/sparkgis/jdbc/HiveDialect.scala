@@ -56,6 +56,7 @@ class HiveDialect(ds: JDBCDataStore) extends BasicSQLDialect(ds) {
     val statement = cx.createStatement()
     statement.execute("show tables")
     val res = statement.getResultSet
+    connection.getMetaData.getTables()
     println(s"res: $res")
 
   }
