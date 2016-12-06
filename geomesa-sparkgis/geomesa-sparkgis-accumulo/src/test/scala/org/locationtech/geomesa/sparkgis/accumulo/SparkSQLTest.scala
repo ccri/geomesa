@@ -1,11 +1,10 @@
 package org.locationtech.geomesa.sparkgis.accumulo
 
 import java.util.{Map => JMap}
-import javafx.geometry.BoundingBox
 
 import com.vividsolutions.jts.geom.{Coordinate, Point, Polygon}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
-import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
+import org.apache.spark.sql.{Row, SQLContext, DataFrame, SparkSession}
 import org.geotools.data.DataStoreFinder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
@@ -39,6 +38,17 @@ class SparkSQLTest extends Specification {
     var df: DataFrame = null
     var gndf: DataFrame = null
     var sdf: DataFrame = null
+
+
+    val box1 = "POLYGON((-76.9 38, -76.9 39, -76.1 39, -76.1 38, -76.9 38))"
+
+
+    def $(sql: String, n: Int = 100): Array[Row] = {
+      val r = sc.sql(sql)
+      println(sql)
+      r.show(n)
+      r.collect()
+    }
 
     "init" >> {
       mac = SparkSQLTestUtils.setupMiniAccumulo()
@@ -97,8 +107,6 @@ class SparkSQLTest extends Specification {
       broadcast(sdf).createOrReplaceTempView("broadcastStates")
 
       sdf.collect.length mustEqual 56
-
-
     }
 
     "basic sql 1" >> {
@@ -110,7 +118,7 @@ class SparkSQLTest extends Specification {
       d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
     }
 
-
+    /*
     "join st_contains" >> {
       val r = sc.sql(
         """
@@ -145,6 +153,73 @@ class SparkSQLTest extends Specification {
         """.stripMargin)
       r.show(100)
 
+      true mustEqual true
+    }
+    */
+
+    "st_contains" >> {
+      val r = $(
+        s"""
+          |select  geom
+          |from    chicago
+          |where
+          |  st_contains(st_geomFromWKT('$box1'), geom)
+          |  and dtg >= cast('2015-12-31' as timestamp)
+          |  and dtg <= cast('2016-01-07' as timestamp)
+       """.stripMargin)
+      true mustEqual true
+    }
+
+    "st_crosses" >> {
+      val r = sc.sql(
+        """
+          |select  arrest, geom
+          |from    chicago
+          |where
+          |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+          |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+        """.stripMargin)
+      r.show()
+      true mustEqual true
+    }
+
+    //  $(
+    //    """
+    //      | select st_convexhull(geom)
+    //      | from chicago
+    //      | where
+    //      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+    //      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+    //    """.stripMargin).show()
+
+    "st_disjoint" >> {
+      val r = sc.sql("select st_disjoint(st_geomFromWKT('POINT(0 0)'), st_geomFromWKT('LINESTRING(0 0, 1 1)'))")
+      r.collect().head.getAs[java.lang.Boolean](0) mustEqual false
+    }
+
+    "st_intersects" >> {
+      val r = sc.sql(
+        """
+            |select  arrest, geom
+            |from    chicago
+            |where
+            |  st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+            |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+          """.stripMargin)
+      r.show()
+      true mustEqual true
+    }
+
+    "st_within" >> {
+      val r = sc.sql(
+        """
+            |select  arrest, geom
+            |from    chicago
+            |where
+            |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
+            |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
+          """.stripMargin)
+      r.show()
       true mustEqual true
     }
 
@@ -230,67 +305,12 @@ class SparkSQLTest extends Specification {
 //      | order By(name)
 //    """.stripMargin) //.show(100)
 //
-//  $(
-//    """
-//      | select *
-//      | from chicago
-//      | where
-//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
-//
-//  $(
-//    """
-//      | select arrest, geom
-//      | from chicago
-//      | where
-//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
-//
-//  $(
-//    """
-//      | select st_convexhull(geom)
-//      | from chicago
-//      | where
-//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
-//
+
 //  println("Testing predicates")
 //
-//  $("""
-//      |select  arrest, geom
-//      |from    chicago
-//      |where
-//      |  st_contains(st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'), geom)
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
+
 //
-//  $("""
-//      |select  arrest, geom
-//      |from    chicago
-//      |where
-//      |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
-//
-//  $("""
-//      |select  arrest, geom
-//      |from    chicago
-//      |where
-//      |  st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
-//
-//  $("""
-//      |select  arrest, geom
-//      |from    chicago
-//      |where
-//      |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-//      |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-//    """.stripMargin).show()
-//
+
 //  println("Done testing predicates")
 //
 //  println("Compute distances")
