@@ -12,8 +12,8 @@
     <artifactId>geomesa-spark-sql</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>geomesa-sparkgis-core</module>
-        <module>geomesa-sparkgis-accumulo</module>
+        <module>geomesa-spark-sql-core</module>
+        <module>geomesa-spark-sql-accumulo</module>
     </modules>
 
 
