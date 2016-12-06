@@ -95,6 +95,8 @@ object GeoMesaAccumuloInputFormat extends LazyLogging {
 
     InputFormatBase.setBatchScan(job, true)
 
+    InputFormatBase.setBatchScan(job, true)
+
     // also set the datastore parameters so we can access them later
     val conf = job.getConfiguration
 
