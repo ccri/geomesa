@@ -51,7 +51,5 @@
             <artifactId>specs2_${scala.binary.version}</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
-
 </project>

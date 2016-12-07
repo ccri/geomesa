@@ -15,6 +15,4 @@
         <module>geomesa-spark-sql-core</module>
         <module>geomesa-spark-sql-accumulo</module>
     </modules>
-
-
 </project>

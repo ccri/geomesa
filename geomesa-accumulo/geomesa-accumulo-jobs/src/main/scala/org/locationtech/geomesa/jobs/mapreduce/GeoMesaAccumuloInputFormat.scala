@@ -183,7 +183,6 @@ class GeoMesaAccumuloInputFormat extends InputFormat[Text, SimpleFeature] with L
   }
 
   override def createRecordReader(split: InputSplit, context: TaskAttemptContext) = {
-
     init(context.getConfiguration)
     val readers = Array(delegate.createRecordReader(split, context))
     val schema = GeoMesaConfigurator.getTransformSchema(context.getConfiguration).getOrElse(sft)
@@ -214,16 +213,6 @@ class GeoMesaRecordReader(sft: SimpleFeatureType,
   val getId = table.getIdFromRow(sft)
 
   override def initialize(split: InputSplit, context: TaskAttemptContext) = {
-/*
-    val splits = split.asInstanceOf[GroupedSplit].splits
-    var i = 0
-    while (i < splits.length) {
-      splits(i).setSamplerConfiguration(null)
-      readers(i).initialize(splits(i), context)
-      i = i + 1
-    }
-*/
-
     readers(0).initialize(split, context)
     // queue up our first reader
     nextReader()

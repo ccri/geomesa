@@ -22,6 +22,7 @@ import org.locationtech.geomesa.accumulo.data._
 import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex
 import org.locationtech.geomesa.curve.BinnedTime.TimeToBinnedTime
 import org.locationtech.geomesa.curve.{BinnedTime, XZ3SFC}
+import org.locationtech.geomesa.index.utils.SplitArrays
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.opengis.feature.simple.SimpleFeatureType
 
@@ -33,7 +34,8 @@ trait XZ3WritableIndex extends AccumuloWritableIndex {
     val timeToIndex = BinnedTime.timeToBinnedTime(sft.getZ3Interval)
     val sharing = sft.getTableSharingBytes
     require(sharing.length < 2, s"Expecting only a single byte for table sharing, got ${sft.getTableSharingPrefix}")
-    val rowKey = getRowKey(sfc, timeToIndex, sharing, dtgIndex)_
+    val splitArray = SplitArrays.apply(sft.getZShards)
+    val rowKey = getRowKey(sfc, timeToIndex, sharing, dtgIndex, splitArray)_
     (wf: AccumuloFeature) => {
       val mutation = new Mutation(rowKey(wf))
       wf.fullValues.foreach(value => mutation.put(value.cf, value.cq, value.vis, value.value))
@@ -47,7 +49,8 @@ trait XZ3WritableIndex extends AccumuloWritableIndex {
     val sfc = XZ3SFC(sft.getXZPrecision, sft.getZ3Interval)
     val timeToIndex = BinnedTime.timeToBinnedTime(sft.getZ3Interval)
     val sharing = sft.getTableSharingBytes
-    val rowKey = getRowKey(sfc, timeToIndex, sharing, dtgIndex)_
+    val splitArray = SplitArrays.apply(sft.getZShards)
+    val rowKey = getRowKey(sfc, timeToIndex, sharing, dtgIndex, splitArray)_
     (wf: AccumuloFeature) => {
       val mutation = new Mutation(rowKey(wf))
       wf.fullValues.foreach(value => mutation.putDelete(value.cf, value.cq, value.vis))
@@ -62,10 +65,16 @@ trait XZ3WritableIndex extends AccumuloWritableIndex {
   }
 
   // table sharing (0-1 byte), split (1 byte), time interval(2 bytes), z value (8 bytes), id (n bytes)
-  private def getRowKey(sfc: XZ3SFC, timeToIndex: TimeToBinnedTime, tableSharing: Array[Byte], dtgIndex: Int)
+  private def getRowKey(sfc: XZ3SFC, timeToIndex: TimeToBinnedTime, tableSharing: Array[Byte], dtgIndex: Int,
+                        splitArray: Seq[Array[Byte]])
                        (wf: AccumuloFeature): Array[Byte] = {
-    val split = AccumuloWritableIndex.DefaultSplitArrays(wf.idHash % AccumuloWritableIndex.DefaultNumSplits)
-    val envelope = wf.feature.getDefaultGeometry.asInstanceOf[Geometry].getEnvelopeInternal
+    val numSplits = splitArray.length
+    val split = splitArray(wf.idHash % numSplits)
+    val geom = wf.feature.getDefaultGeometry.asInstanceOf[Geometry]
+    if (geom == null) {
+      throw new IllegalArgumentException(s"Null geometry in feature ${wf.feature.getID}")
+    }
+    val envelope = geom.getEnvelopeInternal
     // TODO support date intervals
     val dtg = wf.feature.getAttribute(dtgIndex).asInstanceOf[Date]
     val time = if (dtg == null) 0 else dtg.getTime
@@ -90,9 +99,9 @@ trait XZ3WritableIndex extends AccumuloWritableIndex {
     // drop first split, otherwise we get an empty tablet
     val splits = if (sft.isTableSharing) {
       val ts = sft.getTableSharingPrefix.getBytes(StandardCharsets.UTF_8)
-      AccumuloWritableIndex.DefaultSplitArrays.drop(1).map(s => new Text(ts ++ s)).toSet
+      SplitArrays.apply(sft.getZShards).drop(1).map(s => new Text(ts ++ s)).toSet
     } else {
-      AccumuloWritableIndex.DefaultSplitArrays.drop(1).map(new Text(_)).toSet
+      SplitArrays.apply(sft.getZShards).drop(1).map(new Text(_)).toSet
     }
     val splitsToAdd = splits -- ds.tableOps.listSplits(table).toSet
     if (splitsToAdd.nonEmpty) {

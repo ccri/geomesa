@@ -87,7 +87,7 @@ class CassandraDataStore(val session: Session, keyspaceMetadata: KeyspaceMetadat
     new CassandraFeatureStore(contentEntry)
 
 
-  def getSchema(name: Name, table: TableMetadata): SimpleFeatureType = {
+  override def getSchema(name: Name): SimpleFeatureType = {
     val sftOpt = metadata.read(name.getLocalPart, "attributes").map(SimpleFeatureTypes.createType(name.getLocalPart, _))
     sftOpt.orNull
   }
@@ -109,7 +109,7 @@ class CassandraDataStore(val session: Session, keyspaceMetadata: KeyspaceMetadat
         s"${ad.getLocalName}  ${CassandraDataStore.typeMap(ad.getType.getBinding).getName.toString}"
       }.mkString(",")
     val colCreate = s"(pkz int, z31 bigint, fid text, $cols, PRIMARY KEY (pkz, z31, fid))"
-    val stmt = s"create table ${featureType.getTypeName} $colCreate"
+    val stmt = s"CREATE TABLE IF NOT EXISTS ${featureType.getTypeName} $colCreate"
     session.execute(stmt)
 
     metadata.insert(
@@ -118,9 +118,13 @@ class CassandraDataStore(val session: Session, keyspaceMetadata: KeyspaceMetadat
       SimpleFeatureTypes.encodeType(featureType, includeUserData = true))
   }
 
+  override def removeSchema(typeName: String): Unit = {
+    session.execute(s"drop table $typeName")
+    metadata.delete(typeName)
+  }
 
   override def createContentState(entry: ContentEntry): ContentState =
-    new CassandraContentState(entry, this, keyspaceMetadata.getTable(entry.getTypeName))
+    new CassandraContentState(entry, this)
 
   override def createTypeNames(): util.List[Name] =
     metadata.getFeatureTypes.map { t => new NameImpl(ns.toString, t) }.toList

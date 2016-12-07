@@ -22,6 +22,7 @@ import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex
 import org.locationtech.geomesa.curve.BinnedTime.TimeToBinnedTime
 import org.locationtech.geomesa.curve.{BinnedTime, Z3SFC}
 import org.locationtech.geomesa.index.api.GeoMesaFeatureIndex
+import org.locationtech.geomesa.index.utils.SplitArrays
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.opengis.feature.simple.SimpleFeatureType
@@ -31,7 +32,7 @@ import scala.collection.JavaConversions._
 trait Z3WritableIndex extends AccumuloWritableIndex {
 
   import AccumuloWritableIndex.{BinColumnFamily, FullColumnFamily}
-  import Z3Index.{GEOM_Z_MASK, GEOM_Z_NUM_BYTES, GEOM_Z_STEP}
+  import Z3Index._
 
   def hasSplits: Boolean
 
@@ -48,14 +49,18 @@ trait Z3WritableIndex extends AccumuloWritableIndex {
   }
 
   // split(1 byte), week(2 bytes), z value (8 bytes), id (n bytes)
-  protected def getPointRowKey(timeToIndex: TimeToBinnedTime, sfc: Z3SFC)
+  protected def getPointRowKey(timeToIndex: TimeToBinnedTime, sfc: Z3SFC, splitArray: Seq[Array[Byte]])
                               (wf: AccumuloFeature, dtgIndex: Int): Seq[Array[Byte]] = {
-    val split = AccumuloWritableIndex.DefaultSplitArrays(wf.idHash % AccumuloWritableIndex.DefaultNumSplits)
+    val numSplits = splitArray.length
+    val split = splitArray(wf.idHash % numSplits)
     val (timeBin, z) = {
       val dtg = wf.feature.getAttribute(dtgIndex).asInstanceOf[Date]
       val time = if (dtg == null) 0 else dtg.getTime
       val BinnedTime(b, t) = timeToIndex(time)
       val geom = wf.feature.point
+      if (geom == null) {
+        throw new IllegalArgumentException(s"Null geometry in feature ${wf.feature.getID}")
+      }
       (b, sfc.index(geom.getX, geom.getY, t).z)
     }
     val id = wf.feature.getID.getBytes(StandardCharsets.UTF_8)
@@ -63,14 +68,18 @@ trait Z3WritableIndex extends AccumuloWritableIndex {
   }
 
   // split(1 byte), week (2 bytes), z value (3 bytes), id (n bytes)
-  protected def getGeomRowKeys(timeToIndex: TimeToBinnedTime, sfc: Z3SFC)
+  protected def getGeomRowKeys(timeToIndex: TimeToBinnedTime, sfc: Z3SFC, splitArray: Seq[Array[Byte]])
                               (wf: AccumuloFeature, dtgIndex: Int): Seq[Array[Byte]] = {
-    val split = AccumuloWritableIndex.DefaultSplitArrays(wf.idHash % AccumuloWritableIndex.DefaultNumSplits)
+    val numSplits = splitArray.length
+    val split = splitArray(wf.idHash % numSplits)
     val (timeBin, zs) = {
       val dtg = wf.feature.getAttribute(dtgIndex).asInstanceOf[Date]
       val time = if (dtg == null) 0 else dtg.getTime
       val BinnedTime(b, t) = timeToIndex(time)
       val geom = wf.feature.getDefaultGeometry.asInstanceOf[Geometry]
+      if (geom == null) {
+        throw new IllegalArgumentException(s"Null geometry in feature ${wf.feature.getID}")
+      }
       (Shorts.toByteArray(b), zBox(sfc, geom, t).toSeq)
     }
     val id = wf.feature.getID.getBytes(StandardCharsets.UTF_8)
@@ -129,7 +138,7 @@ trait Z3WritableIndex extends AccumuloWritableIndex {
     ds.tableOps.setLocalityGroups(table, localityGroups)
 
     // drop first split, otherwise we get an empty tablet
-    val splits = AccumuloWritableIndex.DefaultSplitArrays.drop(1).map(new Text(_)).toSet
+    val splits = SplitArrays.apply(sft.getZShards).drop(1).map(new Text(_)).toSet
     val splitsToAdd = splits -- ds.tableOps.listSplits(table).toSet
     if (splitsToAdd.nonEmpty) {
       // noinspection RedundantCollectionConversion

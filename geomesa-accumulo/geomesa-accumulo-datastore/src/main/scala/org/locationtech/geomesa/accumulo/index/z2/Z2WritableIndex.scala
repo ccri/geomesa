@@ -19,6 +19,7 @@ import org.locationtech.geomesa.accumulo.AccumuloVersion
 import org.locationtech.geomesa.accumulo.data._
 import org.locationtech.geomesa.accumulo.index.AccumuloWritableIndex
 import org.locationtech.geomesa.curve.Z2SFC
+import org.locationtech.geomesa.index.utils.SplitArrays
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.opengis.feature.simple.SimpleFeatureType
 
@@ -33,19 +34,29 @@ trait Z2WritableIndex extends AccumuloWritableIndex {
   }
 
   // split(1 byte), z value (8 bytes), id (n bytes)
-  protected def getPointRowKey(tableSharing: Array[Byte])(wf: AccumuloFeature): Seq[Array[Byte]] = {
+  protected def getPointRowKey(tableSharing: Array[Byte], splitArray: Seq[Array[Byte]])
+                              (wf: AccumuloFeature): Seq[Array[Byte]] = {
     import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeature
-    val split = SPLIT_ARRAYS(wf.idHash % NUM_SPLITS)
+    val numSplits = splitArray.length
+    val split = splitArray(wf.idHash % numSplits)
     val id = wf.feature.getID.getBytes(StandardCharsets.UTF_8)
-    val pt = wf.feature.point
-    val z = Z2SFC.index(pt.getX, pt.getY).z
+    val geom = wf.feature.point
+    if (geom == null) {
+      throw new IllegalArgumentException(s"Null geometry in feature ${wf.feature.getID}")
+    }
+    val z = Z2SFC.index(geom.getX, geom.getY).z
     Seq(Bytes.concat(tableSharing, split, Longs.toByteArray(z), id))
   }
 
   // split(1 byte), z value (3 bytes), id (n bytes)
-  protected def getGeomRowKeys(tableSharing: Array[Byte])(wf: AccumuloFeature): Seq[Array[Byte]] = {
-    val split = SPLIT_ARRAYS(wf.idHash % NUM_SPLITS)
+  protected def getGeomRowKeys(tableSharing: Array[Byte], splitArray: Seq[Array[Byte]])
+                              (wf: AccumuloFeature): Seq[Array[Byte]] = {
+    val numSplits = splitArray.length
+    val split = splitArray(wf.idHash % numSplits)
     val geom = wf.feature.getDefaultGeometry.asInstanceOf[Geometry]
+    if (geom == null) {
+      throw new IllegalArgumentException(s"Null geometry in feature ${wf.feature.getID}")
+    }
     val zs = zBox(geom)
     val id = wf.feature.getID.getBytes(StandardCharsets.UTF_8)
     zs.map(z => Bytes.concat(tableSharing, split, Longs.toByteArray(z).take(GEOM_Z_NUM_BYTES), id)).toSeq
@@ -114,9 +125,9 @@ trait Z2WritableIndex extends AccumuloWritableIndex {
     // drop first split, otherwise we get an empty tablet
     val splits = if (sft.isTableSharing) {
       val ts = sft.getTableSharingPrefix.getBytes(StandardCharsets.UTF_8)
-      SPLIT_ARRAYS.drop(1).map(s => new Text(ts ++ s)).toSet
+      SplitArrays.apply(sft.getZShards).drop(1).map(s => new Text(ts ++ s)).toSet
     } else {
-      SPLIT_ARRAYS.drop(1).map(new Text(_)).toSet
+      SplitArrays.apply(sft.getZShards).drop(1).map(new Text(_)).toSet
     }
     val splitsToAdd = splits -- ds.tableOps.listSplits(table).toSet
     if (splitsToAdd.nonEmpty) {

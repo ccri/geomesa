@@ -340,6 +340,21 @@ class AccumuloDataStoreQueryTest extends Specification with TestWithMultipleSfts
       }
     }
 
+    "support complex OR queries" in {
+      val sft = createNewSchema("attr1:String,attr2:Double,dtg:Date,*geom:Point:srid=4326")
+      val date = "dtg > '2010-05-07T12:29:50.000Z' AND dtg < '2010-05-07T12:30:10.000Z'"
+      def attr(fuzz: Int) = s"(intersects(geom, POLYGON ((39.$fuzz 39.$fuzz, 44.$fuzz 39.$fuzz, 44.$fuzz 44.$fuzz, 39.$fuzz 44.$fuzz, 39.$fuzz 39.$fuzz))) AND attr1 like 'foo%' AND attr2 > 0.001 and attr2 < 2.001)"
+      val disjoint = "disjoint(geom, POLYGON ((40 40, 42 42, 42 44, 40 40)))"
+      val clauses = (0 until 128).map(attr).mkString(" OR ")
+      val filter = s"$date AND ($clauses) AND $disjoint"
+      val query = new Query(sft.getTypeName, ECQL.toFilter(filter))
+      val start = System.currentTimeMillis()
+      // makes sure this doesn't blow up
+      SelfClosingIterator(ds.getFeatureReader(query, Transaction.AUTO_COMMIT)).toList
+      // we give it 30 seconds due to weak build boxes
+      (System.currentTimeMillis() - start) must beLessThan(30000L)
+    }
+
     "avoid deduplication when possible" in {
       val sft = createNewSchema(s"name:String:index=join:cardinality=high,dtg:Date,*geom:Point:srid=4326")
       addFeature(sft, ScalaSimpleFeature.create(sft, "1", "bob", "2010-05-07T12:00:00.000Z", "POINT(45 45)"))
@@ -367,14 +382,14 @@ class AccumuloDataStoreQueryTest extends Specification with TestWithMultipleSfts
       addFeature(sft, ScalaSimpleFeature.create(sft, "2", "name2", "2010-05-07T01:00:00.000Z", "POINT(45 45)"))
 
       val query = new Query(sft.getTypeName, ECQL.toFilter("BBOX(geom,40,40,50,50)"))
-      query.getHints.put(BIN_TRACK_KEY, "name")
-      query.getHints.put(BIN_BATCH_SIZE_KEY, 1000)
+      query.getHints.put(BIN_TRACK, "name")
+      query.getHints.put(BIN_BATCH_SIZE, 1000)
       val queryPlanner = new AccumuloQueryPlanner(ds)
       val results = queryPlanner.runQuery(sft, query, Some(Z2Index)).map(_.getAttribute(BIN_ATTRIBUTE_INDEX)).toSeq
       forall(results)(_ must beAnInstanceOf[Array[Byte]])
       val bins = results.flatMap(_.asInstanceOf[Array[Byte]].grouped(16).map(Convert2ViewerFunction.decode))
       bins must haveSize(2)
-      bins.map(_.trackId) must containAllOf(Seq("name1", "name2").map(_.hashCode.toString))
+      bins.map(_.trackId) must containAllOf(Seq("name1", "name2").map(_.hashCode))
     }
 
     "support bin queries with linestrings" in {
@@ -394,22 +409,22 @@ class AccumuloDataStoreQueryTest extends Specification with TestWithMultipleSfts
 
       forall(Seq(2, 1000)) { batch =>
         val query = new Query(sft.getTypeName, ECQL.toFilter("BBOX(geom,40,40,55,55)"))
-        query.getHints.put(BIN_TRACK_KEY, "name")
-        query.getHints.put(BIN_BATCH_SIZE_KEY, batch)
-        query.getHints.put(BIN_DTG_KEY, "dtgs")
+        query.getHints.put(BIN_TRACK, "name")
+        query.getHints.put(BIN_BATCH_SIZE, batch)
+        query.getHints.put(BIN_DTG, "dtgs")
 
         val bytes = ds.getFeatureSource(sft.getTypeName).getFeatures(query).features().map(_.getAttribute(BIN_ATTRIBUTE_INDEX)).toList
         forall(bytes)(_ must beAnInstanceOf[Array[Byte]])
         val bins = bytes.flatMap(_.asInstanceOf[Array[Byte]].grouped(16).map(Convert2ViewerFunction.decode))
         bins must haveSize(7)
         val sorted = bins.sortBy(_.dtg)
-        sorted(0) mustEqual BasicValues(41, 40, dtgs1(0).getTime, "name1".hashCode.toString)
-        sorted(1) mustEqual BasicValues(43, 42, dtgs1(1).getTime, "name1".hashCode.toString)
-        sorted(2) mustEqual BasicValues(45, 44, dtgs1(2).getTime, "name1".hashCode.toString)
-        sorted(3) mustEqual BasicValues(47, 46, dtgs1(3).getTime, "name1".hashCode.toString)
-        sorted(4) mustEqual BasicValues(50, 50, dtgs2(0).getTime, "name2".hashCode.toString)
-        sorted(5) mustEqual BasicValues(51, 51, dtgs2(1).getTime, "name2".hashCode.toString)
-        sorted(6) mustEqual BasicValues(52, 52, dtgs2(2).getTime, "name2".hashCode.toString)
+        sorted(0) mustEqual BasicValues(41, 40, dtgs1(0).getTime, "name1".hashCode)
+        sorted(1) mustEqual BasicValues(43, 42, dtgs1(1).getTime, "name1".hashCode)
+        sorted(2) mustEqual BasicValues(45, 44, dtgs1(2).getTime, "name1".hashCode)
+        sorted(3) mustEqual BasicValues(47, 46, dtgs1(3).getTime, "name1".hashCode)
+        sorted(4) mustEqual BasicValues(50, 50, dtgs2(0).getTime, "name2".hashCode)
+        sorted(5) mustEqual BasicValues(51, 51, dtgs2(1).getTime, "name2".hashCode)
+        sorted(6) mustEqual BasicValues(52, 52, dtgs2(2).getTime, "name2".hashCode)
       }
     }
 
@@ -464,34 +479,34 @@ class AccumuloDataStoreQueryTest extends Specification with TestWithMultipleSfts
         res must containTheSameElementsAs(Seq("fid-1"))
       }
 
-      query.getHints.put(QUERY_INDEX_KEY, AttributeIndex)
+      query.getHints.put(QUERY_INDEX, AttributeIndex)
       expectStrategy(AttributeIndex)
 
-      query.getHints.put(QUERY_INDEX_KEY, Z2Index)
+      query.getHints.put(QUERY_INDEX, Z2Index)
       expectStrategy(Z2Index)
 
-      query.getHints.put(QUERY_INDEX_KEY, Z3Index)
+      query.getHints.put(QUERY_INDEX, Z3Index)
       expectStrategy(Z3Index)
 
-      query.getHints.put(QUERY_INDEX_KEY, RecordIndex)
+      query.getHints.put(QUERY_INDEX, RecordIndex)
       expectStrategy(RecordIndex)
 
       val viewParams =  new java.util.HashMap[String, String]
       query.getHints.put(Hints.VIRTUAL_TABLE_PARAMETERS, viewParams)
 
-      query.getHints.remove(QUERY_INDEX_KEY)
+      query.getHints.remove(QUERY_INDEX)
       viewParams.put("STRATEGY", "attr")
       expectStrategy(AttributeIndex)
 
-      query.getHints.remove(QUERY_INDEX_KEY)
+      query.getHints.remove(QUERY_INDEX)
       viewParams.put("STRATEGY", "Z2")
       expectStrategy(Z2Index)
 
-      query.getHints.remove(QUERY_INDEX_KEY)
+      query.getHints.remove(QUERY_INDEX)
       viewParams.put("STRATEGY", "Z3")
       expectStrategy(Z3Index)
 
-      query.getHints.remove(QUERY_INDEX_KEY)
+      query.getHints.remove(QUERY_INDEX)
       viewParams.put("STRATEGY", "RECORDS")
       expectStrategy(RecordIndex)
 

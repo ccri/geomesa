@@ -39,8 +39,5 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-utils_2.11</artifactId>
         </dependency>
-
     </dependencies>
-
-
 </project>

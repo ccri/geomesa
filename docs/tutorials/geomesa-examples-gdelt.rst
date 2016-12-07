@@ -78,6 +78,11 @@ Pick a reasonable directory on your machine, and run:
     $ git clone https://github.com/geomesa/geomesa-tutorials.git
     $ cd geomesa-tutorials
 
+.. note::
+
+    You may need to download a particular release of the tutorials project
+    to target a particular GeoMesa release. See :ref:`tutorial_versions`.
+
 To build, run
 
 .. code-block:: bash
@@ -297,6 +302,8 @@ specified location in your GeoServer installation.
 
 .. image:: _static/geomesa-examples-gdelt/Ukraine_Event_RootCode_Threaten.png
    :alt: Showing GDELT events with CAMEO root code THREATEN from Jan 1, 2013 to April 30, 2014
+
+.. _gdelt_heatmaps:
 
 Heatmaps
 ~~~~~~~~

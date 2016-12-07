@@ -15,11 +15,11 @@ import org.locationtech.geomesa.utils.stats.{MethodProfiling, Timing, TimingsImp
 import org.opengis.feature.simple.SimpleFeatureType
 import org.opengis.filter.Filter
 
-class StrategyDecider[DS <: GeoMesaDataStore[DS, F, W, Q], F <: WrappedFeature, W, Q](manager: GeoMesaIndexManager[DS, F, W, Q])
+class StrategyDecider[DS <: GeoMesaDataStore[DS, F, W], F <: WrappedFeature, W](manager: GeoMesaIndexManager[DS, F, W])
     extends MethodProfiling {
 
-  type TypedFeatureIndex = GeoMesaFeatureIndex[DS, F, W, Q]
-  type TypedFilterStrategy = FilterStrategy[DS, F, W, Q]
+  type TypedFeatureIndex = GeoMesaFeatureIndex[DS, F, W]
+  type TypedFilterStrategy = FilterStrategy[DS, F, W]
 
   /**
     * Selects a strategy for executing a given query.
@@ -49,11 +49,11 @@ class StrategyDecider[DS <: GeoMesaDataStore[DS, F, W, Q], F <: WrappedFeature, 
     val availableIndices = manager.indices(sft, IndexMode.Read)
 
     // get the various options that we could potentially use
-    val options = profile(new FilterSplitter(sft, availableIndices).getQueryOptions(filter), "split")
+    val options = profile("split")(new FilterSplitter(sft, availableIndices).getQueryOptions(filter))
 
     explain(s"Query processing took ${timings.time("split")}ms and produced ${options.length} options")
 
-    val selected = profile({
+    val selected = profile("cost") {
       if (requested.isDefined) {
         val forced = forceStrategy(options, requested.get, filter)
         explain(s"Filter plan forced to $forced")
@@ -61,7 +61,7 @@ class StrategyDecider[DS <: GeoMesaDataStore[DS, F, W, Q], F <: WrappedFeature, 
       } else if (options.isEmpty) {
         // corresponds to filter.exclude
         explain("No filter plans found")
-        FilterPlan[DS, F, W, Q](Seq.empty)
+        FilterPlan[DS, F, W](Seq.empty)
       } else if (options.length == 1) {
         // only a single option, so don't bother with cost
         explain(s"Filter plan: ${options.head}")
@@ -79,7 +79,7 @@ class StrategyDecider[DS <: GeoMesaDataStore[DS, F, W, Q], F <: WrappedFeature, 
           costs.drop(1).map(c => s"${c._1} (Cost ${c._2} in ${c._3}ms)"))
         cheapest
       }
-    }, "cost")
+    }
 
     explain(s"Strategy selection took ${timings.time("cost")}ms for ${options.length} options")
 
@@ -87,10 +87,10 @@ class StrategyDecider[DS <: GeoMesaDataStore[DS, F, W, Q], F <: WrappedFeature, 
   }
 
   // see if one of the normal plans matches the requested type - if not, force it
-  private def forceStrategy(options: Seq[FilterPlan[DS, F, W, Q]],
+  private def forceStrategy(options: Seq[FilterPlan[DS, F, W]],
                             index: TypedFeatureIndex,
-                            allFilter: Filter): FilterPlan[DS, F, W, Q] = {
-    def checkStrategy(f: FilterStrategy[DS, F, W, Q]) = f.index == index
+                            allFilter: Filter): FilterPlan[DS, F, W] = {
+    def checkStrategy(f: FilterStrategy[DS, F, W]) = f.index == index
     options.find(_.strategies.forall(checkStrategy)).getOrElse {
       val secondary = if (allFilter == Filter.INCLUDE) None else Some(allFilter)
       FilterPlan(Seq(FilterStrategy(index, None, secondary)))

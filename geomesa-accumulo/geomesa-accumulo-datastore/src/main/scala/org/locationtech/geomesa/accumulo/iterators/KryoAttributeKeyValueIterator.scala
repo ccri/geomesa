@@ -42,18 +42,17 @@ class KryoAttributeKeyValueIterator extends SortedKeyValueIterator[Key, Value] w
   override def init(src: SortedKeyValueIterator[Key, Value],
                     options: jMap[String, String],
                     env: IteratorEnvironment): Unit = {
-
-    IteratorClassLoader.initClassLoader(getClass)
-
     this.source = src.deepCopy(env)
-    sft = SimpleFeatureTypes.createType("", options.get(SFT_OPT))
+
+    val spec = options.get(SFT_OPT)
+    sft = IteratorCache.sft(spec)
     attribute = options.get(ATTRIBUTE_OPT).toInt
 
     val index = try { AccumuloFeatureIndex.index(options.get(INDEX_OPT)) } catch {
       case NonFatal(e) => throw new RuntimeException(s"Index option not configured correctly: ${options.get(INDEX_OPT)}")
     }
     val kryoOptions = if (index.serializedWithId) SerializationOptions.none else SerializationOptions.withoutId
-    serializer = new KryoFeatureSerializer(sft, kryoOptions)
+    serializer = IteratorCache.serializer(spec, kryoOptions)
   }
 
   override def seek(range: Range, columnFamilies: jCollection[ByteSequence], inclusive: Boolean): Unit =
