@@ -210,7 +210,6 @@ object SQLTypes {
     }
 
     override def apply(plan: LogicalPlan): LogicalPlan = {
-      println("HERE!")
       plan.transform {
         case sort @ Sort(_, _, _) => sort    // No-op.  Just realizing what we can do:)
         case filt @ Filter(f, lr@LogicalRelation(gmRel: GeoMesaRelation, _, _)) =>
