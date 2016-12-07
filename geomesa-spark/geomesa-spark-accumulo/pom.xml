@@ -9,9 +9,15 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
+    <name>GeoMesa Spark Accumulo</name>
     <artifactId>geomesa-spark-accumulo_2.11</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-spark-sql_${scala.binary.version}</artifactId>
@@ -34,18 +40,6 @@
         </dependency>
 
         <!-- test dependencies -->
-        <dependency>
-            <groupId>jline</groupId>
-            <artifactId>jline</artifactId>
-            <version>2.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.accumulo</groupId>
-            <artifactId>accumulo-minicluster</artifactId>
-            <version>${accumulo.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.specs2</groupId>
             <artifactId>specs2_${scala.binary.version}</artifactId>
