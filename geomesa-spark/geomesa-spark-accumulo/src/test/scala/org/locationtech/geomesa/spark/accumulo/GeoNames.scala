@@ -1,4 +1,4 @@
-package org.locationtech.geomesa.sparkgis.accumulo
+package org.locationtech.geomesa.spark.accumulo
 
 import com.typesafe.config.ConfigFactory
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
