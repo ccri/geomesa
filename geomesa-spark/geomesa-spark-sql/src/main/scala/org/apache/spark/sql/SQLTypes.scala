@@ -15,16 +15,11 @@ import org.apache.spark.sql.types._
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.geomesa.utils.text.WKBUtils
-import org.opengis.filter.expression.{Expression => GTExpression}
-import org.slf4j.LoggerFactory
 
 import scala.reflect.ClassTag
 
-class GeoMesaSQL
-
 object SQLTypes {
 
-  @transient val log = LoggerFactory.getLogger(classOf[GeoMesaSQL])
   @transient val geomFactory = JTSFactoryFinder.getGeometryFactory
   @transient val ff = CommonFactoryFinder.getFilterFactory2
 
