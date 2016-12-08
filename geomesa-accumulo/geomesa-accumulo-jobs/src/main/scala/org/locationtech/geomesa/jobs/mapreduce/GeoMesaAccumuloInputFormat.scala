@@ -34,6 +34,7 @@ import org.locationtech.geomesa.utils.index.IndexMode
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 
+import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
 object GeoMesaAccumuloInputFormat extends LazyLogging {
