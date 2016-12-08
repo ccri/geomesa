@@ -29,3 +29,7 @@ class GeoCQEngineDataStore extends ContentDataStore {
     namesToEngine.putIfAbsent(featureType.getTypeName, new GeoCQEngine(featureType))
   }
 }
+
+object GeoCQEngineDataStore {
+  lazy val engine = new GeoCQEngineDataStore
+}
