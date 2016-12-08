@@ -3,7 +3,7 @@ package org.locationtech.geomesa.sparkgis.accumulo
 import java.util.{Map => JMap}
 import javafx.geometry.BoundingBox
 
-import com.vividsolutions.jts.geom.{Coordinate, Point, Polygon}
+import com.vividsolutions.jts.geom._
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.DataStoreFinder
@@ -12,6 +12,7 @@ import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.index.conf.QueryProperties
+import org.locationtech.geomesa.utils.geohash.GeoHash
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -155,6 +156,87 @@ class SparkSQLTest extends Specification {
         """.stripMargin)
 
       r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
+    }
+
+    "st_geomFromWKT" >> {
+
+      "point" >> {
+        val r = sc.sql(
+          """
+            |select st_geomFromWKT('POINT(0 0)')
+          """.stripMargin
+        )
+
+        r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(0 0)")
+      }
+
+      "lineString" >> {
+        val lineString = sc.sql(
+          """
+            |select st_geomFromWKT('LINESTRING(0 0, 1 1, 2 2)')
+          """.stripMargin
+        )
+
+        lineString.collect().head.getAs[LineString](0) mustEqual
+          WKTUtils.read("LINESTRING(0 0, 1 1, 2 2)").asInstanceOf[LineString]
+      }
+
+      "polygon" >> {
+        val r = sc.sql(
+          """
+            |select st_geomFromWKT('POLYGON((0 0, 2 0, 2 2, 0 2, 0 0))')
+          """.stripMargin
+        )
+
+        r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
+          "2.0 2.0, 0.0 2.0, 0.0 0.0))")
+      }
+
+      /*"multiPolygon" >> {
+        val r = sc.sql(
+          """
+            |select st_geomFromWKT('MULTIPOLYGON((( -1 -1, 0 1, 1 -1, -1 -1 )),((-4 4, 4 4, 4 -4, -4 -4, -4 4),
+            |                                    (2 2, -2 2, -2 -2, 2 -2, 2 2)))')
+          """.stripMargin
+        )
+
+        r.collect().head.getAs[MultiPolygon](0) mustEqual
+          WKTUtils.read("MULTIPOLYGON((( -1 -1, 0 1, 1 -1, -1 -1 ))," +
+            "((-4 4, 4 4, 4 -4, -4 -4, -4 4),(2 2, -2 2, -2 -2, 2 -2, 2 2)))")
+      }*/
+    }
+
+    "st_geomFromGeoHash" >> {
+
+      val hashString = GeoHash(0, 0).hash
+      val r = sc.sql(
+        s"""
+          |select st_geomFromGeoHash('$hashString')
+        """.stripMargin
+      )
+
+      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0 0, 0 0.0439453125, " +
+                                                                 "0.0439453125 0.0439453125, 0.0439453125 0, 0 0))")
+    }
+
+    "st_makePolygon" >> {
+      val r = sc.sql(
+        s"""
+          |select st_makePolygon(st_castToLineString(
+          |    st_geomFromWKT('LINESTRING(0.0 0.0, 2.0 0.0, 2.0 2.0, 0.0 2.0, 0.0 0.0)')))
+        """.stripMargin
+      )
+      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
+                                                                 "2.0 2.0, 0.0 2.0, 0.0 0.0))")
+    }
+
+    "st_pointFromText" >> {
+      val r = sc.sql(
+        """
+          |select st_pointFromText('Point(0 0)')
+        """.stripMargin
+      )
+      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(0 0)")
     }
 
     "st_makeBBOX" >> {

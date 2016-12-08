@@ -19,6 +19,7 @@ import org.geotools.referencing.GeodeticCalculator
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.geotools.referencing.operation.transform.AffineTransform2D
 import org.locationtech.geomesa.sparkgis.GeoMesaRelation
+import org.locationtech.geomesa.utils.geohash.GeoHash
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 import org.opengis.filter.expression.{Expression => GTExpression}
 import org.slf4j.LoggerFactory
@@ -60,12 +61,19 @@ object SQLTypes {
   val ST_Touches: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.touches(geom2)
   val ST_Within: (Geometry, Geometry) => Boolean = (geom1, geom2) => geom1.within(geom2)
 
-
   // geometry constructors
   val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
   val ST_MakeBBOX: (Double, Double, Double, Double) => Polygon = (lx, ly, ux, uy) => JTS.toGeometry(new Envelope(lx, ux, ly, uy))
+  val ST_GeomFromGeoHash: (String) => Geometry = (hash) => GeoHash.toGeometry(GeoHash(hash))
+  val ST_MakePolygon: (LineString) => Polygon = (shell) => {
+    require(shell.isClosed)
+    val envelope = JTS.toEnvelope(new LinearRing(shell.getCoordinateSequence, geomFactory).getEnvelope)
+    JTS.toGeometry(envelope)
+  }
+  val ST_PointFromText: (String) => Point = (string) => WKTUtils.read(string).asInstanceOf[Point]
+  val ST_PolygonFromText: (String) => Polygon = (string) => WKTUtils.read(string).asInstanceOf[Polygon]
 
-  // geometry functions
+  // geometry accessors/functions
   val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
   val ST_Centroid: Geometry => Point = g => g.getCentroid
 
@@ -122,13 +130,21 @@ object SQLTypes {
     sqlContext.udf.register("st_touches"      , ST_Touches)
     sqlContext.udf.register("st_within"      , ST_Within)
 
+    // geometry constructors
     sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
-
-    sqlContext.udf.register("st_envelope"      , ST_Envelope)
+    sqlContext.udf.register("st_geomFromGeoHash", ST_GeomFromGeoHash)
+    sqlContext.udf.register("st_makePolygon", ST_MakePolygon)
     sqlContext.udf.register("st_makeBox2D"     , ST_MakeBox2D)
     sqlContext.udf.register("st_makeBBOX"      , ST_MakeBBOX)
+    sqlContext.udf.register("st_pointFromText", ST_PointFromText)
+    sqlContext.udf.register("st_polygonFromText", ST_PolygonFromText)
+
+    // geometry constructors
+    sqlContext.udf.register("st_envelope"      , ST_Envelope)
     sqlContext.udf.register("st_centroid"      , ST_Centroid)
     sqlContext.udf.register("st_castToPoint"   , ST_CastToPoint)
+    sqlContext.udf.register("st_castToPolygon", ST_CastToPolygon)
+    sqlContext.udf.register("st_castToLineString", ST_CastToLineString)
 
     sqlContext.udf.register("st_distanceSpheroid"  , ST_DistanceSpheroid)
 
@@ -471,7 +487,6 @@ object PolygonUDT extends PolygonUDT
 
 //@SQLUserDefinedType
 private [spark] class GeometryUDT extends UserDefinedType[Geometry] {
-
 
   override def simpleString: String = "geometry"
 
