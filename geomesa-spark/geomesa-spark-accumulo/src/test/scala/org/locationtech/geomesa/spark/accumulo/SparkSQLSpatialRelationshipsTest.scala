@@ -15,10 +15,10 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class SparkSQLSpatialRelationshipsTest extends Specification {
   "SQL spatial relationships" should {
+    sequential
+
     System.setProperty(QueryProperties.SCAN_RANGES_TARGET.property, "1")
     System.setProperty(AccumuloQueryProperties.SCAN_BATCH_RANGES.property, s"${Int.MaxValue}")
-    System.setProperty("sun.net.spi.nameservice.nameservers", "192.168.2.77")
-    System.setProperty("sun.net.spi.nameservice.provider.1", "dns,sun")
 
     var mac: MiniAccumuloCluster = null
     var dsParams: JMap[String, String] = null
@@ -28,10 +28,10 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
 
     var df: DataFrame = null
 
+    // before
     step {
       mac = SparkSQLTestUtils.setupMiniAccumulo()
       dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
-      println(dsParams)
       ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
       spark = SparkSession.builder().master("local[*]").getOrCreate()
@@ -167,5 +167,10 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
       true mustEqual true
     }
     */
+
+    // after
+    step {
+      //mac.stop()
+    }
   }
 }

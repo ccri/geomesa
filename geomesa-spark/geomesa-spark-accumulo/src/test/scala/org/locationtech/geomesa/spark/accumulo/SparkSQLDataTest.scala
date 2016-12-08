@@ -2,9 +2,9 @@ package org.locationtech.geomesa.spark.accumulo
 
 import java.util.{Map => JMap}
 
-import com.vividsolutions.jts.geom.{Coordinate, Point, Polygon}
+import com.vividsolutions.jts.geom.{Coordinate, Point}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
-import org.apache.spark.sql.{Row, SQLContext, DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.DataStoreFinder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
@@ -15,13 +15,13 @@ import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
-import scala.collection.JavaConversions._
-
 @RunWith(classOf[JUnitRunner])
 class SparkSQLDataTest extends Specification {
   val createPoint = JTSFactoryFinder.getGeometryFactory.createPoint(_: Coordinate)
 
   "sql data tests" should {
+    sequential
+
     System.setProperty(QueryProperties.SCAN_RANGES_TARGET.property, "1")
     System.setProperty(AccumuloQueryProperties.SCAN_BATCH_RANGES.property, s"${Int.MaxValue}")
 
@@ -35,10 +35,10 @@ class SparkSQLDataTest extends Specification {
     var gndf: DataFrame = null
     var sdf: DataFrame = null
 
+    // before
     step {
       mac = SparkSQLTestUtils.setupMiniAccumulo()
       dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
-      println(dsParams)
       ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
       spark = SparkSession.builder().master("local[*]").getOrCreate()
@@ -147,6 +147,11 @@ class SparkSQLDataTest extends Specification {
         """.stripMargin)
 
       r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
+    }
+
+    // after
+    step {
+      //mac.stop()
     }
   }
 }

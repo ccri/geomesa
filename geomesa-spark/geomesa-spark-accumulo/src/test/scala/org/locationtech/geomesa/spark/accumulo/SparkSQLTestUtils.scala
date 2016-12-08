@@ -17,16 +17,13 @@ import org.locationtech.geomesa.utils.geotools.{GeneralShapefileIngest, SimpleFe
 
 import scala.collection.JavaConversions._
 
-/**
-  * Created by mzimmerman on 11/30/16.
-  */
 object SparkSQLTestUtils {
-  //
   def setupMiniAccumulo(): MiniAccumuloCluster = {
     val randomDir = Files.createTempDirectory("mac").toFile
     val config = new MiniAccumuloConfig(randomDir, "password").setJDWPEnabled(true)
     val mac = new MiniAccumuloCluster(config)
     mac.start()
+    randomDir.deleteOnExit()
 
     mac
   }
