@@ -47,8 +47,6 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
         .load()
       df.printSchema()
       df.createOrReplaceTempView("chicago")
-
-      df.collect().length mustEqual 3
     }
 
     val box        = "POLYGON(( 0  0,  0 10, 10 10, 10  0,  0  0))"
@@ -87,6 +85,16 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
       testBool("st_contains", "poly6", box, boxCorner,  false)
     }
 
+    "st_covers" >> {
+      true mustEqual true
+    }
+
+    "st_crosses" >> {
+      testBool("st_crosses", "touches", "LINESTRING(0 10, 0 -10)", "LINESTRING(0 0, 1 0)", true)
+      testBool("st_crosses", "crosses", "LINESTRING(0 10, 0 -10)", "LINESTRING(-1 0, 1 0)", true)
+      testBool("st_crosses", "disjoint", "LINESTRING(0 10, 0 -10)", "LINESTRING(1 0, 2 0)", false)
+    }
+
     "st_disjoint" >> {
       testBool("st_disjoint", "pt1", box, pointInt,    false)
       testBool("st_disjoint", "pt2", box, pointEdge,   false)
@@ -101,6 +109,10 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
       testBool("st_disjoint", "poly6", box, boxCorner,  false)
     }
 
+    "st_equals" >> {
+      true mustEqual true
+    }
+
     "st_intersects" >> {
       testBool("st_intersects", "pt1", box, pointInt,    true)
       testBool("st_intersects", "pt2", box, pointEdge,   true)
@@ -113,6 +125,28 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
       testBool("st_intersects", "poly4", box, boxExtEdge, true)
       testBool("st_intersects", "poly5", box, boxExt,     false)
       testBool("st_intersects", "poly6", box, boxCorner,  true)
+    }
+
+    "st_overlaps" >> {
+      true mustEqual true
+    }
+
+    "st_touches" >> {
+      testBool("st_touches", "pt1", box, pointInt,    false)
+      testBool("st_touches", "pt2", box, pointEdge,   true)
+      testBool("st_touches", "pt3", box, pointCorner, true)
+      testBool("st_touches", "pt4", box, pointExt,    false)
+
+      testBool("st_touches", "poly1", box, boxInt,     false)
+      testBool("st_touches", "poly2", box, boxIntEdge, false)
+      testBool("st_touches", "poly3", box, boxOverlap, false)
+      testBool("st_touches", "poly4", box, boxExtEdge, true)
+      testBool("st_touches", "poly5", box, boxExt,     false)
+      testBool("st_touches", "poly6", box, boxCorner,  true)
+    }
+
+    "st_within" >> {
+      true mustEqual true
     }
 
     /*
