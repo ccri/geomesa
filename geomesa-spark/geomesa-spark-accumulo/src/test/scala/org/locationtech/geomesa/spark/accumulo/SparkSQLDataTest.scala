@@ -38,11 +38,11 @@ class SparkSQLDataTest extends Specification {
 
     // before
     step {
-//      mac = SparkSQLTestUtils.setupMiniAccumulo()
-//      dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
-      import scala.collection.JavaConversions._
-      dsParams = Map("cqengine" -> "true", "geotools" -> "true")
-      DataStoreFinder.getAvailableDataStores.foreach{println}
+      mac = SparkSQLTestUtils.setupMiniAccumulo()
+      dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
+//      import scala.collection.JavaConversions._
+//      dsParams = Map("cqengine" -> "true", "geotools" -> "true")
+//      DataStoreFinder.getAvailableDataStores.foreach{println}
 
       ds = DataStoreFinder.getDataStore(dsParams) //.asInstanceOf[AccumuloDataStore]
 
