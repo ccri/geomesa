@@ -18,6 +18,8 @@ import org.specs2.runner.JUnitRunner
 class SparkSQLGeometryConstructorsTest extends Specification {
 
   "sql geometry constructors" should {
+    sequential
+
     System.setProperty(QueryProperties.SCAN_RANGES_TARGET.property, "1")
     System.setProperty(AccumuloQueryProperties.SCAN_BATCH_RANGES.property, s"${Int.MaxValue}")
 
@@ -29,10 +31,10 @@ class SparkSQLGeometryConstructorsTest extends Specification {
 
     var df: DataFrame = null
 
+    // before
     step {
       mac = SparkSQLTestUtils.setupMiniAccumulo()
       dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
-      println(dsParams)
       ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
 
       spark = SparkSession.builder().master("local[*]").getOrCreate()
@@ -71,6 +73,11 @@ class SparkSQLGeometryConstructorsTest extends Specification {
       )
       r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
                                                                  "2.0 2.0, 0.0 2.0, 0.0 0.0))")
+    }
+
+    // after
+    step {
+      //mac.stop()
     }
   }
 }
