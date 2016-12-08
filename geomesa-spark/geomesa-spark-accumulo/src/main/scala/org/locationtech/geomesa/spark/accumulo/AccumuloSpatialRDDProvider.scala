@@ -14,6 +14,7 @@ import org.apache.accumulo.core.client.mapreduce.lib.util.ConfiguratorBase
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.accumulo.core.util.{Pair => AccPair}
+import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.Text
 import org.apache.spark.SparkContext
@@ -40,8 +41,7 @@ class AccumuloSpatialRDDProvider extends SpatialRDDProvider {
   def rdd(conf: Configuration,
           sc: SparkContext,
           dsParams: Map[String, String],
-          query: Query,
-          numberOfSplits: Option[Int] = None): RDD[SimpleFeature] = {
+          query: Query): RDD[SimpleFeature] = {
     val ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
     val username = AccumuloDataStoreParams.userParam.lookUp(dsParams).toString
     val password = new PasswordToken(AccumuloDataStoreParams.passwordParam.lookUp(dsParams).toString.getBytes)
@@ -71,12 +71,6 @@ class AccumuloSpatialRDDProvider extends SpatialRDDProvider {
         if (qp.columnFamilies.nonEmpty) {
           val cf = qp.columnFamilies.map(cf => new AccPair[Text, Text](cf, null))
           InputConfigurator.fetchColumns(classOf[AccumuloInputFormat], conf, cf)
-        }
-
-        if (numberOfSplits.isDefined) {
-          GeoMesaConfigurator.setDesiredSplits(conf, numberOfSplits.get * sc.getExecutorStorageStatus.length)
-          InputConfigurator.setAutoAdjustRanges(classOf[AccumuloInputFormat], conf, false)
-          InputConfigurator.setAutoAdjustRanges(classOf[GeoMesaAccumuloInputFormat], conf, false)
         }
 
         InputConfigurator.setBatchScan(classOf[AccumuloInputFormat], conf, true)
@@ -137,7 +131,7 @@ class AccumuloSpatialRDDProvider extends SpatialRDDProvider {
           featureWriter.write()
         }
       } finally {
-        featureWriter.close()
+        IOUtils.closeQuietly(featureWriter)
         ds.dispose()
       }
     }

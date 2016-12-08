@@ -21,6 +21,7 @@ import org.apache.accumulo.core.client.mapreduce.lib.util.ConfiguratorBase
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.accumulo.core.util.{Pair => AccPair}
+import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.Text
 import org.apache.spark.broadcast.Broadcast
@@ -111,12 +112,6 @@ object GeoMesaSpark extends LazyLogging {
           InputConfigurator.fetchColumns(classOf[AccumuloInputFormat], conf, cf)
         }
 
-        if (numberOfSplits.isDefined) {
-          GeoMesaConfigurator.setDesiredSplits(conf, numberOfSplits.get * sc.getExecutorStorageStatus.length)
-          InputConfigurator.setAutoAdjustRanges(classOf[AccumuloInputFormat], conf, false)
-          InputConfigurator.setAutoAdjustRanges(classOf[GeoMesaAccumuloInputFormat], conf, false)
-        }
-
         InputConfigurator.setBatchScan(classOf[AccumuloInputFormat], conf, true)
         InputConfigurator.setBatchScan(classOf[GeoMesaAccumuloInputFormat], conf, true)
         GeoMesaConfigurator.setSerialization(conf)
@@ -175,7 +170,7 @@ object GeoMesaSpark extends LazyLogging {
           featureWriter.write()
         }
       } finally {
-        featureWriter.close()
+        IOUtils.closeQuietly(featureWriter)
         ds.dispose()
       }
     }
