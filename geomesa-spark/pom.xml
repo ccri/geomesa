@@ -15,5 +15,6 @@
     <modules>
         <module>geomesa-spark-sql</module>
         <module>geomesa-spark-accumulo</module>
+        <module>geomesa-spark-geotools</module>
     </modules>
 </project>
