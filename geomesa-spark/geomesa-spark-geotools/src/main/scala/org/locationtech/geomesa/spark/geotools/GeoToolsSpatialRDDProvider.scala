@@ -8,30 +8,70 @@
 
 package org.locationtech.geomesa.spark.geotools
 
-import java.io.Serializable
+import java.io.{IOException, ObjectInputStream, ObjectOutputStream, Serializable}
 import java.util
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.hadoop.conf.Configuration
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.geotools.data.{DataStoreFinder, Query, Transaction}
+import org.locationtech.geomesa.compute.spark.GeoMesaSparkKryoRegistrator
+import org.locationtech.geomesa.jobs.GeoMesaConfigurator
 import org.locationtech.geomesa.spark.SpatialRDDProvider
 import org.locationtech.geomesa.utils.geotools.Conversions._
 import org.opengis.feature.simple.SimpleFeature
 
 import scala.collection.JavaConversions._
+import scala.util.control.NonFatal
 
-class GeoToolsSpatialRDDProvider extends SpatialRDDProvider {
+class SerializableConfiguration(@transient var value: Configuration) extends Serializable with LazyLogging {
+  private def writeObject(out: ObjectOutputStream): Unit = tryOrIOException {
+    out.defaultWriteObject()
+    value.write(out)
+  }
+
+  private def readObject(in: ObjectInputStream): Unit = tryOrIOException {
+    value = new Configuration(false)
+    value.readFields(in)
+  }
+
+  def tryOrIOException[T](block: => T): T = {
+    try {
+      block
+    } catch {
+      case e: IOException =>
+        logger.error("Exception encountered", e)
+        throw e
+      case NonFatal(e) =>
+        logger.error("Exception encountered", e)
+        throw new IOException(e)
+    }
+  }
+}
+
+class GeoToolsSpatialRDDProvider extends SpatialRDDProvider with LazyLogging {
   override def canProcess(params: util.Map[String, Serializable]): Boolean = {
     params.containsKey("geotools") && DataStoreFinder.getDataStore(params) != null
   }
 
-  override def rdd(conf: Configuration, sc: SparkContext, dsParams: Map[String, String], query: Query, numberOfSplits: Option[Int]): RDD[SimpleFeature] = {
+  override def rdd(conf: Configuration, sc: SparkContext, dsParams: Map[String, String], query: Query): RDD[SimpleFeature] = {
+    GeoMesaConfigurator.setSerialization(conf)
+
+    sc.setLocalProperty("spark.kryo.registrator", classOf[GeoMesaSparkKryoRegistrator].getName)
+
+    //sc.setLocalProperty("io.serializations", "org.apache.hadoop.io.serializer.WritableSerialization,org.apache.hadoop.io.serializer.avro.AvroSpecificSerialization,org.apache.hadoop.io.serializer.avro.AvroReflectSerialization,org.locationtech.geomesa.jobs.mapreduce.SimpleFeatureSerialization")
+    sc.broadcast(new SerializableConfiguration(conf))
+
     val ds = DataStoreFinder.getDataStore(dsParams)
     val fr = ds.getFeatureReader(query, Transaction.AUTO_COMMIT)
+    val sparkConf: SparkConf = sc.getConf
 
+    //sparkConf.set
     sc.parallelize(fr.toIterator.toSeq)
   }
+
+
 
   /**
     * Writes this RDD to a GeoMesa table.

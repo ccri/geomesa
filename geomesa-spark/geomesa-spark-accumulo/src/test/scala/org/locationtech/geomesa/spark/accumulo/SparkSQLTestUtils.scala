@@ -5,9 +5,9 @@ import java.nio.file.Files
 import java.util.{Map => JMap}
 
 import com.vividsolutions.jts.geom.Coordinate
-import org.apache.accumulo.minicluster.{MiniAccumuloConfig, MiniAccumuloCluster}
+import org.apache.accumulo.minicluster.{MiniAccumuloCluster, MiniAccumuloConfig}
 import org.geotools.data.simple.SimpleFeatureStore
-import org.geotools.data.{DataUtilities, DataStoreFinder}
+import org.geotools.data.{DataStore, DataStoreFinder, DataUtilities}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.joda.time.format.ISODateTimeFormat
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreParams}
@@ -43,7 +43,7 @@ object SparkSQLTestUtils {
   }
 
   //
-  def ingestChicago(ds: AccumuloDataStore): Unit = {
+  def ingestChicago(ds: DataStore): Unit = {
     // Chicago data ingest
     val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
     ds.createSchema(sft)
@@ -72,7 +72,7 @@ object SparkSQLTestUtils {
   }
 
   //
-  def ingestStates(ds: AccumuloDataStore) = {
+  def ingestStates(ds: DataStore) = {
     // States shapefile ingest
     val file = new File(getClass.getResource("/states.shp").getFile)
     val filePath = file.getAbsolutePath

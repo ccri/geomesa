@@ -4,12 +4,13 @@ import java.util.{Map => JMap}
 
 import com.vividsolutions.jts.geom.{Coordinate, Point}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
-import org.geotools.data.DataStoreFinder
+import org.geotools.data.{DataStore, DataStoreFinder}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
-import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
+import org.locationtech.geomesa.compute.spark.GeoMesaSparkKryoRegistrator
 import org.locationtech.geomesa.index.conf.QueryProperties
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.mutable.Specification
@@ -27,7 +28,7 @@ class SparkSQLDataTest extends Specification {
 
     var mac: MiniAccumuloCluster = null
     var dsParams: JMap[String, String] = null
-    var ds: AccumuloDataStore = null
+    var ds: DataStore = null
     var spark: SparkSession = null
     var sc: SQLContext = null
 
@@ -37,11 +38,21 @@ class SparkSQLDataTest extends Specification {
 
     // before
     step {
-      mac = SparkSQLTestUtils.setupMiniAccumulo()
-      dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
-      ds = DataStoreFinder.getDataStore(dsParams).asInstanceOf[AccumuloDataStore]
+//      mac = SparkSQLTestUtils.setupMiniAccumulo()
+//      dsParams = SparkSQLTestUtils.createDataStoreParams(mac)
+      import scala.collection.JavaConversions._
+      dsParams = Map("cqengine" -> "true", "geotools" -> "true")
+      DataStoreFinder.getAvailableDataStores.foreach{println}
 
-      spark = SparkSession.builder().master("local[*]").getOrCreate()
+      ds = DataStoreFinder.getDataStore(dsParams) //.asInstanceOf[AccumuloDataStore]
+
+      val conf = new SparkConf()
+      conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      conf.set("spark.kryo.registrator", classOf[GeoMesaSparkKryoRegistrator].getName)
+
+      spark = SparkSession.builder().master("local[*]").config(conf).getOrCreate()
+
+//      spark = SparkSession.builder().master("local[*]").config().getOrCreate()
       sc = spark.sqlContext
       sc.setConf("spark.sql.crossJoin.enabled", "true")
     }
