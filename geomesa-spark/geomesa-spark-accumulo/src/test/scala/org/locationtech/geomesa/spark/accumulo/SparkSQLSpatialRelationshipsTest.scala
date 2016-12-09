@@ -90,7 +90,7 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
     }
 
     "st_crosses" >> {
-      testBool("st_crosses", "touches", "LINESTRING(0 10, 0 -10)", "LINESTRING(0 0, 1 0)", true)
+      testBool("st_crosses", "touches", "LINESTRING(0 10, 0 -10)", "LINESTRING(0 0, 1 0)", false)
       testBool("st_crosses", "crosses", "LINESTRING(0 10, 0 -10)", "LINESTRING(-1 0, 1 0)", true)
       testBool("st_crosses", "disjoint", "LINESTRING(0 10, 0 -10)", "LINESTRING(1 0, 2 0)", false)
     }
@@ -128,7 +128,17 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
     }
 
     "st_overlaps" >> {
-      true mustEqual true
+      testBool("st_overlaps", "pt1", box, pointInt,    false)
+      testBool("st_overlaps", "pt2", box, pointEdge,   false)
+      testBool("st_overlaps", "pt3", box, pointCorner, false)
+      testBool("st_overlaps", "pt4", box, pointExt,    false)
+
+      testBool("st_overlaps", "poly1", box, boxInt,     false)
+      testBool("st_overlaps", "poly2", box, boxIntEdge, false)
+      testBool("st_overlaps", "poly3", box, boxOverlap, true)
+      testBool("st_overlaps", "poly4", box, boxExtEdge, false)
+      testBool("st_overlaps", "poly5", box, boxExt,     false)
+      testBool("st_overlaps", "poly6", box, boxCorner,  false)
     }
 
     "st_touches" >> {
