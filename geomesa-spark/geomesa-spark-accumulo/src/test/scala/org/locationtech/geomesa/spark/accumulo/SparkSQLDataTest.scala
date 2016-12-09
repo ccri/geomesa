@@ -136,10 +136,5 @@ class SparkSQLDataTest extends Specification {
 
       r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
     }
-
-    // after
-    step {
-      //mac.stop()
-    }
   }
 }

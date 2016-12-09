@@ -198,12 +198,6 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
       val r = sc.sql(s"select st_centroid(st_geomFromWKT('$box'))")
       val d = r.collect()
       d.head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 5)").asInstanceOf[Point]
-
-    }
-
-    // after
-    step {
-      //mac.stop()
     }
   }
 }

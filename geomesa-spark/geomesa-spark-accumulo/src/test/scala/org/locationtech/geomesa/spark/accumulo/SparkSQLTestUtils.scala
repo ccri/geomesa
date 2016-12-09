@@ -36,7 +36,6 @@ object SparkSQLTestUtils {
     mac
   }
 
-  //
   def createDataStoreParams(mac: MiniAccumuloCluster): JMap[String, String] = {
     val dsParams: JMap[String, String] = Map(
       // "connector" -> connector,
@@ -50,7 +49,6 @@ object SparkSQLTestUtils {
     dsParams
   }
 
-  //
   def ingestChicago(ds: AccumuloDataStore): Unit = {
     // Chicago data ingest
     val sft = SimpleFeatureTypes.createType("chicago", "arrest:String,case_number:Int,dtg:Date,*geom:Point:srid=4326")
@@ -70,7 +68,6 @@ object SparkSQLTestUtils {
     fs.addFeatures(features)
   }
 
-  //
   def ingestGeoNames(dsParams: JMap[String, String]): Unit = {
     // GeoNames ingest
     val file = new File(getClass.getResource("/geonames-sample.tsv").getFile)
@@ -79,13 +76,11 @@ object SparkSQLTestUtils {
     ingest.run
   }
 
-  //
   def ingestStates(ds: AccumuloDataStore) = {
     // States shapefile ingest
     val file = new File(getClass.getResource("/states.shp").getFile)
     val filePath = file.getAbsolutePath
     GeneralShapefileIngest.shpToDataStore(filePath, ds, "states")
   }
-
 }
 

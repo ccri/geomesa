@@ -82,10 +82,5 @@ class SparkSQLGeometryConstructorsTest extends Specification {
       r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
                                                                  "2.0 2.0, 0.0 2.0, 0.0 0.0))")
     }
-
-    // after
-    step {
-      //mac.stop()
-    }
   }
 }
