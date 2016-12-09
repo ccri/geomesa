@@ -16,7 +16,8 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.GeodeticCalculator
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.geotools.referencing.operation.transform.AffineTransform2D
-import org.locationtech.geomesa.utils.text.WKTUtils
+import org.locationtech.geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 
 object SQLSpatialFunctions {
   // Geometry constructors
@@ -24,11 +25,28 @@ object SQLSpatialFunctions {
   // TODO: optimize when used as a literal
   // e.g. select * from feature where st_contains(geom, geomFromText('POLYGON((....))'))
   // should not deserialize the POLYGON for every call
+  val ST_GeomFromGeoHash: (String) => Geometry = (hash) => GeoHash.toGeometry(GeoHash(hash))
   val ST_GeomFromWKT: String => Geometry = s => WKTUtils.read(s)
-
+  val ST_GeomFromWKB: Array[Byte] => Geometry = (array) => WKBUtils.read(array)
   val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
   val ST_MakeBBOX: (Double, Double, Double, Double) => Polygon = (lx, ly, ux, uy) => JTS.toGeometry(new Envelope(lx, ux, ly, uy))
-
+  val ST_MakePolygon: (LineString) => Polygon = (shell) => {
+    require(shell.isClosed)
+    val envelope = JTS.toEnvelope(new LinearRing(shell.getCoordinateSequence, SQLTypes.geomFactory).getEnvelope)
+    JTS.toGeometry(envelope)
+  }
+  val ST_MakePoint: (Double, Double) => Point = (x, y) => WKTUtils.read(s"POINT($x $y)").asInstanceOf[Point]
+  val ST_MakePointM: (Double, Double, Double) => Point = (x, y, m) =>
+    WKTUtils.read(s"POINT($x $y $m)").asInstanceOf[Point]
+  val ST_MLineFromText: (String) => MultiLineString = (string) => WKTUtils.read(string).asInstanceOf[MultiLineString]
+  val ST_MPointFromText: (String) => MultiPoint = (string) => WKTUtils.read(string).asInstanceOf[MultiPoint]
+  val ST_MPolyFromText: (String) => MultiPolygon = (string) => WKTUtils.read(string).asInstanceOf[MultiPolygon]
+  val ST_Point: (Double, Double) => Point = (x, y) => ST_MakePoint(x, y)
+  val ST_PointFromGeoHash: (String) => Point = (hash) => GeoHash.factory.createPoint(GeoHash(hash).getCoordinate)
+  val ST_PointFromText: (String) => Point = (string) => WKTUtils.read(string).asInstanceOf[Point]
+  val ST_PointFromWKB: (Array[Byte]) => Point = (array) => ST_GeomFromWKB(array).asInstanceOf[Point]
+  val ST_Polygon: (LineString) => Polygon = (shell) => ST_MakePolygon(shell)
+  val ST_PolygonFromText: (String) => Polygon = (string) => WKTUtils.read(string).asInstanceOf[Polygon]
   // Geometry accessors
   val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
 
@@ -61,9 +79,23 @@ object SQLSpatialFunctions {
 
   def registerFunctions(sqlContext: SQLContext): Unit = {
     // Register geometry constructors
-    sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
-    sqlContext.udf.register("st_makeBox2D"     , ST_MakeBox2D)
-    sqlContext.udf.register("st_makeBBOX"      , ST_MakeBBOX)
+    sqlContext.udf.register("st_geomFromGeoHash"   , ST_GeomFromGeoHash)
+    sqlContext.udf.register("st_geomFromWKT"       , ST_GeomFromWKT)
+    sqlContext.udf.register("st_geomFromWKB"       , ST_GeomFromWKB)
+    sqlContext.udf.register("st_makeBox2D"         , ST_MakeBox2D)
+    sqlContext.udf.register("st_makeBBOX"          , ST_MakeBBOX)
+    sqlContext.udf.register("st_makePolygon"       , ST_MakePolygon)
+    sqlContext.udf.register("st_makePoint"         , ST_MakePoint)
+    sqlContext.udf.register("st_makePointM"        , ST_MakePointM)
+    sqlContext.udf.register("st_mLineFromText"     , ST_MLineFromText)
+    sqlContext.udf.register("st_mPointFromText"    , ST_MPointFromText)
+    sqlContext.udf.register("st_mPolyFromText"     , ST_MPolyFromText)
+    sqlContext.udf.register("ST_point"             , ST_Point)
+    sqlContext.udf.register("ST_pointFromGeoHash"  , ST_PointFromGeoHash)
+    sqlContext.udf.register("st_pointFromText"     , ST_PointFromText)
+    sqlContext.udf.register("st_pointFromWKB"      , ST_PointFromWKB)
+    sqlContext.udf.register("st_polygon"           , ST_Polygon)
+    sqlContext.udf.register("st_polygonFromText"   , ST_PolygonFromText)
 
     // Register geometry accessors
     sqlContext.udf.register("st_envelope"      , ST_Envelope)
@@ -90,6 +122,8 @@ object SQLSpatialFunctions {
 
     // Register type casting functions
     sqlContext.udf.register("st_castToPoint", ST_CastToPoint)
+    sqlContext.udf.register("st_castToPolygon", ST_CastToPolygon)
+    sqlContext.udf.register("st_castToLineString", ST_CastToLineString)
   }
 
   @transient private val geoCalcs = new ThreadLocal[GeodeticCalculator] {
