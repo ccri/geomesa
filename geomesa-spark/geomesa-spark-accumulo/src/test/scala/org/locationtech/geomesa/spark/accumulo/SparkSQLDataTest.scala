@@ -1,3 +1,11 @@
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
+
 package org.locationtech.geomesa.spark.accumulo
 
 import java.util.{Map => JMap}
@@ -119,26 +127,6 @@ class SparkSQLDataTest extends Specification {
       d1.getAs[Long](1) mustEqual 6
       d1.getAs[Long](2) mustEqual 2558
     }
-
-    /*
-    "join distance to centroid" >> {
-      val r = sc.sql(
-        """
-          |select geonames.name,
-          |       stateCentroids.abbrev,
-          |       st_distanceSpheroid(stateCentroids.geom, geonames.geom) as dist
-          |from geonames,
-          |     (select broadcastStates.STUSPS as abbrev,
-          |      st_centroid(broadcastStates.the_geom) as geom
-          |      from broadcastStates) as stateCentroids
-          |where geonames.admin1code = stateCentroids.abbrev
-          |order by dist
-        """.stripMargin)
-      r.show(100)
-
-      true mustEqual true
-    }
-    */
 
     "st_translate" >> {
       val r = sc.sql(

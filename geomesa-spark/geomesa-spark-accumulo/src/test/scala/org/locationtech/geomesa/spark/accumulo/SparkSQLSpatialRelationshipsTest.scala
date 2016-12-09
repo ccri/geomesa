@@ -1,7 +1,16 @@
+/***********************************************************************
+* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Apache License, Version 2.0
+* which accompanies this distribution and is available at
+* http://www.opensource.org/licenses/apache2.0.php.
+*************************************************************************/
+
 package org.locationtech.geomesa.spark.accumulo
 
 import java.util.{Map => JMap}
 
+import com.vividsolutions.jts.geom.Point
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.DataStoreFinder
@@ -9,6 +18,7 @@ import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.index.conf.QueryProperties
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -49,6 +59,7 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
       df.createOrReplaceTempView("chicago")
     }
 
+    // DE-9IM comparisons
     val box        = "POLYGON(( 0  0,  0 10, 10 10, 10  0,  0  0))"
 
     val pointInt    = "POINT(5 5)"
@@ -86,7 +97,17 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
     }
 
     "st_covers" >> {
-      true mustEqual true
+      testBool("st_covers", "pt1", box, pointInt,    true)
+      testBool("st_covers", "pt2", box, pointEdge,   true)
+      testBool("st_covers", "pt3", box, pointCorner, true)
+      testBool("st_covers", "pt4", box, pointExt,    false)
+
+      testBool("st_contains", "poly1", box, boxInt,     true)
+      testBool("st_contains", "poly2", box, boxIntEdge, true)
+      testBool("st_contains", "poly3", box, boxOverlap, false)
+      testBool("st_contains", "poly4", box, boxExtEdge, false)
+      testBool("st_contains", "poly5", box, boxExt,     false)
+      testBool("st_contains", "poly6", box, boxCorner,  false)
     }
 
     "st_crosses" >> {
@@ -110,7 +131,10 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
     }
 
     "st_equals" >> {
-      true mustEqual true
+      testBool("st_equals", "pt1", "POINT(0 0)", "POINT(0 0)", true)
+      testBool("st_equals", "pt2", "POINT(0 0)", "POINT(5 5)", false)
+      testBool("st_equals", "line", "LINESTRING(0 0, 1 1)", "LINESTRING(1 1, 0 0)", true)
+      testBool("st_equals", "polygon", box, "POLYGON((10 0, 10 10, 0 10, 0 0, 10 0))", true)
     }
 
     "st_intersects" >> {
@@ -156,61 +180,26 @@ class SparkSQLSpatialRelationshipsTest extends Specification {
     }
 
     "st_within" >> {
-      true mustEqual true
+      testBool("st_within", "pt1", pointInt,    box, true)
+      testBool("st_within", "pt2", pointEdge,   box, false)
+      testBool("st_within", "pt3", pointCorner, box, false)
+      testBool("st_within", "pt4", pointExt,    box, false)
+
+      testBool("st_within", "poly1", boxInt,     box, true)
+      testBool("st_within", "poly2", boxIntEdge, box, true)
+      testBool("st_within", "poly3", boxOverlap, box, false)
+      testBool("st_within", "poly4", boxExtEdge, box, false)
+      testBool("st_within", "poly5", boxExt,     box, false)
+      testBool("st_within", "poly6", boxCorner,  box, false)
     }
 
-    /*
-    "st_contains" >> {
-      val r = sc.sql(
-        s"""
-           |select  geom
-           |from    chicago
-           |where
-           |  st_contains(st_geomFromWKT('$box1'), geom)
-           |  and dtg >= cast('2015-12-31' as timestamp)
-           |  and dtg <= cast('2016-01-07' as timestamp)
-   """.stripMargin)
-      true mustEqual true
-    }
+    // other comparison functions
+    "st_centroid" >> {
+      val r = sc.sql(s"select st_centroid(st_geomFromWKT('$box'))")
+      val d = r.collect()
+      d.head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 5)").asInstanceOf[Point]
 
-    "st_crosses" >> {
-      val r = sc.sql(
-        """
-          |select  arrest, geom
-          |from    chicago
-          |where
-          |  st_crosses(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-          |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-        """.stripMargin)
-      r.show()
-      true mustEqual true
     }
-    "st_intersects" >> {
-      val r = sc.sql(
-        """
-          |select  arrest, geom
-          |from    chicago
-          |where
-          |  st_intersects(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-          |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-        """.stripMargin)
-      r.show()
-      true mustEqual true
-    }
-
-    "st_within" >> {
-      val r = sc.sql(
-        """
-          |select  arrest, geom
-          |from    chicago
-          |where
-          |  st_within(geom, st_geomFromWKT('POLYGON((-78 37,-76 37,-76 39,-78 39,-78 37))'))
-          |  and dtg >= cast('2015-12-31' as timestamp) and dtg <= cast('2016-01-07' as timestamp)
-        """.stripMargin)
-      r.show()
-      true mustEqual true
-    }
-    */
 
     // after
     step {
