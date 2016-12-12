@@ -6,11 +6,12 @@ import com.vividsolutions.jts.geom._
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.DataStoreFinder
+import org.geotools.geometry.jts.JTS
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.accumulo.AccumuloProperties.AccumuloQueryProperties
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.index.conf.QueryProperties
-import org.locationtech.geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.geohash.{BoundingBox, GeoHash}
 import org.locationtech.geomesa.utils.interop.WKTUtils
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -55,17 +56,26 @@ class SparkSQLGeometryConstructorsTest extends Specification {
       df.collect().length mustEqual 3
     }
 
-    "st_geomFromGeoHash" >> {
-
-      val hashString = GeoHash(0, 0).hash
+    "st_box2DFromGeoHash" >> {
       val r = sc.sql(
         s"""
-           |select st_geomFromGeoHash('$hashString')
+           |select st_box2DFromGeoHash('u2sux', 25)
         """.stripMargin
       )
 
-      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0 0, 0 0.0439453125, " +
-        "0.0439453125 0.0439453125, 0.0439453125 0, 0 0))")
+      r.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POLYGON ((18.2373046875 48.603515625, " +
+        "18.2373046875 48.6474609375, 18.28125 48.6474609375, 18.28125 48.603515625, 18.2373046875 48.603515625))")
+    }
+
+    "st_geomFromGeoHash" >> {
+      val r = sc.sql(
+        s"""
+           |select st_geomFromGeoHash('u2sux', 25)
+        """.stripMargin
+      )
+
+      r.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POLYGON ((18.2373046875 48.603515625, " +
+        "18.2373046875 48.6474609375, 18.28125 48.6474609375, 18.28125 48.603515625, 18.2373046875 48.603515625))")
     }
 
     "st_geomFromWKT" >> {
@@ -78,14 +88,20 @@ class SparkSQLGeometryConstructorsTest extends Specification {
       r.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POINT(0 0)")
     }
 
+    "st_geometryFromText" >> {
+      val r = sc.sql(
+        """
+          |select st_geometryFromText('POINT(0 0)')
+        """.stripMargin
+      )
+
+      r.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POINT(0 0)")
+    }
+
     "st_geomFromWKB" >> {
-      // 1 byte  - B or L
-      // 4 bytes - Type
-      // 4 bytes - NR
-      // -> Ring
-      //    4 bytes - NP
-      //    2 * 8 * NP -> Bytes for points
-      val geomArr = Array[Byte](0, 0, 0, 0, 3, 0, 0, 0, 1,
+      val geomArr = Array[Byte](0,
+        0, 0, 0, 3,
+        0, 0, 0, 1,
         0, 0, 0, 5,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -105,8 +121,7 @@ class SparkSQLGeometryConstructorsTest extends Specification {
           |select st_makeBBOX(0.0, 0.0, 2.0, 2.0)
         """.stripMargin
       )
-      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
-        "2.0 2.0, 0.0 2.0, 0.0 0.0))")
+      r.collect().head.getAs[Geometry](0) mustEqual JTS.toGeometry(BoundingBox(0, 2, 0, 2))
     }
 
     "st_makeBox2D" >> {
@@ -193,14 +208,14 @@ class SparkSQLGeometryConstructorsTest extends Specification {
     }
 
     "st_pointFromGeoHash" >> {
-      val hashString = GeoHash(0, 0).hash
+      val hash = GeoHash(18.3, 48.6, 25)
       val r = sc.sql(
         s"""
-           |select st_pointFromGeoHash('$hashString')
+           |select st_pointFromGeoHash('${hash.hash}', 25)
         """.stripMargin
       )
 
-      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(0 0)")
+      r.collect().head.getAs[Point](0) mustEqual hash.getPoint
     }
 
     "st_pointFromText" >> {
