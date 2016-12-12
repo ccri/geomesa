@@ -79,7 +79,24 @@ class SparkSQLGeometryConstructorsTest extends Specification {
     }
 
     "st_geomFromWKB" >> {
-      success
+      // 1 byte  - B or L
+      // 4 bytes - Type
+      // 4 bytes - NR
+      // -> Ring
+      //    4 bytes - NP
+      //    2 * 8 * NP -> Bytes for points
+      val geomArr = Array[Byte](0, 0, 0, 0, 3, 0, 0, 0, 1,
+        0, 0, 0, 5,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        64, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      )
+      val r = sc.sql(
+        s"""select st_geomFromWKB(st_byteArray('${new String(geomArr)}'))"""
+      )
+      r.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POLYGON((0 0, 2 0, 2 2, 0 2, 0 0))")
     }
 
     "st_makeBBOX" >> {
@@ -133,7 +150,14 @@ class SparkSQLGeometryConstructorsTest extends Specification {
     }
 
     "st_mLineFromText" >> {
-      success
+      val r = sc.sql(
+        """
+          |select st_mLineFromText('MULTILINESTRING((0 0, 1 1, 2 2), (0 1, 1 2, 2 3))')
+        """.stripMargin
+      )
+
+      r.collect().head.getAs[MultiLineString](0) mustEqual WKTUtils.read("MULTILINESTRING((0 0, 1 1, 2 2), " +
+        "(0 1, 1 2, 2 3))")
     }
 
     "st_mPointFromText" >> {
@@ -189,7 +213,15 @@ class SparkSQLGeometryConstructorsTest extends Specification {
     }
 
     "st_pointFromWKB" >> {
-      success
+      val pointArr = Array[Byte](0, 0, 0, 0, 1,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0)
+      val r = sc.sql(
+        s"""
+          |select st_pointFromWKB(st_byteArray('${new String(pointArr)}'))
+        """.stripMargin
+      )
+      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(0 0)")
     }
 
     "st_polygon" >> {

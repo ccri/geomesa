@@ -21,6 +21,23 @@ import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 
 object SQLSpatialFunctions {
   // Geometry constructors
+  private val hex = Map[Char, Int]('0' -> 0,
+                                    '1' -> 1,
+                                    '2' -> 2,
+                                    '3' -> 3,
+                                    '4' -> 4,
+                                    '5' -> 5,
+                                    '6' -> 6,
+                                    '7' -> 7,
+                                    '8' -> 8,
+                                    '9' -> 9,
+                                    'a' -> 10,
+                                    'b' -> 11,
+                                    'c' -> 12,
+                                    'd' -> 13,
+                                    'e' -> 14,
+                                    'f' -> 15
+    )
 
   // TODO: optimize when used as a literal
   // e.g. select * from feature where st_contains(geom, geomFromText('POLYGON((....))'))
@@ -76,6 +93,7 @@ object SQLSpatialFunctions {
   val ST_CastToPoint:      Geometry => Point       = g => g.asInstanceOf[Point]
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
   val ST_CastToLineString: Geometry => LineString  = g => g.asInstanceOf[LineString]
+  val ST_ByteArray: (String) => Array[Byte] = (string) => string.getBytes
 
   def registerFunctions(sqlContext: SQLContext): Unit = {
     // Register geometry constructors
@@ -124,6 +142,7 @@ object SQLSpatialFunctions {
     sqlContext.udf.register("st_castToPoint", ST_CastToPoint)
     sqlContext.udf.register("st_castToPolygon", ST_CastToPolygon)
     sqlContext.udf.register("st_castToLineString", ST_CastToLineString)
+    sqlContext.udf.register("st_byteArray", ST_ByteArray)
   }
 
   @transient private val geoCalcs = new ThreadLocal[GeodeticCalculator] {
