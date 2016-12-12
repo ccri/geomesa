@@ -16,38 +16,24 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.GeodeticCalculator
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.geotools.referencing.operation.transform.AffineTransform2D
-import org.locationtech.geomesa.utils.geohash.GeoHash
+import org.locationtech.geomesa.utils.geohash.{BoundingBox, GeoHash}
 import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
 
 object SQLSpatialFunctions {
   // Geometry constructors
-  private val hex = Map[Char, Int]('0' -> 0,
-                                    '1' -> 1,
-                                    '2' -> 2,
-                                    '3' -> 3,
-                                    '4' -> 4,
-                                    '5' -> 5,
-                                    '6' -> 6,
-                                    '7' -> 7,
-                                    '8' -> 8,
-                                    '9' -> 9,
-                                    'a' -> 10,
-                                    'b' -> 11,
-                                    'c' -> 12,
-                                    'd' -> 13,
-                                    'e' -> 14,
-                                    'f' -> 15
-    )
 
   // TODO: optimize when used as a literal
   // e.g. select * from feature where st_contains(geom, geomFromText('POLYGON((....))'))
   // should not deserialize the POLYGON for every call
-  val ST_GeomFromGeoHash: (String) => Geometry = (hash) => GeoHash.toGeometry(GeoHash(hash))
-  val ST_GeomFromWKT: String => Geometry = s => WKTUtils.read(s)
-  val ST_GeomFromWKB: Array[Byte] => Geometry = (array) => WKBUtils.read(array)
-  val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
-  val ST_MakeBBOX: (Double, Double, Double, Double) => Polygon = (lx, ly, ux, uy) => JTS.toGeometry(new Envelope(lx, ux, ly, uy))
-  val ST_MakePolygon: (LineString) => Polygon = (shell) => {
+  val ST_Box2DFromGeoHash: (String, Int) => Geometry = (hash, prec) => ST_GeomFromGeoHash(hash, prec)
+  val ST_GeomFromGeoHash: (String, Int) => Geometry = (hash, prec) => GeoHash(hash, prec).geom
+  val ST_GeomFromWKT: String => Geometry = text => WKTUtils.read(text)
+  val ST_GeomFromWKB: Array[Byte] => Geometry = array => WKBUtils.read(array)
+  val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) =>
+    JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
+  val ST_MakeBBOX: (Double, Double, Double, Double) => Geometry = (lx, ly, ux, uy) =>
+    JTS.toGeometry(BoundingBox(lx, ux, ly, uy))
+  val ST_MakePolygon: LineString => Polygon = shell => {
     require(shell.isClosed)
     val envelope = JTS.toEnvelope(new LinearRing(shell.getCoordinateSequence, SQLTypes.geomFactory).getEnvelope)
     JTS.toGeometry(envelope)
@@ -55,15 +41,15 @@ object SQLSpatialFunctions {
   val ST_MakePoint: (Double, Double) => Point = (x, y) => WKTUtils.read(s"POINT($x $y)").asInstanceOf[Point]
   val ST_MakePointM: (Double, Double, Double) => Point = (x, y, m) =>
     WKTUtils.read(s"POINT($x $y $m)").asInstanceOf[Point]
-  val ST_MLineFromText: (String) => MultiLineString = (string) => WKTUtils.read(string).asInstanceOf[MultiLineString]
-  val ST_MPointFromText: (String) => MultiPoint = (string) => WKTUtils.read(string).asInstanceOf[MultiPoint]
-  val ST_MPolyFromText: (String) => MultiPolygon = (string) => WKTUtils.read(string).asInstanceOf[MultiPolygon]
+  val ST_MLineFromText: String => MultiLineString = (text) => WKTUtils.read(text).asInstanceOf[MultiLineString]
+  val ST_MPointFromText: String => MultiPoint = (text) => WKTUtils.read(text).asInstanceOf[MultiPoint]
+  val ST_MPolyFromText: String => MultiPolygon = (text) => WKTUtils.read(text).asInstanceOf[MultiPolygon]
   val ST_Point: (Double, Double) => Point = (x, y) => ST_MakePoint(x, y)
-  val ST_PointFromGeoHash: (String) => Point = (hash) => GeoHash.factory.createPoint(GeoHash(hash).getCoordinate)
-  val ST_PointFromText: (String) => Point = (string) => WKTUtils.read(string).asInstanceOf[Point]
-  val ST_PointFromWKB: (Array[Byte]) => Point = (array) => ST_GeomFromWKB(array).asInstanceOf[Point]
-  val ST_Polygon: (LineString) => Polygon = (shell) => ST_MakePolygon(shell)
-  val ST_PolygonFromText: (String) => Polygon = (string) => WKTUtils.read(string).asInstanceOf[Polygon]
+  val ST_PointFromGeoHash: (String, Int) => Point = (hash, prec) => GeoHash(hash, prec).getPoint
+  val ST_PointFromText: String => Point = text => WKTUtils.read(text).asInstanceOf[Point]
+  val ST_PointFromWKB: Array[Byte] => Point = array => ST_GeomFromWKB(array).asInstanceOf[Point]
+  val ST_Polygon: LineString => Polygon = shell => ST_MakePolygon(shell)
+  val ST_PolygonFromText: String => Polygon = text => WKTUtils.read(text).asInstanceOf[Polygon]
   // Geometry accessors
   val ST_Envelope:  Geometry => Geometry = p => p.getEnvelope
 
@@ -97,8 +83,10 @@ object SQLSpatialFunctions {
 
   def registerFunctions(sqlContext: SQLContext): Unit = {
     // Register geometry constructors
+    sqlContext.udf.register("st_box2DFromGeoHash"  , ST_GeomFromGeoHash)
     sqlContext.udf.register("st_geomFromGeoHash"   , ST_GeomFromGeoHash)
     sqlContext.udf.register("st_geomFromWKT"       , ST_GeomFromWKT)
+    sqlContext.udf.register("st_geometryFromText"  , ST_GeomFromWKT)
     sqlContext.udf.register("st_geomFromWKB"       , ST_GeomFromWKB)
     sqlContext.udf.register("st_makeBox2D"         , ST_MakeBox2D)
     sqlContext.udf.register("st_makeBBOX"          , ST_MakeBBOX)
