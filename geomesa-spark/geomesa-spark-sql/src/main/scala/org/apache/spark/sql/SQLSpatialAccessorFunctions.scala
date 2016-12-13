@@ -16,17 +16,17 @@ object SQLSpatialAccessorFunctions {
   val ST_Dimension: Geometry => Int = geom => geom.getBoundaryDimension
   val ST_Envelope: Geometry => Geometry = geom => geom.getEnvelope
   val ST_ExteriorRing: Geometry => LineString = ???
-  val ST_GeometryN: (Geometry, Int) => Geometry = ???
-  val ST_InteriorRingN: Geometry = ???
-  val ST_IsClosed: Boolean = ???
-  val ST_IsCollection: Boolean = ???
-  val ST_IsEmpty: Boolean = ???
-  val ST_IsRing: Boolean = ???
-  val ST_IsSimple: Boolean = ???
-  val ST_IsValid: Boolean = ???
-  val ST_NumGeometries: Int = ???
-  val ST_NumPoints: Int = ???
-  val ST_PointN: Point = ???
-  val ST_X: Int = ???
-  val ST_Y: Int = ???
+  val ST_GeometryN: (Geometry, Int) => Geometry = (geom, n) => geom.getGeometryN(n)
+  val ST_InteriorRingN: (Geometry, Int) => Geometry = ???
+  val ST_IsClosed: Geometry => Boolean = ???
+  val ST_IsCollection: Geometry => Boolean = ???
+  val ST_IsEmpty: Geometry => Boolean = ???
+  val ST_IsRing: Geometry => Boolean = ???
+  val ST_IsSimple: Geometry => Boolean = ???
+  val ST_IsValid: Geometry => Boolean = ???
+  val ST_NumGeometries: Geometry => Int = ???
+  val ST_NumPoints: Geometry => Int = ???
+  val ST_PointN: (Geometry, Int) => Point = ???
+  val ST_X: Point => Float = ???
+  val ST_Y: Point => Float = ???
 }
