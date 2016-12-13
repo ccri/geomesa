@@ -10,7 +10,7 @@ package org.locationtech.geomesa.spark.accumulo
 
 import java.util.{Map => JMap}
 
-import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.geom.{Geometry, Polygon}
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.DataStoreFinder
@@ -63,13 +63,12 @@ class SparkSQLGeometryAccessorsTest extends Specification {
     }
 
     "st_boundary" >> {
-      val r = sc.sql(
+      val result = sc.sql(
         """
-          |select st_makeBBOX(0.0, 0.0, 2.0, 2.0)
+          |select st_boundary(st_geomFromWKT('LINESTRING(1 1, 0 0, -1 1)'))
         """.stripMargin
       )
-      r.collect().head.getAs[Polygon](0) mustEqual WKTUtils.read("POLYGON((0.0 0.0, 2.0 0.0, " +
-                                                                 "2.0 2.0, 0.0 2.0, 0.0 0.0))")
+      result.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("MULTIPOINT(1 1,-1 1)")
     }
 
     "st_coordDim" >> {
