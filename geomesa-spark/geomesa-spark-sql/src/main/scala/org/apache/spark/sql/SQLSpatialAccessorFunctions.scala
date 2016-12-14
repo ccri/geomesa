@@ -1,6 +1,6 @@
 package org.apache.spark.sql
 
-import com.vividsolutions.jts.geom.Geometry
+import com.vividsolutions.jts.geom.{Polygon, Geometry}
 
 object SQLSpatialAccessorFunctions {
   val ST_Boundary: Geometry => Geometry = geom => geom.getBoundary
@@ -12,7 +12,18 @@ object SQLSpatialAccessorFunctions {
   val ST_Envelope: Geometry => Geometry = geom => geom.getEnvelope
   //  val ST_ExteriorRing: Geometry => LineString = ???
   val ST_GeometryN: (Geometry, Int) => Geometry = (geom, n) => geom.getGeometryN(n)
-  //  val ST_InteriorRingN: (Geometry, Int) => Geometry = ???
+  val ST_InteriorRingN: (Geometry, Int) => Geometry = (geom, int) => {
+    geom match {
+      case geom: Polygon => {
+        if (0 < int && int <= geom.getNumInteriorRing) {
+          geom.getInteriorRingN(int-1)
+        } else {
+          null
+        }
+      }
+      case _ => null
+    }
+  }
   //  val ST_IsClosed: Geometry => Boolean = ???
   //  val ST_IsCollection: Geometry => Boolean = ???
   //  val ST_IsEmpty: Geometry => Boolean = ???

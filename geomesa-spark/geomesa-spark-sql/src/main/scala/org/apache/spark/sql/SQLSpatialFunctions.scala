@@ -69,7 +69,7 @@ object SQLSpatialFunctions {
     sqlContext.udf.register("st_envelope"      , SQLSpatialAccessorFunctions.ST_Envelope)
 //    sqlContext.udf.register("st_exteriorRing"  , SQLSpatialAccessorFunctions.ST_ExteriorRing)
     sqlContext.udf.register("st_geometryN"     , SQLSpatialAccessorFunctions.ST_GeometryN)
-//    sqlContext.udf.register("st_interiorRingN" , SQLSpatialAccessorFunctions.ST_InteriorRingN)
+    sqlContext.udf.register("st_interiorRingN" , SQLSpatialAccessorFunctions.ST_InteriorRingN)
 //    sqlContext.udf.register("st_isClosed"      , SQLSpatialAccessorFunctions.ST_IsClosed)
 //    sqlContext.udf.register("st_isCollection"  , SQLSpatialAccessorFunctions.ST_IsCollection)
 //    sqlContext.udf.register("st_isEmpty"       , SQLSpatialAccessorFunctions.ST_IsEmpty)
