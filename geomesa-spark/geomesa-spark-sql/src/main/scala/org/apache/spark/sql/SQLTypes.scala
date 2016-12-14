@@ -23,14 +23,14 @@ object SQLTypes {
   @transient val geomFactory = JTSFactoryFinder.getGeometryFactory
   @transient val ff = CommonFactoryFinder.getFilterFactory2
 
-  val PointType             = new PointUDT
-  val MultiPointType        = new MultiPointUDT
-  val LineStringType        = new LineStringUDT
-  val MultiLineStringType   = new MultiLineStringUDT
-  val PolygonType           = new PolygonUDT
-  val MultipolygonType      = new MultiPolygonUDT
-  val GeometryType          = new GeometryUDT
-  // TODO: Implement GeometryCollectionType
+  val PointType              = new PointUDT
+  val MultiPointType         = new MultiPointUDT
+  val LineStringType         = new LineStringUDT
+  val MultiLineStringType    = new MultiLineStringUDT
+  val PolygonType            = new PolygonUDT
+  val MultipolygonType       = new MultiPolygonUDT
+  val GeometryType           = new GeometryUDT
+//  val GeometryCollectionType = new GeometryCollectionUDT
 
   UDTRegistration.register(classOf[Point].getCanonicalName, classOf[PointUDT].getCanonicalName)
   UDTRegistration.register(classOf[MultiPoint].getCanonicalName, classOf[MultiPointUDT].getCanonicalName)
@@ -39,6 +39,7 @@ object SQLTypes {
   UDTRegistration.register(classOf[Polygon].getCanonicalName, classOf[PolygonUDT].getCanonicalName)
   UDTRegistration.register(classOf[MultiPolygon].getCanonicalName, classOf[MultiPolygonUDT].getCanonicalName)
   UDTRegistration.register(classOf[Geometry].getCanonicalName, classOf[GeometryUDT].getCanonicalName)
+//  UDTRegistration.register(classOf[GeometryCollection].getCanonicalName, classOf[GeometryCollectionUDT].getCanonicalName)
 
   def init(sqlContext: SQLContext): Unit = {
     SQLSpatialFunctions.registerFunctions(sqlContext)
@@ -90,6 +91,7 @@ private [spark] class GeometryUDT extends AbstractGeometryUDT[Geometry](0, "geom
       case "Point"               => PointUDT.serialize(obj.asInstanceOf[Point])
       case "MultiPoint"          => MultiPointUDT.serialize(obj.asInstanceOf[MultiPoint])
       case "LineString"          => LineStringUDT.serialize(obj.asInstanceOf[LineString])
+      case "LinearRing"          => LineStringUDT.serialize(obj.asInstanceOf[LineString])
       case "MultiLineString"     => MultiLineStringUDT.serialize(obj.asInstanceOf[MultiLineString])
       case "Polygon"             => PolygonUDT.serialize(obj.asInstanceOf[Polygon])
       case "MultiPolygon"        => MultiPolygonUDT.serialize(obj.asInstanceOf[MultiPolygon])

@@ -186,13 +186,11 @@ class SparkSQLGeometryAccessorsTest extends Specification with LazyLogging {
       "polygon with a valid int" >> {
         val result = sc.sql(
           """
-            |select st_geomFromWKT('POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10),
-            |(20 30, 35 35, 30 20, 20 30))')
+            |select st_interiorRingN(st_geomFromWKT('POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10),
+            |(20 30, 35 35, 30 20, 20 30))'), 1)
           """.stripMargin
         )
-        val geom = result.collect().head.getAs[Geometry](0)
-//        result.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("LINESTRING(20 30, 35 35, 30 20, 20 30)")
-        success
+        result.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("LINESTRING(20 30, 35 35, 30 20, 20 30)")
       }
 
       "polygon with an invalid int" >> {
