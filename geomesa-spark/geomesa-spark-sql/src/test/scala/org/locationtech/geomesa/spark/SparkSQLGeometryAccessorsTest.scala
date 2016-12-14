@@ -99,15 +99,14 @@ class SparkSQLGeometryAccessorsTest extends Specification with LazyLogging {
         result.collect().head.getAs[Int](0) mustEqual 2
       }
 
-      // TODO: uncomment when GeometryCollection is supported
-//      "geometrycollection" >> {
-//        val result = sc.sql(
-//          """
-//            |select st_dimension(st_geomFromWKT('GEOMETRYCOLLECTION(LINESTRING(1 1,0 0),POINT(0 0))'))
-//          """.stripMargin
-//        )
-//        result.collect().head.getAs[Int](0) mustEqual 1
-//      }
+      "geometrycollection" >> {
+        val result = sc.sql(
+          """
+            |select st_dimension(st_geomFromWKT('GEOMETRYCOLLECTION(LINESTRING(1 1,0 0),POINT(0 0))'))
+          """.stripMargin
+        )
+        result.collect().head.getAs[Int](0) mustEqual 1
+      }
     }
 
     "st_envelope" >> {
@@ -162,15 +161,14 @@ class SparkSQLGeometryAccessorsTest extends Specification with LazyLogging {
         result.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("LINESTRING(40 40, 30 30, 40 20, 30 10)")
       }
 
-      // TODO: uncomment when GeometryCollection is supported
-//      "geometrycollection" >> {
-//        val result = sc.sql(
-//          """
-//            |select st_dimension(st_geomFromWKT('GEOMETRYCOLLECTION(LINESTRING(1 1,0 0),POINT(0 0))'), 1)
-//          """.stripMargin
-//        )
-//        result.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POINT(0 0)")
-//      }
+      "geometrycollection" >> {
+        val result = sc.sql(
+          """
+            |select st_geometryN(st_geomFromWKT('GEOMETRYCOLLECTION(LINESTRING(1 1,0 0),POINT(0 0))'), 1)
+          """.stripMargin
+        )
+        result.collect().head.getAs[Geometry](0) mustEqual WKTUtils.read("POINT(0 0)")
+      }
     }
 
     "st_interiorRingN" >> {
