@@ -10,6 +10,7 @@ package org.locationtech.geomesa.accumulo.data
 
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.{FeatureReader, Query}
 import org.locationtech.geomesa.accumulo.index.QueryHints.RichHints
 import org.locationtech.geomesa.accumulo.index._
@@ -45,6 +46,24 @@ abstract class AccumuloFeatureReader(val query: Query, val timeout: Option[Long]
 }
 
 object AccumuloFeatureReader {
+  // TODO:  use logging instead of printlns?
+  def isValid(feature: SimpleFeature): Boolean = if (feature == null) {
+    println(s"[ERROR] AccumuloFeatureReader.isValid:  null feature")
+    false
+  } else {
+    val geom = feature.getDefaultGeometry()
+    if (geom == null) {
+      println(s"[ERROR] AccumuloFeatureReader.isValid:  null default geometry within $feature")
+      false
+    } else {
+      if (geom.asInstanceOf[Geometry].isValid()) true
+      else {
+        println(s"[ERROR] AccumuloFeatureReader.isValid:  invalid geometry $geom")
+        false
+      }
+    }
+  }
+
   def apply(query: Query, qp: QueryPlanner, timeout: Option[Long], stats: Option[(StatWriter, AuditProvider)]) = {
     val maxFeatures = if (query.isMaxFeaturesUnlimited) None else Some(query.getMaxFeatures)
 
@@ -84,8 +103,11 @@ class AccumuloFeatureReaderWithStats(query: Query,
   implicit val timings = new TimingsImpl
   private val iter = profile(qp.runQuery(query), "planning")
 
-  override def next(): SimpleFeature = profile(iter.next(), "next")
-  override def hasNext: Boolean = profile(iter.hasNext, "hasNext")
+  val validIter = iter.filter(AccumuloFeatureReader.isValid)
+
+  override def next(): SimpleFeature = profile(validIter.next(), "next")
+
+  override def hasNext: Boolean = profile(validIter.hasNext, "hasNext")
 
   override protected def closeOnce(): Unit = {
     iter.close()
