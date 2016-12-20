@@ -11,7 +11,7 @@ package org.locationtech.geomesa.spark
 import java.util.{Map => JMap}
 
 import com.typesafe.scalalogging.LazyLogging
-import com.vividsolutions.jts.geom.Polygon
+import com.vividsolutions.jts.geom.{Point, Polygon}
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.geotools.data.{DataStore, DataStoreFinder}
 import org.junit.runner.RunWith
@@ -39,6 +39,7 @@ class SparkSQLGeometryConstructorsTest extends Specification with LazyLogging {
       ds = DataStoreFinder.getDataStore(dsParams)
       spark = SparkSQLTestUtils.createSparkSession()
       sc = spark.sqlContext
+      sc.experimental.extraOptimizations ++= Seq(SparkSQLTestUtils.PrintPlanRule)
 
       SparkSQLTestUtils.ingestChicago(ds)
 
@@ -51,6 +52,15 @@ class SparkSQLGeometryConstructorsTest extends Specification with LazyLogging {
       df.createOrReplaceTempView("chicago")
 
       df.collect().length mustEqual 3
+    }
+
+    "st_geomFromWKT('POINT(0 0)')'" >> {
+      val r = sc.sql(
+        """
+          |select st_geomFromWKT('POINT(0 0)')
+        """.stripMargin
+      )
+      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(0 0)")
     }
 
     "st_makeBBOX" >> {

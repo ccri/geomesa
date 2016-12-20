@@ -13,6 +13,8 @@ import java.util.{Map => JMap}
 
 import com.vividsolutions.jts.geom.Coordinate
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.rules.Rule
 import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.data.{DataStore, DataUtilities}
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -50,6 +52,13 @@ object SparkSQLTestUtils {
     ))
 
     fs.addFeatures(features)
+  }
+
+  object PrintPlanRule extends Rule[LogicalPlan] {
+    override def apply(plan: LogicalPlan): LogicalPlan = {
+      println(s"Test Plan in rule: $plan")
+      plan
+    }
   }
 }
 

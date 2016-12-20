@@ -12,7 +12,7 @@ import com.vividsolutions.jts.geom.Geometry
 import org.apache.spark.sql.SQLTypes._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, LeafExpression, Literal, PredicateHelper, ScalaUDF}
+import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, Expression, LeafExpression, Literal, PredicateHelper, ScalaUDF}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, Sort}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -52,7 +52,7 @@ object SQLRules {
           // TODO: deal with `or`
 
           // split up conjunctive predicates and extract the st_contains variable
-          val (st_contains, xs) = splitConjunctivePredicates(f).partition {
+          val (st_contains: Seq[Expression], xs) = splitConjunctivePredicates(f).partition {
             // TODO: Add guard which checks to see if the function can be pushed down
             case ScalaUDF(_, _, _, _) => true
             case _                    => false
@@ -138,8 +138,24 @@ object SQLRules {
     }
   }
 
+  object ScalaUDAFRule extends Rule[LogicalPlan] {
+    override def apply(plan: LogicalPlan): LogicalPlan = {
+      plan.transform {
+        case q: LogicalPlan => q.transformExpressionsDown {
+          case s@ScalaUDF(func, outputType, inputs, inputTypes) =>
+
+            s
+
+          case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
+            val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
+            GeometryLiteral(GeometryUDT.serialize(geom), geom)
+        }
+      }
+    }
+  }
+
   def registerOptimizations(sqlContext: SQLContext): Unit = {
-    Seq(FoldConstantGeometryRule, STContainsRule).foreach { r =>
+    Seq(ScalaUDAFRule, FoldConstantGeometryRule, STContainsRule).foreach { r =>
       if(!sqlContext.experimental.extraOptimizations.contains(r))
         sqlContext.experimental.extraOptimizations ++= Seq(r)
     }

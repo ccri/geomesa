@@ -58,21 +58,28 @@ class SparkSQLDataTest extends Specification with LazyLogging {
     }
 
     "basic sql 1" >> {
-      val r = sc.sql("select * from chicago where case_number = 1")
+      val r = sc.sql("select * from chicago where case_number = 1 and st_equals(geom, st_geomFromWKT('POINT(-76.5 38.5)'))")
       val d = r.collect
 
       d.length mustEqual 1
       d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
     }
 
-    "st_translate" >> {
-      val r = sc.sql(
-        """
-          |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
-        """.stripMargin)
+    "basic sql 2" >> {
+      val r = sc.sql("select 1 + 1 > 4")
+      val d = r.collect
 
-      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
+      d.length mustEqual 1
     }
+
+//    "st_translate" >> {
+//      val r = sc.sql(
+//        """
+//          |select ST_Translate(st_geomFromWKT('POINT(0 0)'), 5, 12)
+//        """.stripMargin)
+//
+//      r.collect().head.getAs[Point](0) mustEqual WKTUtils.read("POINT(5 12)")
+//    }
 
     // after
     step {
