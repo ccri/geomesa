@@ -125,6 +125,40 @@ class SparkSQLDataTest extends Specification with LazyLogging {
       d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
     }
 
+    // JNH: ORs are bad mmmmk
+    "basic sql 9" >> {
+      val r = sc.sql("select * from chicago where " +
+        "st_intersects(geom, st_makeBox2d(st_point(-77, 38), st_point(-76, 39))) or " +
+        "st_covers(st_makeBox2d(st_point(-77, 38), st_point(-76, 39)), geom)")
+      val d = r.collect
+
+      d.length mustEqual 2
+      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
+    }
+
+    "basic sql 10" >> {
+      val r = sc.sql("select * from chicago where " +
+        "st_intersects(geom, st_makeBox2d(st_point(-77, 38), st_point(-76, 39))) and " +
+        "(st_covers(st_makeBox2d(st_point(-77, 38), st_point(-76, 39)), geom) or " +
+        "case_number = 1)")
+      val d = r.collect
+
+      d.length mustEqual 2
+      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
+    }
+
+    "basic sql 11" >> {
+      val r = sc.sql("select * from chicago where " +
+        "(st_intersects(geom, st_makeBox2d(st_point(-77, 38), st_point(-76, 39))) and " +
+        "st_covers(st_makeBox2d(st_point(-77, 38), st_point(-76, 39)), geom)) or " +
+        "(st_intersects(geom, st_makeBox2d(st_point(-77, 38), st_point(-76, 39))) and " +
+        "case_number = 1)")
+      val d = r.collect
+
+      d.length mustEqual 2
+      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
+    }
+
 //    "st_translate" >> {
 //      val r = sc.sql(
 //        """

@@ -274,7 +274,7 @@ object SQLRules {
           case s@ScalaUDF(func, outputType, inputs, inputTypes) =>
             // TODO: Break down by GeometryType
             val newS: Expression = Try {
-              try {
+//              try {
                 s.eval(null) match {
                   case row: GenericInternalRow =>
                     val ret = GeometryUDT.deserialize(row)
@@ -282,11 +282,11 @@ object SQLRules {
                   case other: Any =>
                     Literal(other)
                 }
-              } catch {
-                case e: Exception =>
-                  e.printStackTrace()
-                  throw e
-              }
+//              } catch {
+//                case e: Exception =>
+//                  e.printStackTrace()
+//                  throw e
+//              }
             }.getOrElse(s)
             logger.debug(s"Got $s: evaluated to $newS")
 
