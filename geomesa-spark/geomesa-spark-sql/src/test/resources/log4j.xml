@@ -42,6 +42,10 @@
         <priority value="trace"/>
     </category>
 
+    <category name="org.apache.spark.sql">
+        <priority value="debug"/>
+    </category>
+
 
     <!-- un-comment the following line to enable verbose log messages
          from the index query-planner; this can be helpful in debugging

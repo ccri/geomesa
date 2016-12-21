@@ -10,14 +10,18 @@ package org.apache.spark.sql
 
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
+import java.util
+
+import com.vividsolutions.jts.geom._
+import org.apache.commons.lang.SerializationUtils
 import org.apache.spark.sql.SQLTypes._
-import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow, JavaTypeInference}
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, Expression, GenericInternalRow, LeafExpression, Literal, PredicateHelper, ScalaUDF}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, Sort}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.{DataType, DataTypes}
+import org.apache.spark.sql.types.{AnyDataType, DataType, DataTypes, ObjectType}
 import org.apache.spark.unsafe.types.UTF8String
 import org.locationtech.geomesa.spark.GeoMesaRelation
 import org.opengis.filter.{Filter => GTFilter}
@@ -28,6 +32,18 @@ import scala.util.Try
 
 object SQLRules {
   // new AST expressions
+
+  case class ByteArrayLiteral(repr: InternalRow, array: Array[Byte]) extends LeafExpression with CodegenFallback {
+
+    override def foldable: Boolean = true
+
+    override def nullable: Boolean = true
+
+    override def eval(input: InternalRow): Any = repr
+
+    override def dataType: DataType = DataTypes.BinaryType
+  }
+
   case class GeometryLiteral(repr: InternalRow, geom: Geometry) extends LeafExpression  with CodegenFallback {
 
     override def foldable: Boolean = true
@@ -39,14 +55,48 @@ object SQLRules {
     override def dataType: DataType = GeometryType
   }
 
+  case class PointLiteral(repr: InternalRow, point: Point) extends LeafExpression with CodegenFallback {
+
+    override def foldable: Boolean = true
+
+    override def nullable: Boolean = true
+
+    override def eval(input: InternalRow): Any = repr
+
+    override def dataType: DataType = PointType
+  }
+
+  case class LineStringLiteral(repr: InternalRow, lineString: LineString) extends LeafExpression with CodegenFallback {
+
+    override def foldable: Boolean = true
+
+    override def nullable: Boolean = true
+
+    override def eval(input: InternalRow): Any = repr
+
+    override def dataType: DataType = LineStringType
+  }
+
+  case class PolygonLiteral(repr: InternalRow, polygon: Polygon) extends LeafExpression with CodegenFallback {
+
+    override def foldable: Boolean = true
+
+    override def nullable: Boolean = true
+
+    override def eval(input: InternalRow): Any = repr
+
+    override def dataType: DataType = PolygonType
+  }
+
   // new optimizations rules
   object STContainsRule extends Rule[LogicalPlan] with PredicateHelper {
     import SQLSpatialFunctions._
+    import SQLGeometricConstructorFunctions._
 
     // JNH: NB: Unused.
     def extractGeometry(e: org.apache.spark.sql.catalyst.expressions.Expression): Option[Geometry] = e match {
       case And(l, r) => extractGeometry(l).orElse(extractGeometry(r))
-      case ScalaUDF(ST_Contains, _, Seq(_, GeometryLiteral(_, geom)), _) => Some(geom)
+      case ScalaUDF(_, _, Seq(_, GeometryLiteral(_, geom)), _) => Some(geom)
       case _ => None
     }
 
@@ -132,6 +182,12 @@ object SQLRules {
 
     def sparkExprToGTExpr(expr: org.apache.spark.sql.catalyst.expressions.Expression): Option[org.opengis.filter.expression.Expression] = {
       expr match {
+        case PointLiteral(_, point) =>
+          Some(ff.literal(point))
+        case LineStringLiteral(_, lineString) =>
+          Some(ff.literal(lineString))
+        case PolygonLiteral(_, polygon) =>
+          Some(ff.literal(polygon))
         case GeometryLiteral(_, geom) =>
           Some(ff.literal(geom))
         case AttributeReference(name, _, _, _) =>
@@ -143,46 +199,102 @@ object SQLRules {
     }
   }
 
-  import SQLSpatialFunctions._
-
   object FoldConstantGeometryRule extends Rule[LogicalPlan] {
+    import SQLGeometricConstructorFunctions._
+    import SQLGeometricCastFunctions._
     override def apply(plan: LogicalPlan): LogicalPlan = {
       plan.transform {
         case q: LogicalPlan => q.transformExpressionsDown {
+          // Casts
+          case ScalaUDF(ST_CastToPoint, PointType, Seq(Literal(g, GeometryType)),
+          Seq(GeometryType)) =>
+            val point = ST_CastToPoint(g.asInstanceOf[Geometry])
+            PointLiteral(PointUDT.serialize(point), point)
+
+          case ScalaUDF(ST_ByteArray, DataTypes.BinaryType, Seq(Literal(string, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
+            val array = ST_ByteArray(string.asInstanceOf[UTF8String].toString)
+            ByteArrayLiteral(InternalRow(array), array)
+
+          // Geometric Constructors
+          case ScalaUDF(ST_Box2DFromGeoHash, GeometryType, Seq(Literal(hash, DataTypes.StringType),
+                        Literal(prec, DataTypes.IntegerType)), Seq(DataTypes.StringType, DataTypes.IntegerType)) =>
+            val box2D = ST_Box2DFromGeoHash(hash.asInstanceOf[UTF8String].toString, prec.asInstanceOf[Int])
+            GeometryLiteral(GeometryUDT.serialize(box2D), box2D)
+
+          case ScalaUDF(ST_MakeBox2D, GeometryType, Seq(Literal(lowerLeft, PointType), Literal(upperRight, PointType)),
+               Seq(PointType, PointType)) =>
+            val box2D = ST_MakeBox2D(lowerLeft.asInstanceOf[Point], upperRight.asInstanceOf[Point])
+            GeometryLiteral(GeometryUDT.serialize(box2D), box2D)
+
+          case ScalaUDF(ST_GeomFromGeoHash, GeometryType, Seq(Literal(hash, DataTypes.StringType),
+          Literal(prec, DataTypes.IntegerType)), Seq(DataTypes.StringType, DataTypes.IntegerType)) =>
+            val geom = ST_GeomFromGeoHash(hash.asInstanceOf[UTF8String].toString, prec.asInstanceOf[Int])
+            GeometryLiteral(GeometryUDT.serialize(geom), geom)
+
           case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
             val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
             GeometryLiteral(GeometryUDT.serialize(geom), geom)
+
+          case ScalaUDF(ST_GeomFromWKB, GeometryType, Seq(Literal(array, DataTypes.BinaryType)),
+                        Seq(DataTypes.BinaryType)) =>
+            val geom = ST_GeomFromWKB(array.asInstanceOf[Array[Byte]])
+            GeometryLiteral(GeometryUDT.serialize(geom), geom)
+
+          case ScalaUDF(ST_Point, PointType,
+                        Seq(Literal(x, DataTypes.DoubleType), Literal(y, DataTypes.DoubleType)),
+                        Seq(DataTypes.DoubleType, DataTypes.DoubleType)) =>
+            val geom = ST_Point(x.asInstanceOf[Double], y.asInstanceOf[Double])
+            PointLiteral(GeometryUDT.serialize(geom), geom)
+
+          case ScalaUDF(ST_MakePoint, PointType, Seq(Literal(x, DataTypes.DoubleType),
+               Literal(y, DataTypes.DoubleType)), Seq(DataTypes.DoubleType, DataTypes.DoubleType)) =>
+            val point = ST_MakePoint(x.asInstanceOf[Double], y.asInstanceOf[Double])
+            PointLiteral(PointUDT.serialize(point), point)
+
+          case ScalaUDF(ST_PolygonFromText, PolygonType, Seq(Literal(string, DataTypes.StringType)),
+               Seq(DataTypes.StringType)) =>
+            val polygon = ST_PolygonFromText(string.asInstanceOf[UTF8String].toString)
+            PolygonLiteral(PolygonUDT.serialize(polygon), polygon)
         }
       }
     }
   }
 
-  object ScalaUDAFRule extends Rule[LogicalPlan] with LazyLogging {
+  object ScalaUDFRule extends Rule[LogicalPlan] with LazyLogging {
     override def apply(plan: LogicalPlan): LogicalPlan = {
       plan.transform {
         case q: LogicalPlan => q.transformExpressionsDown {
           case s@ScalaUDF(func, outputType, inputs, inputTypes) =>
-            // TODO: Break down by
+            // TODO: Break down by GeometryType
             val newS: Expression = Try {
-              val row = s.eval(null).asInstanceOf[GenericInternalRow]
-              val ret = GeometryUDT.deserialize(row)
-              GeometryLiteral(row, ret)
+              try {
+                s.eval(null) match {
+                  case row: GenericInternalRow =>
+                    val ret = GeometryUDT.deserialize(row)
+                    GeometryLiteral(row, ret)
+                  case other: Any =>
+                    Literal(other)
+                }
+              } catch {
+                 case e: Exception =>
+                  e.printStackTrace()
+                  throw e
+              }
             }.getOrElse(s)
-
-            logger.trace(s"Got $s: evaluated to $newS")
+            logger.debug(s"Got $s: evaluated to $newS")
 
             newS
 
-          case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
-            val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
-            GeometryLiteral(GeometryUDT.serialize(geom), geom)
+//          case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
+//            val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
+//            GeometryLiteral(GeometryUDT.serialize(geom), geom)
         }
       }
     }
   }
 
   def registerOptimizations(sqlContext: SQLContext): Unit = {
-    Seq(ScalaUDAFRule, FoldConstantGeometryRule, STContainsRule).foreach { r =>
+    Seq(ScalaUDFRule, STContainsRule).foreach { r =>
       if(!sqlContext.experimental.extraOptimizations.contains(r))
         sqlContext.experimental.extraOptimizations ++= Seq(r)
     }

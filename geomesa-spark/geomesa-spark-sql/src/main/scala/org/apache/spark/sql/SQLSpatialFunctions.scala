@@ -68,21 +68,7 @@ object SQLSpatialFunctions {
   // Geometry Processing
   val ch = new ConvexHull
 
-  // Type casting functions
-  // TODO: Implement addition casts
-  val ST_CastToPoint:      Geometry => Point       = g => g.asInstanceOf[Point]
-  val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
-  val ST_CastToLineString: Geometry => LineString  = g => g.asInstanceOf[LineString]
-
-
-  import SQLTypes._
-
   def registerFunctions(sqlContext: SQLContext): Unit = {
-    // Register geometry constructors
-    sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
-    sqlContext.udf.register("st_makeBox2D"     , ST_MakeBox2D)
-    sqlContext.udf.register("st_makeBBOX"      , ST_MakeBBOX)
-
     // Register geometry accessors
     sqlContext.udf.register("st_envelope"      , ST_Envelope)
 
@@ -107,11 +93,11 @@ object SQLSpatialFunctions {
     sqlContext.udf.register("st_convexhull", ch)
 
     // Register type casting functions
-    sqlContext.udf.register("st_castToPoint", ST_CastToPoint)
+//    sqlContext.udf.register("st_castToPoint", ST_CastToPoint)
 
     sqlContext.udf.register("st_geomFromWKT2"   , ST_GeomFromWKT2)
 
-    def gfwBuilder(e: Seq[Expression]) = ScalaUDF(ST_GeomFromWKT3, GeometryType, e, Seq(StringType))
+    def gfwBuilder(e: Seq[Expression]) = ScalaUDF(ST_GeomFromWKT3, SQLTypes.GeometryType, e, Seq(StringType))
 
     sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_gfw", gfwBuilder)
   }
