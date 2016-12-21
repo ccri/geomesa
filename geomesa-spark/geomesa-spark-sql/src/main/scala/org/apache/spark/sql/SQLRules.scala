@@ -67,9 +67,6 @@ object SQLRules {
             //            val ScalaUDF(func, _, Seq(GeometryLiteral(_, geom), a), _) = st_contains.head
             val ScalaUDF(func, _, Seq(exprA, exprB), _) = scalaUDFS.head
 
-            // TODO: map func => ff.function
-            // TODO: Map Expressions to OpenGIS expressions.
-
             val cqlFilter = buildGTFilter(func, exprA, exprB)
 
             cqlFilter match {
@@ -93,7 +90,6 @@ object SQLRules {
           }
       }
     }
-
 
     private def buildGTFilter(func: AnyRef, exprA: Expression, exprB: Expression): Option[GTFilter] =
       for {
@@ -166,9 +162,11 @@ object SQLRules {
       plan.transform {
         case q: LogicalPlan => q.transformExpressionsDown {
           case s@ScalaUDF(func, outputType, inputs, inputTypes) =>
+            // TODO: Break down by
             val newS: Expression = Try {
-              val ret = GeometryUDT.deserialize(s.eval(null).asInstanceOf[GenericInternalRow])
-              GeometryLiteral(null, ret)
+              val row = s.eval(null).asInstanceOf[GenericInternalRow]
+              val ret = GeometryUDT.deserialize(row)
+              GeometryLiteral(row, ret)
             }.getOrElse(s)
 
             logger.trace(s"Got $s: evaluated to $newS")
