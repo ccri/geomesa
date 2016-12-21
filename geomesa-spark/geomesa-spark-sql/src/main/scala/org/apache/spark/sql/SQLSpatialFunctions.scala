@@ -1,16 +1,18 @@
 /***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  *************************************************************************/
 
 package org.apache.spark.sql
 
 import java.awt.geom.AffineTransform
 
 import com.vividsolutions.jts.geom._
+import org.apache.spark.sql.catalyst.expressions.{Expression, ScalaUDF}
+import org.apache.spark.sql.types.{BooleanType, StringType}
 import org.apache.spark.sql.udaf.ConvexHull
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.GeodeticCalculator
@@ -24,7 +26,20 @@ object SQLSpatialFunctions {
   // TODO: optimize when used as a literal
   // e.g. select * from feature where st_contains(geom, geomFromText('POLYGON((....))'))
   // should not deserialize the POLYGON for every call
-  val ST_GeomFromWKT: String => Geometry = s => WKTUtils.read(s)
+  val ST_GeomFromWKT: String => Geometry = {
+    s =>
+      WKTUtils.read(s)
+  }
+  val ST_GeomFromWKT2: String => Geometry = {
+    s =>
+      println("Calling WKT2")
+      WKTUtils.read(s)
+  }
+  val ST_GeomFromWKT3: String => Geometry = {
+    s =>
+      println("Calling WKT3")
+      WKTUtils.read(s)
+  }
 
   val ST_MakeBox2D: (Point, Point) => Polygon = (ll, ur) => JTS.toGeometry(new Envelope(ll.getX, ur.getX, ll.getY, ur.getY))
   val ST_MakeBBOX: (Double, Double, Double, Double) => Polygon = (lx, ly, ux, uy) => JTS.toGeometry(new Envelope(lx, ux, ly, uy))
@@ -59,6 +74,9 @@ object SQLSpatialFunctions {
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
   val ST_CastToLineString: Geometry => LineString  = g => g.asInstanceOf[LineString]
 
+
+  import SQLTypes._
+
   def registerFunctions(sqlContext: SQLContext): Unit = {
     // Register geometry constructors
     sqlContext.udf.register("st_geomFromWKT"   , ST_GeomFromWKT)
@@ -90,6 +108,12 @@ object SQLSpatialFunctions {
 
     // Register type casting functions
     sqlContext.udf.register("st_castToPoint", ST_CastToPoint)
+
+    sqlContext.udf.register("st_geomFromWKT2"   , ST_GeomFromWKT2)
+
+    def gfwBuilder(e: Seq[Expression]) = ScalaUDF(ST_GeomFromWKT3, GeometryType, e, Seq(StringType))
+
+    sqlContext.sparkSession.sessionState.functionRegistry.registerFunction("st_gfw", gfwBuilder)
   }
 
   @transient private val geoCalcs = new ThreadLocal[GeodeticCalculator] {
