@@ -27,7 +27,9 @@ import org.locationtech.geomesa.spark.GeoMesaRelation
 import org.opengis.filter.{Filter => GTFilter}
 import org.opengis.filter.expression.{Expression => GTExpression}
 import org.opengis.filter.spatial.BinarySpatialOperator
+import scala.collection.JavaConversions._
 
+import scala.collection.generic.SeqFactory
 import scala.util.Try
 
 object SQLRules {
@@ -107,37 +109,42 @@ object SQLRules {
           // TODO: deal with `or`
 
           // split up conjunctive predicates and extract the st_contains variable
-          val (scalaUDFS, otherFilters) = extractScalaUDFs(f)
+          val (scalaUDFs: Seq[Expression], otherFilters: Seq[Expression]) = extractScalaUDFs(f)
 
-          if(scalaUDFS.nonEmpty) {
-            // we got an st_contains, extract the geometry and set up the new GeoMesa relation with the appropriate
-            // CQL filter
+          val (gtFilters: Seq[GTFilter], sFilters: Seq[Expression]) = scalaUDFs.foldLeft((Seq[GTFilter](), otherFilters)) {
+            case ((gts: Seq[GTFilter], sfilters), expression: Expression) =>
+              val cqlFilter = scalaUDFtoGTFilter(expression)
 
-            // TODO: only dealing with one st_contains at the moment
-            //            val ScalaUDF(func, _, Seq(GeometryLiteral(_, geom), a), _) = st_contains.head
-            val ScalaUDF(func, _, Seq(exprA, exprB), _) = scalaUDFS.head
+              cqlFilter match {
+                case Some(gtf) => (gts.+:(gtf), sfilters)
+                case None      => (gts,         sfilters.+:(expression))
+              }
+          }
 
-            val cqlFilter = buildGTFilter(func, exprA, exprB)
+          if (gtFilters.nonEmpty) {
+            val relation = gmRel.copy(filt = ff.and(gtFilters :+ gmRel.filt))
+            val newrel = lr.copy(expectedOutputAttributes = Some(lr.output), relation = relation)
 
-            cqlFilter match {
-              case Some(filter) =>
-                val relation = gmRel.copy(filt = ff.and(gmRel.filt, filter))
-                // need to maintain expectedOutputAttributes so identifiers don't change in projections
-                val newrel = lr.copy(expectedOutputAttributes = Some(lr.output), relation = relation)
-                if(otherFilters.nonEmpty) {
-                  // if there are other filters, keep them
-                  Filter(otherFilters.reduce(And), newrel)
-                } else {
-                  // if st_contains was the only filter, just return the new relation
-                  newrel
-                }
-              case None =>
-                filt
+            if (otherFilters.nonEmpty) {
+              Filter(otherFilters.reduce(And), newrel)
+            } else {
+              // if st_contains was the only filter, just return the new relation
+              newrel
             }
-
           } else {
             filt
           }
+      }
+    }
+
+    def scalaUDFtoGTFilter(udf: Expression): Option[GTFilter] = {
+      val ScalaUDF(func, _, expressions, _) = udf
+
+      if (expressions.size == 2) {
+        val Seq(exprA, exprB) = expressions
+        buildGTFilter(func, exprA, exprB)
+      } else {
+        None
       }
     }
 
