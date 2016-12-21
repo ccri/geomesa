@@ -1,10 +1,10 @@
 /***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  *************************************************************************/
 
 package org.apache.spark.sql
 
@@ -125,8 +125,8 @@ object SQLRules {
             val relation = gmRel.copy(filt = ff.and(gtFilters :+ gmRel.filt))
             val newrel = lr.copy(expectedOutputAttributes = Some(lr.output), relation = relation)
 
-            if (otherFilters.nonEmpty) {
-              Filter(otherFilters.reduce(And), newrel)
+            if (sFilters.nonEmpty) {
+              Filter(sFilters.reduce(And), newrel)
             } else {
               // if st_contains was the only filter, just return the new relation
               newrel
@@ -224,12 +224,12 @@ object SQLRules {
 
           // Geometric Constructors
           case ScalaUDF(ST_Box2DFromGeoHash, GeometryType, Seq(Literal(hash, DataTypes.StringType),
-                        Literal(prec, DataTypes.IntegerType)), Seq(DataTypes.StringType, DataTypes.IntegerType)) =>
+          Literal(prec, DataTypes.IntegerType)), Seq(DataTypes.StringType, DataTypes.IntegerType)) =>
             val box2D = ST_Box2DFromGeoHash(hash.asInstanceOf[UTF8String].toString, prec.asInstanceOf[Int])
             GeometryLiteral(GeometryUDT.serialize(box2D), box2D)
 
           case ScalaUDF(ST_MakeBox2D, GeometryType, Seq(Literal(lowerLeft, PointType), Literal(upperRight, PointType)),
-               Seq(PointType, PointType)) =>
+          Seq(PointType, PointType)) =>
             val box2D = ST_MakeBox2D(lowerLeft.asInstanceOf[Point], upperRight.asInstanceOf[Point])
             GeometryLiteral(GeometryUDT.serialize(box2D), box2D)
 
@@ -243,23 +243,23 @@ object SQLRules {
             GeometryLiteral(GeometryUDT.serialize(geom), geom)
 
           case ScalaUDF(ST_GeomFromWKB, GeometryType, Seq(Literal(array, DataTypes.BinaryType)),
-                        Seq(DataTypes.BinaryType)) =>
+          Seq(DataTypes.BinaryType)) =>
             val geom = ST_GeomFromWKB(array.asInstanceOf[Array[Byte]])
             GeometryLiteral(GeometryUDT.serialize(geom), geom)
 
           case ScalaUDF(ST_Point, PointType,
-                        Seq(Literal(x, DataTypes.DoubleType), Literal(y, DataTypes.DoubleType)),
-                        Seq(DataTypes.DoubleType, DataTypes.DoubleType)) =>
+          Seq(Literal(x, DataTypes.DoubleType), Literal(y, DataTypes.DoubleType)),
+          Seq(DataTypes.DoubleType, DataTypes.DoubleType)) =>
             val geom = ST_Point(x.asInstanceOf[Double], y.asInstanceOf[Double])
             PointLiteral(GeometryUDT.serialize(geom), geom)
 
           case ScalaUDF(ST_MakePoint, PointType, Seq(Literal(x, DataTypes.DoubleType),
-               Literal(y, DataTypes.DoubleType)), Seq(DataTypes.DoubleType, DataTypes.DoubleType)) =>
+          Literal(y, DataTypes.DoubleType)), Seq(DataTypes.DoubleType, DataTypes.DoubleType)) =>
             val point = ST_MakePoint(x.asInstanceOf[Double], y.asInstanceOf[Double])
             PointLiteral(PointUDT.serialize(point), point)
 
           case ScalaUDF(ST_PolygonFromText, PolygonType, Seq(Literal(string, DataTypes.StringType)),
-               Seq(DataTypes.StringType)) =>
+          Seq(DataTypes.StringType)) =>
             val polygon = ST_PolygonFromText(string.asInstanceOf[UTF8String].toString)
             PolygonLiteral(PolygonUDT.serialize(polygon), polygon)
         }
@@ -283,7 +283,7 @@ object SQLRules {
                     Literal(other)
                 }
               } catch {
-                 case e: Exception =>
+                case e: Exception =>
                   e.printStackTrace()
                   throw e
               }
@@ -292,9 +292,9 @@ object SQLRules {
 
             newS
 
-//          case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
-//            val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
-//            GeometryLiteral(GeometryUDT.serialize(geom), geom)
+          //          case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
+          //            val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
+          //            GeometryLiteral(GeometryUDT.serialize(geom), geom)
         }
       }
     }
