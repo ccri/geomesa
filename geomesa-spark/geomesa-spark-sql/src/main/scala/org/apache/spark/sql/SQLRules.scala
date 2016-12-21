@@ -8,11 +8,12 @@
 
 package org.apache.spark.sql
 
+import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.apache.spark.sql.SQLTypes._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, Expression, LeafExpression, Literal, PredicateHelper, ScalaUDF}
+import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, Expression, GenericInternalRow, LeafExpression, Literal, PredicateHelper, ScalaUDF}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, Sort}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -22,6 +23,8 @@ import org.locationtech.geomesa.spark.GeoMesaRelation
 import org.opengis.filter.{Filter => GTFilter}
 import org.opengis.filter.expression.{Expression => GTExpression}
 import org.opengis.filter.spatial.BinarySpatialOperator
+
+import scala.util.Try
 
 object SQLRules {
   // new AST expressions
@@ -158,13 +161,19 @@ object SQLRules {
     }
   }
 
-  object ScalaUDAFRule extends Rule[LogicalPlan] {
+  object ScalaUDAFRule extends Rule[LogicalPlan] with LazyLogging {
     override def apply(plan: LogicalPlan): LogicalPlan = {
       plan.transform {
         case q: LogicalPlan => q.transformExpressionsDown {
           case s@ScalaUDF(func, outputType, inputs, inputTypes) =>
+            val newS: Expression = Try {
+              val ret = GeometryUDT.deserialize(s.eval(null).asInstanceOf[GenericInternalRow])
+              GeometryLiteral(null, ret)
+            }.getOrElse(s)
 
-            s
+            logger.trace(s"Got $s: evaluated to $newS")
+
+            newS
 
           case ScalaUDF(ST_GeomFromWKT, GeometryType, Seq(Literal(wkt, DataTypes.StringType)), Seq(DataTypes.StringType)) =>
             val geom = ST_GeomFromWKT(wkt.asInstanceOf[UTF8String].toString)
