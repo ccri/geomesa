@@ -3,14 +3,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>geomesa-spark_2.11</artifactId>
+        <artifactId>geomesa-accumulo_2.11</artifactId>
         <groupId>org.locationtech.geomesa</groupId>
         <version>1.3.0-m3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>GeoMesa Spark Accumulo</name>
-    <artifactId>geomesa-spark-accumulo_2.11</artifactId>
+    <name>GeoMesa Accumulo Spark</name>
+    <artifactId>geomesa-accumulo-spark_2.11</artifactId>
 
     <dependencies>
         <dependency>
@@ -25,20 +25,23 @@
             <groupId>org.locationtech.geomesa</groupId>
             <artifactId>geomesa-spark-core_${scala.binary.version}</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-spark-sql_${scala.binary.version}</artifactId>
-        </dependency>
 
-        <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
-        </dependency>
 
         <!-- only needed for packaging into the shaded jar -->
         <dependency>
             <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-jupyter_2.11</artifactId>
+            <artifactId>geomesa-spark-sql_${scala.binary.version}</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-tools_${scala.binary.version}</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-jupyter_${scala.binary.version}</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
