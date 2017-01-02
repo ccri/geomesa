@@ -54,22 +54,26 @@ class SparkSQLGeometricOutputsTest extends Specification with LazyLogging {
     "st_asBinary" >> {
       val r = sc.sql(
         """
-          |select st_asBinary(geom) from chicago
+          |select st_asBinary(st_geomFromWKT('POLYGON((0 0, 2 0, 2 2, 0 2, 0 0))'))
         """.stripMargin
       )
-      println(r.collect().head.getAs[Array[Byte]](0))
-      success
+      r.collect().head.getAs[Array[Byte]](0) mustEqual Array[Byte](0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0,
+        64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0
+      )
     }
 
-    /*"st_asGeoJSON" >> {
+    "st_asGeoJSON" >> {
+      // st_asGeoJSON(geom) from chicago
       val r = sc.sql(
         """
-          |select st_asGeoJSON(st_geomFromWKT('POINT(0 0)'))
+          |select st_asGeoJSON(st_geomFromWKT('POLYGON((0.45 0.75, 1.15 0.75, 1.15 1.45, 0.45 1.45, 0.45 0.75))'))
         """.stripMargin
       )
-      println(r.collect().head.getAs[String](0))
-      success
-    }*/
+      r.collect().head.getAs[String](0) mustEqual
+        "{\"type\":\"Polygon\",\"coordinates\":[[[0.45,0.75],[1.15,0.75],[1.15,1.45],[0.45,1.45],[0.45,0.75]]]}"
+    }
 
     "st_asLatLonText" >> {
       val r = sc.sql(
@@ -77,7 +81,7 @@ class SparkSQLGeometricOutputsTest extends Specification with LazyLogging {
           |select st_asLatLonText(geom) from chicago
         """.stripMargin
       )
-      r.collect().head.getAs[String](0) mustEqual "77°30\'0.000\"W 38°30\'0.000\"N"
+      r.collect().head.getAs[String](0) mustEqual "38°30\'0.000\"N 77°30\'0.000\"W"
     }
 
     "st_asText" >> {
@@ -87,6 +91,15 @@ class SparkSQLGeometricOutputsTest extends Specification with LazyLogging {
         """.stripMargin
       )
       r.collect().head.getAs[String](0) mustEqual "POINT (-76.5 38.5)"
+    }
+
+    "st_geoHash" >> {
+      val r = sc.sql(
+        """
+        |select st_geoHash(geom, 25) from chicago
+      """.stripMargin
+      )
+      r.collect().head.getAs[String](0) mustEqual "dqce5"
     }
 
 
