@@ -60,6 +60,7 @@ class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
     }
 
     "read messages and shutdown appropriately" >> {
+      val topic = "read-1"
       val config = getConsumerConfig(topic)
       produceMessages(topic)
       val consumer = new KafkaConsumer[String, String](topic, config, new StringDecoder, new StringDecoder)
