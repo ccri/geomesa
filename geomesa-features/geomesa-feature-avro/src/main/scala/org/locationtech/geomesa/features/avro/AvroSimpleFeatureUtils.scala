@@ -50,6 +50,12 @@ object AvroSimpleFeatureUtils {
         addField(assembler, nameEncoder.encode(ad.getLocalName), ad.getType.getBinding, ad.isNillable)
       }
 
+//    val fullSchema = if (withUserData) {
+//      withFields.name(AVRO_SIMPLE_FEATURE_USERDATA).`type`.array().items().record("userDataItem").fields()
+//        .name("keyClass").`type`.stringType().noDefault()
+//        .name("key").`type`.stringType().noDefault()
+//        .name("valueClass").`type`.stringType().noDefault()
+//        .name("value").`type`.stringType().noDefault().endRecord().noDefault()
     val fullSchema = if (withUserData) {
       withFields.name(AVRO_SIMPLE_FEATURE_USERDATA).`type`.array().items().record("userDataItem").fields()
         .name("class").`type`.stringType().noDefault()

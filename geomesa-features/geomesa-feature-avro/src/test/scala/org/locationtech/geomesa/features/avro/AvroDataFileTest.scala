@@ -8,12 +8,13 @@
 
 package org.locationtech.geomesa.features.avro
 
-import java.io.{FileInputStream, FileOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, FileInputStream, FileOutputStream}
 import java.nio.charset.StandardCharsets
 import java.util
 import java.util.zip.Deflater
 
 import org.apache.avro.file.DataFileStream
+import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
 import org.junit.runner.RunWith
@@ -54,17 +55,50 @@ class AvroDataFileTest extends Specification with AbstractAvroSimpleFeatureTest 
       val sf2 = createSimpleFeature
       sf2.getUserData.put("foo", "bar")
       sf2.getUserData.put("baz", "fun")
-      sf2.getUserData.put("zzz", null) //try a null
+//      sf2.getUserData.put("zzz", null) //try a null
       sf2.getIdentifier.asInstanceOf[FeatureIdImpl].setID("fid2")
+
+      val baos = new ByteArrayOutputStream()
 
       val tmpFile = getTmpFile
       val dfw = new AvroDataFileWriter(new FileOutputStream(tmpFile), simpleSft)
+      val dfw2 = new AvroDataFileWriter(baos, simpleSft)
       try {
         dfw.append(sf)
         dfw.append(sf2)
+        dfw2.append(sf)
+        //dfw2.append(sf2)
       } finally {
         dfw.close()
+        dfw2.close()
       }
+
+      val bytes = baos.toByteArray
+      val in = new ByteArrayInputStream(bytes)
+
+      println(s"bytes: ${new String(bytes)}")
+
+      val reader = new DataFileStream(in, new GenericDatumReader[GenericRecord]())
+
+      println(s"Schema:: ${reader.getSchema}\n\n")
+
+      reader.hasNext mustEqual true
+
+      while (reader.hasNext) {
+        val record = reader.next()
+        println(s"Record: $record")
+      }
+
+//      {
+//
+//        System.out.println("Schema :: " + reader.getSchema());
+//
+//        GenericRecord currRecord = null;
+//        if (reader.hasNext()) {
+//          currRecord = reader.next();
+//        }
+//      }
+
 
       val readFeatures = getFeatures(tmpFile)
       readFeatures.size mustEqual 2
