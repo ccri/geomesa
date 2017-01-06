@@ -27,7 +27,7 @@ object AvroUserDataSerialization extends GenericMapSerialization[Encoder, Decode
           logger.warn(s"Can't serialize Map entry ($key,$value) - it will be skipped.")
           false
         }
-    }
+    }.filter( _._1.isInstanceOf[String])
 
     out.writeArrayStart()
     out.setItemCount(filtered.size)

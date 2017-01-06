@@ -58,9 +58,15 @@ object AvroSimpleFeatureUtils {
 //        .name("value").`type`.stringType().noDefault().endRecord().noDefault()
     val fullSchema = if (withUserData) {
       withFields.name(AVRO_SIMPLE_FEATURE_USERDATA).`type`.array().items().record("userDataItem").fields()
-        .name("class").`type`.stringType().noDefault()
+        .name("keyClass").`type`.unio.stringType().noDefault()
         .name("key").`type`.stringType().noDefault()
+        .name("valueClass").`type`.stringType().noDefault()
         .name("value").`type`.stringType().noDefault().endRecord().noDefault()
+//    val fullSchema = if (withUserData) {
+//      withFields.name(AVRO_SIMPLE_FEATURE_USERDATA).`type`.array().items().record("userDataItem").fields()
+//        .name("class").`type`.stringType().noDefault()
+//        .name("key").`type`.stringType().noDefault()
+//        .name("value").`type`.stringType().noDefault().endRecord().noDefault()
     } else {
       withFields
     }
