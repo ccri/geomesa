@@ -8,14 +8,12 @@
 
 package org.locationtech.geomesa.tools.ingest
 
-import java.io.{File, FileInputStream, FileReader, InputStream}
+import java.io.{File, FileInputStream}
 import java.util.concurrent.atomic.AtomicLong
 
 import com.beust.jcommander.{Parameter, ParameterException}
-import com.sun.deploy.util.SyncFileAccess.FileInputStreamLock
 import org.geotools.data.{DataStore, DataStoreFinder}
-import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory
-import org.locationtech.geomesa.tools.{CatalogParam, DataStoreCommand, OptionalInputFormatParam, OptionalTypeNameParam}
+import org.locationtech.geomesa.tools.{DataStoreCommand, OptionalInputFormatParam, OptionalTypeNameParam}
 
 trait AutoDetectCommand[DS <: DataStore] extends DataStoreCommand[DS] {
 
@@ -28,8 +26,6 @@ trait AutoDetectCommand[DS <: DataStore] extends DataStoreCommand[DS] {
   def libjarsPaths: Iterator[() => Seq[File]]
 
   override def execute(): Unit = {
-
-    import org.locationtech.geomesa.tools.utils.DataFormats.{Avro, Csv, Tsv}
 
     ensureSameFs(AutoDetectCommand.RemotePrefixes)
 
