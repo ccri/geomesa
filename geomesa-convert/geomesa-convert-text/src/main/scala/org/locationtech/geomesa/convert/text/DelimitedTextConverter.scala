@@ -9,11 +9,14 @@
 package org.locationtech.geomesa.convert.text
 
 import java.io._
+import java.net.URL
+
 import com.typesafe.config.Config
 import org.apache.commons.csv.{CSVFormat, QuoteMode}
 import org.locationtech.geomesa.convert.Transformers.{EvaluationContext, Expr}
 import org.locationtech.geomesa.convert.{AbstractSimpleFeatureConverterFactory, Field, LinesToSimpleFeatureConverter}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+
 import scala.collection.immutable.IndexedSeq
 
 class DelimitedTextConverterFactory extends AbstractSimpleFeatureConverterFactory[String] {

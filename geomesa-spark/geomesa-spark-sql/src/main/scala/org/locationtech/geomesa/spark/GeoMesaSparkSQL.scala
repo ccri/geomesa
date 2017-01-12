@@ -24,6 +24,7 @@ import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.geotools.data.{DataStoreFinder, Query}
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.`type`._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
@@ -50,8 +51,16 @@ class GeoMesaDataSource extends DataSourceRegister with RelationProvider with Sc
 
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
     SQLTypes.init(sqlContext)
+
+    // TODO: Need different ways to retrieve sft
     val ds = DataStoreFinder.getDataStore(parameters)
-    val sft = ds.getSchema(parameters("geomesa.feature"))
+    val sft = if (ds != null) {
+      ds.getSchema(parameters("geomesa.feature"))
+    } else {
+      SimpleFeatureTypes.createType(parameters("geomesa.feature"), parameters("geomesa.sft"))
+    }
+    println(s"Creating GeoMesa Relation with sft : $sft")
+
     val schema = sft2StructType(sft)
     GeoMesaRelation(sqlContext, sft, schema, parameters)
   }
@@ -169,7 +178,7 @@ case class GeoMesaRelation(sqlContext: SQLContext,
   lazy val isMock = Try(params("useMock").toBoolean).getOrElse(false)
 
   override def buildScan(requiredColumns: Array[String], filters: Array[org.apache.spark.sql.sources.Filter]): RDD[Row] = {
-    SparkUtils.buildScan(sft, requiredColumns, filters, filt, sqlContext.sparkContext, schema, params)
+    SparkUtils.buildScan(requiredColumns, filters, filt, sqlContext.sparkContext, schema, params)
   }
 
   override def unhandledFilters(filters: Array[Filter]): Array[Filter] = {
@@ -185,8 +194,7 @@ object SparkUtils extends LazyLogging {
 
   @transient val ff = CommonFactoryFinder.getFilterFactory2
 
-  def buildScan(sft: SimpleFeatureType,
-                requiredColumns: Array[String],
+  def buildScan(requiredColumns: Array[String],
                 filters: Array[org.apache.spark.sql.sources.Filter],
                 filt: org.opengis.filter.Filter,
                 ctx: SparkContext,

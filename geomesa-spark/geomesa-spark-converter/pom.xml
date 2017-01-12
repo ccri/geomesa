@@ -41,11 +41,30 @@
             <artifactId>geomesa-convert-all_${scala.binary.version}</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-spark-sql_2.11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.11</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+
         <!-- test dependencies -->
         <dependency>
             <groupId>org.specs2</groupId>
             <artifactId>specs2_${scala.binary.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.locationtech.geomesa</groupId>
+            <artifactId>geomesa-tools_2.11</artifactId>
+            <version>${project.version}</version>
+            <classifier>data</classifier>
+            <scope>test</scope>
+        </dependency>
+
+
     </dependencies>
 </project>
