@@ -100,15 +100,43 @@ object BinaryOutputEncoder extends LazyLogging {
         axisOrder match {
           case LatLon =>
             if (isPoint) {
-              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Point])
+              (f) => try {
+                pointToXY(f.getDefaultGeometry.asInstanceOf[Point])
+              } catch {
+                case e: Throwable => {
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  (0, 0)
+                }
+              }
             } else {
-              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint)
+              (f) => try {
+                pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint)
+              } catch {
+                case e: Throwable => {
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  (0, 0)
+                }
+              }
             }
           case LonLat =>
             if (isPoint) {
-              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Point]).swap
+              (f) => try {
+                pointToXY(f.getDefaultGeometry.asInstanceOf[Point]).swap
+              } catch {
+                case e: Throwable => {
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  (0, 0)
+                }
+              }
             } else {
-              (f) => pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint).swap  
+              (f) => try {
+                pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint).swap
+              } catch {
+                case e: Throwable => {
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  (0, 0)
+                }
+              }
             }
         }
       }
