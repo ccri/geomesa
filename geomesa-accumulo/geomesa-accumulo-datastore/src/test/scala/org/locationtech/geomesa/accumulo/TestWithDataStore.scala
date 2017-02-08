@@ -13,26 +13,29 @@ import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.data.Key
 import org.apache.accumulo.core.security.Authorizations
+import org.geotools.data.simple.SimpleFeatureStore
 import org.geotools.data.{DataStoreFinder, Query, Transaction}
 import org.geotools.factory.Hints
 import org.geotools.feature.DefaultFeatureCollection
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.accumulo.index.AccumuloFeatureIndex
+import org.locationtech.geomesa.index.geotools.GeoMesaFeatureStore
 import org.locationtech.geomesa.index.utils.ExplainString
 import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.opengis.feature.simple.SimpleFeature
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 import org.specs2.mutable.Specification
 import org.specs2.specification.{Fragments, Step}
+import org.locationtech.geomesa.test.api.WithDataStore
 
 import scala.collection.JavaConverters._
 
 /**
  * Trait to simplify tests that require reading and writing features from an AccumuloDataStore
  */
-trait TestWithDataStore extends Specification {
+trait TestWithDataStore extends Specification { //} with WithDataStore {
 
   def spec: String
   def dtgField: Option[String] = Some("dtg")
@@ -68,7 +71,7 @@ trait TestWithDataStore extends Specification {
     "tableName" -> sftName
   )
 
-  lazy val (ds, sft) = {
+  lazy val (ds, sft: SimpleFeatureType) = {
     val sft = SimpleFeatureTypes.createType(sftName, spec)
     sft.setTableSharing(tableSharing)
     dtgField.foreach(sft.setDtgField)
@@ -77,7 +80,7 @@ trait TestWithDataStore extends Specification {
     (ds, ds.getSchema(sftName)) // reload the sft from the ds to ensure all user data is set properly
   }
 
-  lazy val fs = ds.getFeatureSource(sftName)
+  lazy val fs: GeoMesaFeatureStore = ds.getFeatureSource(sftName)
 
   // after all tests, drop the tables we created to free up memory
   override def map(fragments: => Fragments) = fragments ^ Step {
