@@ -13,6 +13,7 @@ object L {
   import org.apache.commons.lang3.StringEscapeUtils
   import org.opengis.feature.`type`.AttributeDescriptor
   import org.opengis.feature.simple.SimpleFeature
+  import org.geotools.geojson.geom.GeometryJSON
 
   trait GeoRenderable {
     def render: String
@@ -55,15 +56,14 @@ object L {
      """.stripMargin
   }
 
-  private object PointToLayer {
+  private case class PointToLayer(style: StyleOptions) {
+    val styleOptions = style.render
     def render: String =
       s"""
         |pointToLayer: function(feature, latlng) {
         |  return L.circleMarker(latlng, {
         |                                   radius: 5,
-        |                                   color: "#0000aa",
-        |                                   fillColor: "#0000ff",
-        |                                   fillOpacity: 0.8
+        |                                   ${styleOptions.replace("}", "").replace("{", "")}
         |                                  });
         |},
       """.stripMargin
@@ -101,7 +101,7 @@ object L {
          |    {
          |      ${
         if(features.head.getDefaultGeometry.asInstanceOf[Geometry].getGeometryType == "Point")
-          PointToLayer.render
+          PointToLayer(style).render
         else ""
       }
          |      onEachFeature: onFeature,
@@ -120,10 +120,7 @@ object L {
          |    "properties": {
          |        ${sf.getType.getAttributeDescriptors.zip(sf.getAttributes).filter{case(a,b) => b != null}.map { case (d, a) => propToJson(d, a) }.mkString(sep =",\n")}
          |    },
-         |    "geometry": {
-         |        "type": "${sf.getDefaultGeometry.asInstanceOf[Geometry].getGeometryType}",
-         |        "coordinates": ${processGeometry(sf.getDefaultGeometry.asInstanceOf[Geometry])}
-         |    }
+         |    "geometry": ${new GeometryJSON().toString(sf.getDefaultGeometry.asInstanceOf[Geometry])}
          |}
        """.stripMargin
     }
@@ -131,17 +128,6 @@ object L {
     private def propToJson(ad: AttributeDescriptor, a: Object) =
       if(a!= null) s""""${ad.getLocalName}": '${StringEscapeUtils.escapeJson(a.toString)}'"""
       else s""""${ad.getLocalName}": ''"""
-
-    private def processGeometry(geom: Geometry) = geom match {
-      case p: Point       => processPoint(p)
-      case ls: LineString => processLinestring(ls)
-      case p: Polygon     => processPoly(p)
-    }
-
-    def processCoord(c: Coordinate) = s"[${c.x}, ${c.y}]"
-    def processPoint(p: Point) = s"${processCoord(p.getCoordinate)}"
-    def processLinestring(l: LineString) = s"[${l.getCoordinates.map { c =>processCoord(c)}.mkString(",")}]"
-    def processPoly(p: Polygon) = s"[${p.getCoordinates.map { c =>processCoord(c)}.mkString(",")}]"
   }
 
   case class Circle(cx: Double, cy: Double, radiusMeters: Double, style: StyleOptions) extends GeoRenderable {
