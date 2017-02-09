@@ -31,6 +31,44 @@ object L {
        """.stripMargin
   }
 
+  private object OnFeatureClick {
+    def render: String =
+      """
+       |function onClick(e) {
+       |  e.target.openPopup();
+       |}
+       |
+       |function onFeature(feature, layer) {
+       |  var keys = Object.keys(layer.feature.properties);
+       |  var str = "";
+       |  for (var i in keys) {
+       |    var key = keys[i];
+       |    if (key != "geom") {
+       |      var prop = layer.feature.properties[key];
+       |      str = str + "<b>" + key + "</b>: " + prop;
+       |      if (i < keys.length - 1 ) str = str + "<br>";
+       |    }
+       |  }
+       |  layer.bindPopup(str);
+       |  layer.on({click: onClick});
+       |}
+     """.stripMargin
+  }
+
+  private object PointToLayer {
+    def render: String =
+      s"""
+        |pointToLayer: function(feature, latlng) {
+        |  return L.circleMarker(latlng, {
+        |                                   radius: 5,
+        |                                   color: "#0000aa",
+        |                                   fillColor: "#0000ff",
+        |                                   fillOpacity: 0.8
+        |                                  });
+        |},
+      """.stripMargin
+  }
+
   case class WMSLayer(layerName: String,
                       style: String = "",
                       filter: String = "INCLUDE",
@@ -46,7 +84,7 @@ object L {
          |      layers: '$layerName',
          |      cql_filter: "$filter",
          |      styles: '$style',
-         |      env: '${env.map { case (k,v) => Array(k,v).mkString(sep = "=")}.mkString(sep = ":")}',
+         |      env: '${env.map { case (k, v) => Array(k, v).mkString(sep = "=") }.mkString(sep = ":")}',
          |      transparent: '$transparent',
          |      opacity: $opacity,
          |      format: 'image/png',
@@ -55,12 +93,23 @@ object L {
          |
        """.stripMargin
   }
+
   case class SimpleFeatureLayer(features: Seq[SimpleFeature], style: StyleOptions) extends GeoRenderable {
     override def render: String =
-      s"""
+      s"""{
          |L.geoJson(${features.map(simpleFeatureToGeoJSON).mkString("[",",","]")},
-         |    { style: '$style.render' }
+         |    {
+         |      ${
+        if(features.head.getDefaultGeometry.asInstanceOf[Geometry].getGeometryType == "Point")
+          PointToLayer.render
+        else ""
+      }
+         |      onEachFeature: onFeature,
+         |      style: ${style.render}
+         |    }
          |).addTo(map);
+         |
+         |${OnFeatureClick.render};}
        """.stripMargin
 
     private def simpleFeatureToGeoJSON(sf: SimpleFeature) = {
@@ -121,14 +170,14 @@ object L {
   }
 
   // TODO: parameterize base url for js and css
-  def buildMap(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 8) =
+  def buildMap(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 8, path: String = "js") =
     s"""
        |<html>
        |  <head>
-       |    <link rel="stylesheet" href="js/leaflet.css" />
-       |    <script src="js/leaflet.js"></script>
-       |    <script src="js/leaflet.wms.js"></script>
-       |    <script src="js/countries.geo.json" type="text/javascript"></script>
+       |    <link rel="stylesheet" href="$path/leaflet.css" />
+       |    <script src="$path/leaflet.js"></script>
+       |    <script src="$path/leaflet.wms.js"></script>
+       |    <script src="$path/countries.geo.json" type="text/javascript"></script>
        |  </head>
        |  <body>
        |    <div id='map' style="width:100%;height:500px"></div>
@@ -152,10 +201,10 @@ object L {
        |</html>
      """.stripMargin
 
-  def render(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 8) = {
+  def render(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 8, path: String = "js") = {
     val id = org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric(5)
     s"""
-       |<iframe id="${id}" sandbox="allow-scripts allow-same-origin" style="border:none;width=100%;height:520px" srcdoc="${xml.Utility.escape(buildMap(layers, center, zoom))}"></iframe>
+       |<iframe id="${id}" sandbox="allow-scripts allow-same-origin" style="border:none;width:100%;height:520px" srcdoc="${xml.Utility.escape(buildMap(layers, center, zoom, path))}"></iframe>
        |<script>
        |  if(typeof resizeIFrame != 'function') {
        |    function resizeIFrame(el, k) {
@@ -171,7 +220,7 @@ object L {
      """.stripMargin
   }
 
-  def show(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 1)(implicit disp: String => Unit) = disp(render(layers,center,zoom))
+  def show(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 1, path: String = "js")(implicit disp: String => Unit) = disp(render(layers,center,zoom,path))
 
-  def print(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 1) = println(buildMap(layers,center,zoom))
+  def print(layers: Seq[GeoRenderable], center: (Double, Double) = (0,0), zoom: Int = 1, path: String = "js") = println(buildMap(layers,center,zoom,path))
 }
