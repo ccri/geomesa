@@ -13,7 +13,7 @@ trait AbstractIdlTest extends Specification with WithDataStore { //with TestWith
 
     sequential
 
-    val spec = "dtg:Date,*geom:Point:srid=4326"
+    lazy val spec = "dtg:Date,*geom:Point:srid=4326"
 
     addFeatures((-180 to 180).map { lon =>
       val sf = new ScalaSimpleFeature(lon.toString, sft)

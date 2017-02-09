@@ -35,9 +35,9 @@ import scala.collection.JavaConverters._
 /**
  * Trait to simplify tests that require reading and writing features from an AccumuloDataStore
  */
-trait TestWithDataStore extends Specification { //} with WithDataStore {
+trait TestWithDataStore extends Specification with WithDataStore { //} with WithDataStore {
 
-  def spec: String
+  //def spec: String
   def dtgField: Option[String] = Some("dtg")
 
   // TODO GEOMESA-1146 refactor to allow running of tests with table sharing on and off...
@@ -71,7 +71,9 @@ trait TestWithDataStore extends Specification { //} with WithDataStore {
     "tableName" -> sftName
   )
 
-  lazy val (ds, sft: SimpleFeatureType) = {
+  lazy val (ds, sft: SimpleFeatureType) = buildDSAndSchema 
+
+  def buildDSAndSchema = {
     val sft = SimpleFeatureTypes.createType(sftName, spec)
     sft.setTableSharing(tableSharing)
     dtgField.foreach(sft.setDtgField)
