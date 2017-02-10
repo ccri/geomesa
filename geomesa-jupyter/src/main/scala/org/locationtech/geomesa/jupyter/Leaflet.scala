@@ -21,7 +21,13 @@ object L {
 
   trait Shape extends GeoRenderable
 
-  case class StyleOptions(color: String = "#000000", fillColor: String = "#327A66", fillOpacity: Double = 0.75) {
+  trait StyleOption {
+    def color: String
+    def render: String
+  }
+
+  case class StyleOptions(color: String = "#000000", fillColor: String = "#327A66", fillOpacity: Double = 0.75)
+    extends StyleOption {
     def render: String =
       s"""
          |{
@@ -31,6 +37,20 @@ object L {
          |}
        """.stripMargin
   }
+
+  case class StyleOptionByAttr(color: String = "#0000ff", default: String = "#ff0000",
+                               attrLabel: String, value: String) extends StyleOption {
+    def render: String =
+    s"""
+      |function(feature) {
+      |   switch (feature.properties.$attrLabel) {
+      |      case "$value": return {color: "$color"}
+      |      default: return {color: "$default"}
+      |   }
+      |}
+    """.stripMargin
+  }
+
 
   private object OnFeatureClick {
     def render: String =
@@ -56,7 +76,7 @@ object L {
      """.stripMargin
   }
 
-  private case class PointToLayer(style: StyleOptions) {
+  private case class PointToLayer(style: StyleOption) {
     val styleOptions = style.render
     def render: String =
       s"""
@@ -94,7 +114,7 @@ object L {
        """.stripMargin
   }
 
-  case class SimpleFeatureLayer(features: Seq[SimpleFeature], style: StyleOptions) extends GeoRenderable {
+  case class SimpleFeatureLayer(features: Seq[SimpleFeature], style: StyleOption) extends GeoRenderable {
     override def render: String =
       s"""{
          |L.geoJson(${features.map(simpleFeatureToGeoJSON).mkString("[",",","]")},
@@ -102,10 +122,10 @@ object L {
          |      ${
         if(features.head.getDefaultGeometry.asInstanceOf[Geometry].getGeometryType == "Point")
           PointToLayer(style).render
-        else ""
+        else s"style: ${style.render},"
       }
-         |      onEachFeature: onFeature,
-         |      style: ${style.render}
+         |      onEachFeature: onFeature
+         |
          |    }
          |).addTo(map);
          |
@@ -130,28 +150,28 @@ object L {
       else s""""${ad.getLocalName}": ''"""
   }
 
-  case class Circle(cx: Double, cy: Double, radiusMeters: Double, style: StyleOptions) extends GeoRenderable {
+  case class Circle(cx: Double, cy: Double, radiusMeters: Double, style: StyleOption) extends GeoRenderable {
     override def render: String =
       s"""
          |L.circle([$cy, $cx], $radiusMeters, ${style.render}).addTo(map);
        """.stripMargin
   }
 
-  implicit class JTSPolyLayer(val poly: Polygon) extends GeoRenderable {
+  implicit class JTSPolyLayer(style: StyleOption)(implicit val poly: Polygon) extends GeoRenderable {
     override def render: String = {
       val coords = poly.getCoordinates.map { c => Array(c.y, c.x).mkString("[", ",", "]") }.mkString("[", ",", "]")
-      s"L.polygon($coords, { fillOpacity: 0 }).addTo(map);"
+      s"L.polygon($coords, ${style.render} ).addTo(map);"
     }
   }
 
-  implicit class JTSPointLayer(val point: Point) extends GeoRenderable {
-    override def render: String = s"L.circle([${point.getY},${point.getX}], 5, {}).addTo(map);"
+  implicit class JTSPointLayer(style: StyleOption)(implicit val point: Point) extends GeoRenderable {
+    override def render: String = s"L.circle([${point.getY},${point.getX}], 5, , { ${style.render} }).addTo(map);"
   }
 
-  implicit class JTSLineStringLayer(val ls: LineString) extends GeoRenderable {
+  implicit class JTSLineStringLayer(style: StyleOption)(implicit val ls: LineString) extends GeoRenderable {
     override def render: String = {
       val coords = ls.getCoordinates.map { c => Array(c.y, c.x).mkString("[", ",", "]") }.mkString("[", ",", "]")
-      s"L.polyline($coords).addTo(map);"
+      s"L.polyline($coords, ${style.render} ).addTo(map);"
     }
   }
 
