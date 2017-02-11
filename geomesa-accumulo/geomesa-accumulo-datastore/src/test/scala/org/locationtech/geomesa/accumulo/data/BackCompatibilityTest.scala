@@ -225,7 +225,7 @@ class BackCompatibilityTest extends Specification with LazyLogging {
 }
 
 @RunWith(classOf[JUnitRunner])
-class BackCompatibilityWriter extends TestWithDataStore {
+class BackCompatibilityWriter extends Specification with TestWithDataStore {
 
   override val spec = "name:String:index=true,dtg:Date,*geom:Point:srid=4326,multi:MultiPolygon:srid=4326"
 

@@ -9,7 +9,8 @@ import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.specs2.mutable.Specification
 import org.locationtech.geomesa.utils.geotools.Conversions._
 
-trait AbstractIdlTest extends Specification with WithDataStore { //with TestWithDataStore {
+trait AbstractIdlTest extends Specification { //with TestWithDataStore {
+    self: WithDataStore => 
 
     sequential
 

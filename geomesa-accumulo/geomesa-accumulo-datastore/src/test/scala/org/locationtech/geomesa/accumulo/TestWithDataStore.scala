@@ -35,7 +35,8 @@ import scala.collection.JavaConverters._
 /**
  * Trait to simplify tests that require reading and writing features from an AccumuloDataStore
  */
-trait TestWithDataStore extends Specification with WithDataStore { //} with WithDataStore {
+trait TestWithDataStore extends WithDataStore { //} with WithDataStore {
+
 
   //def spec: String
   def dtgField: Option[String] = Some("dtg")
@@ -71,23 +72,46 @@ trait TestWithDataStore extends Specification with WithDataStore { //} with With
     "tableName" -> sftName
   )
 
-  lazy val (ds, sft: SimpleFeatureType) = buildDSAndSchema 
+
+  lazy val originalSFT = buildOriginalSFT
+
+  def buildOriginalSFT = {
+    val sft = SimpleFeatureTypes.createType(sftName, spec)
+    sft.setTableSharing(tableSharing)
+    dtgField.foreach(sft.setDtgField)
+    sft
+  }
+
+  //lazy val (ds, sft: SimpleFeatureType) = buildDSAndSchema
+
+  lazy val ds = buildDS
+
+  def buildDS = {
+    val ds = DataStoreFinder.getDataStore(dsParams.asJava).asInstanceOf[AccumuloDataStore]
+    ds
+  }
+
+  lazy val sft = buildSFT
+
+  def buildSFT: SimpleFeatureType = {
+    ds.createSchema(sft)
+    ds.getSchema(sftName)
+  }
 
   def buildDSAndSchema = {
     val sft = SimpleFeatureTypes.createType(sftName, spec)
     sft.setTableSharing(tableSharing)
     dtgField.foreach(sft.setDtgField)
-    val ds = DataStoreFinder.getDataStore(dsParams.asJava).asInstanceOf[AccumuloDataStore]
-    ds.createSchema(sft)
-    (ds, ds.getSchema(sftName)) // reload the sft from the ds to ensure all user data is set properly
   }
 
   lazy val fs: GeoMesaFeatureStore = ds.getFeatureSource(sftName)
 
   // after all tests, drop the tables we created to free up memory
+/*
   override def map(fragments: => Fragments) = fragments ^ Step {
     ds.removeSchema(sftName)
   }
+*/
 
   /**
    * Call to load the test features into the data store
