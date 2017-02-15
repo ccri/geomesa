@@ -96,4 +96,42 @@ object AccumuloJobUtils extends LazyLogging {
       AccumuloQueryProperties.SCAN_BATCH_RANGES.threadLocalValue.remove()
     }
   }
+
+  // Goal:  Get a non-join plan.
+  //  If we get multiple plans, that's groovy
+  def getMultipleQueryPlan(ds: AccumuloDataStore, query: Query): Seq[AccumuloQueryPlan] = {
+    // disable range batching for this request
+    AccumuloQueryProperties.SCAN_BATCH_RANGES.threadLocalValue.set(Int.MaxValue.toString)
+
+    try {
+      lazy val fallbackIndex = {
+        val schema = ds.getSchema(query.getTypeName)
+        AccumuloFeatureIndex.indices(schema, IndexMode.Read).headOption.getOrElse {
+          throw new IllegalStateException(s"Schema '${schema.getTypeName}' does not have any readable indices")
+        }
+      }
+
+      val queryPlans: Seq[AccumuloQueryPlan] = ds.getQueryPlan(query)
+
+      if (queryPlans.isEmpty) {
+        Seq(EmptyPlan(FilterStrategy(fallbackIndex, None, Some(Filter.EXCLUDE))))
+      } else if (queryPlans.exists(_.isInstanceOf[JoinPlan])) {
+        // this query has a join, which we can't execute from input formats
+        // instead, fall back to a full table scan
+        logger.warn("Desired query plan requires multiple scans - falling back to full table scan")
+        val qps = ds.getQueryPlan(query, Some(fallbackIndex))
+        if (qps.length > 1) {
+          logger.error("The query being executed requires multiple scans, which is not currently " +
+            "supported by geomesa. Your result set will be partially incomplete. " +
+            s"Query: ${filterToString(query.getFilter)}")
+        }
+        qps
+      } else {
+        queryPlans
+      }
+    } finally {
+      // make sure we reset the thread local
+      AccumuloQueryProperties.SCAN_BATCH_RANGES.threadLocalValue.remove()
+    }
+  }
 }
