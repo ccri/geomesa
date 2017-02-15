@@ -22,7 +22,6 @@ object L {
   trait Shape extends GeoRenderable
 
   trait StyleOption {
-    def color: String
     def render: String
   }
 
@@ -38,17 +37,12 @@ object L {
        """.stripMargin
   }
 
-  case class StyleOptionByAttr(color: String = "#0000ff", default: String = "#ff0000",
-                               attrLabel: String, value: String) extends StyleOption {
-    def render: String =
-    s"""
-      |function(feature) {
-      |   switch (feature.properties.$attrLabel) {
-      |      case "$value": return {color: "$color"}
-      |      default: return {color: "$default"}
-      |   }
-      |}
-    """.stripMargin
+  /**
+    * Takes a string containing a valid javascript styling function as its argument
+    * @param javascriptFunction The javascript styling function
+    */
+  case class StyleOptionFunction(javascriptFunction: String) extends StyleOption {
+    def render: String = javascriptFunction
   }
 
 
@@ -85,7 +79,7 @@ object L {
         |                                   radius: 5,
         |                                   ${styleOptions.replace("}", "").replace("{", "")}
         |                                  });
-        |},
+        |}
       """.stripMargin
   }
 
@@ -119,13 +113,12 @@ object L {
       s"""{
          |L.geoJson(${features.map(simpleFeatureToGeoJSON).mkString("[",",","]")},
          |    {
+         |      onEachFeature: onFeature,
          |      ${
-        if(features.head.getDefaultGeometry.asInstanceOf[Geometry].getGeometryType == "Point")
-          PointToLayer(style).render
-        else s"style: ${style.render},"
+        if (features.head.getDefaultGeometry.asInstanceOf[Geometry].getGeometryType == "Point")
+          PointToLayer (style).render
+        else s"style: ${style.render}"
       }
-         |      onEachFeature: onFeature
-         |
          |    }
          |).addTo(map);
          |
