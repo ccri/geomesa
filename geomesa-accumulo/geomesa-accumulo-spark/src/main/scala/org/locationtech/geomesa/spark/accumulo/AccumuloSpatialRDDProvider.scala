@@ -22,7 +22,7 @@ import org.apache.spark.rdd.RDD
 import org.geotools.data.{DataStoreFinder, Query, Transaction}
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStore, AccumuloDataStoreFactory, AccumuloDataStoreParams}
-import org.locationtech.geomesa.accumulo.index.EmptyPlan
+import org.locationtech.geomesa.accumulo.index.{AccumuloQueryPlan, EmptyPlan}
 import org.locationtech.geomesa.index.conf.QueryHints._
 import org.locationtech.geomesa.jobs.GeoMesaConfigurator
 import org.locationtech.geomesa.jobs.accumulo.AccumuloJobUtils
@@ -51,7 +51,7 @@ class AccumuloSpatialRDDProvider extends SpatialRDDProvider {
     try {
       // get the query plan to set up the iterators, ranges, etc
       lazy val sft = ds.getSchema(query.getTypeName)
-      lazy val qp = AccumuloJobUtils.getSingleQueryPlan(ds, query)
+      lazy val qp: AccumuloQueryPlan = AccumuloJobUtils.getSingleQueryPlan(ds, query)
 
       if (ds == null || sft == null || qp.isInstanceOf[EmptyPlan]) {
         sc.emptyRDD[SimpleFeature]

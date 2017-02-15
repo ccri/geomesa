@@ -105,7 +105,10 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
 
     if (ranges.isEmpty) { EmptyPlan(filter) } else {
       val table = TableName.valueOf(getTableName(sft.getTypeName, ds))
-      val toFeatures = resultsToFeatures(sft, ecql, hints.getTransform)
+      // JNH: val toFeatures = resultsToFeatures(sft, ecql, hints.getTransform)
+      // JNH: This is a hack to show that RegionServer filtering is working!
+      // JNH: This works! val toFeatures = resultsToFeatures(sft, None, hints.getTransform)
+      val toFeatures = resultsToFeatures(sft, None, None)
       if (ranges.head.isInstanceOf[Get]) {
         GetPlan(filter, table, ranges.asInstanceOf[Seq[Get]], ecql, toFeatures)
       } else {
