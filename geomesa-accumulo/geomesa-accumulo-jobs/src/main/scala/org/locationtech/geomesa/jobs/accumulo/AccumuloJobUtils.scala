@@ -84,7 +84,7 @@ object AccumuloJobUtils extends LazyLogging {
         val qps = ds.getQueryPlan(query, Some(fallbackIndex))
         if (qps.length > 1) {
           logger.error("The query being executed requires multiple scans, which is not currently " +
-              "supported by geomesa. Your result set will be partially incomplete. " +
+              "supported by GeoMesa. Your result set will be partially incomplete. " +
               s"Query: ${filterToString(query.getFilter)}")
         }
         qps.head
@@ -97,8 +97,11 @@ object AccumuloJobUtils extends LazyLogging {
     }
   }
 
-  // Goal:  Get a non-join plan.
-  //  If we get multiple plans, that's groovy
+  /**
+    * Get a sequence of one or more query plans, which is guaranteed not to contain
+    * a JoinPlan (return a fallback in this case). If we get multiple scan plans,
+    * that's groovy.
+    */
   def getMultipleQueryPlan(ds: AccumuloDataStore, query: Query): Seq[AccumuloQueryPlan] = {
     // disable range batching for this request
     AccumuloQueryProperties.SCAN_BATCH_RANGES.threadLocalValue.set(Int.MaxValue.toString)
@@ -118,11 +121,11 @@ object AccumuloJobUtils extends LazyLogging {
       } else if (queryPlans.exists(_.isInstanceOf[JoinPlan])) {
         // this query has a join, which we can't execute from input formats
         // instead, fall back to a full table scan
-        logger.warn("Desired query plan requires multiple scans - falling back to full table scan")
+        logger.warn("Desired query plan contains joins - falling back to full table scan")
         val qps = ds.getQueryPlan(query, Some(fallbackIndex))
         if (qps.length > 1) {
           logger.error("The query being executed requires multiple scans, which is not currently " +
-            "supported by geomesa. Your result set will be partially incomplete. " +
+            "supported by GeoMesa. Your result set will be partially incomplete. " +
             s"Query: ${filterToString(query.getFilter)}")
         }
         qps
