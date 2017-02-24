@@ -108,7 +108,7 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
       // JNH: val toFeatures = resultsToFeatures(sft, ecql, hints.getTransform)
       // JNH: This is a hack to show that RegionServer filtering is working!
       // JNH: This works! val toFeatures = resultsToFeatures(sft, None, hints.getTransform)
-      val toFeatures = resultsToFeatures(sft, None, None)
+      val toFeatures = resultsToFeatures(sft, None, hints.getTransform)
       if (ranges.head.isInstanceOf[Get]) {
         GetPlan(filter, table, ranges.asInstanceOf[Seq[Get]], ecql, toFeatures)
       } else {
