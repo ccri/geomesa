@@ -1,10 +1,10 @@
 /***********************************************************************
-* Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Apache License, Version 2.0
-* which accompanies this distribution and is available at
-* http://www.opensource.org/licenses/apache2.0.php.
-*************************************************************************/
+  * Copyright (c) 2013-2016 Commonwealth Computer Research, Inc.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Apache License, Version 2.0
+  * which accompanies this distribution and is available at
+  * http://www.opensource.org/licenses/apache2.0.php.
+  *************************************************************************/
 
 package org.locationtech.geomesa.utils.stats
 
@@ -12,6 +12,7 @@ import java.lang.{Double => jDouble, Float => jFloat, Long => jLong}
 import java.util.Date
 
 import com.vividsolutions.jts.geom.Geometry
+import com.vividsolutions.jts.io.WKTReader
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.utils.geotools.GeoToolsDateFormat
@@ -53,6 +54,28 @@ class HistogramTest extends Specification with StatTestHelper {
 
   def toDate(string: String) = GeoToolsDateFormat.parseDateTime(string).toDate
   def toGeom(string: String) = WKTUtils.read(string)
+
+  "Stats" should {
+    "work with" >> {
+
+      val reader = new WKTReader
+      val pt1 = reader.read("POINT (-91.7467224461 40.6750300641)")
+      val pt2 = reader.read("POINT (-91.723442566 40.691904323)")
+      val pt3 = reader.read("POINT (-91.7467224461 40.6750300641)")
+      val pt4 = reader.read("POINT (-91.7186474559 40.6933565934)")
+
+      val from = new BinnedGeometryArray(10000, (pt1, pt2))
+      val to = new BinnedGeometryArray(10000, (pt3, pt4))
+
+      val (min, max) = from.bounds(9962)
+
+      from.add(min)
+      from.add(max)
+      Histogram.copyInto(to, from)
+
+      true mustEqual(true)
+    }
+  }
 
   "RangeHistogram stat" should {
 
