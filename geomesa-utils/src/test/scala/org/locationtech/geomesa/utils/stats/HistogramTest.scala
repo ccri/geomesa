@@ -15,10 +15,11 @@ import com.vividsolutions.jts.geom.Geometry
 import com.vividsolutions.jts.io.WKTReader
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.curve.Z2SFC
+import org.locationtech.geomesa.curve.{NormalizedLat, NormalizedLon, Z2SFC}
 import org.locationtech.geomesa.utils.geotools.GeoToolsDateFormat
 import org.locationtech.geomesa.utils.text.WKTUtils
 import org.locationtech.sfcurve.zorder.Z2
+import org.locationtech.sfcurve.zorder.Z2._
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -58,6 +59,93 @@ class HistogramTest extends Specification with StatTestHelper {
   def toGeom(string: String) = WKTUtils.read(string)
 
   "Stats" should {
+    "y" >> {
+      val y: Int = 1559203839
+      val yprec: Long = math.pow(2, 31).toLong - 1
+      val ydenorm: Double = (y.toDouble / yprec) * (90.0 + 90.0) - 90.0
+      val ynorm: Int = math.round((ydenorm + 90.0) / (90.0 + 90.0) * yprec).toInt
+      y == ynorm
+      y mustEqual ynorm
+    }
+//    "sfc" >> {
+//      val long = 2591184622590880494l
+//
+//      val xprec: Long = math.pow(2, 31).toLong - 1
+//      val yprec: Long = math.pow(2, 31).toLong - 1
+//
+////      val lon  = NormalizedLon(xprec)
+////      val lat  = NormalizedLat(yprec)
+//
+//      //val z2 = new Z2(long)
+//
+//      //val (x, y) = Z2SFC.invert(z2)
+//        //val (x, y) = z2.decode
+//          //def decode: (Int, Int) = (combine(z), combine(z>>1))
+//          //combine(z)
+//          val x: Int = {
+//            val z = long
+//            var x = z & 0x5555555555555555L
+//            x = (x ^ (x >>  1)) & 0x3333333333333333L
+//            x = (x ^ (x >>  2)) & 0x0f0f0f0f0f0f0f0fL
+//            x = (x ^ (x >>  4)) & 0x00ff00ff00ff00ffL
+//            x = (x ^ (x >>  8)) & 0x0000ffff0000ffffL
+//            x = (x ^ (x >> 16)) & 0x00000000ffffffffL
+//            x.toInt
+//          }
+//          //combine(z>>1)
+//          val y: Int = {
+//            val z = long>>1
+//            var x = z & 0x5555555555555555L
+//            x = (x ^ (x >>  1)) & 0x3333333333333333L
+//            x = (x ^ (x >>  2)) & 0x0f0f0f0f0f0f0f0fL
+//            x = (x ^ (x >>  4)) & 0x00ff00ff00ff00ffL
+//            x = (x ^ (x >>  8)) & 0x0000ffff0000ffffL
+//            x = (x ^ (x >> 16)) & 0x00000000ffffffffL
+//            x.toInt
+//          }
+//      //(lon.denormalize(x), lat.denormalize(y))
+//      val xdenorm: Double = (x.toDouble / xprec) * (180.0 + 180.0) - 180.0
+//      val ydenorm: Double = (y.toDouble / yprec) * (90.0 + 90.0) - 90.0
+//
+//      //Z2SFC.index(x, y).z
+//      //Z2SFC.index(xdenorm, ydenorm).z
+//      //Z2(lon.normalize(x), lat.normalize(y)).z
+//        //lon.normalize(x)
+//        val xnorm: Int = math.ceil((xdenorm  + 180.0) / (180.0 + 180.0) * xprec).toInt
+//        //lat.normalize(y)
+//        val ynorm: Int = math.ceil((ydenorm + 90.0) / (90.0 + 90.0) * yprec).toInt
+//      //.z
+//      val MaxMask = 0x7fffffffL
+//      //split(xnorm) | split(ynorm) << 1
+//        //split(xnorm)
+//        val splitx: Long = {
+//          var x: Long = xnorm & MaxMask
+//          x = (x ^ (x << 32)) & 0x00000000ffffffffL
+//          x = (x ^ (x << 16)) & 0x0000ffff0000ffffL
+//          x = (x ^ (x << 8)) & 0x00ff00ff00ff00ffL // 11111111000000001111111100000000..
+//          x = (x ^ (x << 4)) & 0x0f0f0f0f0f0f0f0fL // 1111000011110000
+//          x = (x ^ (x << 2)) & 0x3333333333333333L // 11001100..
+//          x = (x ^ (x << 1)) & 0x5555555555555555L // 1010...
+//          x
+//        }
+//        //split(ynorm) << 1
+//        var splity: Long = {
+//          var x: Long = ynorm & MaxMask
+//          x = (x ^ (x << 32)) & 0x00000000ffffffffL
+//          x = (x ^ (x << 16)) & 0x0000ffff0000ffffL
+//          x = (x ^ (x << 8)) & 0x00ff00ff00ff00ffL // 11111111000000001111111100000000..
+//          x = (x ^ (x << 4)) & 0x0f0f0f0f0f0f0f0fL // 1111000011110000
+//          x = (x ^ (x << 2)) & 0x3333333333333333L // 11001100..
+//          x = (x ^ (x << 1)) & 0x5555555555555555L // 1010...
+//          x
+//        }
+//        splity = splity << 1
+//      val res = splitx | splity
+//
+//      res mustEqual long
+//
+//    }
+
     "work with" >> {
 
       val reader = new WKTReader
@@ -93,6 +181,8 @@ class HistogramTest extends Specification with StatTestHelper {
 
       true mustEqual(true)
     }
+
+
   }
 
   "RangeHistogram stat" should {
