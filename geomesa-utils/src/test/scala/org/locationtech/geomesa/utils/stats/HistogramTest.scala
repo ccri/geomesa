@@ -15,8 +15,10 @@ import com.vividsolutions.jts.geom.Geometry
 import com.vividsolutions.jts.io.WKTReader
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.junit.runner.RunWith
+import org.locationtech.geomesa.curve.Z2SFC
 import org.locationtech.geomesa.utils.geotools.GeoToolsDateFormat
 import org.locationtech.geomesa.utils.text.WKTUtils
+import org.locationtech.sfcurve.zorder.Z2
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
@@ -69,7 +71,21 @@ class HistogramTest extends Specification with StatTestHelper {
 
       val (min, max) = from.bounds(9962)
 
-      from.add(min)
+      val sampleLong1 = 2591184622596903682l
+      val sampleLong2 = 2591184622590880494l
+
+      def roundTrip(long: Long) = {
+        val (x, y) = Z2SFC.invert(new Z2(long))
+        Z2SFC.index(x, y).z
+      }
+
+      // Works
+      sampleLong1 mustEqual(roundTrip(sampleLong1))
+
+      // Doesn't work
+      sampleLong2 mustEqual(roundTrip(sampleLong2))
+
+      //from.add(min)
       from.add(max)
       Histogram.copyInto(to, from)
 
