@@ -74,6 +74,8 @@ class HistogramTest extends Specification with StatTestHelper {
       val sampleLong1 = 2591184622596903682l
       val sampleLong2 = 2591184622590880494l
 
+      // Simplification of    BinnedGeometryArray.convertToLong(BinnedGeometryArray.convertFromLong(long))
+      // This function *must* be the identity in order for BinnedGeometryArray to function.
       def roundTrip(long: Long) = {
         val (x, y) = Z2SFC.invert(new Z2(long))
         Z2SFC.index(x, y).z
