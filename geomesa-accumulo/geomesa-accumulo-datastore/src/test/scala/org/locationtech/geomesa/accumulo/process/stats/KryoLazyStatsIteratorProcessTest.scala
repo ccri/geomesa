@@ -30,10 +30,12 @@ class KryoLazyStatsIteratorProcessTest extends Specification with TestWithDataSt
 
   import org.locationtech.geomesa.utils.geotools.Conversions._
 
-  override val spec = "an_id:java.lang.Integer,attr:java.lang.Long,dtg:Date,*geom:Point:srid=4326"
+  override val spec = "an_id:java.lang.Integer,attr:java.lang.Long,json:java.lang.String:json=true,dtg:Date,*geom:Point:srid=4326"
 
   addFeatures((0 until 150).toArray.map { i =>
-    val attrs = Array(i.asInstanceOf[AnyRef], (i * 2).asInstanceOf[AnyRef],
+    val attr = (i * 2).asInstanceOf[AnyRef]
+    val attrs = Array(i.asInstanceOf[AnyRef], attr,
+      s"""{ "attr" : "$attr", "at tr" : { "at.tr" : "$attr" } }""",
       new DateTime("2012-01-01T19:00:00", DateTimeZone.UTC).toDate, "POINT(-77 38)")
     val sf = new ScalaSimpleFeature(i.toString, sft)
     sf.setAttributes(attrs)
@@ -155,6 +157,22 @@ class KryoLazyStatsIteratorProcessTest extends Specification with TestWithDataSt
 
       // NB: Doubles <=> Ints:(
       val expectedOutput = """{ "min": 5.0, "max": 303.0, "cardinality": 149 }"""
+      sf.getAttribute(0) mustEqual expectedOutput
+    }
+
+    "return stats embedded in JsonPath" in {
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=jsonPath('$.json.attr')"))
+      val sf = results.features().next
+
+      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 156 }"""
+      sf.getAttribute(0) mustEqual expectedOutput
+    }
+
+    "return stats embedded in complex JsonPath" in {
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=jsonPath('$.json.[''at tr''].[''at.tr'']')"))
+      val sf = results.features().next
+
+      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 156 }"""
       sf.getAttribute(0) mustEqual expectedOutput
     }
   }
