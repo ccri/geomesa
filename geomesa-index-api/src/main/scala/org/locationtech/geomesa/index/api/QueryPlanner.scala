@@ -13,7 +13,7 @@ import com.vividsolutions.jts.geom.Geometry
 import org.geotools.data.Query
 import org.geotools.feature.AttributeTypeBuilder
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
-import org.geotools.filter.{FunctionExpressionImpl, MathExpressionImpl}
+import org.geotools.filter.{FunctionExpressionImpl, LiteralExpressionImpl, MathExpressionImpl}
 import org.geotools.filter.expression.PropertyAccessors
 import org.geotools.filter.visitor.BindingFilterVisitor
 import org.geotools.process.vector.TransformProcess
@@ -33,7 +33,7 @@ import org.locationtech.geomesa.utils.stats.{MethodProfiling, TimingsImpl}
 import org.opengis.feature.`type`.{AttributeDescriptor, GeometryDescriptor}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
-import org.opengis.filter.expression.PropertyName
+import org.opengis.filter.expression.{Expression, PropertyName}
 
 import scala.collection.JavaConverters._
 
@@ -268,14 +268,13 @@ object QueryPlanner extends LazyLogging {
     } else {
       sft
     }
-
   }
 
   private def computeSchema(origSFT: SimpleFeatureType, transforms: Seq[Definition]): SimpleFeatureType = {
     import scala.collection.JavaConversions._
     val descriptors: Seq[AttributeDescriptor] = transforms.map { definition =>
       val name = definition.name
-      val cql  = definition.expression
+      val cql: Expression = definition.expression
       cql match {
         case p: PropertyName =>
           val prop = p.getPropertyName
@@ -311,7 +310,11 @@ object QueryPlanner extends LazyLogging {
           val ab = new AttributeTypeBuilder().binding(classOf[java.lang.Double])
           ab.buildDescriptor(name, ab.buildType())
 
-        //TODO Add other classes here?
+        case l: LiteralExpressionImpl =>
+          val ab =  new AttributeTypeBuilder().binding(l.getValue.getClass)
+          ab.buildDescriptor(name, ab.buildType())
+
+        //TODO Add ClassificationFunction
       }
     }
 

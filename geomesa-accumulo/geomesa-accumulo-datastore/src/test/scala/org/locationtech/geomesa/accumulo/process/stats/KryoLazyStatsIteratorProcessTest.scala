@@ -35,7 +35,7 @@ class KryoLazyStatsIteratorProcessTest extends Specification with TestWithDataSt
   addFeatures((0 until 150).toArray.map { i =>
     val attr = (i * 2).asInstanceOf[AnyRef]
     val attrs = Array(i.asInstanceOf[AnyRef], attr,
-      s"""{ "attr" : "$attr", "at tr" : { "at.tr" : "$attr" } }""",
+      s"""{ "attr" : $attr, "at tr" : { "at.tr" : $attr } }""",
       new DateTime("2012-01-01T19:00:00", DateTimeZone.UTC).toDate, "POINT(-77 38)")
     val sf = new ScalaSimpleFeature(i.toString, sft)
     sf.setAttributes(attrs)
@@ -151,7 +151,15 @@ class KryoLazyStatsIteratorProcessTest extends Specification with TestWithDataSt
       sf.getAttribute(0) mustEqual expectedOutput
     }
 
-    "return transforms stats encoded as json" in {
+    "return transform stats encoded as json" in {
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=attr"))
+      val sf = results.features().next
+
+      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 152 }"""
+      sf.getAttribute(0) mustEqual expectedOutput
+    }
+
+    "return transform stats with math encoded as json" in {
       val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=attr+5"))
       val sf = results.features().next
 
@@ -161,18 +169,26 @@ class KryoLazyStatsIteratorProcessTest extends Specification with TestWithDataSt
     }
 
     "return stats embedded in JsonPath" in {
-      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=jsonPath('$.json.attr')"))
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=parseInt(jsonPath('$.json.attr'))"))
       val sf = results.features().next
 
-      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 156 }"""
+      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 152 }"""
       sf.getAttribute(0) mustEqual expectedOutput
     }
 
     "return stats embedded in complex JsonPath" in {
-      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=jsonPath('$.json.[''at tr''].[''at.tr'']')"))
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=parseInt(jsonPath('$.json.[''at tr''].[''at.tr'']'))"))
       val sf = results.features().next
 
-      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 156 }"""
+      val expectedOutput = """{ "min": 0, "max": 298, "cardinality": 152 }"""
+      sf.getAttribute(0) mustEqual expectedOutput
+    }
+
+    "work with literals" in {
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "MinMax(attr1)", false, Seq("attr1=1"))
+      val sf = results.features().next
+
+      val expectedOutput = """{ "min": 1, "max": 1, "cardinality": 1 }"""
       sf.getAttribute(0) mustEqual expectedOutput
     }
   }

@@ -298,63 +298,26 @@ class AccumuloDataStoreTransformsTest extends Specification with TestWithMultipl
       }.pendingUntilFixed("Can't detect transform types")
     }
 
-//    "do basic arithmetic" >> {
-//      val sft3 = createNewSchema(spec3)
-//      val sftName = sft3.getTypeName
-//      addFeatures(sft3, createFeature3(sft3))
-//
-//      "with derived values" >> {
-//        val query = new Query(sftName, Filter.INCLUDE,
-//          Array("location", "geom", "total=men+women+children"))
-//
-//        // Let's read out what we wrote.
-//        val results = ds.getFeatureSource(sftName).getFeatures(query)
-//
-//        "with the correct schema" >> {
-//          val schema = SimpleFeatureTypes.encodeType(results.getSchema)
-//          schema mustEqual "location:String,*geom:Point:srid=4326,derived:String,total:Integer"
-//        }
-//
-//        "with the correct results" >> {
-//          val features = results.features
-//          features.hasNext must beTrue
-//          val f = features.next()
-//          DataUtilities.encodeFeature(f) mustEqual "fid-1=myname|POINT (45 49)|hellomyname"
-//        }
-//      }
-//    }
-
     "do basic arithmetic" >> {
       val sft = createNewSchema(spec3)
       val sftName = sft.getTypeName
-
-
-//      println(s"SFTS: $sftName")
-      // addFeatures(sft, createFeature3(sft))
-
       val features = createFeature3(sft)
       val featureCollection = new DefaultFeatureCollection(sft.getTypeName, sft)
       features.foreach { f =>
         f.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
         featureCollection.add(f)
       }
-//      // write the feature to the store
-//      val fs = ds.getFeatureSource(sft.getTypeName)
       ds.getFeatureSource(sft.getTypeName).addFeatures(featureCollection)
 
- //     val sftName = "foo"
-
       "with derived values" >> {
-        val query = new Query(sftName, Filter.INCLUDE,
-          Array("name", "geom", "total=men+women+children"))
-
-        // Let's read out what we wrote.
+        val query = new Query(sftName, Filter.INCLUDE, Array("name", "geom", "total=men+women+children"))
         val results: SimpleFeatureCollection = ds.getFeatureSource(sftName).getFeatures(query)
 
         "with the correct schema" >> {
           val schema = SimpleFeatureTypes.encodeType(results.getSchema)
           schema mustEqual "name:String,*geom:Point:srid=4326,total:Double"
         }
+
         "with the correct results" >> {
           val features = results.features
           features.hasNext must beTrue

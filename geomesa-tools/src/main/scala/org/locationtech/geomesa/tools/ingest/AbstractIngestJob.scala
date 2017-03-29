@@ -23,6 +23,7 @@ import org.locationtech.geomesa.jobs.mapreduce.GeoMesaOutputFormat
 import org.locationtech.geomesa.jobs.{GeoMesaConfigurator, JobUtils}
 import org.locationtech.geomesa.tools.Command
 import org.locationtech.geomesa.utils.classpath.ClassPathUtils
+import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.opengis.feature.simple.SimpleFeature
 
 import scala.collection.JavaConversions._
@@ -57,6 +58,7 @@ abstract class AbstractIngestJob {
     job.setNumReduceTasks(0)
     job.getConfiguration.set("mapred.reduce.tasks.speculative.execution", "false")
     job.getConfiguration.set("mapreduce.job.user.classpath.first", "true")
+    job.getConfiguration.set("mapreduce.job.queuename", SystemProperty("geomesa.mapreduce.job.queuename", "root").get)
 
     FileInputFormat.setInputPaths(job, paths.mkString(","))
     configureJob(job)

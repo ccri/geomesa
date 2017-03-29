@@ -96,6 +96,16 @@
     <!-- /geomesa.batchwriter -->
 
     <property>
+        <name>geomesa.mapreduce.job.queuename</name>
+        <value>root</value>
+        <description>Set the mapreduce scheduler queue to place mapreduce ingest jobs into. This allows mapreduce ingest
+            jobs to share yarn resources rather than utilizing the whole cluster. This is useful when analytics or other
+            jobs need to run at the same time as mapreduce ingest jobs.
+        </description>
+        <final>false</final>
+    </property>
+
+    <property>
         <name>geomesa.mapreduce.splits.max</name>
         <value></value>
         <description>Set the absolute number of splits instead of basing it on the number of tablet servers.

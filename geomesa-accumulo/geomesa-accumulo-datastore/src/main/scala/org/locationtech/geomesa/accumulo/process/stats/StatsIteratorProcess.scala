@@ -74,7 +74,7 @@ class StatsVisitor(features: SimpleFeatureCollection, statString: String, encode
 
   val origSft = features.getSchema
 
-  //lazy val transformSft = QueryPlanner.queryToTransformSFT(query, origSft)
+  lazy val transformSft = QueryPlanner.queryToTransformSFT(query, origSft)
 
   lazy val stat: Stat = Stat(origSft, statString)
 
