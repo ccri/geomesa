@@ -67,8 +67,9 @@ private class StatParser extends BasicParser {
   }
 
   def groupBy: Rule1[Stat] = rule {
-    // TODO: Clean up the DSL here:(
-    "GroupBy(" ~ string ~ "," ~ stat ~ ")" ~~> { (attribute, groupedStats) =>
+    // TODO: Clean up the DSL here
+    // TODO: Maybe support multiple stats in a groupby.
+    "GroupBy(" ~ string ~ "," ~ singleStat ~ ")" ~~> { (attribute, groupedStats) =>
       val index = getIndex(attribute)
       new GroupBy(index, () => groupedStats)
     }
