@@ -84,7 +84,7 @@ object KryoStatSerializer {
   private [stats] val FrequencyByte: Byte     = 10
   private [stats] val Z3HistogramByte: Byte   = 11
   private [stats] val Z3FrequencyByte: Byte   = 12
-  // TODO Implement stat serializer for GroupBy stat
+  private [stats] val GroupByByte: Byte       = 13
 
   private [stats] def write(output: Output, sft: SimpleFeatureType, stat: Stat): Unit = {
     stat match {
@@ -98,6 +98,7 @@ object KryoStatSerializer {
       case s: Z3Frequency        => output.writeByte(Z3FrequencyByte);   writeZ3Frequency(output, sft, s)
       case s: IteratorStackCount => output.writeByte(IteratorStackByte); writeIteratorStackCount(output, s)
       case s: SeqStat            => output.writeByte(SeqStatByte);       writeSeqStat(output, sft, s)
+      case s: GroupBy            => output.writeByte(GroupByByte);       writeGroupBy(output, sft, s)
     }
   }
 
@@ -116,7 +117,16 @@ object KryoStatSerializer {
       case FrequencyByteV1   => readFrequency(input, sft, immutable, 1)
       case Z3HistogramByteV1 => readZ3Histogram(input, sft, immutable, 1)
       case Z3FrequencyByteV1 => readZ3Frequency(input, sft, immutable, 1)
+      case GroupByByte       => readGroupBy(input, sft, immutable)
     }
+  }
+
+  private [stats] def writeGroupBy(output: Output, sft: SimpleFeatureType, stat: GroupBy): Unit = {
+
+  }
+
+  private [stats] def readGroupBy(input: Input, sft: SimpleFeatureType, immutable: Boolean): GroupBy = {
+    null
   }
 
   private [stats] def writeSeqStat(output: Output, sft: SimpleFeatureType, stat: SeqStat): Unit =

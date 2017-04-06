@@ -18,7 +18,6 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
   // TODO: Optionally add a type parameter [T] to GroupBy and replace [String, Stat] with [T, Stat]
   val groupedStats: mutable.HashMap[String, Stat] = mutable.HashMap[String, Stat]()
 
-
   /**
     * Compute statistics based upon the given simple feature.
     * This method will be called for every SimpleFeature a query returns.
@@ -70,7 +69,9 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     * @return stat as a json string
     */
   // TODO
-  override def toJson: String = "JSON!"
+  override def toJson: String = {
+    groupedStats.map{ case (key, stat) => "{ \"" + key + "\" : " + stat.toJson + "}" }.mkString("[",",","]")
+  }
 
   /**
     * Necessary method used by the StatIterator. Indicates if the stat has any values or not

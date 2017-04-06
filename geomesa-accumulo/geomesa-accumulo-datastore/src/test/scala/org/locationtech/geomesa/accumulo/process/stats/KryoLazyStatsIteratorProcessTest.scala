@@ -85,7 +85,7 @@ class KryoLazyStatsIteratorProcessTest extends Specification with TestWithDataSt
 
     "work with the GroupBy stat" in {
       // "Groupby(an_id, MinMax(attr))"
-      val results = statsIteratorProcess.execute(fs.getFeatures(query), "GroupBy[an_id,MinMax(attr)", encode = true)
+      val results = statsIteratorProcess.execute(fs.getFeatures(query), "GroupBy(an_id,MinMax(attr))", encode = true)
       val sf = results.features().next
 
       val gb = decodeStat(sf.getAttribute(0).asInstanceOf[String], sft).asInstanceOf[GroupBy]
