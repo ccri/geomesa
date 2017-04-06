@@ -7,10 +7,10 @@
 *************************************************************************/
 
 package org.locationtech.geomesa.utils.stats
+
 import org.opengis.feature.simple.SimpleFeature
 
 import scala.collection.mutable
-import scala.collection.JavaConversions._
 
 class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
   override type S = this.type
@@ -26,11 +26,11 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     */
   override def observe(sf: SimpleFeature): Unit = {
     val key = sf.getAttribute(attribute).toString
-
-    // TODO This doesn't work, since groupedStats isn't a loading cache
-    val stat = statCreator()
-    stat.observe(sf)
-    groupedStats.put(key, stat)
+    groupedStats.get(key) match {
+      case Some(groupedStat) => groupedStat.observe(sf)
+      case None              => val newStat = statCreator()
+        groupedStats.update(key, newStat)
+    }
   }
 
   /**
