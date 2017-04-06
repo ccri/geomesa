@@ -84,6 +84,7 @@ object KryoStatSerializer {
   private [stats] val FrequencyByte: Byte     = 10
   private [stats] val Z3HistogramByte: Byte   = 11
   private [stats] val Z3FrequencyByte: Byte   = 12
+  // TODO Implement stat serializer for GroupBy stat
 
   private [stats] def write(output: Output, sft: SimpleFeatureType, stat: Stat): Unit = {
     stat match {

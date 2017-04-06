@@ -100,6 +100,9 @@ trait Stat {
    * Necessary method used by the StatIterator.
    */
   def clear(): Unit
+
+  // TODO: Offer method to 'duplicate' a stat
+  // def copy: Stat
 }
 
 /**
@@ -220,6 +223,8 @@ object Stat {
     * @return
     */
   def SeqStat(stats: Seq[String]): String = stats.mkString(";")
+
+  def GroupBy(stat: String): String = ???
 
   /**
     * Combines a sequence of stats. This will not modify any of the inputs.

@@ -66,8 +66,16 @@ private class StatParser extends BasicParser {
     oneOrMore(singleStat, ";") ~~> { s => if (s.length == 1) s.head else new SeqStat(s) } ~ EOI
   }
 
+  def groupBy: Rule1[Stat] = rule {
+    // TODO: Clean up the DSL here:(
+    "GroupBy[" ~ string ~ "," ~ stat ~~> { (attribute, groupedStats) =>
+      val index = getIndex(attribute)
+      new GroupBy(index, () => groupedStats)
+    }
+  }
+
   private def singleStat: Rule1[Stat] = rule {
-    count | minMax | iteratorStack | enumeration | topK | histogram | frequency | z3Histogram | z3Frequency
+    count | minMax | iteratorStack | groupBy | enumeration | topK | histogram | frequency | z3Histogram | z3Frequency
   }
 
   private def count: Rule1[Stat] = rule {
