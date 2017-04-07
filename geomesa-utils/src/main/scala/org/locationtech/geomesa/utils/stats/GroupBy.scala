@@ -55,8 +55,9 @@ class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: Class
   override def +=(other: GroupBy[T]): Unit = {
     other.groupedStats.map { case (key, stat) =>
       groupedStats.get(key) match {
-        case Some(groupedStat) => this.groupedStats.update(key, (groupedStat += stat).asInstanceOf[Stat])
-        case None              => this.groupedStats.put(key, stat)
+        case Some(groupedStat) => groupedStat += stat
+          groupedStats.update(key, groupedStat)
+        case None => groupedStats.put(key, stat)
       }
     }
   }
