@@ -29,6 +29,9 @@ case class MinMax[T] private (val attribute: Int, private [stats] var hpp: Hyper
                         (implicit val defaults: MinMax.MinMaxDefaults[T], ct: ClassTag[T])
     extends Stat with LazyLogging {
 
+  this.minValue = defaults.max
+  this.maxValue = defaults.min
+
   override type S = MinMax[T]
 
   def this(attribute: Int)(implicit defaults: MinMax.MinMaxDefaults[T], ct: ClassTag[T]) {
@@ -64,6 +67,7 @@ case class MinMax[T] private (val attribute: Int, private [stats] var hpp: Hyper
         hpp.offer(value)
       } catch {
         case e: Exception => logger.warn(s"Error observing value '$value': ${e.toString}")
+          e.printStackTrace()
       }
     }
   }
@@ -120,7 +124,7 @@ case class MinMax[T] private (val attribute: Int, private [stats] var hpp: Hyper
     case _ => false
   }
 
-  override def newcopy: Stat = this.copy()
+  override def newcopy: Stat = MinMax[T](attribute, hpp)(defaults, ct)
 }
 
 object MinMax {

@@ -24,6 +24,8 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class GroupByTest extends Specification with StatTestHelper {
 
+  sequential
+
   def newStat[T](attribute: String, groupedStat: String, observe: Boolean = true): GroupBy[T] = {
     val stat = Stat(sft, s"GroupBy($attribute,$groupedStat)")
     if (observe) {
@@ -211,8 +213,8 @@ class GroupByTest extends Specification with StatTestHelper {
 
         "observe correct values" >> {
           val groupBy = newStat[Int]("cat1","MinMax(strAttr)")
-          val groupedStats0 = groupBy.groupedStats.get(0).getOrElse(null).asInstanceOf[MinMax[String]]
-          groupedStats0.bounds mustEqual ("abc000", "abc099")
+          val groupedStats0 = groupBy.groupedStats.getOrElse(0, null).asInstanceOf[MinMax[String]]
+          groupedStats0.bounds mustEqual ("abc000", "abc090")
           groupedStats0.cardinality must beCloseTo(100L, 5)
         }
 
@@ -258,14 +260,14 @@ class GroupByTest extends Specification with StatTestHelper {
 
           features2.foreach { groupBy2.observe }
           val gS20 = groupBy2.groupedStats.get(0).getOrElse(null).asInstanceOf[MinMax[String]]
-          gS20.bounds mustEqual ("abc100", "abc199")
+          gS20.bounds mustEqual ("abc100", "abc190")
           gS20.cardinality must beCloseTo(100L, 5)
 
           groupBy1 += groupBy2
           val gS10 = groupBy1.groupedStats.get(0).getOrElse(null).asInstanceOf[MinMax[String]]
-          gS10.bounds mustEqual ("abc000", "abc199")
+          gS10.bounds mustEqual ("abc000", "abc190")
           gS10.cardinality must beCloseTo(200L, 5)
-          gS20.bounds mustEqual ("abc100", "abc199")
+          gS20.bounds mustEqual ("abc100", "abc190")
         }
 
         "clear" >> {
