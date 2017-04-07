@@ -56,8 +56,7 @@ class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: Class
     other.groupedStats.map { case (key, stat) =>
       groupedStats.get(key) match {
         case Some(groupedStat) => groupedStat += stat
-          groupedStats.update(key, groupedStat)
-        case None => groupedStats.put(key, stat)
+        case None              => groupedStats.put(key, stat)
       }
     }
   }
