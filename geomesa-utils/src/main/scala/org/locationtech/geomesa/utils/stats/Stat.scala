@@ -101,8 +101,7 @@ trait Stat {
    */
   def clear(): Unit
 
-  // TODO: Offer method to 'duplicate' a stat
-  // def copy: Stat
+  def newcopy: Stat
 }
 
 /**

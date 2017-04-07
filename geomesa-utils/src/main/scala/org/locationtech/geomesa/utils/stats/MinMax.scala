@@ -25,7 +25,7 @@ import scala.reflect.ClassTag
  * @param attribute attribute index for the attribute the histogram is being made for
  * @tparam T the type of the attribute the stat is targeting (needs to be comparable)
  */
-class MinMax[T] private (val attribute: Int, private [stats] var hpp: HyperLogLog)
+case class MinMax[T] private (val attribute: Int, private [stats] var hpp: HyperLogLog)
                         (implicit val defaults: MinMax.MinMaxDefaults[T], ct: ClassTag[T])
     extends Stat with LazyLogging {
 
@@ -119,6 +119,8 @@ class MinMax[T] private (val attribute: Int, private [stats] var hpp: HyperLogLo
           maxValue == that.maxValue && cardinality == that.cardinality
     case _ => false
   }
+
+  override def newcopy: Stat = this.copy()
 }
 
 object MinMax {

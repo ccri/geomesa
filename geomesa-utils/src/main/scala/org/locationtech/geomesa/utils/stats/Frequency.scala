@@ -36,7 +36,7 @@ import scala.reflect.ClassTag
   * @param ct class tag
   * @tparam T type parameter, should match the type binding of the attribute
   */
-class Frequency[T](val attribute: Int,
+case class Frequency[T](val attribute: Int,
                    val dtgIndex: Int,
                    val period: TimePeriod,
                    val precision: Int,
@@ -189,6 +189,9 @@ class Frequency[T](val attribute: Int,
       case _ => false
     }
   }
+
+  // TODO: Offer method to 'duplicate' a stat
+  override def newcopy: Stat = this.copy()
 }
 
 object Frequency {

@@ -71,7 +71,8 @@ private class StatParser extends BasicParser {
     // TODO: Maybe support multiple stats in a groupby.
     "GroupBy(" ~ string ~ "," ~ singleStat ~ ")" ~~> { (attribute, groupedStats) =>
       val index = getIndex(attribute)
-      new GroupBy(index, () => groupedStats)
+      val foo: Stat = groupedStats
+      new GroupBy(index, groupedStats)
     }
   }
 

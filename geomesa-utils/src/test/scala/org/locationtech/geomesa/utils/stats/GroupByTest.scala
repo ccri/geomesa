@@ -134,19 +134,20 @@ class GroupByTest extends Specification with StatTestHelper {
         "observe correct values" >> {
           val groupBy = newStat[Int]("cat1", "Count()")
           groupBy.groupedStats.size mustEqual 10
-          groupBy.groupedStats.get(0).getOrElse(null).asInstanceOf[CountStat].counter mustEqual 100L
+          groupBy.groupedStats.get(0).getOrElse(null).asInstanceOf[CountStat].counter mustEqual 10L
         }
 
         "unobserve correct values" >> {
           val groupBy = newStat[Int]("cat1", "Count()")
           groupBy.groupedStats.size mustEqual 10
           features.take(10).foreach(groupBy.unobserve)
-          groupBy.groupedStats.get(0).getOrElse(null).asInstanceOf[CountStat].counter mustEqual 90L
+          groupBy.groupedStats.get(0).getOrElse(null).asInstanceOf[CountStat].counter mustEqual 9L
         }
 
         "serialize to json" >> {
           val groupBy = newStat[Int]("cat1", "Count()")
-          groupBy.toJson mustEqual """[{ "8" : { "count": 100 }},{ "2" : { "count": 100 }},{ "5" : { "count": 100 }},{ "4" : { "count": 100 }},{ "7" : { "count": 100 }},{ "1" : { "count": 100 }},{ "9" : { "count": 100 }},{ "3" : { "count": 100 }},{ "6" : { "count": 100 }},{ "0" : { "count": 100 }}]"""
+          groupBy.toJson mustEqual
+            """[{ "8" : { "count": 10 }},{ "2" : { "count": 10 }},{ "5" : { "count": 10 }},{ "4" : { "count": 10 }},{ "7" : { "count": 10 }},{ "1" : { "count": 10 }},{ "9" : { "count": 10 }},{ "3" : { "count": 10 }},{ "6" : { "count": 10 }},{ "0" : { "count": 10 }}]"""
         }
 
         "serialize and deserialize" >> {

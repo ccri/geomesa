@@ -13,7 +13,7 @@ import org.opengis.feature.simple.SimpleFeature
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: ClassTag[T]) extends Stat {
+case class GroupBy[T](attribute: Int, exampleStat: Stat)(implicit ct: ClassTag[T]) extends Stat {
   override type S = GroupBy[T]
 
   // TODO: Optionally add a type parameter [T] to GroupBy and replace [String, Stat] with [T, Stat]
@@ -29,7 +29,7 @@ class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: Class
     val key = sf.getAttribute(attribute).asInstanceOf[T]
     groupedStats.get(key) match {
       case Some(groupedStat) => groupedStat.observe(sf)
-      case None              => val newStat = statCreator()
+      case None              => val newStat = exampleStat.newcopy
         newStat.observe(sf)
         groupedStats.update(key, newStat)
     }
@@ -67,7 +67,7 @@ class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: Class
     * @param other the other stat to add
     */
   override def +(other: GroupBy[T]): GroupBy[T] = {
-    val newGB = new GroupBy[T](attribute, statCreator)
+    val newGB = new GroupBy[T](attribute, exampleStat.newcopy)
     newGB += this
     newGB += other
     newGB
@@ -108,4 +108,6 @@ class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: Class
     * Necessary method used by the StatIterator.
     */
   override def clear(): Unit = groupedStats.clear()
+
+  override def newcopy: Stat = GroupBy(attribute, exampleStat.newcopy)
 }
