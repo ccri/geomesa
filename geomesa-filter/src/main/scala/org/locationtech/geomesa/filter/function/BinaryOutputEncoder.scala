@@ -104,7 +104,7 @@ object BinaryOutputEncoder extends LazyLogging {
                 pointToXY(f.getDefaultGeometry.asInstanceOf[Point])
               } catch {
                 case e: Throwable => {
-                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry: $f", e)
                   (0, 0)
                 }
               }
@@ -113,7 +113,7 @@ object BinaryOutputEncoder extends LazyLogging {
                 pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint)
               } catch {
                 case e: Throwable => {
-                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry: $f", e)
                   (0, 0)
                 }
               }
@@ -124,7 +124,7 @@ object BinaryOutputEncoder extends LazyLogging {
                 pointToXY(f.getDefaultGeometry.asInstanceOf[Point]).swap
               } catch {
                 case e: Throwable => {
-                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry: $f", e)
                   (0, 0)
                 }
               }
@@ -133,7 +133,7 @@ object BinaryOutputEncoder extends LazyLogging {
                 pointToXY(f.getDefaultGeometry.asInstanceOf[Geometry].getInteriorPoint).swap
               } catch {
                 case e: Throwable => {
-                  logger.error(s"Feature with id=${f.getID} has a bad geometry", e)
+                  logger.error(s"Feature with id=${f.getID} has a bad geometry: $f", e)
                   (0, 0)
                 }
               }
