@@ -11,12 +11,13 @@ package org.locationtech.geomesa.utils.stats
 import org.opengis.feature.simple.SimpleFeature
 
 import scala.collection.mutable
+import scala.reflect.ClassTag
 
-class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
-  override type S = this.type
+class GroupBy[T](val attribute: Int, statCreator: () => Stat)(implicit ct: ClassTag[T]) extends Stat {
+  override type S = GroupBy[T]
 
   // TODO: Optionally add a type parameter [T] to GroupBy and replace [String, Stat] with [T, Stat]
-  val groupedStats: mutable.HashMap[String, Stat] = mutable.HashMap[String, Stat]()
+  val groupedStats: mutable.HashMap[T, Stat] = mutable.HashMap[T, Stat]()
 
   /**
     * Compute statistics based upon the given simple feature.
@@ -25,10 +26,11 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     * @param sf feature to evaluate
     */
   override def observe(sf: SimpleFeature): Unit = {
-    val key = sf.getAttribute(attribute).toString
+    val key = sf.getAttribute(attribute).asInstanceOf[T]
     groupedStats.get(key) match {
       case Some(groupedStat) => groupedStat.observe(sf)
       case None              => val newStat = statCreator()
+        newStat.observe(sf)
         groupedStats.update(key, newStat)
     }
   }
@@ -41,7 +43,8 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     * @param sf feature to un-evaluate
     */
   override def unobserve(sf: SimpleFeature): Unit = {
-    // TODO This is basically the same as observe.
+    val key = sf.getAttribute(attribute).asInstanceOf[T]
+    groupedStats.get(key) match { case Some(groupedStat) => groupedStat.unobserve(sf) }
   }
 
   /**
@@ -49,10 +52,12 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     *
     * @param other the other stat to add
     */
-  override def +=(other: GroupBy.this.type): Unit = {
+  override def +=(other: GroupBy[T]): Unit = {
     other.groupedStats.map { case (key, stat) =>
-      // TODO: Handle case where key is in other stat.
-      this.groupedStats.put(key, stat)
+      groupedStats.get(key) match {
+        case Some(groupedStat) => this.groupedStats.update(key, (groupedStat += stat).asInstanceOf[Stat])
+        case None              => this.groupedStats.put(key, stat)
+      }
     }
   }
 
@@ -61,14 +66,18 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     *
     * @param other the other stat to add
     */
-  override def +(other: GroupBy.this.type): GroupBy.this.type = ???
+  override def +(other: GroupBy[T]): GroupBy[T] = {
+    val newGB = new GroupBy[T](attribute, statCreator)
+    newGB += this
+    newGB += other
+    newGB
+  }
 
   /**
     * Returns a json representation of the stat
     *
     * @return stat as a json string
     */
-  // TODO
   override def toJson: String = {
     groupedStats.map{ case (key, stat) => "{ \"" + key + "\" : " + stat.toJson + "}" }.mkString("[",",","]")
   }
@@ -87,13 +96,16 @@ class GroupBy(val attribute: Int, statCreator: () => Stat) extends Stat {
     * @param other other stat to compare
     * @return true if equals
     */
-  // TODO
-  override def isEquivalent(other: Stat): Boolean = false
+  override def isEquivalent(other: Stat): Boolean = {
+    other match {
+      case other: GroupBy[T] => !groupedStats.map{ case (key, stat) => other.groupedStats.get(key) == stat }.exists(p => p == false)
+      case _ => false
+    }
+  }
 
   /**
     * Clears the stat to its original state when first initialized.
     * Necessary method used by the StatIterator.
     */
-  override def clear(): Unit = { // TODO!
-    }
+  override def clear(): Unit = groupedStats.clear()
 }

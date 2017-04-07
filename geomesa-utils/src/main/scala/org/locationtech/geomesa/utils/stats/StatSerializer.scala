@@ -98,7 +98,7 @@ object KryoStatSerializer {
       case s: Z3Frequency        => output.writeByte(Z3FrequencyByte);   writeZ3Frequency(output, sft, s)
       case s: IteratorStackCount => output.writeByte(IteratorStackByte); writeIteratorStackCount(output, s)
       case s: SeqStat            => output.writeByte(SeqStatByte);       writeSeqStat(output, sft, s)
-      case s: GroupBy            => output.writeByte(GroupByByte);       writeGroupBy(output, sft, s)
+      case s: GroupBy[_]         => output.writeByte(GroupByByte);       writeGroupBy(output, sft, s)
     }
   }
 
@@ -121,24 +121,26 @@ object KryoStatSerializer {
     }
   }
 
-  private [stats] def writeGroupBy(output: Output, sft: SimpleFeatureType, stat: GroupBy): Unit = {
+  private [stats] def writeGroupBy(output: Output, sft: SimpleFeatureType, stat: GroupBy[_]): Unit = {
     output.writeInt(stat.attribute, true)
     stat.groupedStats.foreach { case (key, groupedStat) =>
-      output.writeString(key)
+      writer(output, sft.getDescriptor(stat.attribute).getType.getBinding)(key)
       write(output, sft, groupedStat)
     }
   }
 
-  private [stats] def readGroupBy(input: Input, sft: SimpleFeatureType, immutable: Boolean): GroupBy = {
+  private [stats] def readGroupBy(input: Input, sft: SimpleFeatureType, immutable: Boolean): GroupBy[_] = {
     val attribute = input.readInt(true)
+    val binding = sft.getDescriptor(attribute).getType.getBinding
+    val classTag = ClassTag[Any](binding)
     val stat = if (immutable) {
-      new GroupBy(attribute, null) with ImmutableStat
+      new GroupBy(attribute, null)(classTag) with ImmutableStat
     } else {
-      new GroupBy(attribute, null)
+      new GroupBy(attribute, null)(classTag)
     }
 
     while (input.available() > 0) {
-      val key = input.readString()
+      val key = reader(input, sft.getDescriptor(attribute).getType.getBinding).apply()
       val groupedStat = read(input, sft, immutable)
       stat.groupedStats.put(key, groupedStat)
     }
