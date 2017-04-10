@@ -33,8 +33,6 @@ case class Histogram[T](val attribute: Int, initialBins: Int, initialEndpoints: 
                   (implicit val defaults: MinMax.MinMaxDefaults[T], ct: ClassTag[T])
     extends Stat with LazyLogging {
 
-  this.copy()
-
   override type S = Histogram[T]
 
   private [stats] var bins: BinnedArray[T] = BinnedArray[T](initialBins, initialEndpoints)
