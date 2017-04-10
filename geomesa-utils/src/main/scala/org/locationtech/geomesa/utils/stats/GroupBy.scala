@@ -16,7 +16,6 @@ import scala.reflect.ClassTag
 case class GroupBy[T](attribute: Int, exampleStat: Stat)(implicit ct: ClassTag[T]) extends Stat {
   override type S = GroupBy[T]
 
-  // TODO: Optionally add a type parameter [T] to GroupBy and replace [String, Stat] with [T, Stat]
   val groupedStats: mutable.HashMap[T, Stat] = mutable.HashMap[T, Stat]()
 
   /**
@@ -79,6 +78,7 @@ case class GroupBy[T](attribute: Int, exampleStat: Stat)(implicit ct: ClassTag[T
     * @return stat as a json string
     */
   override def toJson: String = {
+    // TODO: Provide summary of all items in all groups together. e.g. GroupBy("cat",Count()) should have a total count as well as a per category count.
     groupedStats.map{ case (key, stat) => "{ \"" + key + "\" : " + stat.toJson + "}" }.mkString("[",",","]")
   }
 
