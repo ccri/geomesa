@@ -457,6 +457,91 @@ class GroupByTest extends Specification with StatTestHelper {
           }
         }
       }
+
+      "Descriptive Stats and" >> {
+        val DescStats = new DescriptiveStatsTest
+        val JSON_0_to_100 = DescStats.JSON_0_to_100
+        val JSON_EMPTY = DescStats.JSON_EMPTY
+
+        "work with ints" >> {
+          def descStat(groupBy: GroupBy[Int], index: Int = 0): DescriptiveStats =
+            groupBy.groupedStats.getOrElse(index, null).asInstanceOf[DescriptiveStats]
+
+          "be empty initially" >> {
+            val groupBy = newStat[Int]("cat1","Stats(intAttr)", false)
+            groupBy.toJson mustEqual "[]"
+            groupBy.isEmpty must beTrue
+          }
+
+          "observe correct values" >> {
+            val groupBy = newStat[Int]("cat1","Stats(intAttr)")
+            forall(0 until 10) { i =>
+              val descStats = descStat(groupBy, i)
+              descStats.bounds(0) mustEqual(0, 99)
+              descStats.count must beCloseTo(100L, 5)
+            }
+          }
+
+//          "serialize to json" >> {
+//            val descStats = newStat[java.lang.Integer]("intAttr")
+//            descStats.toJson.replaceAll("\\s+","") must beMatching(JSON_0_to_100)
+//          }
+//
+//          "serialize empty to json" >> {
+//            val descStats = newStat[java.lang.Integer]("intAttr", observe = false)
+//            descStats.toJson.replaceAll("\\s+","") mustEqual JSON_EMPTY
+//          }
+//
+//          "serialize and deserialize" >> {
+//            val descStats = newStat[java.lang.Integer]("intAttr")
+//            val packed = StatSerializer(sft).serialize(descStats)
+//            val unpacked = StatSerializer(sft).deserialize(packed)
+//            unpacked.toJson mustEqual descStats.toJson
+//          }
+//
+//          "serialize and deserialize empty descStats" >> {
+//            val descStats = newStat[java.lang.Integer]("intAttr", observe = false)
+//            val packed = StatSerializer(sft).serialize(descStats)
+//            val unpacked = StatSerializer(sft).deserialize(packed)
+//            unpacked.toJson mustEqual descStats.toJson
+//          }
+//
+//          "combine two descStatses" >> {
+//            val descStats = newStat[java.lang.Integer]("intAttr")
+//            val descStats2 = newStat[java.lang.Integer]("intAttr", observe = false)
+//
+//            features2.foreach { descStats2.observe }
+//
+//            descStats2.bounds(0) mustEqual (100, 199)
+//            descStats2.count must beCloseTo(100L, 5)
+//
+//            descStats += descStats2
+//
+//            descStats.bounds(0) mustEqual (0, 199)
+//            descStats.count must beCloseTo(200L, 5)
+//            descStats2.bounds(0) mustEqual (100, 199)
+//          }
+//
+//          "clear" >> {
+//            val descStats = newStat[java.lang.Integer]("intAttr")
+//            descStats.isEmpty must beFalse
+//
+//            descStats.clear()
+//
+//            descStats.isEmpty must beTrue
+//            descStats.count mustEqual 0
+//          }
+//
+//          "negatives" >> {
+//            val descStats3 = newStat[java.lang.Integer]("intAttr", observe = false)
+//
+//            features3.foreach { descStats3.observe }
+//
+//            descStats3.bounds(0) mustEqual (-100, -1)
+//            descStats3.count must beCloseTo(100L, 5)
+//          }
+        }
+      }
     }
   }
 }
