@@ -190,7 +190,6 @@ case class Frequency[T](val attribute: Int,
     }
   }
 
-  // TODO: Offer method to 'duplicate' a stat
   override def newcopy: Stat = this.copy()
 }
 

@@ -177,7 +177,6 @@ case class Histogram[T](val attribute: Int, initialBins: Int, initialEndpoints: 
     case _ => false
   }
 
-  // TODO: Offer method to 'duplicate' a stat
   override def newcopy: Stat = this.copy()
 }
 
