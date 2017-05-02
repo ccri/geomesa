@@ -71,45 +71,27 @@ class KryoLazyDensityCoprocessor extends KryoLazyDensityService with Coprocessor
   def getDensity(controller: RpcController, request: KryoLazyDensityProto.DensityRequest, done: RpcCallback[KryoLazyDensityProto.DensityResponse]) {
     var response : DensityResponse = null
     var scanner : InternalScanner = null
-    var filterList : FilterList = new FilterList()
 
     try {
       val options: Map[String, String] = deserializeOptions(request.getOptions.toByteArray)
       val sft = SimpleFeatureTypes.createType("input", options(SFT_OPT))
-      var scanList : List[Scan] = List[Scan]()
-
-      options(RANGES_OPT).split(",").foreach(range => {
-        val scanInfo = range.split("\\|")
-
-        if (scanInfo.isEmpty) {
-          scanList ::= new Scan()
-        } else {
-          scanList ::= new Scan(Base64.decode(scanInfo(0)), Base64.decode(scanInfo(1)))
-        }
-      })
-
-      if (options.containsKey(FILTER_OPT)) {
-        filterList = FilterList.parseFrom(Base64.decode(options(FILTER_OPT)))
-      }
 
       val serializer = new KryoFeatureSerializer(sft, SerializationOptions.withoutId)
       val densityResult: DensityResult = this.init(options, sft)
 
-      scanList.foreach(scan => {
-        scan.setFilter(filterList)
-        scanner = env.getRegion.getScanner(scan)
-        val results = new java.util.ArrayList[Cell]
+      val scan = new Scan()
 
-        var hasMore = false
-        do {
-          hasMore = scanner.next(results)
-          for (cell <- results) {
-            val sf = serializer.deserialize(cell.getValueArray, cell.getValueOffset, cell.getValueLength)
-            aggregateResult(sf, densityResult)
-          }
-          results.clear()
-        } while (hasMore)
-      })
+      scanner = env.getRegion.getScanner(scan)
+      val results = new java.util.ArrayList[Cell]
+
+      do {
+        for (cell <- results) {
+          val sf = serializer.deserialize(cell.getValueArray, cell.getValueOffset, cell.getValueLength)
+          aggregateResult(sf, densityResult)
+        }
+        results.clear()
+      } while (scanner.next(results))
+
 
       val result: Array[Byte] = KryoLazyDensityUtils.encodeResult(densityResult)
       response = DensityResponse.newBuilder.setSf(ByteString.copyFrom(result)).build
