@@ -81,16 +81,26 @@ class KryoLazyDensityCoprocessor extends KryoLazyDensityService with Coprocessor
 
       val scan = new Scan()
 
+      if (options.containsKey(FILTER_OPT)) {
+        val filterList = FilterList.parseFrom(Base64.decode(options(FILTER_OPT)))
+        scan.setFilter(filterList)
+      }
+
       scanner = env.getRegion.getScanner(scan)
       val results = new java.util.ArrayList[Cell]
 
-      do {
+      var i = 0
+
+      while (scanner.next(results)) {
         for (cell <- results) {
+          i += 1
           val sf = serializer.deserialize(cell.getValueArray, cell.getValueOffset, cell.getValueLength)
           aggregateResult(sf, densityResult)
         }
         results.clear()
-      } while (scanner.next(results))
+      }
+
+      println(s"READ $i cells in the coprocessor")
 
 
       val result: Array[Byte] = KryoLazyDensityUtils.encodeResult(densityResult)
