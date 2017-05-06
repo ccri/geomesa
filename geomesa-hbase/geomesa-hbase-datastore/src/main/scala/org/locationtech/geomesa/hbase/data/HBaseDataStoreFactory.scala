@@ -12,10 +12,11 @@ import java.io.Serializable
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hadoop.hbase.HBaseConfiguration
-import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory}
-import org.apache.hadoop.hbase.security.User
+import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, HBaseAdmin}
+import org.apache.hadoop.hbase.security.{User}
 import org.apache.hadoop.hbase.security.visibility.VisibilityClient
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.{DataStore, DataStoreFactorySpi}
 import org.locationtech.geomesa.hbase.data.HBaseDataStoreFactory.HBaseDataStoreConfig
@@ -27,6 +28,7 @@ import org.locationtech.geomesa.utils.audit.{AuditLogger, AuditProvider, AuditWr
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 
 import scala.collection.JavaConversions._
+import org.apache.hadoop.security.{SecurityUtil, UserGroupInformation}
 
 
 class HBaseDataStoreFactory extends DataStoreFactorySpi with LazyLogging {
@@ -35,7 +37,28 @@ class HBaseDataStoreFactory extends DataStoreFactorySpi with LazyLogging {
 
   // TODO: investigate multiple HBase connections per jvm
   private lazy val globalConnection: Connection = {
-    val ret = ConnectionFactory.createConnection(HBaseConfiguration.create())
+    val conf = HBaseConfiguration.create()
+
+    val auth = conf.get("hbase.security.authentication")
+    auth match {
+      case "kerberos" => {
+        //conf.set("hadoop.security.authentication", "Kerberos")
+        SecurityUtil.setAuthenticationMethod(AuthenticationMethod.KERBEROS, conf)
+
+        UserGroupInformation.setConfiguration(conf)
+
+        println(s"Is Security enabled: ${UserGroupInformation.isSecurityEnabled}")
+        println(s"Using Kerberos with principal ${conf.get("hbase.master.kerberos.principal")} and file ${conf.get("hbase.master.keytab.file")}")
+        UserGroupInformation.loginUserFromKeytab(conf.get("hbase.master.kerberos.principal"), conf.get("hbase.master.keytab.file"))
+      }
+      case _ => {
+        logger.debug("no kerberos detected")
+      }
+    }
+
+
+    val ret = ConnectionFactory.createConnection(conf)
+
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
         ret.close()
