@@ -39,6 +39,11 @@ cp /usr/lib/hbase/conf/hbase-site.xml /opt/geomesa/conf/
 
 chown -R ec2-user:ec2-user ${GMDIR}
 
+# Configure coprocessor auto-registration
+ROOTDIR=`cat /opt/geomesa/conf/hbase-site.xml | tr '\n' ' ' | sed 's/ //g' | grep -o -P "<name>hbase.rootdir</name><value>.+?</value>" | sed 's/<name>hbase.rootdir<\/name><value>//' | sed 's/<\/value>//'`
+NL=$'\n'
+echo "# Auto-registration for geomesa coprocessors ${NL}export CUSTOM_JAVA_OPTS \"${JAVA_OPTS} ${CUSTOM_JAVA_OPTS} -Dgeomesa.hbase.coprocessor.path=${ROOTDIR}/lib/	geomesa-hbase-distributed-runtime.jar\" ${NL}" >> /opt/geomesa/conf/geomesa-env.sh
+
 # Create an HDFS directory for Spark jobs
 sudo -u hdfs hadoop fs -mkdir /user/ec2-user
 sudo -u hdfs hadoop fs -chown ec2-user:ec2-user /user/ec2-user
