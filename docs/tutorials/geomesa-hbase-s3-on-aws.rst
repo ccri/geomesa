@@ -85,7 +85,7 @@ Then, bootstrap GeoMesa on HBase on S3 by executing the provided script
 
 .. code-block:: shell
 
-   $ sudo /opt/geomesa-hbase_2.11-${VERSION}/bin/bootstrap-geomesa-hbase.sh ${VERSION}
+   $ sudo /opt/geomesa-hbase_2.11-${VERSION}/bin/bootstrap-geomesa-hbase.sh 
 
 Now, log out and back in and your environment will be set up appropriately.
  

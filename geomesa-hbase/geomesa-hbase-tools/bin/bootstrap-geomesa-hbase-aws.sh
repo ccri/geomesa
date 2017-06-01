@@ -1,20 +1,13 @@
 #!/bin/bash
 
-if [[ "$#" -ne 1 ]]; then
-    echo "Error: Invalid input parameters"
-    echo "Usage: bootstrap-geomesa-hbase.sh <geomesa-version>"
-    exit 1
-fi
-
-VERSION=$1
-GMDIR="/opt/geomesa-hbase_2.11-${VERSION}"
+GMDIR="/opt/geomesa-hbase_2.11-%%project.version%%"
 
 if [[ ! -d "${GMDIR}" ]]; then
   echo "Unable to find geomesa directory at ${GMDIR}"
   exit 1
 fi
 
-echo "Bootstrapping GeoMesa HBase with version ${VERSION} installed at ${GMDIR}"
+echo "Bootstrapping GeoMesa HBase with version %%project.version%% installed at ${GMDIR}"
 
 pip install --upgrade awscli
 
@@ -41,6 +34,16 @@ cp /usr/share/aws/emr/emrfs/lib/* /opt/geomesa/lib
 cp /usr/lib/hbase/conf/hbase-site.xml /opt/geomesa/conf/
 
 chown -R ec2-user:ec2-user ${GMDIR}
+
+# Configure coprocessor auto-registration
+DISTRIBUTED_JAR_NAME=geomesa-hbase-distributed-runtime_2.11-%%project.version%%.jar
+
+ROOTDIR=`cat /opt/geomesa/conf/hbase-site.xml | tr '\n' ' ' | sed 's/ //g' | grep -o -P "<name>hbase.rootdir</name><value>.+?</value>" | sed 's/<name>hbase.rootdir<\/name><value>//' | sed 's/<\/value>//'`
+NL=$'\n'
+echo "# Auto-registration for geomesa coprocessors ${NL}export CUSTOM_JAVA_OPTS=\"${JAVA_OPTS} ${CUSTOM_JAVA_OPTS} -Dgeomesa.hbase.coprocessor.path=${ROOTDIR}/lib/${DISTRIBUTED_JAR_NAME}\" ${NL}" >> /opt/geomesa/conf/geomesa-env.sh
+
+# Deploy the GeoMesa HBase distributed runtime to the HBase root directory
+aws s3 cp /opt/geomesa/dist/hbase/$DISTRIBUTED_JAR_NAME $ROOTDIR/lib/
 
 # Create an HDFS directory for Spark jobs
 sudo -u hdfs hadoop fs -mkdir /user/ec2-user
