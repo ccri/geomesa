@@ -26,6 +26,9 @@ export HADOOP_HOME=/usr/lib/hadoop
 export PATH=\$PATH:\$GEOMESA_HOME/bin
 EOF
 
+## Make sure 'hbase' is up first!
+
+
 # Copy AWS dependencies to geomesa lib dir
 # Make sure HBase is properly initialized before running this
 # script or else the configuration will not be set up
