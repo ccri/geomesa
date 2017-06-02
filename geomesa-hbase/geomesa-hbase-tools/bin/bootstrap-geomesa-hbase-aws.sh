@@ -28,6 +28,13 @@ EOF
 
 ## Make sure 'hbase' is up first!
 
+until ROOTDIR=`cat /usr/lib/hbase/conf/hbase-site.xml | tr '\n' ' ' | sed 's/ //g' | grep -o -P "<name>hbase.rootdir</name><value>.+?</value>" | sed 's/<name>hbase.rootdir<\/name><value>//' | sed 's/<\/value>//'`
+do 
+  echo "Waiting for HBase to be ready."
+  sleep 2
+done
+
+echo The HBase Root dir is ${ROOTDIR}.
 
 # Copy AWS dependencies to geomesa lib dir
 # Make sure HBase is properly initialized before running this
@@ -41,7 +48,6 @@ chown -R ec2-user:ec2-user ${GMDIR}
 # Configure coprocessor auto-registration
 DISTRIBUTED_JAR_NAME=geomesa-hbase-distributed-runtime_2.11-%%project.version%%.jar
 
-ROOTDIR=`cat /opt/geomesa/conf/hbase-site.xml | tr '\n' ' ' | sed 's/ //g' | grep -o -P "<name>hbase.rootdir</name><value>.+?</value>" | sed 's/<name>hbase.rootdir<\/name><value>//' | sed 's/<\/value>//'`
 NL=$'\n'
 echo "# Auto-registration for geomesa coprocessors ${NL}export CUSTOM_JAVA_OPTS=\"${JAVA_OPTS} ${CUSTOM_JAVA_OPTS} -Dgeomesa.hbase.coprocessor.path=${ROOTDIR}/lib/${DISTRIBUTED_JAR_NAME}\" ${NL}" >> /opt/geomesa/conf/geomesa-env.sh
 
