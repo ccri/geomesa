@@ -28,10 +28,11 @@ class HBaseTestRunnerTest extends Specification with LazyLogging {
 
   // add new tests here
   val specs = Seq(
+    new HBaseArrowTest,
     new HBaseDataStoreTest,
     new HBaseVisibilityTest,
     new HBaseDensityFilterTest,
-    new HBaseArrowTest
+    new HBaseStatsAggregatorTest
   )
 
   step {
@@ -57,6 +58,10 @@ class HBaseTestRunnerTest extends Specification with LazyLogging {
 }
 
 trait HBaseTest extends Specification {
+
+
   var cluster: HBaseTestingUtility = _
   var connection: Connection = _
+
+
 }
