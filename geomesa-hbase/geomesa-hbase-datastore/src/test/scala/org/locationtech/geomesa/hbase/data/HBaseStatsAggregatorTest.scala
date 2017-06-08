@@ -9,9 +9,9 @@
 package org.locationtech.geomesa.hbase.data
 
 import com.typesafe.scalalogging.LazyLogging
-import org.geotools.data.{DataStoreFinder, Query}
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.SimpleFeatureStore
+import org.geotools.data.{DataStoreFinder, Query}
 import org.geotools.factory.Hints
 import org.geotools.filter.text.ecql.ECQL
 import org.joda.time.{DateTime, DateTimeZone}
@@ -22,15 +22,33 @@ import org.locationtech.geomesa.index.utils.KryoLazyStatsUtils.decodeStat
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.stats._
-import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.collection.JavaConversions._
 
 class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
 
   sequential
+  val TEST_FAMILY = "idt:java.lang.Integer:index=full,attr:java.lang.Long:index=join,dtg:Date,*geom:Point:srid=4326"
+  val TEST_HINT = new Hints()
+  val sftName = "test_sft"
+  var sft: SimpleFeatureType = _
+  var fs: SimpleFeatureStore = _
 
-  typeName = "HBaseStatsAggregatorTest"
+  val typeName = "HBaseStatsAggregatorTest"
+  val params = Map(
+    ConnectionParam.getName -> connection,
+    BigTableNameParam.getName -> sftName)
+  val ds = DataStoreFinder.getDataStore(params).asInstanceOf[HBaseDataStore]
+  def addFeatures(toAdd: Seq[SimpleFeature]) = {
+    fs.addFeatures(new ListFeatureCollection(sft, toAdd))
+  }
+  step {
+    ds.getSchema(typeName) must beNull
+    ds.createSchema(SimpleFeatureTypes.createType(typeName, TEST_FAMILY))
+    sft = ds.getSchema(typeName)
+    fs = ds.getFeatureSource(typeName).asInstanceOf[SimpleFeatureStore]
+  }
 
   addFeatures((0 until 150).map { i =>
     val attrs = Array(i.asInstanceOf[AnyRef], (i * 2).asInstanceOf[AnyRef],

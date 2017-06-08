@@ -20,8 +20,6 @@ import org.locationtech.geomesa.hbase._
 import org.locationtech.geomesa.hbase.coprocessor.aggregators.{HBaseDensityAggregator, HBaseStatsAggregator}
 import org.locationtech.geomesa.hbase.coprocessor.coprocessorList
 import org.locationtech.geomesa.hbase.coprocessor.utils.GeoMesaCoprocessorConfig
-import org.locationtech.geomesa.hbase.coprocessor.aggregators.HBaseDensityAggregator
-import org.locationtech.geomesa.hbase.coprocessor.coprocessorList
 import org.locationtech.geomesa.hbase.data._
 import org.locationtech.geomesa.hbase.filters.JSimpleFeatureFilter
 import org.locationtech.geomesa.hbase.index.HBaseFeatureIndex.ScanConfig
@@ -219,14 +217,16 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
       // TODO not actually used for coprocessors
       val toFeatures = resultsToFeatures(returnSchema, None, None)
 
-      val coprocessorConfig: Option[GeoMesaCoprocessorConfig] = if (hints.isDensityQuery) {
-        val densityOptions = HBaseDensityAggregator.configure(sft, filter.index, ecql, hints)
-        Some(GeoMesaCoprocessorConfig(densityOptions, HBaseDensityAggregator.bytesToFeatures, null))
-      } else if (hints.isStatsQuery) {
-        val statsOptions = HBaseStatsAggregator.configure(returnSchema, hints)
-        Some(GeoMesaCoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
-      } else {
-        None
+      val coprocessorConfig: Option[GeoMesaCoprocessorConfig] = {
+        if (hints.isDensityQuery) {
+          val densityOptions = HBaseDensityAggregator.configure(sft, filter.index, ecql, hints)
+          Some(GeoMesaCoprocessorConfig(densityOptions, HBaseDensityAggregator.bytesToFeatures, null))
+        } else if (hints.isStatsQuery) {
+          val statsOptions = HBaseStatsAggregator.configure(returnSchema, filter.index, ecql, hints)
+          Some(GeoMesaCoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
+        } else {
+          None
+        }
       }
 
       // if there is a coprocessorConfig it handles filter/transform

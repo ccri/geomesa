@@ -35,7 +35,6 @@ object HBaseDensityAggregator {
     * Creates an iterator config for the kryo density iterator
     */
   def configure(sft: SimpleFeatureType,
-
                 index: HBaseFeatureIndexType,
                 filter: Option[Filter],
                 hints: Hints): Map[String, String] = {

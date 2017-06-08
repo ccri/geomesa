@@ -180,8 +180,7 @@ class HBaseVisibilityTest extends HBaseTest with LazyLogging {
         sf.visibility = d.vis
         sf
       }
-
-      addFeatures(toAdd)
+      fs.addFeatures(new ListFeatureCollection(sft, toAdd))
 
       val expect = Seq(
         (user1Conn, Seq("1", "1-2", "1-2-3")),

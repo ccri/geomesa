@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Envelope
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.SimpleFeatureStore
-import org.geotools.data.{Query, _}
+import org.geotools.data.{DataStoreFinder, Query, _}
 import org.geotools.factory.Hints
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.ReferencedEnvelope
@@ -26,7 +26,7 @@ import org.locationtech.geomesa.index.conf.QueryHints
 import org.locationtech.geomesa.index.iterators.DensityScan
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
-import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 
 import scala.collection.JavaConversions._
@@ -35,8 +35,26 @@ import scala.util.Random
 class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
 
   sequential
+  val TEST_FAMILY = "idt:java.lang.Integer:index=full,attr:java.lang.Long:index=join,dtg:Date,*geom:Point:srid=4326"
+  val TEST_HINT = new Hints()
+  val sftName = "test_sft"
+  var sft: SimpleFeatureType = _
+  var fs: SimpleFeatureStore = _
 
-  typeName = "HBaseDensityFilterTest"
+  val typeName = "HBaseDensityFilterTest"
+  val params = Map(
+    ConnectionParam.getName -> connection,
+    BigTableNameParam.getName -> sftName)
+  val ds = DataStoreFinder.getDataStore(params).asInstanceOf[HBaseDataStore]
+  def addFeatures(toAdd: Seq[SimpleFeature]) = {
+    fs.addFeatures(new ListFeatureCollection(sft, toAdd))
+  }
+  step {
+    ds.getSchema(typeName) must beNull
+    ds.createSchema(SimpleFeatureTypes.createType(typeName, TEST_FAMILY))
+    sft = ds.getSchema(typeName)
+    fs = ds.getFeatureSource(typeName).asInstanceOf[SimpleFeatureStore]
+  }
 
   "HBaseDensityCoprocessor" should {
     "work with filters" in {
