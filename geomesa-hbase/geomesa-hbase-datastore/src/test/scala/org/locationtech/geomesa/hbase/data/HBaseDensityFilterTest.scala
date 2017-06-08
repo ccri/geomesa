@@ -36,27 +36,7 @@ class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
 
   sequential
 
-  val TEST_FAMILY = "an_id:java.lang.Integer,attr:java.lang.Double,dtg:Date,geom:Point:srid=4326"
-  val TEST_HINT = new Hints()
-  val sftName = "test_sft"
-  val typeName = "HBaseDensityFilterTest"
-
-
-  lazy val params = Map(
-    ConnectionParam.getName -> connection,
-    BigTableNameParam.getName -> sftName)
-
-  lazy val ds = DataStoreFinder.getDataStore(params).asInstanceOf[HBaseDataStore]
-
-  var sft: SimpleFeatureType = _
-  var fs: SimpleFeatureStore = _
-
-  step {
-    ds.getSchema(typeName) must beNull
-    ds.createSchema(SimpleFeatureTypes.createType(typeName, TEST_FAMILY))
-    sft = ds.getSchema(typeName)
-    fs = ds.getFeatureSource(typeName).asInstanceOf[SimpleFeatureStore]
-  }
+  typeName = "HBaseDensityFilterTest"
 
   "HBaseDensityCoprocessor" should {
     "work with filters" in {
@@ -78,8 +58,7 @@ class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
         sf2
       }
 
-      val features_list = new ListFeatureCollection(sft, toAdd)
-      fs.addFeatures(features_list)
+      addFeatures(toAdd)
 
       val q = " BBOX(geom, 0, 0, 10, 10)"
       val density = getDensity(typeName, q, fs)
@@ -98,8 +77,7 @@ class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
         sf
       }
 
-      val features_list = new ListFeatureCollection(sft, toAdd)
-      fs.addFeatures(features_list)
+      addFeatures(toAdd)
 
       val q = "(dtg between '2012-01-01T18:00:00.000Z' AND '2012-01-01T23:00:00.000Z') and BBOX(geom, -80, 33, -70, 40)"
       val density = getDensity(typeName, q, fs)
@@ -119,8 +97,7 @@ class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
         sf
       }
 
-      val features_list = new ListFeatureCollection(sft, toAdd)
-      fs.addFeatures(features_list)
+      addFeatures(toAdd)
 
       val q = "(dtg between '2012-01-01T18:00:00.000Z' AND '2012-01-01T23:00:00.000Z') and BBOX(geom, -80, 33, -70, 40)"
       val density = getDensity(typeName, q, fs)
@@ -141,8 +118,7 @@ class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
         sf
       }
 
-      val features_list = new ListFeatureCollection(sft, toAdd)
-      fs.addFeatures(features_list)
+      addFeatures(toAdd)
 
       val q = "(dtg between '2012-01-01T18:00:00.000Z' AND '2012-01-01T23:00:00.000Z') and BBOX(geom, -80, 33, -70, 40)"
       val density = getDensity(typeName, q, fs)
@@ -165,8 +141,7 @@ class HBaseDensityFilterTest extends HBaseTest with LazyLogging {
         sf
       }
 
-      val features_list = new ListFeatureCollection(sft, toAdd)
-      fs.addFeatures(features_list)
+      addFeatures(toAdd)
       fs.getCount(Query.ALL) mustEqual 150
 
       val q = "(dtg between '2012-01-01T18:00:00.000Z' AND '2012-01-01T23:00:00.000Z') and BBOX(geom, -1, 33, 6, 40)"

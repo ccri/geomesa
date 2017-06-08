@@ -95,6 +95,14 @@ case class CoprocessorPlan(filter: HBaseFilterStrategyType,
     result.map(r => coprocessorConfig.bytesToFeatures(r.toByteArray)).toIterator
   }
 
+  /**
+   * Optional reduce step for simple features coming back
+   *
+   * @return
+   */
+  override def reduce: Option[(CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]] =
+    coprocessorConfig.reduce()
+
   def calculateScanAndFilterList(ranges: Seq[Scan],
                                  remoteFilters: Seq[(Int, HFilter)]): (Scan, FilterList) = {
     val rowRanges = Lists.newArrayList[RowRange]()

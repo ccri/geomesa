@@ -12,13 +12,19 @@ import org.apache.hadoop.hbase.client.Scan
 import org.apache.hadoop.hbase.filter.FilterList
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil
 import org.locationtech.geomesa.hbase.coprocessor.{FILTER_OPT, SCAN_OPT}
+import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.opengis.feature.simple.SimpleFeature
 
-case class GeoMesaCoprocessorConfig(options: Map[String, String], bytesToFeatures: Array[Byte] => SimpleFeature) {
+case class GeoMesaCoprocessorConfig(options: Map[String, String],
+                                    bytesToFeatures: Array[Byte] => SimpleFeature,
+                                    reducer: (CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]) {
   def configureScanAndFilter(scan: Scan,
                              filterList: FilterList): Map[String, String] = {
     import org.apache.hadoop.hbase.util.Base64
     options.updated(FILTER_OPT, Base64.encodeBytes(filterList.toByteArray))
            .updated(SCAN_OPT, Base64.encodeBytes(ProtobufUtil.toScan(scan).toByteArray))
   }
+
+  def reduce(): Option[(CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]] = Option(reducer)
+
 }

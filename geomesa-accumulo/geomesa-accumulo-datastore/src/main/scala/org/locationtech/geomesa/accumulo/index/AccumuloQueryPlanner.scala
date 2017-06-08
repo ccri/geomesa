@@ -63,7 +63,7 @@ class AccumuloQueryPlanner(ds: AccumuloDataStore) extends AccumuloQueryPlannerTy
       org.locationtech.geomesa.arrow.ArrowEncodedSft
     } else if (query.getHints.isDensityQuery) {
       KryoLazyDensityUtils.DENSITY_SFT
-    } else if (query.getHints.isStatsIteratorQuery) {
+    } else if (query.getHints.isStatsQuery) {
       KryoLazyStatsUtils.StatsSft
     } else if (query.getHints.isMapAggregatingQuery) {
       val spec = KryoLazyMapAggregatingIterator.createMapSft(baseSft, query.getHints.getMapAggregatingAttribute)

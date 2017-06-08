@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.filter.{KeyOnlyFilter, Filter => HFilter}
 import org.apache.hadoop.hbase.util.Bytes
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.hbase._
-import org.locationtech.geomesa.hbase.coprocessor.aggregators.HBaseDensityAggregator
+import org.locationtech.geomesa.hbase.coprocessor.aggregators.{HBaseDensityAggregator, HBaseStatsAggregator}
 import org.locationtech.geomesa.hbase.coprocessor.coprocessorList
 import org.locationtech.geomesa.hbase.coprocessor.utils.GeoMesaCoprocessorConfig
 import org.locationtech.geomesa.hbase.data._
@@ -25,6 +25,7 @@ import org.locationtech.geomesa.hbase.filters.JSimpleFeatureFilter
 import org.locationtech.geomesa.hbase.index.HBaseFeatureIndex.ScanConfig
 import org.locationtech.geomesa.index.index.ClientSideFiltering.RowAndValue
 import org.locationtech.geomesa.index.index.{ClientSideFiltering, IndexAdapter}
+import org.locationtech.geomesa.index.utils.KryoLazyStatsUtils
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.index.IndexMode.IndexMode
@@ -223,7 +224,10 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
       val coprocessorConfig: Option[GeoMesaCoprocessorConfig] =
         if (hints.isDensityQuery) {
           val densityOptions = HBaseDensityAggregator.configure(returnSchema, hints)
-          Some(GeoMesaCoprocessorConfig(densityOptions, HBaseDensityAggregator.bytesToFeatures))
+          Some(GeoMesaCoprocessorConfig(densityOptions, HBaseDensityAggregator.bytesToFeatures, null))
+        } else if (hints.isStatsQuery) {
+          val statsOptions = HBaseStatsAggregator.configure(returnSchema, hints)
+          Some(GeoMesaCoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
         } else {
           None
         }
