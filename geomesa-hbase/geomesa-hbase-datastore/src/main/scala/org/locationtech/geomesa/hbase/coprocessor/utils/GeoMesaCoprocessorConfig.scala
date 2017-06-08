@@ -18,6 +18,7 @@ import org.opengis.feature.simple.SimpleFeature
 case class GeoMesaCoprocessorConfig(options: Map[String, String],
                                     bytesToFeatures: Array[Byte] => SimpleFeature,
                                     reducer: (CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]) {
+
   def configureScanAndFilter(scan: Scan,
                              filterList: FilterList): Map[String, String] = {
     import org.apache.hadoop.hbase.util.Base64
@@ -26,5 +27,4 @@ case class GeoMesaCoprocessorConfig(options: Map[String, String],
   }
 
   def reduce(): Option[(CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]] = Option(reducer)
-
 }

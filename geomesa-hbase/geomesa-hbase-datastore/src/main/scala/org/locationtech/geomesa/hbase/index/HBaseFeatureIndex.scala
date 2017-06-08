@@ -20,6 +20,8 @@ import org.locationtech.geomesa.hbase._
 import org.locationtech.geomesa.hbase.coprocessor.aggregators.{HBaseDensityAggregator, HBaseStatsAggregator}
 import org.locationtech.geomesa.hbase.coprocessor.coprocessorList
 import org.locationtech.geomesa.hbase.coprocessor.utils.GeoMesaCoprocessorConfig
+import org.locationtech.geomesa.hbase.coprocessor.aggregators.HBaseDensityAggregator
+import org.locationtech.geomesa.hbase.coprocessor.coprocessorList
 import org.locationtech.geomesa.hbase.data._
 import org.locationtech.geomesa.hbase.filters.JSimpleFeatureFilter
 import org.locationtech.geomesa.hbase.index.HBaseFeatureIndex.ScanConfig
@@ -212,28 +214,32 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
     } else {
 
       val (remoteTdefArg, returnSchema) = transform.getOrElse(("", sft))
+
+      val additionalFilters = createPushDownFilters(ds, sft, filter, transform)
+      // TODO not actually used for coprocessors
       val toFeatures = resultsToFeatures(returnSchema, None, None)
-      val filterTransform: Seq[(Int, HFilter)] = if (ecql.isEmpty && transform.isEmpty) { Seq.empty } else {
-        // transforms and filters are applied server-side
+
+      val coprocessorConfig: Option[GeoMesaCoprocessorConfig] = if (hints.isDensityQuery) {
+        val densityOptions = HBaseDensityAggregator.configure(sft, filter.index, ecql, hints)
+        Some(GeoMesaCoprocessorConfig(densityOptions, HBaseDensityAggregator.bytesToFeatures, null))
+      } else if (hints.isStatsQuery) {
+        val statsOptions = HBaseStatsAggregator.configure(returnSchema, hints)
+        Some(GeoMesaCoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
+      } else {
+        None
+      }
+
+      // if there is a coprocessorConfig it handles filter/transform
+      val filters = if (coprocessorConfig.isDefined || (ecql.isEmpty && transform.isEmpty)) {
+        Seq.empty
+      } else {
         val remoteCQLFilter: Filter = ecql.getOrElse(Filter.INCLUDE)
         val encodedSft = SimpleFeatureTypes.encodeType(returnSchema)
         val filter = new JSimpleFeatureFilter(sft, remoteCQLFilter, remoteTdefArg, encodedSft)
         Seq((JSimpleFeatureFilter.Priority, filter))
       }
 
-      val coprocessorConfig: Option[GeoMesaCoprocessorConfig] =
-        if (hints.isDensityQuery) {
-          val densityOptions = HBaseDensityAggregator.configure(returnSchema, hints)
-          Some(GeoMesaCoprocessorConfig(densityOptions, HBaseDensityAggregator.bytesToFeatures, null))
-        } else if (hints.isStatsQuery) {
-          val statsOptions = HBaseStatsAggregator.configure(returnSchema, hints)
-          Some(GeoMesaCoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
-        } else {
-          None
-        }
-
-      val additionalFilters = createPushDownFilters(ds, sft, filter, transform)
-      ScanConfig(filterTransform ++ additionalFilters, coprocessorConfig, toFeatures)
+      ScanConfig(filters ++ additionalFilters, coprocessorConfig, toFeatures)
     }
   }
 

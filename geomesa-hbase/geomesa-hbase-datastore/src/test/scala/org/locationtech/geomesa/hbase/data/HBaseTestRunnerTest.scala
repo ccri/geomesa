@@ -23,6 +23,8 @@ import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.hbase.coprocessor.GeoMesaCoprocessor
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import org.locationtech.geomesa.hbase.coprocessor.GeoMesaCoprocessor
+import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.{DataStoreFinder, Query}
