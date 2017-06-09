@@ -230,13 +230,13 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
           val options = ArrowBatchAggregator.configure(sft, this, ecql, dictionaries, hints)
           val reduce = ArrowBatchScan.reduceFeatures(hints.getTransformSchema.getOrElse(sft), hints, dictionaries)
           Some(CoprocessorConfig(options, ArrowBatchAggregator.bytesToFeatures, reduce))
-        } else if (hints.isStatsQuery) {
-          val statsOptions = HBaseStatsAggregator.configure(returnSchema, filter.index, ecql, hints)
-          Some(CoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
         } else {
           val options = ArrowFileAggregator.configure(sft, this, ecql, dictionaryFields, hints)
           Some(CoprocessorConfig(options, ArrowFileAggregator.bytesToFeatures))
         }
+      } else if (hints.isStatsQuery) {
+        val statsOptions = HBaseStatsAggregator.configure(returnSchema, filter.index, ecql, hints)
+        Some(CoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
       } else if (hints.isBinQuery) {
         val options = HBaseBinAggregator.configure(sft, filter.index, ecql, hints)
         Some(CoprocessorConfig(options, HBaseBinAggregator.bytesToFeatures))

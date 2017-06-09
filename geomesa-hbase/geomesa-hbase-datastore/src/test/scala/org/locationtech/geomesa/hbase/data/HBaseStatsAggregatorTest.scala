@@ -29,48 +29,46 @@ import scala.collection.JavaConversions._
 class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
 
   sequential
+
   val TEST_FAMILY = "idt:java.lang.Integer:index=full,attr:java.lang.Long:index=join,dtg:Date,*geom:Point:srid=4326"
   val TEST_HINT = new Hints()
   val sftName = "test_sft"
-  var sft: SimpleFeatureType = _
-  var fs: SimpleFeatureStore = _
-
   val typeName = "HBaseStatsAggregatorTest"
-  val params = Map(
-    ConnectionParam.getName -> connection,
-    BigTableNameParam.getName -> sftName)
-  val ds = DataStoreFinder.getDataStore(params).asInstanceOf[HBaseDataStore]
-  def addFeatures(toAdd: Seq[SimpleFeature]) = {
-    fs.addFeatures(new ListFeatureCollection(sft, toAdd))
-  }
-  step {
-    ds.getSchema(typeName) must beNull
-    ds.createSchema(SimpleFeatureTypes.createType(typeName, TEST_FAMILY))
-    sft = ds.getSchema(typeName)
-    fs = ds.getFeatureSource(typeName).asInstanceOf[SimpleFeatureStore]
-  }
 
-  addFeatures((0 until 150).map { i =>
+  lazy val features = (0 until 150).map { i =>
     val attrs = Array(i.asInstanceOf[AnyRef], (i * 2).asInstanceOf[AnyRef],
       new DateTime("2012-01-01T19:00:00", DateTimeZone.UTC).toDate, "POINT(-77 38)")
     val sf = new ScalaSimpleFeature(i.toString, sft)
     sf.setAttributes(attrs)
     sf
-  })
+  }
 
-  def getQuery(statString: String, ecql: Option[String] = None): Query = {
-    val query = new Query(sftName, ECQL.toFilter("dtg DURING 2012-01-01T18:30:00.000Z/2012-01-01T19:30:00.000Z " +
-        "AND bbox(geom,-80,35,-75,40)" + ecql.map(" AND " + _).getOrElse("")))
-    query.getHints.put(QueryHints.STATS_STRING, statString)
-    query.getHints.put(QueryHints.ENCODE_STATS, java.lang.Boolean.TRUE)
-    query
+  lazy val params = Map(
+    ConnectionParam.getName -> connection,
+    BigTableNameParam.getName -> sftName)
+
+  lazy val ds = DataStoreFinder.getDataStore(params).asInstanceOf[HBaseDataStore]
+
+
+  var sft: SimpleFeatureType = _
+  var fs: SimpleFeatureStore = _
+
+  step {
+    logger.info("Starting the Stats Aggregator Test")
+    ds.getSchema(typeName) must beNull
+    ds.createSchema(SimpleFeatureTypes.createType(typeName, TEST_FAMILY))
+    sft = ds.getSchema(typeName)
+    fs = ds.getFeatureSource(typeName).asInstanceOf[SimpleFeatureStore]
+    fs.addFeatures(new ListFeatureCollection(sft, features))
   }
 
   /**
    * Not testing too much here stat-wise, as most of the stat testing is in geomesa-utils
    */
   "StatsIterator" should {
-
+    "do nothing" in {
+      1 mustEqual(1)
+    }
     "work with the MinMax stat" in {
       val q = getQuery("MinMax(attr)")
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
@@ -193,6 +191,13 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       val minMaxStat = decodeStat(sf.getAttribute(0).asInstanceOf[String], sft).asInstanceOf[MinMax[java.lang.Long]]
       minMaxStat.bounds mustEqual (22, 298)
     }
+  }
 
+  def getQuery(statString: String, ecql: Option[String] = None): Query = {
+    val query = new Query(typeName, ECQL.toFilter("dtg DURING 2012-01-01T18:30:00.000Z/2012-01-01T19:30:00.000Z " +
+      "AND bbox(geom,-80,35,-75,40)" + ecql.map(" AND " + _).getOrElse("")))
+    query.getHints.put(QueryHints.STATS_STRING, statString)
+    query.getHints.put(QueryHints.ENCODE_STATS, java.lang.Boolean.TRUE)
+    query
   }
 }
