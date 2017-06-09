@@ -17,10 +17,11 @@ import org.locationtech.geomesa.hbase.index.HBaseFeatureIndex
 import org.locationtech.geomesa.index.iterators.StatsScan
 import org.locationtech.geomesa.index.utils.KryoLazyStatsUtils
 import org.locationtech.geomesa.utils.geotools.GeometryUtils
+import org.locationtech.geomesa.utils.stats._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 
-class HBaseStatsAggregator extends StatsScan {
+class HBaseStatsAggregator extends HBaseAggregator[Stat] with StatsScan {
   override protected val manager = HBaseFeatureIndex
 }
 
