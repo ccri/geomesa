@@ -40,6 +40,7 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       new DateTime("2012-01-01T19:00:00", DateTimeZone.UTC).toDate, "POINT(-77 38)")
     val sf = new ScalaSimpleFeature(i.toString, sft)
     sf.setAttributes(attrs)
+    sf.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
     sf
   }
 
