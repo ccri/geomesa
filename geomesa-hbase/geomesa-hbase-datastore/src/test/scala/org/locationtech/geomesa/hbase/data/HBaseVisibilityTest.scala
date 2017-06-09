@@ -252,7 +252,7 @@ class HBaseVisibilityTest extends HBaseTest with LazyLogging {
     }
 
     "work with points" in {
-      val typeName = "testpoints"
+      val typeName = "vis_testpoints"
 
       val params = Map(
         ConnectionParam.getName -> user1Conn,
