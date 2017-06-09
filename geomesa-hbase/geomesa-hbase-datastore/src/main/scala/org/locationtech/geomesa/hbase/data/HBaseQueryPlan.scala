@@ -91,13 +91,13 @@ case class CoprocessorPlan(filter: HBaseFilterStrategyType,
     coprocessorConfig.reduce(result.toIterator.map(r => coprocessorConfig.bytesToFeatures(r.toByteArray)))
   }
 
-  /**
-   * Optional reduce step for simple features coming back
-   *
-   * @return
-   */
-  override def reduce: Option[(CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]] =
-    Some(coprocessorConfig.reduce)
+//  /**
+//   * Optional reduce step for simple features coming back
+//   *
+//   * @return
+//   */
+//  override def reduce: Option[(CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]] =
+//    Some(coprocessorConfig.reduce)
 
   def calculateScanAndFilterList(ranges: Seq[Scan],
                                  remoteFilters: Seq[(Int, HFilter)]): (Scan, FilterList) = {

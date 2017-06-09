@@ -66,9 +66,6 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
    * Not testing too much here stat-wise, as most of the stat testing is in geomesa-utils
    */
   "StatsIterator" should {
-    "do nothing" in {
-      1 mustEqual(1)
-    }
     "work with the MinMax stat" in {
       val q = getQuery("MinMax(attr)")
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
@@ -100,13 +97,13 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       eh.frequency(150) mustEqual 0
     }
 
-    "work with the Histogram stat" in {
+    "work with the Histogram stat" in { //x
       val q = getQuery("Histogram(idt,5,10,14)", Some("idt between 10 and 14"))
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
       val sf = results.head
 
       val rh = decodeStat(sf.getAttribute(0).asInstanceOf[String], sft).asInstanceOf[Histogram[java.lang.Integer]]
-      rh.length mustEqual 5
+      rh.length mustEqual 5 //x
       rh.count(rh.indexOf(10)) mustEqual 1
       rh.count(rh.indexOf(11)) mustEqual 1
       rh.count(rh.indexOf(12)) mustEqual 1
@@ -152,7 +149,7 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       minMaxStat.bounds mustEqual (0, 298)
     }
 
-    "work with the record index" in {
+    "work with the record index" in { //x
       val q = getQuery("MinMax(attr)")
       q.setFilter(ECQL.toFilter("IN(0)"))
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
@@ -162,7 +159,7 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       minMaxStat.bounds mustEqual (0, 0)
     }
 
-    "work with the attribute partial index" in {
+    "work with the attribute partial index" in { //x
       val q = getQuery("MinMax(attr)")
       q.setFilter(ECQL.toFilter("attr > 10"))
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
@@ -172,7 +169,7 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       minMaxStat.bounds mustEqual (12, 298)
     }
 
-    "work with the attribute join index" in {
+    "work with the attribute join index" in { //x
       val q = getQuery("MinMax(idt)")
       q.setFilter(ECQL.toFilter("attr > 10"))
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
@@ -182,7 +179,7 @@ class HBaseStatsAggregatorTest extends HBaseTest with LazyLogging {
       minMaxStat.bounds mustEqual (6, 149)
     }
 
-    "work with the attribute full index" in {
+    "work with the attribute full index" in { //x
       val q = getQuery("MinMax(attr)")
       q.setFilter(ECQL.toFilter("idt > 10"))
       val results = SelfClosingIterator(fs.getFeatures(q).features).toList
