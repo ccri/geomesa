@@ -55,8 +55,9 @@ trait ArrowBatchScan extends AggregatingScan[ArrowBatchAggregate] {
     }
     val sortIndex = options.get(SortKey).map(arrowSft.indexOf).getOrElse(-1)
     val sortReverse = options.get(SortReverseKey).exists(_.toBoolean)
-    if (sortIndex == -1) { new ArrowBatchAggregateImpl(arrowSft, dictionaries, encoding) } else {
-      new ArrowSortingBatchAggregate(arrowSft, sortIndex, sortReverse, batchSize, dictionaries, encoding) }
+    aggregateCache.getOrElseUpdate(arrowSftString + encoding + sortIndex + sortReverse + encodedDictionaries,
+      if (sortIndex == -1) { new ArrowBatchAggregateImpl(arrowSft, dictionaries, encoding) } else {
+        new ArrowSortingBatchAggregate(arrowSft, sortIndex, sortReverse, batchSize, dictionaries, encoding) } )
   }
 
   override protected def notFull(result: ArrowBatchAggregate): Boolean = result.size < batchSize

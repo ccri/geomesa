@@ -7,7 +7,6 @@
  ***********************************************************************/
 
 package org.locationtech.geomesa.index.iterators
-
 import com.vividsolutions.jts.geom.{Coordinate, Envelope, Geometry, Point}
 import org.geotools.factory.Hints
 import org.geotools.factory.Hints.ClassKey

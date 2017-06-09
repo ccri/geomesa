@@ -235,7 +235,7 @@ trait HBaseFeatureIndex extends HBaseFeatureIndexType
           Some(CoprocessorConfig(options, ArrowFileAggregator.bytesToFeatures))
         }
       } else if (hints.isStatsQuery) {
-        val statsOptions = HBaseStatsAggregator.configure(returnSchema, filter.index, ecql, hints)
+        val statsOptions = HBaseStatsAggregator.configure(sft, filter.index, ecql, hints)
         Some(CoprocessorConfig(statsOptions, HBaseStatsAggregator.bytesToFeatures, KryoLazyStatsUtils.reduceFeatures(returnSchema, hints)))
       } else if (hints.isBinQuery) {
         val options = HBaseBinAggregator.configure(sft, filter.index, ecql, hints)
