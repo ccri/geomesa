@@ -85,6 +85,7 @@ case class CoprocessorPlan(filter: HBaseFilterStrategyType,
     val hbaseTable = ds.connection.getTable(table)
 
     import org.locationtech.geomesa.hbase.coprocessor._
+    ds.applySecurity(scan)
     val byteArray = serializeOptions(coprocessorConfig.configureScanAndFilter(scan, filterList))
 
     val result = GeoMesaCoprocessor.execute(hbaseTable, byteArray)
