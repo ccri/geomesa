@@ -8,6 +8,8 @@
 
 package org.locationtech.geomesa.hbase.index
 
+import java.util
+
 import com.google.common.collect.Lists
 import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client.{Get, Query, Result, Scan}

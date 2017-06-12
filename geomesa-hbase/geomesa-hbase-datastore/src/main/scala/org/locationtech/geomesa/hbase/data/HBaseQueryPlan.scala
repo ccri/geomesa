@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.filter.{FilterList, MultiRowRangeFilter, Filter =
 import org.locationtech.geomesa.hbase.coprocessor.utils.CoprocessorConfig
 import org.locationtech.geomesa.hbase.utils.HBaseBatchScan
 import org.locationtech.geomesa.hbase.{HBaseFilterStrategyType, HBaseQueryPlanType}
+import org.locationtech.geomesa.index.index.IndexAdapter
 import org.locationtech.geomesa.index.utils.Explainer
 import org.locationtech.geomesa.utils.collection.{CloseableIterator, SelfClosingIterator}
 import org.opengis.feature.simple.SimpleFeature
@@ -68,7 +69,7 @@ case class ScanPlan(filter: HBaseFilterStrategyType,
 
 case class CoprocessorPlan(filter: HBaseFilterStrategyType,
                            table: TableName,
-                           ranges: Seq[Scan],
+                           ranges: Seq[Query],
                            remoteFilters: Seq[(Int, HFilter)],
                            coprocessorConfig: CoprocessorConfig) extends HBaseQueryPlan  {
 
@@ -91,19 +92,14 @@ case class CoprocessorPlan(filter: HBaseFilterStrategyType,
     coprocessorConfig.reduce(results)
   }
 
-//  /**
-//   * Optional reduce step for simple features coming back
-//   *
-//   * @return
-//   */
-//  override def reduce: Option[(CloseableIterator[SimpleFeature]) => CloseableIterator[SimpleFeature]] =
-//    Some(coprocessorConfig.reduce)
-
-  def calculateScanAndFilterList(ranges: Seq[Scan],
+  def calculateScanAndFilterList(ranges: Seq[Query],
                                  remoteFilters: Seq[(Int, HFilter)]): (Scan, FilterList) = {
     val rowRanges = Lists.newArrayList[RowRange]()
-    ranges.foreach { r =>
-      rowRanges.add(new RowRange(r.getStartRow, true, r.getStopRow, false))
+    ranges.foreach {
+      case g: Get =>
+        rowRanges.add(new RowRange(g.getRow, true, IndexAdapter.rowFollowingRow(g.getRow), false))
+      case s: Scan =>
+        rowRanges.add(new RowRange(s.getStartRow, true, s.getStopRow, false))
     }
     val sortedRowRanges: util.List[RowRange] = MultiRowRangeFilter.sortAndMerge(rowRanges)
     val mrrf = new MultiRowRangeFilter(sortedRowRanges)
