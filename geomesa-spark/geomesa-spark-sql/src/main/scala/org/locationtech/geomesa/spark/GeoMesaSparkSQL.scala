@@ -25,6 +25,7 @@ import org.geotools.data.{DataStoreFinder, Query}
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
 import org.geotools.filter.text.ecql.ECQL
+import org.locationtech.geomesa.memory.cqengine.GeoCQEngine
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypes}
 import org.opengis.feature.`type`._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -202,15 +203,11 @@ case class GeoMesaRelation(sqlContext: SQLContext,
     new Configuration(), sqlContext.sparkContext, params,
     new Query(params(GEOMESA_SQL_FEATURE)))
 
-  val indexRDD: RDD[SimpleFeature] = if (cache) {
+  val encodedSFT: String = org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeType(sft, true)
+
+  val indexRDD: RDD[GeoCQEngine] = if (cache) {
     // TODO:  Implement partitioning
-    rawRDD.mapPartitions {
-      iter =>
-//        val engine = new org.locationtech.geomesa.memory.cqengine.GeoCQEngine(sft)
-        //        iter.foreach { engine.add }
-        //        Iterator[Object](engine)
-        iter
-    }
+    SparkUtils.index(encodedSFT, rawRDD)
   } else {
     ???
   }
@@ -234,6 +231,21 @@ case class GeoMesaRelation(sqlContext: SQLContext,
 object SparkUtils extends LazyLogging {
   import CaseInsensitiveMapFix._
 
+  def indexIterator(encodedSft: String): GeoCQEngine = {
+    val sft = org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.createType("", encodedSft)
+    new org.locationtech.geomesa.memory.cqengine.GeoCQEngine(sft)
+  }
+
+  def index(encodedSft: String, rdd: RDD[SimpleFeature]): RDD[GeoCQEngine] = {
+    rdd.mapPartitions {
+      iter =>
+        val engine = SparkUtils.indexIterator(encodedSft)
+        iter.foreach { engine.add }
+        Iterator(engine)
+    }
+  }
+
+
   @transient val ff = CommonFactoryFinder.getFilterFactory2
 
   def buildScanInMemoryScan(requiredColumns: Array[String],
@@ -241,7 +253,7 @@ object SparkUtils extends LazyLogging {
                 filt: org.opengis.filter.Filter,
                 ctx: SparkContext,
                 schema: StructType,
-                params: Map[String, String],  indexRDD: RDD[SimpleFeature]): RDD[Row] = {
+                params: Map[String, String],  indexRDD: RDD[GeoCQEngine]): RDD[Row] = {
 
     val compiledCQL = filters.flatMap(SparkUtils.sparkFilterToCQLFilter).foldLeft[org.opengis.filter.Filter](filt) { (l, r) => SparkUtils.ff.and(l,r) }
     val filterString = ECQL.toCQL(compiledCQL)
@@ -257,12 +269,14 @@ object SparkUtils extends LazyLogging {
         val index = requiredAttributes.indexOf(col)
         sf: SimpleFeature => SparkUtils.toSparkType(sf.getAttribute(index))
     }
+    import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeatureReader
 
-    // Blergh; need to apply filter better:(
-    val result = indexRDD.filter { f =>
-      ECQL.toFilter(filterString).evaluate(f)
+    val result = indexRDD.flatMap { engine =>
+      val filter = ECQL.toFilter(filterString)
+      engine.queryCQ(filter).toIterator
+
     }.map(SparkUtils.sf2row(schema, _, extractors))
-    //val result = indexRDD.map(SparkUtils.sf2row(schema, _, extractors))
+
     result.asInstanceOf[RDD[Row]]
   }
 
