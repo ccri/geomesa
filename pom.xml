@@ -71,7 +71,7 @@
         <avro.version>1.7.5</avro.version>
         <jackson.codehaus.version>1.9.3</jackson.codehaus.version>
         <gdal.version>2.0.0</gdal.version>
-        <json4s.version>3.2.10</json4s.version>
+        <json4s.version>3.2.11</json4s.version>
         <scalatra.version>2.3.0</scalatra.version>
 
         <!-- environment-dependent versions -->
@@ -1956,6 +1956,11 @@
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-xc</artifactId>
                 <version>${jackson.codehaus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json4s</groupId>
+                <artifactId>json4s-jackson_${scala.binary.version}</artifactId>
+                <version>${json4s.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.json4s</groupId>
