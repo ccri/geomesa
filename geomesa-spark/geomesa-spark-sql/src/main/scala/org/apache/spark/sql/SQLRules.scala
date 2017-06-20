@@ -19,7 +19,7 @@ import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.command.CacheTableCommand
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.DataType
-import org.locationtech.geomesa.spark.{GeoMesaRelation, InMemoryGeoMesaRelation}
+import org.locationtech.geomesa.spark.GeoMesaRelation
 import org.opengis.filter.expression.{Expression => GTExpression}
 import org.opengis.filter.{Filter => GTFilter}
 

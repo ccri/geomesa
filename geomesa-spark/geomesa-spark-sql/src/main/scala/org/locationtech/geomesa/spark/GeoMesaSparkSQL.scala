@@ -206,6 +206,23 @@ case class GeoMesaRelation(sqlContext: SQLContext,
   val encodedSFT: String = org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeType(sft, true)
 
   val indexRDD: RDD[GeoCQEngine] = if (cache) {
+
+    val env = new Envelope()
+
+    // JNH: Is this serializable?!
+    val bound: Envelope = rawRDD.aggregate[Envelope](new Envelope())(
+      (env: Envelope, sf: SimpleFeature) => {
+        env.expandToInclude(sf.getDefaultGeometry.asInstanceOf[Geometry].getCoordinate)
+        env
+      },
+      (env1: Envelope, env2: Envelope) => {
+        env1.expandToInclude(env2)
+        env1
+      }
+    )
+
+    println(s"Computed envelope bound $bound.")
+
     // TODO:  Implement partitioning
     SparkUtils.index(encodedSFT, rawRDD)
   } else {
