@@ -116,6 +116,7 @@ net.minidev:accessors-smart	1.1	compile
 net.minidev:json-smart	2.2.1	compile
 net.sf.geographiclib:GeographicLib-Java	1.44	compile
 net.sf.trove4j:trove4j	3.0.3	compile
+org.antlr:antlr4-runtime	4.5.3	compile
 org.antlr:antlr4-runtime	4.5	compile
 org.apache.accumulo:accumulo-core	1.7.2	compile
 org.apache.accumulo:accumulo-fate	1.7.2	compile
@@ -195,10 +196,10 @@ org.jdom:jdom	1.1.3	compile
 org.joda:joda-convert	1.6	compile
 org.jruby.jcodings:jcodings	1.0.8	compile
 org.jruby.joni:joni	2.1.2	compile
-org.json4s:json4s-ast_2.11	3.2.10	compile
-org.json4s:json4s-core_2.11	3.2.10	compile
+org.json4s:json4s-ast_2.11	3.2.11	compile
+org.json4s:json4s-core_2.11	3.2.11	compile
 org.json4s:json4s-ext_2.11	3.2.10	compile
-org.json4s:json4s-native_2.11	3.2.10	compile
+org.json4s:json4s-native_2.11	3.2.11	compile
 org.locationtech.sfcurve:sfcurve-api_2.11	0.2.0	compile
 org.locationtech.sfcurve:sfcurve-zorder_2.11	0.2.0	compile
 org.locationtech.spatial4j:spatial4j	0.6	compile
@@ -236,10 +237,10 @@ org.apache.kafka:kafka_2.11	0.10.0.1	provided
 org.apache.kafka:kafka_2.11	0.8.2.1	provided
 org.apache.kafka:kafka_2.11	0.9.0.1	provided
 org.apache.kafka:kafka-clients	0.10.0.1	provided
-org.apache.spark:spark-catalyst_2.11	2.0.0	provided
-org.apache.spark:spark-core_2.11	2.0.0	provided
-org.apache.spark:spark-sql_2.11	2.0.0	provided
-org.apache.spark:spark-yarn_2.11	2.0.0	provided
+org.apache.spark:spark-catalyst_2.11	2.0.2	provided
+org.apache.spark:spark-core_2.11	2.0.2	provided
+org.apache.spark:spark-sql_2.11	2.0.2	provided
+org.apache.spark:spark-yarn_2.11	2.0.2	provided
 org.scala-lang:scala-compiler	2.11.7	provided
 org.springframework.security:spring-security-core	4.0.4.RELEASE	provided
 org.springframework.security:spring-security-web	4.0.4.RELEASE	provided

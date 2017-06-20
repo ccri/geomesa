@@ -36,6 +36,7 @@ class SparkSQLDataTest extends Specification with LazyLogging {
     var sc: SQLContext = null
 
     var df: DataFrame = null
+    var df2: DataFrame = null
 
     // before
     step {
@@ -57,28 +58,50 @@ class SparkSQLDataTest extends Specification with LazyLogging {
       df.createOrReplaceTempView("chicago")
       //df.persist(StorageLevel.MEMORY_ONLY)
 
+      df2 = spark.read
+        .format("geomesa")
+        .options(dsParams)
+        .option("geomesa.feature", "chicago")
+        .option("cache", "true")
+        .load()
+      logger.info(df.schema.treeString)
+      df2.createOrReplaceTempView("chicago2")
+
       df.collect.length mustEqual 3
     }
 
-    "basic sql 1" >> {
-      val r = sc.sql("select * from chicago where st_equals(geom, st_geomFromWKT('POINT(-76.5 38.5)'))")
+//    "basic sql 1" >> {
+//      val r = sc.sql("select * from chicago where st_equals(geom, st_geomFromWKT('POINT(-76.5 38.5)'))")
+//      val d = r.collect
+//
+//      d.length mustEqual 1
+//      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
+//    }
+//
+//    "basic sql cache" >> {
+//      //val r = sc.sql("cache table chicago")
+//      true mustEqual(true)
+//    }
+//
+//    "basic sql 2" >> {
+//      val r = sc.sql("select * from chicago where st_equals(geom, st_geomFromWKT('POINT(-76.5 38.5)'))")
+//      val d = r.collect
+//
+//      d.length mustEqual 1
+//      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
+//    }
+
+    "basic sql join" >> {
+      println(s"RDD 1: ${df.rdd.partitions.size}, RDD 2: ${df.rdd.partitions.size}")
+
+
+      val r = sc.sql("select * from chicago, chicago2 where st_intersects(chicago.geom, chicago2.geom)")
       val d = r.collect
 
-      d.length mustEqual 1
-      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
-    }
+      d.length mustEqual 3
+      //d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
 
-    "basic sql cache" >> {
-      //val r = sc.sql("cache table chicago")
-      true mustEqual(true)
-    }
-
-    "basic sql 2" >> {
-      val r = sc.sql("select * from chicago where st_equals(geom, st_geomFromWKT('POINT(-76.5 38.5)'))")
-      val d = r.collect
-
-      d.length mustEqual 1
-      d.head.getAs[Point]("geom") mustEqual createPoint(new Coordinate(-76.5, 38.5))
+      true mustEqual true
     }
 
 //    "basic sql 4" >> {

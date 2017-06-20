@@ -272,7 +272,7 @@ object SparkUtils extends LazyLogging {
     import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeatureReader
 
     val result = indexRDD.flatMap { engine =>
-      println("HERE Using the CQEngine!")
+      println(s"Query enginge $engine with filter ${ECQL.toCQL(compiledCQL)}")
       val filter = ECQL.toFilter(filterString)
       engine.queryCQ(filter).toIterator
 
