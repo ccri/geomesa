@@ -1,9 +1,17 @@
-package org.locationtech.geomesa.sparkgis.jdbc
+/***********************************************************************
+ * Copyright (c) 2013-2017 Commonwealth Computer Research, Inc.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Apache License, Version 2.0
+ * which accompanies this distribution and is available at
+ * http://www.opensource.org/licenses/apache2.0.php.
+ ***********************************************************************/
+
+package org.locationtech.geomesa.spark
 
 import java.util
 
 import org.geotools.data.DataAccessFactory
-import org.geotools.jdbc.{JDBCDataStore, JDBCDataStoreFactory, SQLDialect}
+import org.geotools.jdbc._
 
 
 class HiveJDBCDataStoreFactory extends JDBCDataStoreFactory {
@@ -21,11 +29,8 @@ class HiveJDBCDataStoreFactory extends JDBCDataStoreFactory {
   override def getDescription: String = "Spark HIVE JDBC Datastore"
 
   override def getJDBCUrl(params: util.Map[_, _]): String = {
-    "jdbc:hive2://localhost:10000"
-//    "jdbc:hive2://jupyter.ccri.com:10000"
+    s"${params.get("namespace")}:${params.get("dbtype")}2://${params.get("host")}:${params.get("port")}"
   }
-
-  //override def canProcess(params: util.Map[_, _]): Boolean = true //super.canProcess(params)
 
   override def setupParameters(parameters: util.Map[_, _]): Unit = super.setupParameters(parameters)
 }
