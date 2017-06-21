@@ -11,7 +11,7 @@ package org.locationtech.geomesa.lambda.stream.kafka
 import java.time.Clock
 import java.util
 import java.util.concurrent._
-import java.util.{Comparator, Properties, UUID}
+import java.util.{Properties, UUID}
 
 import com.google.common.primitives.Longs
 import com.google.common.util.concurrent.MoreExecutors
@@ -28,15 +28,13 @@ import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.index.geotools.GeoMesaFeatureWriter
 import org.locationtech.geomesa.index.utils.{ExplainLogging, Explainer}
 import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
-import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.{MessageTypes, SharedState}
+import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.MessageTypes
 import org.locationtech.geomesa.lambda.stream.{OffsetManager, TransientStore}
 import org.locationtech.geomesa.security.AuthorizationsProvider
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
-
-import scala.collection.mutable.ArrayBuffer
 
 class KafkaStore(ds: DataStore,
                  val sft: SimpleFeatureType,
@@ -49,17 +47,11 @@ class KafkaStore(ds: DataStore,
 
   private val topic = KafkaStore.topic(config.zkNamespace, sft)
 
-  private val state = {
-    // shared map that stores our current features by feature id
-    val features = new ConcurrentHashMap[String, SimpleFeature]
-    // map of (partition, offset) -> (feature id, expires)
-    val offsets = new ConcurrentHashMap[(Int, Long), (SimpleFeature, Long)]
-    SharedState(features, offsets, ArrayBuffer.empty)
-  }
+  private val state = new SharedState(config.partitions)
 
   private val serializer = new KryoFeatureSerializer(sft, SerializationOptions.withUserData)
 
-  private val queryRunner = new KafkaQueryRunner(state.features, authProvider)
+  private val queryRunner = new KafkaQueryRunner(state, authProvider)
 
   private val loader = new KafkaCacheLoader(offsetManager, serializer, state, consumerConfig, topic, config.partitions)
   private val persistence = new DataStorePersistence(ds, sft, offsetManager, state, topic, config.expiry, config.persist)
@@ -124,11 +116,6 @@ object KafkaStore {
     MoreExecutors.getExitingScheduledExecutorService(
       Executors.newScheduledThreadPool(2).asInstanceOf[ScheduledThreadPoolExecutor])
   sys.addShutdownHook { executor.shutdownNow(); executor.awaitTermination(1, TimeUnit.SECONDS) }
-
-  private val expiryComparator = new Comparator[(Long, SimpleFeature, Long)]() {
-    override def compare(o1: (Long, SimpleFeature, Long), o2: (Long, SimpleFeature, Long)): Int =
-      java.lang.Long.compare(o1._1, o2._1)
-  }
 
   object MessageTypes {
     val Write:  Byte = 0
@@ -207,13 +194,7 @@ object KafkaStore {
       import scala.collection.JavaConversions._
 
       // ensure we have queues for each partition
-      state.synchronized {
-        topicPartitions.foreach { tp =>
-          while (state.expiry.length <= tp.partition) {
-            state.expiry.append(new PriorityBlockingQueue[(Long, SimpleFeature, Long)](1000, expiryComparator))
-          }
-        }
-      }
+      topicPartitions.foreach(tp => state.ensurePartition(tp.partition))
 
       // read our last committed offsets and seek to them
       val lastRead = manager.getOffsets(topic)
@@ -222,37 +203,6 @@ object KafkaStore {
           case Some((_, offset)) => consumer.seek(tp, offset)
           case None => consumer.seekToBeginning(tp)
         }
-      }
-    }
-  }
-  /**
-    * Locally cached features
-    *
-    * @param features map of feature id -> feature
-    * @param offsets map of (partition, offset) -> (feature id, create time)
-    * @param expiry array, indexed by partition, of queues of (create time, feature, offset)
-    */
-  private [kafka] case class SharedState(features: ConcurrentMap[String, SimpleFeature],
-                                         offsets: ConcurrentMap[(Int, Long), (SimpleFeature, Long)],
-                                         expiry: ArrayBuffer[PriorityBlockingQueue[(Long, SimpleFeature, Long)]]) {
-
-    def add(f: SimpleFeature, partition: Int, offset: Long, created: Long): Unit = {
-      offsets.put((partition, offset), (f, created))
-      features.put(f.getID, f)
-      expiry(partition).offer((created, f, offset))
-    }
-
-    def delete(f: SimpleFeature, partition: Int, offset: Long, created: Long): Unit = features.remove(f.getID)
-
-    def remove(partition: Int, offset: Long): Unit = {
-      val featureAndExpires = offsets.remove((partition, offset))
-      if (featureAndExpires != null) {
-        val feature = featureAndExpires._1
-        // only remove if there haven't been additional updates
-        if (feature.eq(features.get(feature.getID))) {
-          features.remove(feature.getID)
-        }
-        expiry(partition).remove((featureAndExpires._2, feature, offset))
       }
     }
   }

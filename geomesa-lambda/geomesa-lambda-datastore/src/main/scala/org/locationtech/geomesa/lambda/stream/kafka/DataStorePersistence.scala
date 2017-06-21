@@ -18,13 +18,10 @@ import org.geotools.factory.Hints
 import org.geotools.filter.identity.FeatureIdImpl
 import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.lambda.stream.OffsetManager
-import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.SharedState
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.locationtech.geomesa.utils.geotools.FeatureUtils
 import org.locationtech.geomesa.utils.io.WithClose
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-
-import scala.collection.mutable.ArrayBuffer
 
 /**
   * Persists expired entries to the data store
@@ -57,7 +54,7 @@ class DataStorePersistence(ds: DataStore,
   private val schedule = KafkaStore.executor.scheduleWithFixedDelay(this, 0L, frequency, TimeUnit.MILLISECONDS)
 
   override def run(): Unit = {
-    val expired = state.synchronized(state.expiry.zipWithIndex).filter(e => checkPartition(e._1))
+    val expired = state.expired.filter(e => checkPartition(e._1))
     logger.trace(s"Found ${expired.length} partitions with expired entries in $topic")
     // lock per-partition to allow for multiple write threads
     expired.foreach { case (queue, partition) =>
@@ -77,51 +74,52 @@ class DataStorePersistence(ds: DataStore,
     }
   }
 
-  private def checkPartition(expiry: PriorityBlockingQueue[(Long, SimpleFeature, Long)]): Boolean = {
+  private def checkPartition(expiry: PriorityBlockingQueue[(Long, Long, SimpleFeature)]): Boolean = {
     expiry.peek() match {
       case null => false
-      case (created, _, _) => (clock.millis() - ageOffMillis) > created
+      case (_, created, _) => (clock.millis() - ageOffMillis) > created
     }
   }
 
-  private def persist(partition: Int, queue: PriorityBlockingQueue[(Long, SimpleFeature, Long)], expiry: Long): Unit = {
+  private def persist(partition: Int, queue: PriorityBlockingQueue[(Long, Long, SimpleFeature)], expiry: Long): Unit = {
     import org.locationtech.geomesa.filter.ff
 
-    val expired = ArrayBuffer.empty[(Long, SimpleFeature, Long)]
+    val expired = scala.collection.mutable.Queue.empty[(Long, Long, SimpleFeature)]
 
     var loop = true
     while (loop) {
       queue.poll() match {
         case null => loop = false
-        case f if f._1 > expiry => queue.offer(f); loop = false
-        case f => expired.append(f)
+        case f if f._2 > expiry => queue.offer(f); loop = false
+        case f => expired += f
       }
     }
 
     logger.trace(s"Found expired entries for $topic:$partition :\n\t" +
-        expired.map { case (created, f, o) => s"offset $o: $f created at ${new DateTime(created, DateTimeZone.UTC)}" }.mkString("\n\t"))
+        expired.map { case (o, created, f) => s"offset $o: $f created at ${new DateTime(created, DateTimeZone.UTC)}" }.mkString("\n\t"))
 
     if (expired.nonEmpty) {
       val offsets = scala.collection.mutable.Map(offsetManager.getOffsets(topic): _*)
       logger.trace(s"Last persisted offsets for $topic: ${offsets.map { case (p, o) => s"$p:$o"}.mkString(",") }")
       // check that features haven't been persisted yet, haven't been deleted, and have no additional updates pending
       val toPersist = {
-        val filtered = expired.filter { case (_, f, offset) =>
+        val (latest, old) = expired.partition { case (offset, _, f) =>
           if (offsets.get(partition).forall(_ <= offset)) {
             // update the offsets we will write
             offsets(partition) = offset + 1
             // ensure not deleted and no additional updates pending
-            f.eq(state.features.get(f.getID))
+            f.eq(state.get(f.getID))
           } else {
             false
           }
         }
-        val byId = filtered.map(f => (f._2.getID,  f))
-        scala.collection.mutable.Map(byId: _*) // note: more recent values will overwrite older ones
+        // clean up any old entries from our shared state
+        old.foreach { case (offset, _, _) => state.remove(partition, offset) }
+        scala.collection.mutable.Map(latest.map(f => (f._3.getID,  f)): _*)
       }
 
       logger.trace(s"Entries to persist for $topic:$partition:\n\t" +
-          toPersist.values.toSeq.sortBy(_._3).map {
+          toPersist.values.toSeq.sortBy(_._1).map {
             case (created, f, o) => s"offset $o: $f created at ${new DateTime(created, DateTimeZone.UTC)}"
           }.mkString("\n\t"))
 
@@ -134,8 +132,9 @@ class DataStorePersistence(ds: DataStore,
           WithClose(ds.getFeatureWriter(sft.getTypeName, filter, t)) { writer =>
             while (writer.hasNext) {
               val next = writer.next()
-              toPersist.get(next.getID).foreach { case (created, updated, offset) =>
-                logger.trace(s"Updating [$topic:$partition:$offset] $updated created at ${new DateTime(created, DateTimeZone.UTC)}")
+              toPersist.get(next.getID).foreach { case (offset, created, updated) =>
+                logger.trace(s"Updating [$topic:$partition:$offset] $updated created at " +
+                    s"${new DateTime(created, DateTimeZone.UTC)}")
                 next.setAttributes(updated.getAttributes)
                 next.getUserData.putAll(updated.getUserData)
                 next.getIdentifier.asInstanceOf[FeatureIdImpl].setID(updated.getID)
@@ -149,8 +148,9 @@ class DataStorePersistence(ds: DataStore,
           // if any weren't updates, add them as inserts
           if (toPersist.nonEmpty) {
             WithClose(ds.getFeatureWriterAppend(sft.getTypeName, t)) { writer =>
-              toPersist.values.foreach { case (created, updated, offset) =>
-                logger.trace(s"Appending [$topic:$partition:$offset] $updated created at ${new DateTime(created, DateTimeZone.UTC)}")
+              toPersist.values.foreach { case (offset, created, updated) =>
+                logger.trace(s"Appending [$topic:$partition:$offset] $updated created at " +
+                    s"${new DateTime(created, DateTimeZone.UTC)}")
                 FeatureUtils.copyToWriter(writer, updated, useProvidedFid = true)
                 writer.write()
                 state.remove(partition, offset)
@@ -159,11 +159,13 @@ class DataStorePersistence(ds: DataStore,
           }
         } else {
           logger.trace(s"Persist disabled for $topic")
-          toPersist.values.foreach { case (_, _, offset) => state.remove(partition, offset) }
+          toPersist.values.foreach { case (offset, _, _) => state.remove(partition, offset) }
         }
         logger.trace(s"Committing offsets for $topic: ${offsets.map { case (p, o) => s"$p:$o"}.mkString(",")}")
         offsetManager.setOffsets(topic, offsets.toSeq)
       }
+
+      logger.trace(s"Current state for $topic: ${state.debug()}")
     }
   }
 

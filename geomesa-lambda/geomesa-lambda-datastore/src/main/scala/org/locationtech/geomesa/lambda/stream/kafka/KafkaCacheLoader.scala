@@ -18,7 +18,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.lambda.stream.OffsetManager
 import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
-import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.{MessageTypes, SharedState}
+import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.MessageTypes
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 
 /**
@@ -59,6 +59,7 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
     // remove the expired features from the cache
     updated.foreach { case (partition, offset) =>
       var current = offsets.get(partition)
+      logger.trace(s"Offsets changed for $topic:$partition: $current -> $offset")
       if (current < offset) {
         offsets.put(partition, offset)
         do {
@@ -67,6 +68,7 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
         } while (current < offset)
       }
     }
+    logger.trace(s"Current state for $topic: ${state.debug()}")
   }
 
   override def close(): Unit = {

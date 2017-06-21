@@ -9,7 +9,6 @@
 package org.locationtech.geomesa.lambda.stream.kafka
 
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.ConcurrentMap
 
 import org.geotools.data.Query
 import org.geotools.factory.Hints
@@ -28,9 +27,9 @@ import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.geotools.{GeometryUtils, GridSnap}
 import org.locationtech.geomesa.utils.stats.Stat
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.opengis.filter.Filter
+import org.opengis.filter.{Filter, Id}
 
-class KafkaQueryRunner(features: ConcurrentMap[String, SimpleFeature], authProvider: Option[AuthorizationsProvider])
+class KafkaQueryRunner(features: SharedState, authProvider: Option[AuthorizationsProvider])
     extends QueryRunner {
 
   import KafkaQueryRunner.{authVisibilityCheck, noAuthVisibilityCheck}
@@ -57,13 +56,13 @@ class KafkaQueryRunner(features: ConcurrentMap[String, SimpleFeature], authProvi
     // just iterate through the features
     // we could use an in-memory index here if performance isn't good enough
 
-    val iter = features.values().toIterator
-    val filtered = Option(query.getFilter).filter(_ != Filter.INCLUDE) match {
-      case Some(f) => iter.filter(sf => f.evaluate(sf) && isVisible(sf, auths))
-      case _       => iter.filter(sf => isVisible(sf, auths))
+    val iter = Option(query.getFilter).filter(_ != Filter.INCLUDE) match {
+      case Some(f: Id) => f.getIDs.iterator.map(i => features.get(i.toString)).filter(sf => sf != null && isVisible(sf, auths))
+      case Some(f)     => features.all().filter(sf => f.evaluate(sf) && isVisible(sf, auths))
+      case _           => features.all().filter(sf => isVisible(sf, auths))
     }
 
-    CloseableIterator(transform(sft, query.getHints, filtered))
+    CloseableIterator(transform(sft, query.getHints, iter))
   }
 
   private def transform(sft: SimpleFeatureType,
