@@ -17,6 +17,7 @@ import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.{DataStore, DataStoreFactorySpi, Parameter}
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams}
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory
+import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
 import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore
 
@@ -55,7 +56,9 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
 
     val clock = Option(ClockParam.lookUp(params).asInstanceOf[Clock]).getOrElse(Clock.systemUTC())
 
-    val ds = new LambdaDataStore(producer, consumerConfig, persistence, offsetManager, zk, expiry, persist, zkNamespace)(clock)
+    val config = LambdaConfig(zk, zkNamespace, partitions, expiry, persist)
+
+    val ds = new LambdaDataStore(producer, consumerConfig, persistence, offsetManager, config)(clock)
 
     ds
   }

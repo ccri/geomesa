@@ -70,6 +70,7 @@ object LambdaTestRunnerTest {
       "accumulo.zookeepers" -> zookeepers,
       "kafka.brokers"       -> brokers,
       "kafka.zookeepers"    -> zookeepers,
+      "kafka.partitions"    -> 2,
       "expiry"              -> "100ms",
       "clock"               -> clock
     )

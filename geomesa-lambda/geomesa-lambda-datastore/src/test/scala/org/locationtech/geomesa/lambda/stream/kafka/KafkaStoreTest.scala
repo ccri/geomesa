@@ -16,6 +16,7 @@ import org.geotools.data.{DataUtilities, Query, Transaction}
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.lambda.LambdaTestRunnerTest.{LambdaTest, TestClock}
+import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
 import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
@@ -51,7 +52,8 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
       try {
         ds.createSchema(sft)
         WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
-          def newStore(): KafkaStore = new KafkaStore(ds, sft, None, om, producer, config, zookeepers, ns, 1000, true)
+          def newStore(): KafkaStore =
+            new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, 1000, persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature)
             foreach(Seq(store1, store2)) { store =>
@@ -81,7 +83,8 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
       try {
         ds.createSchema(sft)
         WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
-          def newStore(): KafkaStore = new KafkaStore(ds, sft, None, om, producer, config, zookeepers, ns, 1000, true)
+          def newStore(): KafkaStore =
+            new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, 1000, persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature)
             foreach(Seq(store1, store2)) { store =>
@@ -123,7 +126,8 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
       try {
         ds.createSchema(sft)
         WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
-          def newStore(): KafkaStore = new KafkaStore(ds, sft, None, om, producer, config, zookeepers, ns, 1000, true)
+          def newStore(): KafkaStore =
+            new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, 1000, persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature1)
             store2.write(feature2)
@@ -181,7 +185,8 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
       try {
         ds.createSchema(sft)
         WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
-          def newStore(): KafkaStore = new KafkaStore(ds, sft, None, om, producer, config, zookeepers, ns, 1000, true)
+          def newStore(): KafkaStore =
+            new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, 1000, persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature1)
             foreach(Seq(store1, store2)) { store =>

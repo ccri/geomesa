@@ -18,6 +18,7 @@ import org.geotools.feature.FeatureTypes
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.index.geotools.{GeoMesaFeatureCollection, GeoMesaFeatureReader, GeoMesaFeatureSource, GeoMesaFeatureStore}
 import org.locationtech.geomesa.index.stats.{GeoMesaStats, HasGeoMesaStats, NoopStats}
+import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
 import org.locationtech.geomesa.lambda.data.LambdaFeatureWriter.{AppendLambdaFeatureWriter, ModifyLambdaFeatureWriter}
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore
 import org.locationtech.geomesa.lambda.stream.{OffsetManager, TransientStore}
@@ -32,10 +33,7 @@ class LambdaDataStore(producer: Producer[Array[Byte], Array[Byte]],
                       consumerConfig: Map[String, String],
                       persistence: DataStore,
                       offsetManager: OffsetManager,
-                      zookeepers: String,
-                      expiry: Long,
-                      persistExpired: Boolean,
-                      zkNamespace: String)
+                      config: LambdaConfig)
                      (implicit clock: Clock = Clock.systemUTC()) extends DataStore with HasGeoMesaStats {
 
   private val authProvider: Option[AuthorizationsProvider] = persistence match {
@@ -46,8 +44,7 @@ class LambdaDataStore(producer: Producer[Array[Byte], Array[Byte]],
   private [lambda] val transients = Caffeine.newBuilder().build(new CacheLoader[String, TransientStore] {
     override def load(key: String): TransientStore = {
       val sft = persistence.getSchema(key)
-      new KafkaStore(persistence, sft, authProvider, offsetManager, producer, consumerConfig,
-        zookeepers, zkNamespace, expiry, persistExpired)
+      new KafkaStore(persistence, sft, authProvider, offsetManager, producer, consumerConfig, config)
     }
   })
 
@@ -127,4 +124,8 @@ class LambdaDataStore(producer: Producer[Array[Byte], Array[Byte]],
   }
 
   override def getLockingManager: LockingManager = null
+}
+
+object LambdaDataStore {
+  case class LambdaConfig(zookeepers: String, zkNamespace: String, partitions: Int, expiry: Long, persist: Boolean)
 }

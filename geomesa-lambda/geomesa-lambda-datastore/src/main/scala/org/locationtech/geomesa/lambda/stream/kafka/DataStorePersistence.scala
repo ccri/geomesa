@@ -19,6 +19,7 @@ import org.geotools.filter.identity.FeatureIdImpl
 import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.lambda.stream.OffsetManager
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.SharedState
+import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.locationtech.geomesa.utils.geotools.FeatureUtils
 import org.locationtech.geomesa.utils.io.WithClose
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
@@ -52,7 +53,8 @@ class DataStorePersistence(ds: DataStore,
                           (implicit clock: Clock = Clock.systemUTC())
     extends Runnable with Closeable with LazyLogging {
 
-  private val schedule = KafkaStore.executor.scheduleWithFixedDelay(this, 0L, 60L, TimeUnit.SECONDS)
+  private val frequency = SystemProperty("geomesa.lambda.persist.interval").toDuration.getOrElse(60000L)
+  private val schedule = KafkaStore.executor.scheduleWithFixedDelay(this, 0L, frequency, TimeUnit.MILLISECONDS)
 
   override def run(): Unit = {
     val expired = state.synchronized(state.expiry.zipWithIndex).filter(e => checkPartition(e._1))
