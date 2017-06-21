@@ -1,0 +1,130 @@
+/***********************************************************************
+ * Copyright (c) 2013-2017 Commonwealth Computer Research, Inc.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Apache License, Version 2.0
+ * which accompanies this distribution and is available at
+ * http://www.opensource.org/licenses/apache2.0.php.
+ ***********************************************************************/
+
+package org.locationtech.geomesa.lambda.data
+
+import java.time.Clock
+
+import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
+import org.apache.kafka.clients.producer.Producer
+import org.geotools.data._
+import org.geotools.data.simple.{SimpleFeatureReader, SimpleFeatureSource, SimpleFeatureWriter}
+import org.geotools.feature.FeatureTypes
+import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
+import org.locationtech.geomesa.index.geotools.{GeoMesaFeatureCollection, GeoMesaFeatureReader, GeoMesaFeatureSource, GeoMesaFeatureStore}
+import org.locationtech.geomesa.index.stats.{GeoMesaStats, HasGeoMesaStats, NoopStats}
+import org.locationtech.geomesa.lambda.data.LambdaFeatureWriter.{AppendLambdaFeatureWriter, ModifyLambdaFeatureWriter}
+import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore
+import org.locationtech.geomesa.lambda.stream.{OffsetManager, TransientStore}
+import org.locationtech.geomesa.security.AuthorizationsProvider
+import org.locationtech.geomesa.utils.collection.SelfClosingIterator
+import org.locationtech.geomesa.utils.io.CloseWithLogging
+import org.opengis.feature.`type`.Name
+import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.filter.Filter
+
+class LambdaDataStore(producer: Producer[Array[Byte], Array[Byte]],
+                      consumerConfig: Map[String, String],
+                      persistence: DataStore,
+                      offsetManager: OffsetManager,
+                      zookeepers: String,
+                      expiry: Long,
+                      persistExpired: Boolean,
+                      zkNamespace: String)
+                     (implicit clock: Clock = Clock.systemUTC()) extends DataStore with HasGeoMesaStats {
+
+  private val authProvider: Option[AuthorizationsProvider] = persistence match {
+    case ds: AccumuloDataStore => Some(ds.config.authProvider.authProvider)
+    case _ => None
+  }
+
+  private [lambda] val transients = Caffeine.newBuilder().build(new CacheLoader[String, TransientStore] {
+    override def load(key: String): TransientStore = {
+      val sft = persistence.getSchema(key)
+      new KafkaStore(persistence, sft, authProvider, offsetManager, producer, consumerConfig,
+        zookeepers, zkNamespace, expiry, persistExpired)
+    }
+  })
+
+  private val runner = new LambdaQueryRunner(persistence, transients)
+
+  override val stats: GeoMesaStats = persistence match {
+    case p: HasGeoMesaStats => new LambdaStats(p.stats, transients)
+    case _ => NoopStats
+  }
+
+  def persist(typeName: String): Unit = transients.get(typeName).persist()
+
+  protected def createFeatureCollection(query: Query, source: GeoMesaFeatureSource): GeoMesaFeatureCollection =
+    new LambdaFeatureCollection(source, query)
+
+  override def getTypeNames: Array[String] = persistence.getTypeNames
+
+  override def getNames: java.util.List[Name] = persistence.getNames
+
+  override def createSchema(sft: SimpleFeatureType): Unit = {
+    persistence.createSchema(sft)
+    transients.get(sft.getTypeName).createSchema()
+  }
+
+  override def getSchema(typeName: Name): SimpleFeatureType = persistence.getSchema(typeName)
+
+  override def getSchema(typeName: String): SimpleFeatureType = persistence.getSchema(typeName)
+
+  override def updateSchema(typeName: String, featureType: SimpleFeatureType): Unit =
+    persistence.updateSchema(typeName, featureType)
+
+  override def updateSchema(typeName: Name, featureType: SimpleFeatureType): Unit =
+    persistence.updateSchema(typeName, featureType)
+
+  override def removeSchema(typeName: Name): Unit = removeSchema(typeName.getLocalPart)
+
+  override def removeSchema(typeName: String): Unit = {
+    persistence.removeSchema(typeName)
+    transients.get(typeName).removeSchema()
+  }
+
+  override def getFeatureSource(typeName: Name): SimpleFeatureSource = getFeatureSource(typeName.getLocalPart)
+
+  override def getFeatureSource(typeName: String): SimpleFeatureSource =
+    new GeoMesaFeatureStore(this, getSchema(typeName), runner, createFeatureCollection)
+
+  override def getFeatureReader(query: Query, transaction: Transaction): SimpleFeatureReader =
+    GeoMesaFeatureReader(getSchema(query.getTypeName), query, runner, None, None)
+
+  override def getFeatureWriterAppend(typeName: String, transaction: Transaction): SimpleFeatureWriter =
+    new AppendLambdaFeatureWriter(transients.get(typeName))
+
+  override def getFeatureWriter(typeName: String, transaction: Transaction): SimpleFeatureWriter =
+    getFeatureWriter(typeName, Filter.INCLUDE, transaction)
+
+  override def getFeatureWriter(typeName: String,
+                                filter: Filter,
+                                transaction: Transaction): SimpleFeatureWriter= {
+    val query = new Query(typeName, filter)
+    val features = SelfClosingIterator(getFeatureReader(query, transaction))
+    new ModifyLambdaFeatureWriter(transients.get(typeName), features)
+  }
+
+  override def dispose(): Unit = {
+    import scala.collection.JavaConversions._
+    transients.asMap().values().foreach(CloseWithLogging.apply)
+    CloseWithLogging(offsetManager)
+    CloseWithLogging(producer)
+    persistence.dispose()
+  }
+
+  override def getInfo: ServiceInfo = {
+    val info = new DefaultServiceInfo()
+    info.setDescription(s"Features from ${getClass.getSimpleName}")
+    info.setSchema(FeatureTypes.DEFAULT_NAMESPACE)
+    info
+  }
+
+  override def getLockingManager: LockingManager = null
+}

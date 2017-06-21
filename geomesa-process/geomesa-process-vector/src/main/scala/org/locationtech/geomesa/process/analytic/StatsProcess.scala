@@ -100,7 +100,7 @@ class StatsVisitor(features: SimpleFeatureCollection, statString: String, encode
       resultCalc
     } else {
       val stats = if (encode) {
-        KryoLazyStatsUtils.encodeStat(stat, statSft)
+        KryoLazyStatsUtils.encodeStat(statSft)(stat)
       } else {
         stat.toJson
       }
