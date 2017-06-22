@@ -41,6 +41,13 @@
     </category>
     -->
 
+    <!-- un-comment the following lines to enable transient state logging -->
+    <!--
+    <category name="org.locationtech.geomesa.lambda">
+        <priority value="trace"/>
+    </category>
+    -->
+
     <root>
         <priority value="info"/>
         <appender-ref ref="CONSOLE" />

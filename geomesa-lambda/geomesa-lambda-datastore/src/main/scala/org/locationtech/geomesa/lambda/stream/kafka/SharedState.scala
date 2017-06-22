@@ -70,8 +70,8 @@ class SharedState(partitions: Int) {
   }
 
   def debug(): String = {
-    s"Features: ${features.size}, offsets: ${offsets.size}, expiry: " +
-        s"${expiryWithIndex.map { case (e, p) => s"[$p:${e.size}]"}.mkString(", ")}"
+    import org.locationtech.geomesa.utils.conversions.ScalaImplicits.RichTraversableOnce
+    s"features: ${features.size}, offsets: ${offsets.size}, expiry: ${expiry.map(_.size).sumOrElse(0)}"
   }
 
   private def newQueue = new PriorityBlockingQueue[(Long, Long, SimpleFeature)](1000, SharedState.expiryComparator)

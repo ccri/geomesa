@@ -197,11 +197,12 @@ object KafkaStore {
       topicPartitions.foreach(tp => state.ensurePartition(tp.partition))
 
       // read our last committed offsets and seek to them
-      val lastRead = manager.getOffsets(topic)
       topicPartitions.foreach { tp =>
-        lastRead.find(_._1 == tp.partition()) match {
-          case Some((_, offset)) => consumer.seek(tp, offset)
-          case None => consumer.seekToBeginning(tp)
+        val lastRead = manager.getOffset(topic, tp.partition())
+        if (lastRead > 0) {
+          consumer.seek(tp, lastRead)
+        } else {
+          consumer.seekToBeginning(tp)
         }
       }
     }

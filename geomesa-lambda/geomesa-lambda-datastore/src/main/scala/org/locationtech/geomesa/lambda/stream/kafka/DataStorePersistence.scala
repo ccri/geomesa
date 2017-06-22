@@ -55,20 +55,20 @@ class DataStorePersistence(ds: DataStore,
 
   override def run(): Unit = {
     val expired = state.expired.filter(e => checkPartition(e._1))
-    logger.trace(s"Found ${expired.length} partitions with expired entries in $topic")
+    logger.trace(s"Found ${expired.length} partition(s) with expired entries in [$topic]")
     // lock per-partition to allow for multiple write threads
     expired.foreach { case (queue, partition) =>
       // if we don't get the lock just try again next run
-      logger.trace(s"Acquiring lock for $topic:$partition")
+      logger.trace(s"Acquiring lock for [$topic:$partition]")
       offsetManager.acquireLock(topic, partition, 1000L) match {
-        case None => logger.trace(s"Could not acquire lock for $topic:$partition within timeout")
+        case None => logger.trace(s"Could not acquire lock for [$topic:$partition] within timeout")
         case Some(lock) =>
           try {
-            logger.trace(s"Acquired lock for $topic:$partition")
+            logger.trace(s"Acquired lock for [$topic:$partition]")
             persist(partition, queue, clock.millis() - ageOffMillis)
           } finally {
             lock.release()
-            logger.trace(s"Released lock for $topic:$partition")
+            logger.trace(s"Released lock for [$topic:$partition]")
           }
       }
     }
@@ -95,37 +95,34 @@ class DataStorePersistence(ds: DataStore,
       }
     }
 
-    logger.trace(s"Found expired entries for $topic:$partition :\n\t" +
+    logger.trace(s"Found expired entries for [$topic:$partition]:\n\t" +
         expired.map { case (o, created, f) => s"offset $o: $f created at ${new DateTime(created, DateTimeZone.UTC)}" }.mkString("\n\t"))
 
     if (expired.nonEmpty) {
-      val offsets = scala.collection.mutable.Map(offsetManager.getOffsets(topic): _*)
-      logger.trace(s"Last persisted offsets for $topic: ${offsets.map { case (p, o) => s"$p:$o"}.mkString(",") }")
+      var lastOffset = offsetManager.getOffset(topic, partition)
+      logger.trace(s"Last persisted offsets for [$topic:$partition]: $lastOffset")
       // check that features haven't been persisted yet, haven't been deleted, and have no additional updates pending
       val toPersist = {
-        val (latest, old) = expired.partition { case (offset, _, f) =>
-          if (offsets.get(partition).forall(_ <= offset)) {
+        val latest = expired.filter { case (offset, _, f) =>
+          if (lastOffset <= offset) {
             // update the offsets we will write
-            offsets(partition) = offset + 1
+            lastOffset = offset + 1L
             // ensure not deleted and no additional updates pending
             f.eq(state.get(f.getID))
           } else {
             false
           }
         }
-        // clean up any old entries from our shared state
-        old.foreach { case (offset, _, _) => state.remove(partition, offset) }
         scala.collection.mutable.Map(latest.map(f => (f._3.getID,  f)): _*)
       }
 
-      logger.trace(s"Entries to persist for $topic:$partition:\n\t" +
-          toPersist.values.toSeq.sortBy(_._1).map {
-            case (created, f, o) => s"offset $o: $f created at ${new DateTime(created, DateTimeZone.UTC)}"
-          }.mkString("\n\t"))
+      logger.trace(s"Offsets to persist for [$topic:$partition]: ${toPersist.values.map(_._1).toSeq.sorted.mkString(",")}")
 
       // TODO handle failures writing
       if (toPersist.nonEmpty) {
-        if (persistExpired) {
+        if (!persistExpired) {
+          logger.trace(s"Persist disabled for $topic")
+        } else {
           // do an update query first
           val filter = ff.id(toPersist.keys.map(ff.featureId).toSeq: _*)
           val t = Transaction.AUTO_COMMIT
@@ -133,7 +130,7 @@ class DataStorePersistence(ds: DataStore,
             while (writer.hasNext) {
               val next = writer.next()
               toPersist.get(next.getID).foreach { case (offset, created, updated) =>
-                logger.trace(s"Updating [$topic:$partition:$offset] $updated created at " +
+                logger.trace(s"Persistent store modify [$topic:$partition:$offset] $updated created at " +
                     s"${new DateTime(created, DateTimeZone.UTC)}")
                 next.setAttributes(updated.getAttributes)
                 next.getUserData.putAll(updated.getUserData)
@@ -141,7 +138,6 @@ class DataStorePersistence(ds: DataStore,
                 next.getUserData.put(Hints.USE_PROVIDED_FID, java.lang.Boolean.TRUE)
                 writer.write()
                 toPersist.remove(updated.getID)
-                state.remove(partition, offset)
               }
             }
           }
@@ -149,23 +145,17 @@ class DataStorePersistence(ds: DataStore,
           if (toPersist.nonEmpty) {
             WithClose(ds.getFeatureWriterAppend(sft.getTypeName, t)) { writer =>
               toPersist.values.foreach { case (offset, created, updated) =>
-                logger.trace(s"Appending [$topic:$partition:$offset] $updated created at " +
+                logger.trace(s"Persistent store append [$topic:$partition:$offset] $updated created at " +
                     s"${new DateTime(created, DateTimeZone.UTC)}")
                 FeatureUtils.copyToWriter(writer, updated, useProvidedFid = true)
                 writer.write()
-                state.remove(partition, offset)
               }
             }
           }
-        } else {
-          logger.trace(s"Persist disabled for $topic")
-          toPersist.values.foreach { case (offset, _, _) => state.remove(partition, offset) }
         }
-        logger.trace(s"Committing offsets for $topic: ${offsets.map { case (p, o) => s"$p:$o"}.mkString(",")}")
-        offsetManager.setOffsets(topic, offsets.toSeq)
+        logger.trace(s"Committing offset [$topic:$partition:$lastOffset]")
+        offsetManager.setOffset(topic, partition, lastOffset)
       }
-
-      logger.trace(s"Current state for $topic: ${state.debug()}")
     }
   }
 

@@ -55,20 +55,18 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
   private val schedules =
     consumers.map(KafkaStore.executor.scheduleWithFixedDelay(_, 0L, frequency, TimeUnit.MILLISECONDS))
 
-  override def offsetsChanged(updated: Seq[(Int, Long)]): Unit = {
+  override def offsetChanged(partition: Int, offset: Long): Unit = {
     // remove the expired features from the cache
-    updated.foreach { case (partition, offset) =>
-      var current = offsets.get(partition)
-      logger.trace(s"Offsets changed for $topic:$partition: $current -> $offset")
-      if (current < offset) {
-        offsets.put(partition, offset)
-        do {
-          state.remove(partition, current)
-          current += 1
-        } while (current < offset)
-      }
+    var current = offsets.get(partition)
+    logger.trace(s"Offsets changed for [$topic:$partition]: $current->$offset")
+    if (current < offset) {
+      offsets.put(partition, offset)
+      do {
+        state.remove(partition, current)
+        current += 1
+      } while (current < offset)
     }
-    logger.trace(s"Current state for $topic: ${state.debug()}")
+    logger.trace(s"Current size for [$topic]: ${state.debug()}")
   }
 
   override def close(): Unit = {
@@ -93,13 +91,13 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
           val feature = serializer.deserialize(record.value)
           action match {
             case MessageTypes.Write  =>
-              logger.trace(s"Adding [${record.partition}:${record.offset}] created at " +
-                  s"${new DateTime(time, DateTimeZone.UTC)}: $feature")
+              logger.trace(s"Adding [${record.partition}:${record.offset}] $feature created at " +
+                  new DateTime(time, DateTimeZone.UTC))
               state.add(feature, record.partition, record.offset, time)
 
             case MessageTypes.Delete =>
-              logger.trace(s"Deleting [${record.partition}:${record.offset}] created at " +
-                  s"${new DateTime(time, DateTimeZone.UTC)}: $feature")
+              logger.trace(s"Deleting [${record.partition}:${record.offset}] $feature created at " +
+                  new DateTime(time, DateTimeZone.UTC))
               state.delete(feature, record.partition, record.offset, time)
 
             case _ => logger.error(s"Unhandled message type: $action")

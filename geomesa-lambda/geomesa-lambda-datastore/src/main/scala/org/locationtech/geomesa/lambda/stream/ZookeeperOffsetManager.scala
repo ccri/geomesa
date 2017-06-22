@@ -8,22 +8,21 @@
 
 package org.locationtech.geomesa.lambda.stream
 
-import java.io.Closeable
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 
-import org.apache.curator.framework.api.CuratorWatcher
+import org.apache.curator.framework.recipes.cache.{PathChildrenCache, PathChildrenCacheEvent, PathChildrenCacheListener}
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.ExponentialBackoffRetry
-import org.apache.zookeeper.WatchedEvent
-import org.apache.zookeeper.Watcher.Event.EventType
 import org.locationtech.geomesa.index.utils.Releasable
 import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
 import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager.CuratorOffsetListener
+import org.locationtech.geomesa.utils.io.CloseWithLogging
 
 class ZookeeperOffsetManager(zookeepers: String, namespace: String = "geomesa") extends OffsetManager {
+
+  import ZookeeperOffsetManager.offsetsPath
 
   private val client = CuratorFrameworkFactory.builder()
       .namespace(namespace)
@@ -33,24 +32,25 @@ class ZookeeperOffsetManager(zookeepers: String, namespace: String = "geomesa") 
   client.start()
 
   private val listeners = new ConcurrentHashMap[(String, OffsetListener), CuratorOffsetListener]
+  private val caches = new ConcurrentHashMap[String, PathChildrenCache]
 
-  override def getOffsets(topic: String): Seq[(Int, Long)] = {
-    val path = offsetsPath(topic)
-    if (client.checkExists().forPath(path) == null) { Seq.empty } else {
+  override def getOffset(topic: String, partition: Int): Long = {
+    val path = ZookeeperOffsetManager.offsetsPath(topic, partition)
+    if (client.checkExists().forPath(path) == null) { 0L } else {
       ZookeeperOffsetManager.deserializeOffsets(client.getData.forPath(path))
     }
   }
 
-  override def setOffsets(topic: String, offsets: Seq[(Int, Long)]): Unit = {
-    val path = offsetsPath(topic)
+  override def setOffset(topic: String, partition: Int, offset: Long): Unit = {
+    val path = ZookeeperOffsetManager.offsetsPath(topic, partition)
     if (client.checkExists().forPath(path) == null) {
       client.create().creatingParentsIfNeeded().forPath(path)
     }
-    client.setData().forPath(path, ZookeeperOffsetManager.serializeOffsets(offsets))
+    client.setData().forPath(path, ZookeeperOffsetManager.serializeOffset(offset))
   }
 
   override def deleteOffsets(topic: String): Unit = {
-    val path = offsetsPath(topic)
+    val path = ZookeeperOffsetManager.offsetsPath(topic)
     if (client.checkExists().forPath(path) != null) {
       client.delete().deletingChildrenIfNeeded().forPath(path)
     }
@@ -60,24 +60,41 @@ class ZookeeperOffsetManager(zookeepers: String, namespace: String = "geomesa") 
     val path = offsetsPath(topic)
     val curatorListener = new CuratorOffsetListener(client, listener, path)
     listeners.put((topic, listener), curatorListener)
-    client.checkExists().usingWatcher(curatorListener).forPath(path)
+    val cache = synchronized {
+      var cache = caches.get(topic)
+      if (cache == null) {
+        cache = new PathChildrenCache(client, path, true)
+        cache.start()
+        caches.put(topic, cache)
+      }
+      cache
+    }
+    cache.getListenable.addListener(curatorListener)
   }
 
-  override def removeOffsetListener(topic: String, listener: OffsetListener): Unit =
-    Option(listeners.remove((topic, listener))).foreach(_.close())
+  override def removeOffsetListener(topic: String, listener: OffsetListener): Unit = {
+    for {
+     listenable <- Option(listeners.remove((topic, listener)))
+     cache      <- Option(caches.get(topic))
+    } {
+      cache.getListenable.removeListener(listenable)
+    }
+  }
 
-  override protected def acquireDistributedLock(topic: String): Releasable =
-    acquireLock(topic, (lock) => { lock.acquire(); true })
+  override def close(): Unit = {
+    import scala.collection.JavaConversions._
+    caches.values.foreach(CloseWithLogging.apply)
+    CloseWithLogging(client)
+  }
 
-  override protected def acquireDistributedLock(topic: String, timeOut: Long): Option[Releasable] =
-    Option(acquireLock(topic, (lock) => lock.acquire(timeOut, TimeUnit.MILLISECONDS)))
+  override protected def acquireDistributedLock(path: String): Releasable =
+    acquireLock(path, (lock) => { lock.acquire(); true })
 
-  override def close(): Unit = client.close()
+  override protected def acquireDistributedLock(path: String, timeOut: Long): Option[Releasable] =
+    Option(acquireLock(path, (lock) => lock.acquire(timeOut, TimeUnit.MILLISECONDS)))
 
-  private def offsetsPath(topic: String): String = s"/$topic/offsets"
-
-  private def acquireLock(topic: String, acquire: (InterProcessSemaphoreMutex) => Boolean): Releasable = {
-    val lock = new InterProcessSemaphoreMutex(client, s"/$topic/locks")
+  private def acquireLock(path: String, acquire: (InterProcessSemaphoreMutex) => Boolean): Releasable = {
+    val lock = new InterProcessSemaphoreMutex(client, s"/$path/locks")
     if (acquire(lock)) {
       new Releasable { override def release(): Unit = lock.release() }
     } else {
@@ -88,32 +105,25 @@ class ZookeeperOffsetManager(zookeepers: String, namespace: String = "geomesa") 
 
 object ZookeeperOffsetManager {
 
-  def serializeOffsets(offsets: Seq[(Int, Long)]): Array[Byte] =
-    offsets.map { case (p, o) => s"$p:$o"}.mkString(",").getBytes(StandardCharsets.UTF_8)
+  def serializeOffset(offset: Long): Array[Byte] = offset.toString.getBytes(StandardCharsets.UTF_8)
+  def deserializeOffsets(bytes: Array[Byte]): Long = new String(bytes, StandardCharsets.UTF_8).toLong
 
-  def deserializeOffsets(bytes: Array[Byte]): Seq[(Int, Long)] = {
-    new String(bytes, StandardCharsets.UTF_8).split(",")
-        .map(s => s.split(":") match { case Array(p, o) => (p.toInt, o.toLong)})
-  }
+  private def offsetsPath(topic: String): String = s"/$topic/offsets"
+  private def offsetsPath(topic: String, partition: Int): String = s"${offsetsPath(topic)}/$partition"
+  private def partitionFromPath(path: String): Int = path.substring(path.lastIndexOf("/") + 1).toInt
 
   private class CuratorOffsetListener(client: CuratorFramework, listener: OffsetListener, path: String)
-      extends CuratorWatcher with Closeable {
+      extends PathChildrenCacheListener {
 
-    private val open = new AtomicBoolean(true)
+    import PathChildrenCacheEvent.Type.{CHILD_ADDED, CHILD_UPDATED}
 
-    // note: we have to re-register the watch, they are for only a single event
-    override def process(event: WatchedEvent): Unit = {
-      if (open.get) {
-        if (event.getType == EventType.NodeDataChanged && event.getPath == path) {
-          val data = client.getData.usingWatcher(this).forPath(path)
-          val offsets = ZookeeperOffsetManager.deserializeOffsets(data)
-          listener.offsetsChanged(offsets)
-        } else {
-          client.checkExists().usingWatcher(this).forPath(path)
-        }
+    override def childEvent(client: CuratorFramework, event: PathChildrenCacheEvent): Unit = {
+      val eventPath = event.getData.getPath
+      if ((event.getType == CHILD_UPDATED || event.getType == CHILD_ADDED) && eventPath.startsWith(path)) {
+        val partition = partitionFromPath(eventPath)
+        val offset = ZookeeperOffsetManager.deserializeOffsets(event.getData.getData)
+        listener.offsetChanged(partition, offset)
       }
     }
-
-    override def close(): Unit = open.set(false)
   }
 }

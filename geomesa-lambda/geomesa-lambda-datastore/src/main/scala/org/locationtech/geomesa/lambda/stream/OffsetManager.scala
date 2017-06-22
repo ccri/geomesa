@@ -17,17 +17,17 @@ import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
   * Manages storing and watching distributed offsets
   */
 trait OffsetManager extends DistributedLocking with Closeable {
-  def getOffsets(topic: String): Seq[(Int, Long)]
-  def setOffsets(topic: String, offsets: Seq[(Int, Long)]): Unit
+  def getOffset(topic: String, partition: Int): Long
+  def setOffset(topic: String, partition: Int, offset: Long): Unit
   def deleteOffsets(topic: String): Unit
-  def addOffsetListener(topic: String, listener: OffsetListener): Unit
-  def removeOffsetListener(topic: String, listener: OffsetListener): Unit
   def acquireLock(topic: String, partition: Int, timeOut: Long): Option[Releasable] =
     acquireDistributedLock(s"$topic/$partition", timeOut)
+  def addOffsetListener(topic: String, listener: OffsetListener): Unit
+  def removeOffsetListener(topic: String, listener: OffsetListener): Unit
 }
 
 object OffsetManager {
   trait OffsetListener {
-    def offsetsChanged(offsets: Seq[(Int, Long)]): Unit
+    def offsetChanged(partition: Int, offset: Long): Unit
   }
 }
