@@ -34,6 +34,8 @@ class LambdaQueryRunner(persistence: DataStore, transients: LoadingCache[String,
   override def runQuery(sft: SimpleFeatureType, query: Query, explain: Explainer): CloseableIterator[SimpleFeature] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
+    // TODO arrow scans will return two files, will js handle that?
+
     // if this is a stats query, disable json results temporarily, otherwise we can't merge stats from both sources
     val encodeStats = query.getHints.isStatsQuery && query.getHints.isStatsEncode
     if (!encodeStats) {

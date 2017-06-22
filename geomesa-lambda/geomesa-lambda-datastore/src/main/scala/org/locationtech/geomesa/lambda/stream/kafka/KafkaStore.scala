@@ -51,7 +51,7 @@ class KafkaStore(ds: DataStore,
 
   private val serializer = new KryoFeatureSerializer(sft, SerializationOptions.withUserData)
 
-  private val queryRunner = new KafkaQueryRunner(state, authProvider)
+  private val queryRunner = new KafkaQueryRunner(state, stats, authProvider)
 
   private val loader = new KafkaCacheLoader(offsetManager, serializer, state, consumerConfig, topic, config.partitions)
   private val persistence = new DataStorePersistence(ds, sft, offsetManager, state, topic, config.expiry, config.persist)

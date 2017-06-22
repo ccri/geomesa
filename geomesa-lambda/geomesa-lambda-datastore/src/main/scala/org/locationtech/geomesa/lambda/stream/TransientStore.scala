@@ -19,6 +19,8 @@ import org.opengis.filter.Filter
 
 trait TransientStore extends HasGeoMesaStats with Closeable {
 
+  override val stats: GeoMesaStats = new TransientStats(this)
+
   def sft: SimpleFeatureType
 
   def createSchema(): Unit
@@ -35,6 +37,4 @@ trait TransientStore extends HasGeoMesaStats with Closeable {
   def delete(feature: SimpleFeature): Unit
 
   def persist(): Unit
-
-  override val stats: GeoMesaStats = new TransientStats(this)
 }

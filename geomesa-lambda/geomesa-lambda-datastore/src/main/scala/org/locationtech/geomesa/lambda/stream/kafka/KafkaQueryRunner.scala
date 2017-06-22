@@ -8,19 +8,27 @@
 
 package org.locationtech.geomesa.lambda.stream.kafka
 
+import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 
+import com.vividsolutions.jts.geom.Envelope
 import org.geotools.data.Query
 import org.geotools.factory.Hints
 import org.geotools.filter.visitor.BindingFilterVisitor
 import org.geotools.process.vector.TransformProcess
+import org.locationtech.geomesa.arrow.io.DictionaryBuildingWriter
+import org.locationtech.geomesa.arrow.io.records.RecordBatchUnloader
+import org.locationtech.geomesa.arrow.vector.SimpleFeatureVector.SimpleFeatureEncoding
+import org.locationtech.geomesa.arrow.vector.{ArrowDictionary, SimpleFeatureVector}
+import org.locationtech.geomesa.arrow.{ArrowEncodedSft, ArrowProperties}
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.filter.factory.FastFilterFactory
 import org.locationtech.geomesa.filter.function.BinaryOutputEncoder.{EncodingOptions, GeometryAttribute}
 import org.locationtech.geomesa.filter.function.{AxisOrder, BinaryOutputEncoder}
 import org.locationtech.geomesa.filter.visitor.QueryPlanFilterVisitor
-import org.locationtech.geomesa.index.iterators.DensityScan
+import org.locationtech.geomesa.index.iterators.{ArrowBatchScan, DensityScan}
 import org.locationtech.geomesa.index.planning.QueryRunner
+import org.locationtech.geomesa.index.stats.GeoMesaStats
 import org.locationtech.geomesa.index.utils.{Explainer, KryoLazyStatsUtils}
 import org.locationtech.geomesa.security.{AuthorizationsProvider, SecurityUtils, VisibilityEvaluator}
 import org.locationtech.geomesa.utils.collection.CloseableIterator
@@ -29,7 +37,9 @@ import org.locationtech.geomesa.utils.stats.Stat
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.{Filter, Id}
 
-class KafkaQueryRunner(features: SharedState, authProvider: Option[AuthorizationsProvider])
+import scala.math.Ordering
+
+class KafkaQueryRunner(features: SharedState, stats: GeoMesaStats, authProvider: Option[AuthorizationsProvider])
     extends QueryRunner {
 
   import KafkaQueryRunner.{authVisibilityCheck, noAuthVisibilityCheck}
@@ -62,79 +72,7 @@ class KafkaQueryRunner(features: SharedState, authProvider: Option[Authorization
       case _           => features.all().filter(sf => isVisible(sf, auths))
     }
 
-    CloseableIterator(transform(sft, query.getHints, iter))
-  }
-
-  private def transform(sft: SimpleFeatureType,
-                        hints: Hints,
-                        features: Iterator[SimpleFeature]): Iterator[SimpleFeature] = {
-    import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
-
-    if (hints.isBinQuery) {
-      val trackId = Option(hints.getBinTrackIdField)
-      val geom = hints.getBinGeomField.orElse(Option(sft.getGeomField)).map(GeometryAttribute(_, AxisOrder.LonLat))
-      val dtg = hints.getBinDtgField
-      val label = hints.getBinLabelField
-
-      val encode = BinaryOutputEncoder.encodeFeatures(sft, EncodingOptions(geom, dtg, trackId, label))
-
-      val sf = new ScalaSimpleFeature("", BinaryOutputEncoder.BinEncodedSft, Array(null, GeometryUtils.zeroPoint))
-      features.map { feature =>
-        sf.setAttribute(BinaryOutputEncoder.BIN_ATTRIBUTE_INDEX, encode(feature))
-        sf
-      }
-    } else if (hints.isArrowQuery) {
-      val dictionaryFields = hints.getArrowDictionaryFields
-      val providedDictionaries = hints.getArrowDictionaryEncodedValues
-      //      if (hints.getArrowSort.isDefined || hints.isArrowComputeDictionaries ||
-      //          dictionaryFields.forall(providedDictionaries.contains)) {
-      //        // TODO this will end up returning two files, is that ok?
-      //        val dictionaries = ArrowBatchScan.createDictionaries(this, sft, Option(query.getFilter), dictionaryFields, providedDictionaries)
-      //        val iter = ArrowBatchIterator.configure(sft, this, ecql, dictionaries, hints, dedupe)
-      //        val reduce = Some(ArrowBatchScan.reduceFeatures(hints.getTransformSchema.getOrElse(sft), hints, dictionaries))
-      //        ScanConfig(Seq(iter), FullColumnFamily, ArrowBatchIterator.kvsToFeatures(), reduce)
-      //      } else {
-      //        val iter = ArrowFileIterator.configure(sft, this, ecql, dictionaryFields, hints, dedupe)
-      //        ScanConfig(Seq(iter), FullColumnFamily, ArrowFileIterator.kvsToFeatures(), None)
-      //      }
-      org.locationtech.geomesa.arrow.ArrowEncodedSft
-      ???
-    } else if (hints.isDensityQuery) {
-      val Some(envelope) = hints.getDensityEnvelope
-      val Some((width, height)) = hints.getDensityBounds
-      val grid = new GridSnap(envelope, width, height)
-      val result = scala.collection.mutable.Map.empty[(Int, Int), Double]
-      val getWeight = DensityScan.getWeight(sft, hints.getDensityWeight)
-      val writeGeom = DensityScan.writeGeometry(sft, grid)
-      features.foreach(f => writeGeom(f, getWeight(f), result))
-
-      val sf = new ScalaSimpleFeature("", DensityScan.DensitySft, Array(GeometryUtils.zeroPoint))
-      // Return value in user data so it's preserved when passed through a RetypingFeatureCollection
-      sf.getUserData.put(DensityScan.DensityValueKey, DensityScan.encodeResult(result))
-      Iterator(sf)
-    } else if (hints.isStatsQuery) {
-      val stat = Stat(sft, hints.getStatsQuery)
-      features.foreach(stat.observe)
-      val encoded = if (hints.isStatsEncode) { KryoLazyStatsUtils.encodeStat(sft)(stat) } else { stat.toJson }
-      Iterator(new ScalaSimpleFeature("stat", KryoLazyStatsUtils.StatsSft, Array(encoded, GeometryUtils.zeroPoint)))
-    } else {
-      hints.getTransform match {
-        case None => features
-        case Some((definitions, transformSchema)) =>
-          val tdefs = TransformProcess.toDefinition(definitions)
-          val reusableSf = new ScalaSimpleFeature("", transformSchema)
-          var i = 0
-          features.map { feature =>
-            reusableSf.setId(feature.getID)
-            while (i < tdefs.size) {
-              reusableSf.setAttribute(i, tdefs.get(i).expression.evaluate(feature))
-              i += 1
-            }
-            i = 0
-            reusableSf
-          }
-      }
-    }
+    CloseableIterator(transform(iter, sft, query.getHints, query.getFilter))
   }
 
   override protected def optimizeFilter(sft: SimpleFeatureType, filter: Filter): Filter = {
@@ -158,6 +96,220 @@ class KafkaQueryRunner(features: SharedState, authProvider: Option[Authorization
       KryoLazyStatsUtils.StatsSft
     } else {
       super.getReturnSft(sft, hints)
+    }
+  }
+
+  private def transform(features: Iterator[SimpleFeature],
+                        sft: SimpleFeatureType,
+                        hints: Hints,
+                        filter: Filter): Iterator[SimpleFeature] = {
+    import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
+
+    if (hints.isBinQuery) {
+      val trackId = Option(hints.getBinTrackIdField)
+      val geom = hints.getBinGeomField.orElse(Option(sft.getGeomField)).map(GeometryAttribute(_, AxisOrder.LonLat))
+      binTransform(features, sft, trackId, geom, hints.getBinDtgField, hints.getBinLabelField)
+    } else if (hints.isArrowQuery) {
+      arrowTransform(features, sft, hints, filter)
+    } else if (hints.isDensityQuery) {
+      val Some(envelope) = hints.getDensityEnvelope
+      val Some((width, height)) = hints.getDensityBounds
+      densityTransform(features, sft, envelope, width, height, hints.getDensityWeight)
+    } else if (hints.isStatsQuery) {
+      statsTransform(features, sft, hints.getStatsQuery, hints.isStatsEncode)
+    } else {
+      hints.getTransform match {
+        case None => features
+        case Some((definitions, transform)) => projectionTransform(features, transform, definitions)
+      }
+    }
+  }
+
+  private def binTransform(features: Iterator[SimpleFeature],
+                           sft: SimpleFeatureType,
+                           trackId: Option[String],
+                           geom: Option[GeometryAttribute],
+                           dtg: Option[String],
+                           label: Option[String]): Iterator[SimpleFeature] = {
+    val encode = BinaryOutputEncoder.encodeFeatures(sft, EncodingOptions(geom, dtg, trackId, label))
+    val sf = new ScalaSimpleFeature("", BinaryOutputEncoder.BinEncodedSft, Array(null, GeometryUtils.zeroPoint))
+    features.map { feature =>
+      sf.setAttribute(BinaryOutputEncoder.BIN_ATTRIBUTE_INDEX, encode(feature))
+      sf
+    }
+  }
+
+  private def arrowTransform(features: Iterator[SimpleFeature],
+                             sft: SimpleFeatureType,
+                             hints: Hints,
+                             filter: Filter): Iterator[SimpleFeature] = {
+
+    val (transforms, arrowSft) = hints.getTransform match {
+      case None => (features, sft)
+      case Some((definitions, transform)) => (projectionTransform(features, transform, definitions), transform)
+    }
+    val batchSize = hints.getArrowBatchSize.getOrElse(ArrowProperties.BatchSize.get.toInt)
+    val dictionaryFields = hints.getArrowDictionaryFields
+    val providedDictionaries = hints.getArrowDictionaryEncodedValues
+    val encoding = SimpleFeatureEncoding.min(hints.isArrowIncludeFid)
+
+    if (hints.getArrowSort.isDefined || hints.isArrowComputeDictionaries ||
+        dictionaryFields.forall(providedDictionaries.contains)) {
+      val dictionaries = ArrowBatchScan.createDictionaries(stats, sft, Option(filter), dictionaryFields, providedDictionaries)
+      val reduce = ArrowBatchScan.reduceFeatures(arrowSft, hints, dictionaries)
+      val arrows = hints.getArrowSort match {
+        case None => arrowBatchTransform(transforms, arrowSft, encoding, dictionaries, batchSize)
+        case Some((sortField, reverse)) => arrowSortTransform(transforms, arrowSft, encoding, dictionaries, sortField, reverse, batchSize)
+      }
+      reduce(arrows)
+    } else {
+      arrowFileTransform(transforms, arrowSft, encoding, dictionaryFields, batchSize)
+    }
+  }
+
+  private def arrowBatchTransform(features: Iterator[SimpleFeature],
+                                  sft: SimpleFeatureType,
+                                  encoding: SimpleFeatureEncoding,
+                                  dictionaries: Map[String, ArrowDictionary],
+                                  batchSize: Int): Iterator[SimpleFeature] = {
+    import org.locationtech.geomesa.arrow.allocator
+
+    val vector = SimpleFeatureVector.create(sft, dictionaries, encoding)
+    val batchWriter = new RecordBatchUnloader(vector)
+
+    val sf = new ScalaSimpleFeature("", ArrowEncodedSft, Array(null, GeometryUtils.zeroPoint))
+
+    new Iterator[SimpleFeature] {
+      override def hasNext: Boolean = features.hasNext
+      override def next(): SimpleFeature = {
+        var index = 0
+        vector.clear()
+        features.take(batchSize).foreach { f =>
+          vector.writer.set(index, f)
+          index += 1
+        }
+
+        sf.setAttribute(0, batchWriter.unload(index))
+        sf
+      }
+    }
+  }
+
+  private def arrowSortTransform(features: Iterator[SimpleFeature],
+                                 sft: SimpleFeatureType,
+                                 encoding: SimpleFeatureEncoding,
+                                 dictionaries: Map[String, ArrowDictionary],
+                                 sortField: String,
+                                 sortReverse: Boolean,
+                                 batchSize: Int): Iterator[SimpleFeature] = {
+    import org.locationtech.geomesa.arrow.allocator
+
+    val array = Array.ofDim[SimpleFeature](batchSize)
+
+    val vector = SimpleFeatureVector.create(sft, dictionaries, encoding)
+    val batchWriter = new RecordBatchUnloader(vector)
+    val sortIndex = sft.indexOf(sortField)
+
+    val ordering = new Ordering[SimpleFeature] {
+      override def compare(x: SimpleFeature, y: SimpleFeature): Int = {
+        val left = x.getAttribute(sortIndex).asInstanceOf[Comparable[Any]]
+        val right = y.getAttribute(sortIndex).asInstanceOf[Comparable[Any]]
+        left.compareTo(right)
+      }
+    }
+
+    val sf = new ScalaSimpleFeature("", ArrowEncodedSft, Array(null, GeometryUtils.zeroPoint))
+
+    new Iterator[SimpleFeature] {
+      override def hasNext: Boolean = features.hasNext
+      override def next(): SimpleFeature = {
+        var index = 0
+        vector.clear()
+        features.take(batchSize).foreach { f =>
+          array(index) = ScalaSimpleFeature.copy(f) // we have to copy since the same feature object is re-used
+          index += 1
+        }
+        java.util.Arrays.sort(array, 0, index, if (sortReverse) { ordering.reverse } else { ordering })
+
+        var i = 0
+        while (i < index) {
+          vector.writer.set(i, array(i))
+          i += 1
+        }
+
+        sf.setAttribute(0, batchWriter.unload(index))
+        sf
+      }
+    }
+  }
+
+  private def arrowFileTransform(features: Iterator[SimpleFeature],
+                                 sft: SimpleFeatureType,
+                                 encoding: SimpleFeatureEncoding,
+                                 dictionaryFields: Seq[String],
+                                 batchSize: Int): Iterator[SimpleFeature] = {
+    import org.locationtech.geomesa.arrow.allocator
+
+    val writer = DictionaryBuildingWriter.create(sft, dictionaryFields, encoding)
+    val os = new ByteArrayOutputStream()
+
+    val sf = new ScalaSimpleFeature("", ArrowEncodedSft, Array(null, GeometryUtils.zeroPoint))
+
+    new Iterator[SimpleFeature] {
+      override def hasNext: Boolean = features.hasNext
+      override def next(): SimpleFeature = {
+        writer.clear()
+        os.reset()
+        features.take(batchSize).foreach(writer.add)
+        writer.encode(os)
+        sf.setAttribute(0, os.toByteArray)
+        sf
+      }
+    }
+  }
+
+  private def densityTransform(features: Iterator[SimpleFeature],
+                               sft: SimpleFeatureType,
+                               envelope: Envelope,
+                               width: Int,
+                               height: Int,
+                               weight: Option[String]): Iterator[SimpleFeature] = {
+    val grid = new GridSnap(envelope, width, height)
+    val result = scala.collection.mutable.Map.empty[(Int, Int), Double]
+    val getWeight = DensityScan.getWeight(sft, weight)
+    val writeGeom = DensityScan.writeGeometry(sft, grid)
+    features.foreach(f => writeGeom(f, getWeight(f), result))
+
+    val sf = new ScalaSimpleFeature("", DensityScan.DensitySft, Array(GeometryUtils.zeroPoint))
+    // Return value in user data so it's preserved when passed through a RetypingFeatureCollection
+    sf.getUserData.put(DensityScan.DensityValueKey, DensityScan.encodeResult(result))
+    Iterator(sf)
+  }
+
+  private def statsTransform(features: Iterator[SimpleFeature],
+                             sft: SimpleFeatureType,
+                             query: String,
+                             encode: Boolean): Iterator[SimpleFeature] = {
+    val stat = Stat(sft, query)
+    features.foreach(stat.observe)
+    val encoded = if (encode) { KryoLazyStatsUtils.encodeStat(sft)(stat) } else { stat.toJson }
+    Iterator(new ScalaSimpleFeature("stat", KryoLazyStatsUtils.StatsSft, Array(encoded, GeometryUtils.zeroPoint)))
+  }
+
+  private def projectionTransform(features: Iterator[SimpleFeature],
+                                  transform: SimpleFeatureType,
+                                  definitions: String): Iterator[SimpleFeature] = {
+    val tdefs = TransformProcess.toDefinition(definitions)
+    val reusableSf = new ScalaSimpleFeature("", transform)
+    var i = 0
+    features.map { feature =>
+      reusableSf.setId(feature.getID)
+      i = 0
+      while (i < tdefs.size) {
+        reusableSf.setAttribute(i, tdefs.get(i).expression.evaluate(feature))
+        i += 1
+      }
+      reusableSf
     }
   }
 }
