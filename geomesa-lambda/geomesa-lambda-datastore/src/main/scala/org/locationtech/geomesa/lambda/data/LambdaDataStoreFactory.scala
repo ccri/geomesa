@@ -31,7 +31,7 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
 
   override def createDataStore(params: java.util.Map[String, Serializable]): DataStore = {
     val brokers = Kafka.BrokersParam.lookUp(params).asInstanceOf[String]
-    val expiry = try { Duration(ExpiryParam.lookUp(params).asInstanceOf[String]).toMillis } catch {
+    val expiry = try { Duration(ExpiryParam.lookUp(params).asInstanceOf[String]) } catch {
       case NonFatal(e) => throw new RuntimeException(s"Couldn't parse expiry parameter: ${ExpiryParam.lookUp(params)}", e)
     }
     val persist = Option(PersistParam.lookUp(params).asInstanceOf[java.lang.Boolean]).forall(_.booleanValue)
@@ -41,7 +41,7 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
         Map("bootstrap.servers" -> brokers)
     val producer = {
       val producerConfig = parseKafkaConfig(Kafka.ProducerParam.lookUp(params).asInstanceOf[String]) ++
-          Map("bootstrap.servers" -> brokers, "num.partitions" -> partitions.toString)
+          Map("bootstrap.servers" -> brokers)
       KafkaStore.producer(producerConfig)
     }
 
@@ -58,7 +58,7 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
 
     val config = LambdaConfig(zk, zkNamespace, partitions, expiry, persist)
 
-    val ds = new LambdaDataStore(producer, consumerConfig, persistence, offsetManager, config)(clock)
+    val ds = new LambdaDataStore(persistence, producer, consumerConfig, offsetManager, config)(clock)
 
     ds
   }
@@ -134,7 +134,7 @@ object LambdaDataStoreFactory {
       val ConsumerParam   = new Param("kafka.consumer.options", classOf[String], "Kafka consumer configuration options, in Java properties format'", false, null, Collections.singletonMap(Parameter.IS_LARGE_TEXT, java.lang.Boolean.TRUE))
     }
 
-    val ExpiryParam        = new Param("expiry", classOf[String], "Duration before features expire from transient store", true, "1h")
+    val ExpiryParam        = new Param("expiry", classOf[String], "Duration before features expire from transient store. Use 'Inf' to prevent this store from participating in feature expiration", true, "1h")
     val PersistParam       = new Param("persist", classOf[java.lang.Boolean], "Whether to persist expired features to long-term storage", false, java.lang.Boolean.TRUE)
     val LooseBBoxParam     = GeoMesaDataStoreFactory.LooseBBoxParam
     val GenerateStatsParam = GeoMesaDataStoreFactory.GenerateStatsParam

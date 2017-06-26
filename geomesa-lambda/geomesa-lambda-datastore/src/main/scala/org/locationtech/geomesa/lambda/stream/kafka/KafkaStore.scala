@@ -9,7 +9,6 @@
 package org.locationtech.geomesa.lambda.stream.kafka
 
 import java.time.Clock
-import java.util
 import java.util.concurrent._
 import java.util.{Properties, UUID}
 
@@ -38,6 +37,7 @@ import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
 
+import scala.concurrent.duration.Duration
 import scala.util.hashing.MurmurHash3
 
 class KafkaStore(ds: DataStore,
@@ -59,22 +59,32 @@ class KafkaStore(ds: DataStore,
   private val queryRunner = new KafkaQueryRunner(state, stats, authProvider)
 
   private val loader = new KafkaCacheLoader(offsetManager, serializer, state, consumerConfig, topic, config.partitions)
-  private val persistence = new DataStorePersistence(ds, sft, offsetManager, state, topic, config.expiry, config.persist)
+  private val persistence = config.expiry match {
+    case Duration.Inf => None
+    case d => Some(new DataStorePersistence(ds, sft, offsetManager, state, topic, d.toMillis, config.persist))
+  }
 
-  override def createSchema(): Unit = {}
+  override def createSchema(): Unit = {
+    KafkaStore.withZk(config.zookeepers) { zk =>
+      if (AdminUtils.topicExists(zk, topic)) {
+       logger.warn(s"Topic [$topic] already exists - it may contain stale data")
+      } else {
+        val replication = SystemProperty("geomesa.kafka.replication").option.map(_.toInt).getOrElse(1)
+        AdminUtils.createTopic(zk, topic, config.partitions, replication)
+      }
+    }
+  }
 
   override def removeSchema(): Unit = {
     offsetManager.deleteOffsets(topic)
-    val security = SystemProperty("geomesa.zookeeper.security.enabled").option.exists(_.toBoolean)
-    val zkUtils = ZkUtils(config.zookeepers, 3000, 3000, security)
-    try {
-      if (AdminUtils.topicExists(zkUtils, topic)) {
-        AdminUtils.deleteTopic(zkUtils, topic)
+    KafkaStore.withZk(config.zookeepers) { zk =>
+      try {
+        if (AdminUtils.topicExists(zk, topic)) {
+          AdminUtils.deleteTopic(zk, topic)
+        }
+      } catch {
+        case _: TopicAlreadyMarkedForDeletionException => logger.warn("Topic is already marked for deletion")
       }
-    } catch {
-      case e: TopicAlreadyMarkedForDeletionException => logger.warn("Topic is marked for deletion already")
-    } finally {
-      zkUtils.close()
     }
   }
 
@@ -111,11 +121,14 @@ class KafkaStore(ds: DataStore,
     }
   }
 
-  override def persist(): Unit = persistence.run()
+  override def persist(): Unit = persistence match {
+    case Some(p) => p.run()
+    case None => throw new IllegalStateException("Persistence disabled for this store")
+  }
 
   override def close(): Unit = {
     CloseWithLogging(loader)
-    CloseWithLogging(persistence)
+    persistence.foreach(CloseWithLogging.apply)
   }
 }
 
@@ -134,8 +147,18 @@ object KafkaStore {
   def topic(ns: String, sft: SimpleFeatureType): String =
     s"${ns}_${sft.getTypeName}".replaceAll("[^a-zA-Z0-9_\\-]", "_")
 
+  def withZk[T](zookeepers: String)(fn: (ZkUtils) => T): T = {
+    val security = SystemProperty("geomesa.zookeeper.security.enabled").option.exists(_.toBoolean)
+    val zkUtils = ZkUtils(zookeepers, 3000, 3000, security)
+    try {
+      fn(zkUtils)
+    } finally {
+      zkUtils.close()
+    }
+  }
+
   def producer(connect: Map[String, String]): Producer[Array[Byte], Array[Byte]] = {
-    import ProducerConfig._
+    import org.apache.kafka.clients.producer.ProducerConfig._
     val props = new Properties()
     // set some defaults but allow them to be overridden
     props.put(ACKS_CONFIG, "1") // mix of reliability and performance
@@ -149,12 +172,14 @@ object KafkaStore {
   }
 
   def consumer(connect: Map[String, String], group: String): Consumer[Array[Byte], Array[Byte]] = {
+    import org.apache.kafka.clients.consumer.ConsumerConfig._
     val props = new Properties()
     connect.foreach { case (k, v) => props.put(k, v) }
-    props.put("group.id", group)
-    props.put("enable.auto.commit", "false")
-    props.put("key.deserializer", classOf[ByteArrayDeserializer].getName)
-    props.put("value.deserializer", classOf[ByteArrayDeserializer].getName)
+    props.put(GROUP_ID_CONFIG, group)
+    props.put(ENABLE_AUTO_COMMIT_CONFIG, "false")
+    props.put(AUTO_OFFSET_RESET_CONFIG, "earliest")
+    props.put(KEY_DESERIALIZER_CLASS_CONFIG, classOf[ByteArrayDeserializer].getName)
+    props.put(VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ByteArrayDeserializer].getName)
     new KafkaConsumer[Array[Byte], Array[Byte]](props)
   }
 
@@ -169,7 +194,7 @@ object KafkaStore {
 
     Seq.fill(parallelism) {
       val consumer = KafkaStore.consumer(connect, group)
-      consumer.subscribe(topics, new OffsetRebalancer(consumer, topic, manager, state))
+      consumer.subscribe(topics, new OffsetRebalancer(consumer, manager, state))
       consumer
     }
   }
@@ -193,21 +218,19 @@ object KafkaStore {
   private [kafka] def deserializeKey(key: Array[Byte]): (Long, Byte) = (Longs.fromByteArray(key), key(8))
 
   private [kafka] class OffsetRebalancer(consumer: Consumer[Array[Byte], Array[Byte]],
-                                         topic: String,
                                          manager: OffsetManager,
                                          state: SharedState) extends ConsumerRebalanceListener {
 
-    override def onPartitionsRevoked(topicPartitions: util.Collection[TopicPartition]): Unit = {}
+    override def onPartitionsRevoked(topicPartitions: java.util.Collection[TopicPartition]): Unit = {}
 
-    override def onPartitionsAssigned(topicPartitions: util.Collection[TopicPartition]): Unit = {
+    override def onPartitionsAssigned(topicPartitions: java.util.Collection[TopicPartition]): Unit = {
       import scala.collection.JavaConversions._
 
-      // ensure we have queues for each partition
-      topicPartitions.foreach(tp => state.ensurePartition(tp.partition))
-
-      // read our last committed offsets and seek to them
       topicPartitions.foreach { tp =>
-        val lastRead = manager.getOffset(topic, tp.partition())
+        // ensure we have queues for each partition
+        state.ensurePartition(tp.partition)
+        // read our last committed offsets and seek to them
+        val lastRead = manager.getOffset(tp.topic(), tp.partition())
         if (lastRead > 0) {
           consumer.seek(tp, lastRead)
         } else {

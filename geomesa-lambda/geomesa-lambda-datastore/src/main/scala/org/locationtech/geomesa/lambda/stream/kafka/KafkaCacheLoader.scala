@@ -21,6 +21,8 @@ import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.MessageTypes
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 
+import scala.util.control.NonFatal
+
 /**
   * Consumes from kakfa and populates the local cache
   *   1. reads offsets stored in zk on startup
@@ -106,6 +108,8 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
         // we commit the offsets so that the next poll doesn't return the same records
         // on init we roll back to the last offsets persisted to storage
         consumer.commitSync()
+      } catch {
+        case NonFatal(e) => logger.warn("Error receiving message from kafka", e)
       } finally {
         running.decrementAndGet()
       }

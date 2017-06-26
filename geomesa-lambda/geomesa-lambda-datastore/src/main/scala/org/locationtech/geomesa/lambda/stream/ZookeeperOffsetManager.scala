@@ -130,7 +130,7 @@ object ZookeeperOffsetManager {
           listener.offsetChanged(partition, offset)
         }
       } catch {
-        case NonFatal(e) => logger.warn("Error handling ZK event:", e)
+        case NonFatal(e) => logger.warn("Error handling ZK event", e)
       }
     }
   }
