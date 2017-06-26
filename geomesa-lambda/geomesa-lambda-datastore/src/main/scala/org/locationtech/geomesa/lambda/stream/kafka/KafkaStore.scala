@@ -18,9 +18,9 @@ import com.google.common.util.concurrent.MoreExecutors
 import kafka.admin.AdminUtils
 import kafka.utils.ZkUtils
 import org.apache.kafka.clients.consumer.{Consumer, ConsumerRebalanceListener, KafkaConsumer}
-import org.apache.kafka.clients.producer.{KafkaProducer, Producer, ProducerRecord}
-import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.clients.producer._
 import org.apache.kafka.common.serialization._
+import org.apache.kafka.common.{Cluster, TopicPartition}
 import org.geotools.data.{DataStore, Query, Transaction}
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.features.SerializationOption.SerializationOptions
@@ -35,6 +35,8 @@ import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemPropert
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, WithClose}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
+
+import scala.util.hashing.MurmurHash3
 
 class KafkaStore(ds: DataStore,
                  val sft: SimpleFeatureType,
@@ -128,14 +130,16 @@ object KafkaStore {
     s"${ns}_${sft.getTypeName}".replaceAll("[^a-zA-Z0-9_\\-]", "_")
 
   def producer(connect: Map[String, String]): Producer[Array[Byte], Array[Byte]] = {
+    import ProducerConfig._
     val props = new Properties()
     // set some defaults but allow them to be overridden
-    props.put("acks", "1") // mix of reliability and performance
-    props.put("retries", Int.box(3))
-    props.put("linger.ms", Int.box(3)) // helps improve batching at the expense of slight delays in write
+    props.put(ACKS_CONFIG, "1") // mix of reliability and performance
+    props.put(RETRIES_CONFIG, Int.box(3))
+    props.put(LINGER_MS_CONFIG, Int.box(3)) // helps improve batching at the expense of slight delays in write
     connect.foreach { case (k, v) => props.put(k, v) }
-    props.put("key.serializer", classOf[ByteArraySerializer].getName)
-    props.put("value.serializer", classOf[ByteArraySerializer].getName)
+    props.put(PARTITIONER_CLASS_CONFIG, classOf[FeatureIdPartitioner].getName)
+    props.put(KEY_SERIALIZER_CLASS_CONFIG, classOf[ByteArraySerializer].getName)
+    props.put(VALUE_SERIALIZER_CLASS_CONFIG, classOf[ByteArraySerializer].getName)
     new KafkaProducer[Array[Byte], Array[Byte]](props)
   }
 
@@ -183,8 +187,6 @@ object KafkaStore {
 
   private [kafka] def deserializeKey(key: Array[Byte]): (Long, Byte) = (Longs.fromByteArray(key), key(8))
 
-  // TODO ensure a feature goes to the same partition
-
   private [kafka] class OffsetRebalancer(consumer: Consumer[Array[Byte], Array[Byte]],
                                          topic: String,
                                          manager: OffsetManager,
@@ -208,5 +210,24 @@ object KafkaStore {
         }
       }
     }
+  }
+
+  class FeatureIdPartitioner extends Partitioner {
+
+    override def partition(topic: String,
+                           key: scala.Any,
+                           keyBytes: Array[Byte],
+                           value: scala.Any,
+                           valueBytes: Array[Byte],
+                           cluster: Cluster): Int = {
+      val count = cluster.partitionsForTopic(topic).size
+      // feature id starts at position 5
+      val id = KryoFeatureSerializer.getInput(valueBytes, 5, valueBytes.length - 5).readString()
+      Math.abs(MurmurHash3.stringHash(id)) % count
+    }
+
+    override def configure(configs: java.util.Map[String, _]): Unit = {}
+
+    override def close(): Unit = {}
   }
 }
