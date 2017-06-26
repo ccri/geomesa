@@ -15,7 +15,9 @@ import java.util.{Properties, UUID}
 
 import com.google.common.primitives.Longs
 import com.google.common.util.concurrent.MoreExecutors
+import com.typesafe.scalalogging.LazyLogging
 import kafka.admin.AdminUtils
+import kafka.common.TopicAlreadyMarkedForDeletionException
 import kafka.utils.ZkUtils
 import org.apache.kafka.clients.consumer.{Consumer, ConsumerRebalanceListener, KafkaConsumer}
 import org.apache.kafka.clients.producer._
@@ -45,7 +47,8 @@ class KafkaStore(ds: DataStore,
                  producer: Producer[Array[Byte], Array[Byte]],
                  consumerConfig: Map[String, String],
                  config: LambdaConfig)
-                (implicit clock: Clock = Clock.systemUTC()) extends TransientStore {
+                (implicit clock: Clock = Clock.systemUTC())
+    extends TransientStore with LazyLogging {
 
   private val topic = KafkaStore.topic(config.zkNamespace, sft)
 
@@ -68,6 +71,8 @@ class KafkaStore(ds: DataStore,
       if (AdminUtils.topicExists(zkUtils, topic)) {
         AdminUtils.deleteTopic(zkUtils, topic)
       }
+    } catch {
+      case e: TopicAlreadyMarkedForDeletionException => logger.warn("Topic is marked for deletion already")
     } finally {
       zkUtils.close()
     }

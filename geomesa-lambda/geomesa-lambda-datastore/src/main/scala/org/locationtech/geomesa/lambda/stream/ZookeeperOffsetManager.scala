@@ -11,6 +11,7 @@ package org.locationtech.geomesa.lambda.stream
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.curator.framework.recipes.cache.{PathChildrenCache, PathChildrenCacheEvent, PathChildrenCacheListener}
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
@@ -19,6 +20,8 @@ import org.locationtech.geomesa.index.utils.Releasable
 import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
 import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager.CuratorOffsetListener
 import org.locationtech.geomesa.utils.io.CloseWithLogging
+
+import scala.util.control.NonFatal
 
 class ZookeeperOffsetManager(zookeepers: String, namespace: String = "geomesa") extends OffsetManager {
 
@@ -113,16 +116,21 @@ object ZookeeperOffsetManager {
   private def partitionFromPath(path: String): Int = path.substring(path.lastIndexOf("/") + 1).toInt
 
   private class CuratorOffsetListener(client: CuratorFramework, listener: OffsetListener, path: String)
-      extends PathChildrenCacheListener {
+      extends PathChildrenCacheListener with LazyLogging {
 
     import PathChildrenCacheEvent.Type.{CHILD_ADDED, CHILD_UPDATED}
 
     override def childEvent(client: CuratorFramework, event: PathChildrenCacheEvent): Unit = {
-      val eventPath = event.getData.getPath
-      if ((event.getType == CHILD_UPDATED || event.getType == CHILD_ADDED) && eventPath.startsWith(path)) {
-        val partition = partitionFromPath(eventPath)
-        val offset = ZookeeperOffsetManager.deserializeOffsets(event.getData.getData)
-        listener.offsetChanged(partition, offset)
+      try {
+        val eventPath = event.getData.getPath
+        if ((event.getType == CHILD_UPDATED || event.getType == CHILD_ADDED) && eventPath.startsWith(path)) {
+          logger.trace(s"ZK event triggered for: $eventPath")
+          val partition = partitionFromPath(eventPath)
+          val offset = ZookeeperOffsetManager.deserializeOffsets(event.getData.getData)
+          listener.offsetChanged(partition, offset)
+        }
+      } catch {
+        case NonFatal(e) => logger.warn("Error handling ZK event:", e)
       }
     }
   }
