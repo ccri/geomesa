@@ -82,8 +82,12 @@ class LambdaDataStore(producer: Producer[Array[Byte], Array[Byte]],
   override def removeSchema(typeName: Name): Unit = removeSchema(typeName.getLocalPart)
 
   override def removeSchema(typeName: String): Unit = {
+    // note: call transient first, as it may rely on the schema being present
+    val transient = transients.get(typeName)
+    transient.removeSchema()
+    CloseWithLogging(transient)
+    transients.invalidate(typeName)
     persistence.removeSchema(typeName)
-    transients.get(typeName).removeSchema()
   }
 
   override def getFeatureSource(typeName: Name): SimpleFeatureSource = getFeatureSource(typeName.getLocalPart)
