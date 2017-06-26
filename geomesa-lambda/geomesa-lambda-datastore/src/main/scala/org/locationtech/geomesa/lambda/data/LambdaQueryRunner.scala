@@ -9,15 +9,18 @@
 package org.locationtech.geomesa.lambda.data
 
 import com.github.benmanes.caffeine.cache.LoadingCache
-import org.geotools.data.{DataStore, Query}
+import org.geotools.data.{DataStore, Query, Transaction}
 import org.geotools.factory.Hints
+import org.locationtech.geomesa.filter.filterToString
 import org.locationtech.geomesa.filter.function.BinaryOutputEncoder
+import org.locationtech.geomesa.index.audit.QueryEvent
 import org.locationtech.geomesa.index.conf.QueryHints
+import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
 import org.locationtech.geomesa.index.iterators.DensityScan
 import org.locationtech.geomesa.index.planning.QueryRunner
 import org.locationtech.geomesa.index.utils.{Explainer, KryoLazyStatsUtils}
 import org.locationtech.geomesa.lambda.stream.TransientStore
-import org.locationtech.geomesa.utils.collection.CloseableIterator
+import org.locationtech.geomesa.utils.collection.{CloseableIterator, SelfClosingIterator}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
 import scala.concurrent.duration.Duration
@@ -28,13 +31,40 @@ class LambdaQueryRunner(persistence: DataStore, transients: LoadingCache[String,
 
   import org.locationtech.geomesa.index.conf.QueryHints.RichHints
 
-  // TODO add query hint for only reading from transient or persistent store
-  // note: need to still audit queries if the persistent store isn't hit
+  // TODO pass explain through?
 
   override def runQuery(sft: SimpleFeatureType, query: Query, explain: Explainer): CloseableIterator[SimpleFeature] = {
+    if (query.getHints.isLambdaQueryPersistent && query.getHints.isLambdaQueryTransient) {
+      runMergedQuery(sft, query, explain)
+    } else if (query.getHints.isLambdaQueryPersistent) {
+      SelfClosingIterator(persistence.getFeatureReader(query, Transaction.AUTO_COMMIT))
+    } else {
+      // ensure that we still audit the query
+      val audit = Option(persistence).collect { case ds: GeoMesaDataStore[_, _, _] => ds.config.audit }.flatten
+      audit.foreach { case (writer, provider, typ) =>
+        val stat = QueryEvent(
+          s"$typ-lambda",
+          sft.getTypeName,
+          System.currentTimeMillis(),
+          provider.getCurrentUserId,
+          filterToString(query.getFilter),
+          QueryEvent.hintsToString(query.getHints),
+          0,
+          0,
+          0
+        )
+        writer.writeEvent(stat) // note: implementations should be asynchronous
+      }
+      CloseableIterator(transients.get(sft.getTypeName).read(Option(query.getFilter),
+        Option(query.getPropertyNames), Option(query.getHints), explain))
+    }
+  }
+
+  private def runMergedQuery(sft: SimpleFeatureType, query: Query, explain: Explainer): CloseableIterator[SimpleFeature] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     // TODO arrow scans will return two files, will js handle that?
+    // TODO create arrow dictionaries up front from both stores
 
     // if this is a stats query, disable json results temporarily, otherwise we can't merge stats from both sources
     val encodeStats = query.getHints.isStatsQuery && query.getHints.isStatsEncode

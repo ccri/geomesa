@@ -100,6 +100,7 @@ class LambdaDataStoreTest extends LambdaTest with LazyLogging {
             clock.tick = clock.millis + 50
           }
         }
+        // TODO test query_persisent/transient
         // test queries against the transient store
         ds.transients.get(sft.getTypeName).read().toSeq must eventually(40, 100.millis)(containTheSameElementsAs(features))
         SelfClosingIterator(ds.getFeatureReader(new Query(sft.getTypeName), Transaction.AUTO_COMMIT)).toSeq must

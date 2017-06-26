@@ -63,7 +63,9 @@ class KafkaStore(ds: DataStore,
     val security = SystemProperty("geomesa.zookeeper.security.enabled").option.exists(_.toBoolean)
     val zkUtils = ZkUtils(config.zookeepers, 3000, 3000, security)
     try {
-      AdminUtils.deleteTopic(zkUtils, topic)
+      if (AdminUtils.topicExists(zkUtils, topic)) {
+        AdminUtils.deleteTopic(zkUtils, topic)
+      }
     } finally {
       zkUtils.close()
     }

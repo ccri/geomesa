@@ -81,6 +81,9 @@ object ViewParams extends LazyLogging {
         case "ARROW_SORT_FIELD"         => setHint(ARROW_SORT_FIELD, value)
         case "ARROW_SORT_REVERSE"       => toBoolean(key, value).foreach(setHint(ARROW_SORT_REVERSE, _))
 
+        case "LAMBDA_QUERY_PERSISTENT"  => toBoolean(key, value).foreach(setHint(LAMBDA_QUERY_PERSISTENT, _))
+        case "LAMBDA_QUERY_TRANSIENT"   => toBoolean(key, value).foreach(setHint(LAMBDA_QUERY_TRANSIENT, _))
+
         case _ => logger.debug(s"Ignoring view param $key=$value")
       }
     }
