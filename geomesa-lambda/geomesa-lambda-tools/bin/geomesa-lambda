@@ -99,6 +99,13 @@ if [[ -d "${ZOOKEEPER_HOME}" ]]; then
   ZOOKEEPER_JAR="$(find $ZOOKEEPER_HOME -maxdepth 1 -type f -name *zookeeper*jar)"
 fi
 
+# load kafka jars
+if [[ -n "$KAFKA_HOME" ]]; then
+  KAFKA_CP="$(findJars $KAFKA_HOME/libs true true)"
+else
+  KAFKA_CP=""
+fi
+
 # Geomesa tools setup completed, below we parse user arguments
 #
 # configure | runs the geomesa configuration, sets both the ${geomesa.dist.foobar} and PATH vars
@@ -108,12 +115,12 @@ fi
 if  [[ $1 = configure ]]; then
   geomesaConfigure
 elif [[ $1 = classpath ]]; then
-  CLASSPATH="$GEOMESA_CP:$ACCUMULO_CP:$HADOOP_CP:${ZOOKEEPER_JAR}"
+  CLASSPATH="$GEOMESA_CP:$ACCUMULO_CP:$HADOOP_CP:$ZOOKEEPER_JAR:$KAFKA_CP"
   for element in ${CLASSPATH//:/ } ; do
     echo ${element}
   done
 else
-  CLASSPATH="$GEOMESA_CP:$ACCUMULO_CP:$HADOOP_CP:${ZOOKEEPER_JAR}"
+  CLASSPATH="$GEOMESA_CP:$ACCUMULO_CP:$HADOOP_CP:$ZOOKEEPER_JAR:$KAFKA_CP"
   if [[ $1 = debug ]]; then
     GEOMESA_OPTS="$GEOMESA_OPTS $GEOMESA_DEBUG_OPTS"
     shift 1
