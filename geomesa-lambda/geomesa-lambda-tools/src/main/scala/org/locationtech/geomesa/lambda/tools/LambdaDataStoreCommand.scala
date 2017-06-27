@@ -24,19 +24,19 @@ trait LambdaDataStoreCommand extends DataStoreCommand[LambdaDataStore] {
 
   override def connection: Map[String, String] = {
     val parsedParams = Map[String, String](
-      LambdaDataStoreFactory.Params.Accumulo.InstanceParam.getName     -> params.instance,
-      LambdaDataStoreFactory.Params.Accumulo.ZookeepersParam.getName   -> params.zookeepers,
-      LambdaDataStoreFactory.Params.Accumulo.UserParam.getName         -> params.user,
-      LambdaDataStoreFactory.Params.Accumulo.PasswordParam.getName     -> params.password,
-      LambdaDataStoreFactory.Params.Accumulo.KeytabParam.getName       -> params.keytab,
-      LambdaDataStoreFactory.Params.Accumulo.CatalogParam.getName      -> params.catalog,
-      LambdaDataStoreFactory.Params.Accumulo.VisibilitiesParam.getName -> params.visibilities,
-      LambdaDataStoreFactory.Params.Accumulo.AuthsParam.getName        -> params.auths,
-      LambdaDataStoreFactory.Params.Accumulo.MockParam.getName         -> params.mock.toString,
-      LambdaDataStoreFactory.Params.Kafka.BrokersParam.getName         -> params.brokers,
-      LambdaDataStoreFactory.Params.Kafka.ZookeepersParam.getName      -> Option(params.kafkaZookeepers).getOrElse(params.zookeepers),
-      LambdaDataStoreFactory.Params.Kafka.PartitionsParam.getName      -> Option(params.partitions).map(_.toString).orNull,
-      LambdaDataStoreFactory.Params.ExpiryParam.getName                -> "99d" // disable expiration handling for tools
+      LambdaDataStoreFactory.Params.Accumulo.InstanceParam.getName   -> params.instance,
+      LambdaDataStoreFactory.Params.Accumulo.ZookeepersParam.getName -> params.zookeepers,
+      LambdaDataStoreFactory.Params.Accumulo.UserParam.getName       -> params.user,
+      LambdaDataStoreFactory.Params.Accumulo.PasswordParam.getName   -> params.password,
+      LambdaDataStoreFactory.Params.Accumulo.KeytabParam.getName     -> params.keytab,
+      LambdaDataStoreFactory.Params.Accumulo.CatalogParam.getName    -> params.catalog,
+      LambdaDataStoreFactory.Params.VisibilitiesParam.getName        -> params.visibilities,
+      LambdaDataStoreFactory.Params.AuthsParam.getName               -> params.auths,
+      LambdaDataStoreFactory.Params.Accumulo.MockParam.getName       -> params.mock.toString,
+      LambdaDataStoreFactory.Params.Kafka.BrokersParam.getName       -> params.brokers,
+      LambdaDataStoreFactory.Params.Kafka.ZookeepersParam.getName    -> Option(params.kafkaZookeepers).getOrElse(params.zookeepers),
+      LambdaDataStoreFactory.Params.Kafka.PartitionsParam.getName    -> Option(params.partitions).map(_.toString).orNull,
+      LambdaDataStoreFactory.Params.ExpiryParam.getName              -> "Inf" // disable expiration handling for tools
     ).filter(_._2 != null)
 
     if (parsedParams.get(LambdaDataStoreFactory.Params.Accumulo.MockParam.getName).exists(_.toBoolean)) {

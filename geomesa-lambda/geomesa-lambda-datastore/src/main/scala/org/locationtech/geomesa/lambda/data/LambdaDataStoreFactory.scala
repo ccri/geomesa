@@ -45,7 +45,8 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
       KafkaStore.producer(producerConfig)
     }
 
-    // TODO audit queries if some don't get sent to accumulo
+    // TODO attribute level vis
+    // TODO apply default visibilities/auths to kafka store
     val persistence = new AccumuloDataStoreFactory().createDataStore(filter("accumulo", params))
 
     val zkNamespace = s"gm_lambda_${persistence.config.catalog}"
@@ -80,9 +81,8 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
     LambdaDataStoreFactory.Params.Kafka.ZookeepersParam,
     LambdaDataStoreFactory.Params.ExpiryParam,
     LambdaDataStoreFactory.Params.PersistParam,
-    LambdaDataStoreFactory.Params.Accumulo.AuthsParam,
-    LambdaDataStoreFactory.Params.Accumulo.EmptyAuthsParam,
-    LambdaDataStoreFactory.Params.Accumulo.VisibilitiesParam,
+    LambdaDataStoreFactory.Params.AuthsParam,
+    LambdaDataStoreFactory.Params.EmptyAuthsParam,
     LambdaDataStoreFactory.Params.Accumulo.QueryTimeoutParam,
     LambdaDataStoreFactory.Params.Accumulo.QueryThreadsParam,
     LambdaDataStoreFactory.Params.Accumulo.RecordThreadsParam,
@@ -90,6 +90,7 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
     LambdaDataStoreFactory.Params.Kafka.PartitionsParam,
     LambdaDataStoreFactory.Params.Kafka.ProducerParam,
     LambdaDataStoreFactory.Params.Kafka.ConsumerParam,
+    LambdaDataStoreFactory.Params.VisibilitiesParam,
     LambdaDataStoreFactory.Params.LooseBBoxParam,
     LambdaDataStoreFactory.Params.GenerateStatsParam,
     LambdaDataStoreFactory.Params.AuditQueriesParam
@@ -116,9 +117,6 @@ object LambdaDataStoreFactory {
       val UserParam          = copy("accumulo", AccumuloDataStoreParams.userParam)
       val PasswordParam      = copy("accumulo", AccumuloDataStoreParams.passwordParam)
       val KeytabParam        = copy("accumulo", AccumuloDataStoreParams.keytabPathParam)
-      val AuthsParam         = copy("accumulo", AccumuloDataStoreParams.authsParam)
-      val EmptyAuthsParam    = copy("accumulo", AccumuloDataStoreParams.forceEmptyAuthsParam)
-      val VisibilitiesParam  = copy("accumulo", AccumuloDataStoreParams.visibilityParam)
       val QueryTimeoutParam  = copy("accumulo", AccumuloDataStoreParams.queryTimeoutParam)
       val QueryThreadsParam  = copy("accumulo", AccumuloDataStoreParams.queryThreadsParam)
       val RecordThreadsParam = copy("accumulo", AccumuloDataStoreParams.recordThreadsParam)
@@ -136,6 +134,9 @@ object LambdaDataStoreFactory {
 
     val ExpiryParam        = new Param("expiry", classOf[String], "Duration before features expire from transient store. Use 'Inf' to prevent this store from participating in feature expiration", true, "1h")
     val PersistParam       = new Param("persist", classOf[java.lang.Boolean], "Whether to persist expired features to long-term storage", false, java.lang.Boolean.TRUE)
+    val VisibilitiesParam  = AccumuloDataStoreParams.visibilityParam
+    val AuthsParam         = AccumuloDataStoreParams.authsParam
+    val EmptyAuthsParam    = AccumuloDataStoreParams.forceEmptyAuthsParam
     val LooseBBoxParam     = GeoMesaDataStoreFactory.LooseBBoxParam
     val GenerateStatsParam = GeoMesaDataStoreFactory.GenerateStatsParam
     val AuditQueriesParam  = GeoMesaDataStoreFactory.AuditQueriesParam
@@ -153,7 +154,7 @@ object LambdaDataStoreFactory {
     }
   }
 
-  private val DisplayName = "Accumulo/Kafka Lambda (GeoMesa)"
+  private val DisplayName = "Kafka/Accumulo Lambda (GeoMesa)"
 
   private val Description = "Hybrid store using Kafka for recent events and Accumulo for long-term storage"
 

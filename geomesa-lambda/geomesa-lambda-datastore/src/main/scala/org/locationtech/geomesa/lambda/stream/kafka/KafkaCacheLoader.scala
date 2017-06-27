@@ -46,7 +46,7 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
 
   private val offsets = new ConcurrentHashMap[Int, Long]()
 
-  private val frequency = SystemProperty("geomesa.lambda.cache.run.delay").toDuration.getOrElse(100L)
+  private val frequency = SystemProperty("geomesa.lambda.load.interval").toDuration.getOrElse(100L)
 
   private val consumers =
     KafkaStore.consumers(config, topic, offsetManager, state, parallelism).map(new ConsumerRunnable(_))
