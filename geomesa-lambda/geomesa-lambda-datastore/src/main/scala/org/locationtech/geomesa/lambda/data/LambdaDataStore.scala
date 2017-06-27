@@ -83,7 +83,6 @@ class LambdaDataStore(val persistence: DataStore,
         AdminUtils.createTopic(zk, topic, config.partitions, replication)
       }
     }
-
   }
 
   override def getSchema(typeName: Name): SimpleFeatureType = getSchema(typeName.getLocalPart)

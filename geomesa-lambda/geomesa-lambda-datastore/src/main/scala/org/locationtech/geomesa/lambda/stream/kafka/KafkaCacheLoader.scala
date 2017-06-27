@@ -14,6 +14,7 @@ import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.clients.consumer.Consumer
+import org.apache.kafka.common.errors.WakeupException
 import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.lambda.stream.OffsetManager
@@ -109,7 +110,8 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
         // on init we roll back to the last offsets persisted to storage
         consumer.commitSync()
       } catch {
-        case NonFatal(e) => logger.warn("Error receiving message from kafka", e)
+        case e: WakeupException => // ignore
+        case NonFatal(e)        => logger.warn("Error receiving message from kafka", e)
       } finally {
         running.decrementAndGet()
       }
