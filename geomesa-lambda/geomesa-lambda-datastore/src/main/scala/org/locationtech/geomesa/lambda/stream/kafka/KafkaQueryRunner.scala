@@ -116,6 +116,7 @@ class KafkaQueryRunner(features: SharedState, stats: GeoMesaStats, authProvider:
       val Some((width, height)) = hints.getDensityBounds
       densityTransform(features, sft, envelope, width, height, hints.getDensityWeight)
     } else if (hints.isStatsQuery) {
+      // TODO transform with stats?
       statsTransform(features, sft, hints.getStatsQuery, hints.isStatsEncode)
     } else {
       hints.getTransform match {
