@@ -47,6 +47,7 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
     val req = new TopicMetadataRequest(java.util.Arrays.asList(topic))
     var hasLeader = false
     while (!hasLeader) {
+      Thread.sleep(100)
       hasLeader = consumer.send(req).topicsMetadata.exists { item =>
         item.partitionsMetadata.length == 2 && item.partitionsMetadata.forall(_.leader.host != null)
       }
