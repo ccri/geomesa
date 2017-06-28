@@ -13,13 +13,17 @@
 
 accumulo_version="%%accumulo.version.recommended%%"
 hadoop_version="%%hadoop.version.recommended%%"
+kafka_version="%%kafka.version%%"
 zookeeper_version="%%zookeeper.version.recommended%%"
 thrift_version="%%thrift.version%%"
+zkclient_version="%%zkclient.version%%"
 
 accumulo_version_min="%%accumulo.version.minimum%%"
 hadoop_version_min="%%hadoop.version.minimum%%"
 zookeeper_version_min="%%zookeeper.version.minimum%%"
 thrift_version_min="%%thrift.version.minimum%%"
+
+scala_version="%%scala.binary.version%%"
 
 # for hadoop 2.5 and 2.6 to work we need these
 guava_version="11.0.2"
@@ -57,11 +61,11 @@ function compareVersions() {
 }
 
 function printVersions() {
-  # usage: getVersions [url] [min_version]
+  # usage: getVersions [url] [min_version] <[max_version]>
 
   content=$(wget $1 -q -O -)
   # basic xml parsing for version numbers
-  versions=$(echo "${content}" | grep -oE ">[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}\/<" | grep -oE "[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}")
+  versions=$(echo "${content}" | grep -oE ">[0-9]{1,}(\.[0-9]{1,}){0,}\/<" | grep -oE "[0-9]{1,}(\.[0-9]{1,}){0,}")
   versionArray=($(echo "$versions" | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/ /g'))
 
   # Filter out version numbers that are older than min_version
@@ -76,6 +80,21 @@ function printVersions() {
       versionArray=("${newVersionArray[@]}")
     fi
   done
+
+  # Filter out version numbers that are older newer max_version
+  if [[ -n "${3}" ]]; then
+    for version in "${versionArray[@]}"; do
+      if compareVersions "${version}" "${3}" ; then
+        newVersionArray=()
+        for j in "${versionArray[@]}"; do
+          if [[ "${j}" != "${version}" ]]; then
+            newVersionArray=("${newVersionArray[@]}" "${j}")
+          fi
+        done
+        versionArray=("${newVersionArray[@]}")
+      fi
+    done
+  fi
 
   # Remove empty elements
   versionArray=($( echo "${versionArray[@]}" | sed -e 's/  / /g'))
@@ -109,12 +128,13 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
   echo "  -l,--list-versions        Print out available version numbers."
   echo "${NL}"
   echo "Example:"
-  echo "./install-hadoop-accumulo.sh /opt/jboss/standalone/deployments/geoserver.war/WEB-INF/lib -a 1.7.1 -h 2.7.3"
+  echo "./install-hadoop-accumulo-kafka.sh /opt/jboss/standalone/deployments/geoserver.war/WEB-INF/lib -a 1.7.1 -h 2.7.3"
   echo "${NL}"
   exit 0
 elif [[ "$1" == "-l" || "$1" == "--list-versions" ]]; then
   accumulo_version_url="${base_url}org/apache/accumulo/accumulo/"
   hadoop_version_url="${base_url}org/apache/hadoop/hadoop-main/"
+  kafka_version_url="${base_url}org/apache/kafka/kafka_${scala_version}/"
   zookeeper_version_url="${base_url}org/apache/zookeeper/zookeeper/"
   thrift_version_url="${base_url}org/apache/thrift/libthrift/"
 
@@ -127,6 +147,8 @@ elif [[ "$1" == "-l" || "$1" == "--list-versions" ]]; then
   echo ""
   echo "Available Hadoop Versions"
   printVersions "${hadoop_version_url}" "${hadoop_version_min}"
+  echo "Available Kafka Versions"
+  printVersions "${kafka_version_url}" "${kafka_version}" "${kafka_version}"
   echo "Available Zookeeper Versions"
   printVersions "${zookeeper_version_url}" "${zookeeper_version_min}"
   echo "Available Thrift Versions"
@@ -219,6 +241,10 @@ else
       "${base_url}commons-logging/commons-logging/${com_log_version}/commons-logging-${com_log_version}.jar"
       "${base_url}com/google/guava/guava/${guava_version}/guava-${guava_version}.jar"
       "${base_url}org/apache/commons/commons-vfs2/${commons_vfs2_version}/commons-vfs2-${commons_vfs2_version}.jar"
+      "${base_url}org/apache/kafka/kafka_2.11/${kafka_version}/kafka_2.11-${kafka_version}.jar"
+      "${base_url}org/apache/kafka/kafka-clients/${kafka_version}/kafka-clients-${kafka_version}.jar"
+      "${base_url}com/101tec/zkclient/${zkclient_version}/zkclient-${zkclient_version}.jar"
+      "${base_url}com/yammer/metrics/metrics-core/2.2.0/metrics-core-2.2.0.jar"
     )
 
     if [[ -n "${htrace_core_version}" ]]; then
