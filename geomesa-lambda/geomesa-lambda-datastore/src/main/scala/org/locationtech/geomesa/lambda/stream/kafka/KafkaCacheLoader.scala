@@ -110,7 +110,7 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
         // on init we roll back to the last offsets persisted to storage
         consumer.commitSync()
       } catch {
-        case e: WakeupException => // ignore
+        case _: WakeupException => // ignore
         case NonFatal(e)        => logger.warn("Error receiving message from kafka", e)
       } finally {
         running.decrementAndGet()

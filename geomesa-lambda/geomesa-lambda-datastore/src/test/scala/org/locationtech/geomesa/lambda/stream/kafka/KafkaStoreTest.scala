@@ -11,20 +11,25 @@ package org.locationtech.geomesa.lambda.stream.kafka
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
+import kafka.admin.AdminUtils
+import kafka.javaapi.TopicMetadataRequest
 import org.geotools.data.memory.MemoryDataStore
 import org.geotools.data.{DataUtilities, Query, Transaction}
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.features.ScalaSimpleFeature
+import org.locationtech.geomesa.lambda.InMemoryOffsetManager
 import org.locationtech.geomesa.lambda.LambdaTestRunnerTest.{LambdaTest, TestClock}
 import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
-import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager
 import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.WithClose
+import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.concurrent.duration.Duration
 
 class KafkaStoreTest extends LambdaTest with LazyLogging {
+
+  sequential
 
   lazy val config = Map("bootstrap.servers" -> brokers)
 
@@ -32,13 +37,28 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
 
   def newNamespace(): String = s"ks-test-${namespaces.getAndIncrement()}"
 
+  def createTopic(ns: String, zookeepers: String, sft: SimpleFeatureType): Unit = {
+    import scala.collection.JavaConversions._
+    val topic = KafkaStore.topic(ns, sft)
+    KafkaStore.withZk(zookeepers)(zk => AdminUtils.createTopic(zk, topic, 2, 1))
+    // based on https://cwiki.apache.org/confluence/display/KAFKA/Finding+Topic+and+Partition+Leader
+    val Array(broker, port) = brokers.split(":")
+    val consumer = new kafka.javaapi.consumer.SimpleConsumer(broker, port.toInt, 100000, 64 * 1024, "test")
+    val req = new TopicMetadataRequest(java.util.Arrays.asList(topic))
+    var hasLeader = false
+    while (!hasLeader) {
+      hasLeader = consumer.send(req).topicsMetadata.exists { item =>
+        item.partitionsMetadata.length == 2 && item.partitionsMetadata.forall(_.leader.host != null)
+      }
+    }
+    logger.trace(s"created topic $topic")
+  }
+
   step {
     logger.info("KafkaStoreTest starting")
   }
 
-  // TODO tests fail intermittently - seems to be due to offset listeners hanging on OffsetManager.getOffsets?
-
-  // TODO test multiple partitions
+  // TODO tests fail intermittently - seems to be due to consumers hanging on retrieving messages?
 
   "TransientStore" should {
     "synchronize features among stores" in {
@@ -48,15 +68,18 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
       val feature = ScalaSimpleFeature.create(sft, "0", "0", "2017-06-05T00:00:00.000Z", "POINT (45 50)")
       feature.getUserData.put(Hints.USE_PROVIDED_FID, Boolean.box(true))
 
+      createTopic(ns, zookeepers, sft)
       val ds = new MemoryDataStore()
 
       try {
         ds.createSchema(sft)
-        WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
+        val om = new InMemoryOffsetManager
+        WithClose(KafkaStore.producer(config)) { producer =>
           def newStore(): KafkaStore =
             new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, Duration(1000, "ms"), persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature)
+            producer.flush()
             foreach(Seq(store1, store2)) { store =>
               store.read().toSeq must eventually(40, 100.millis)(beEqualTo(Seq(feature)))
             }
@@ -79,15 +102,18 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
       val feature = ScalaSimpleFeature.create(sft, "0", "0", "2017-06-05T00:00:00.000Z", "POINT (45 50)")
       feature.getUserData.put(Hints.USE_PROVIDED_FID, Boolean.box(true))
 
+      createTopic(ns, zookeepers, sft)
       val ds = new MemoryDataStore()
 
       try {
         ds.createSchema(sft)
-        WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
+        val om = new InMemoryOffsetManager
+        WithClose(KafkaStore.producer(config)) { producer =>
           def newStore(): KafkaStore =
             new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, Duration(1000, "ms"), persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature)
+            producer.flush()
             foreach(Seq(store1, store2)) { store =>
               store.read().toSeq must eventually(40, 100.millis)(beEqualTo(Seq(feature)))
             }
@@ -122,16 +148,19 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
 
       Seq(feature1, feature2, update1, update2).foreach(_.getUserData.put(Hints.USE_PROVIDED_FID, Boolean.box(true)))
 
+      createTopic(ns, zookeepers, sft)
       val ds = new MemoryDataStore()
 
       try {
         ds.createSchema(sft)
-        WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
+        val om = new InMemoryOffsetManager
+        WithClose(KafkaStore.producer(config)) { producer =>
           def newStore(): KafkaStore =
             new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, Duration(1000, "ms"), persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature1)
             store2.write(feature2)
+            producer.flush()
             foreach(Seq(store1, store2)) { store =>
               store.read().toSeq must eventually(40, 100.millis)(containTheSameElementsAs(Seq(feature1, feature2)))
             }
@@ -139,6 +168,7 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
             clock.tick = 1
             store1.write(update2)
             store2.write(update1)
+            producer.flush()
             foreach(Seq(store1, store2)) { store =>
               store.read().toSeq must eventually(40, 100.millis)(containTheSameElementsAs(Seq(update1, update2)))
             }
@@ -181,15 +211,18 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
 
       Seq(feature1, update1).foreach(_.getUserData.put(Hints.USE_PROVIDED_FID, Boolean.box(true)))
 
+      createTopic(ns, zookeepers, sft)
       val ds = new MemoryDataStore()
 
       try {
         ds.createSchema(sft)
-        WithClose(new ZookeeperOffsetManager(zookeepers, ns), KafkaStore.producer(config)) { (om, producer) =>
+        val om = new InMemoryOffsetManager
+        WithClose(KafkaStore.producer(config)) { producer =>
           def newStore(): KafkaStore =
             new KafkaStore(ds, sft, None, om, producer, config, LambdaConfig(zookeepers, ns, 2, Duration(1000, "ms"), persist = true))
           WithClose(newStore(), newStore()) { (store1, store2) =>
             store1.write(feature1)
+            producer.flush()
             foreach(Seq(store1, store2)) { store =>
               store.read().toSeq must eventually(40, 100.millis)(beEqualTo(Seq(feature1)))
             }
@@ -197,6 +230,7 @@ class KafkaStoreTest extends LambdaTest with LazyLogging {
             // the first feature is expired, but the update is not
             clock.tick = 2000
             store2.write(update1)
+            producer.flush()
             foreach(Seq(store1, store2)) { store =>
               store.read().toSeq must eventually(40, 100.millis)(beEqualTo(Seq(update1)))
             }

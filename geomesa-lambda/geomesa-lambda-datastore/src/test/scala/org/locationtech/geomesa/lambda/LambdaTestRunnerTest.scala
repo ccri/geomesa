@@ -19,7 +19,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 /**
-  * Base class for running all hbase embedded tests
+  * Base class for running all kafka/zk embedded tests
   */
 @RunWith(classOf[JUnitRunner])
 class LambdaTestRunnerTest extends Specification with LazyLogging {
@@ -28,8 +28,8 @@ class LambdaTestRunnerTest extends Specification with LazyLogging {
 
   // add new tests here
   val specs: Seq[LambdaTest] = Seq(
-    new LambdaDataStoreTest
-//    new org.locationtech.geomesa.lambda.stream.kafka.KafkaStoreTest
+    new LambdaDataStoreTest,
+    new org.locationtech.geomesa.lambda.stream.kafka.KafkaStoreTest
   )
 
   step {
@@ -59,6 +59,7 @@ object LambdaTestRunnerTest {
     val connector = LambdaTestRunnerTest.connector
 
     val clock = new TestClock()
+    val offsetManager = new InMemoryOffsetManager
 
     var brokers: String = _
     var zookeepers: String = _
@@ -72,7 +73,8 @@ object LambdaTestRunnerTest {
       "kafka.zookeepers"    -> zookeepers,
       "kafka.partitions"    -> 2,
       "expiry"              -> "100ms",
-      "clock"               -> clock
+      "clock"               -> clock,
+      "offsetManager"       -> offsetManager
     )
   }
 

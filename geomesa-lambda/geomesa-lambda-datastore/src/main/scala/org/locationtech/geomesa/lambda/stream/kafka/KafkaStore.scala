@@ -102,6 +102,7 @@ class KafkaStore(ds: DataStore,
   override def write(feature: SimpleFeature): Unit = {
     val serialized = serializer.serialize(GeoMesaFeatureWriter.featureWithFid(sft, feature))
     producer.send(new ProducerRecord(topic, KafkaStore.serializeKey(clock.millis(), MessageTypes.Write), serialized))
+    logger.trace(s"Wrote feature to [$topic]: $feature")
   }
 
   override def delete(feature: SimpleFeature): Unit = {

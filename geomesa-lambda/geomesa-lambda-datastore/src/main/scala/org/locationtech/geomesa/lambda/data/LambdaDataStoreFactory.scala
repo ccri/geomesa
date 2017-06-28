@@ -18,7 +18,7 @@ import org.geotools.data.{DataStore, DataStoreFactorySpi, Parameter}
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreFactory, AccumuloDataStoreParams}
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory
 import org.locationtech.geomesa.lambda.data.LambdaDataStore.LambdaConfig
-import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager
+import org.locationtech.geomesa.lambda.stream.{OffsetManager, ZookeeperOffsetManager}
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore
 
 import scala.concurrent.duration.Duration
@@ -53,7 +53,8 @@ class LambdaDataStoreFactory extends DataStoreFactorySpi {
 
     val zk = Kafka.ZookeepersParam.lookUp(params).asInstanceOf[String]
 
-    val offsetManager = new ZookeeperOffsetManager(zk, zkNamespace)
+    val offsetManager = Option(OffsetManagerParam.lookUp(params).asInstanceOf[OffsetManager])
+        .getOrElse(new ZookeeperOffsetManager(zk, zkNamespace))
 
     val clock = Option(ClockParam.lookUp(params).asInstanceOf[Clock]).getOrElse(Clock.systemUTC())
 
@@ -140,7 +141,10 @@ object LambdaDataStoreFactory {
     val LooseBBoxParam     = GeoMesaDataStoreFactory.LooseBBoxParam
     val GenerateStatsParam = GeoMesaDataStoreFactory.GenerateStatsParam
     val AuditQueriesParam  = GeoMesaDataStoreFactory.AuditQueriesParam
+
+    // test params
     val ClockParam         = new Param("clock", classOf[Clock], "Clock instance to use for timing", false)
+    val OffsetManagerParam = new Param("offsetManager", classOf[OffsetManager], "Offset manager instance to use", false)
 
     private [data] def copy(ns: String, p: Param): Param =
       new Param(s"$ns.${p.key}", p.`type`, p.title, p.description, p.required, p.minOccurs, p.maxOccurs, p.sample, p.metadata)
