@@ -198,39 +198,40 @@ case class GeoMesaRelation(sqlContext: SQLContext,
                            schema: StructType,
                            params: Map[String, String],
                            filt: org.opengis.filter.Filter = org.opengis.filter.Filter.INCLUDE,
-                           props: Option[Seq[String]] = None)
+                           props: Option[Seq[String]] = None,
+                           var indexRDD: RDD[GeoCQEngine] = null)
   extends BaseRelation with PrunedFilteredScan {
 
   lazy val isMock = Try(params("useMock").toBoolean).getOrElse(false)
 
   val cache = Try(params("cache").toBoolean).getOrElse(false)
 
-  val rawRDD = GeoMesaSpark(params).rdd(
-    new Configuration(), sqlContext.sparkContext, params,
-    new Query(params(GEOMESA_SQL_FEATURE)))
+  val indexId = Try(params("indexId").toBoolean).getOrElse(false)
+
+  val indexGeom = Try(params("indexGeom").toBoolean).getOrElse(false)
+
+  val numPartitions = Try(params("partitions").toInt).getOrElse(4)
+
+  lazy val rawRDD: SpatialRDD = buildRawRDD
+
+  def buildRawRDD = {
+    val raw = GeoMesaSpark(params).rdd(
+      new Configuration(), sqlContext.sparkContext, params,
+      new Query(params(GEOMESA_SQL_FEATURE)))
+
+    if (params.contains("partitions")) {
+      SpatialRDD(raw.repartition(numPartitions), raw.schema)
+    } else {
+      raw
+    }
+  }
 
   val encodedSFT: String = org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeType(sft, true)
 
-  val indexRDD: RDD[GeoCQEngine] = if (cache) {
-
-    val env = new Envelope()
-
-    // JNH: Is this serializable?!
-    val bound: Envelope = rawRDD.aggregate[Envelope](new Envelope())(
-      (env: Envelope, sf: SimpleFeature) => {
-        env.expandToInclude(sf.getDefaultGeometry.asInstanceOf[Geometry].getCoordinate)
-        env
-      },
-      (env1: Envelope, env2: Envelope) => {
-        env1.expandToInclude(env2)
-        env1
-      }
-    )
-
-    println(s"Computed envelope bound $bound.")
+  if (indexRDD == null && cache) {
 
     // TODO:  Implement partitioning
-    SparkUtils.index(encodedSFT, rawRDD)
+    indexRDD = SparkUtils.index(encodedSFT, rawRDD, indexId, indexGeom)
   } else {
     null
   }
@@ -254,16 +255,16 @@ case class GeoMesaRelation(sqlContext: SQLContext,
 object SparkUtils extends LazyLogging {
   import CaseInsensitiveMapFix._
 
-  def indexIterator(encodedSft: String): GeoCQEngine = {
+  def indexIterator(encodedSft: String, indexId: Boolean, indexGeom: Boolean): GeoCQEngine = {
     val sft = org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.createType("", encodedSft)
-    new org.locationtech.geomesa.memory.cqengine.GeoCQEngine(sft)
+    new org.locationtech.geomesa.memory.cqengine.GeoCQEngine(sft, indexId, indexGeom)
   }
 
-  def index(encodedSft: String, rdd: RDD[SimpleFeature]): RDD[GeoCQEngine] = {
+  def index(encodedSft: String, rdd: RDD[SimpleFeature], indexId: Boolean, indexGeom: Boolean): RDD[GeoCQEngine] = {
     rdd.mapPartitions {
       iter =>
-        val engine = SparkUtils.indexIterator(encodedSft)
-        iter.foreach { engine.add }
+        val engine = SparkUtils.indexIterator(encodedSft, indexId, indexGeom)
+        engine.addAll(iter.toList)
         Iterator(engine)
     }
   }
