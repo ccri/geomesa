@@ -15,10 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.errors.WakeupException
-import org.joda.time.{DateTime, DateTimeZone}
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
 import org.locationtech.geomesa.lambda.stream.OffsetManager
-import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaStore.MessageTypes
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 
@@ -41,48 +39,21 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
                        state: SharedState,
                        config: Map[String, String],
                        topic: String,
-                       parallelism: Int) extends OffsetListener with Closeable with LazyLogging {
+                       parallelism: Int) extends Closeable with LazyLogging {
 
   private val running = new AtomicInteger(0)
-
-  private val offsets = scala.collection.mutable.HashMap.empty[Int, Long]
 
   private val frequency = SystemProperty("geomesa.lambda.load.interval").toDuration.getOrElse(100L)
 
   private val consumers =
-    KafkaStore.consumers(config, topic, offsetManager, state, parallelism).map(new ConsumerRunnable(_))
+    KafkaStore.consumers(config, topic, offsetManager, parallelism, state.partitionAssigned).map(new ConsumerRunnable(_))
 
   private val schedules =
     consumers.map(KafkaStore.executor.scheduleWithFixedDelay(_, 0L, frequency, TimeUnit.MILLISECONDS))
 
-  // register as a listener for offset changes
-  offsetManager.addOffsetListener(topic, this)
-
-  override def offsetChanged(partition: Int, offset: Long): Unit = {
-    // remove the expired features from the cache
-    offsets.get(partition) match {
-      case Some(current) =>
-        logger.trace(s"Offsets changed for [$topic:$partition]: $current->$offset")
-        logger.trace(s"Size of cached state (before removal) for [$topic]: ${state.debug()}")
-        var loopCurrent = current
-        if (loopCurrent < offset) {
-          offsets.put(partition, offset)
-          do {
-            state.remove(partition, loopCurrent)
-            loopCurrent += 1
-          } while (loopCurrent < offset)
-        }
-        logger.trace(s"Size of cached state (after removal) for [$topic]: ${state.debug()}")
-      case None =>
-        logger.trace(s"First time in offsetChanged for partitiont $partition.  Setting initial offset to $offset.")
-        offsets.put(partition, offset)
-    }
-  }
-
   override def close(): Unit = {
     consumers.foreach(_.consumer.wakeup())
     schedules.foreach(_.cancel(true))
-    offsetManager.removeOffsetListener(topic, this)
     // ensure run has finished so that we don't get ConcurrentAccessExceptions closing the consumer
     while (running.get > 0) {
       Thread.sleep(10)
@@ -100,16 +71,8 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
           val (time, action) = KafkaStore.deserializeKey(record.key)
           val feature = serializer.deserialize(record.value)
           action match {
-            case MessageTypes.Write  =>
-              logger.trace(s"Adding [${record.partition}:${record.offset}] $feature created at " +
-                  new DateTime(time, DateTimeZone.UTC))
-              state.add(feature, record.partition, record.offset, time)
-
-            case MessageTypes.Delete =>
-              logger.trace(s"Deleting [${record.partition}:${record.offset}] $feature created at " +
-                  new DateTime(time, DateTimeZone.UTC))
-              state.delete(feature, record.partition, record.offset, time)
-
+            case MessageTypes.Write  => state.add(feature, record.partition, record.offset, time)
+            case MessageTypes.Delete => state.delete(feature, record.partition, record.offset, time)
             case _ => logger.error(s"Unhandled message type: $action")
           }
         }

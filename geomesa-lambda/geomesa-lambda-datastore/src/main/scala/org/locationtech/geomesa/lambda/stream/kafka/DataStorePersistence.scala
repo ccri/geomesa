@@ -55,7 +55,7 @@ class DataStorePersistence(ds: DataStore,
   private val lockTimeout = SystemProperty("geomesa.lambda.persist.lock.timeout").toDuration.getOrElse(1000L)
 
   override def run(): Unit = {
-    val expired = state.expired.filter(e => checkPartition(e._1))
+    val expired = state.expired.filter { case (queue, _) => checkPartition(queue) }
     logger.trace(s"Found ${expired.length} partition(s) with expired entries in [$topic]")
     // lock per-partition to allow for multiple write threads
     expired.foreach { case (queue, partition) =>

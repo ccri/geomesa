@@ -54,7 +54,7 @@ class KafkaStore(ds: DataStore,
 
   private val topic = KafkaStore.topic(config.zkNamespace, sft)
 
-  private val state = new SharedState(config.partitions, expire)
+  private val state = new SharedState(topic, config.partitions, expire)
 
   private val serializer = new KryoFeatureSerializer(sft, SerializationOptions.withUserData)
 
@@ -75,6 +75,9 @@ class KafkaStore(ds: DataStore,
       f
     }
   }
+
+  // register as a listener for offset changes
+  offsetManager.addOffsetListener(topic, state)
 
   override def createSchema(): Unit = {
     KafkaStore.withZk(config.zookeepers) { zk =>
@@ -144,6 +147,7 @@ class KafkaStore(ds: DataStore,
   override def close(): Unit = {
     CloseWithLogging(loader)
     persistence.foreach(CloseWithLogging.apply)
+    offsetManager.removeOffsetListener(topic, state)
   }
 
   private def prepFeature(original: SimpleFeature): SimpleFeature =
@@ -204,8 +208,8 @@ object KafkaStore {
   private [kafka] def consumers(connect: Map[String, String],
                                 topic: String,
                                 manager: OffsetManager,
-                                state: SharedState,
-                                parallelism: Int): Seq[Consumer[Array[Byte], Array[Byte]]] = {
+                                parallelism: Int,
+                                callback: (Int, Long) => Unit): Seq[Consumer[Array[Byte], Array[Byte]]] = {
     require(parallelism > 0, "Parallelism must be greater than 0")
 
     val group = UUID.randomUUID().toString
@@ -213,7 +217,7 @@ object KafkaStore {
 
     Seq.fill(parallelism) {
       val consumer = KafkaStore.consumer(connect, group)
-      consumer.subscribe(topics, new OffsetRebalanceListener(consumer, manager, state))
+      consumer.subscribe(topics, new OffsetRebalanceListener(consumer, manager, callback))
       consumer
     }
   }
@@ -238,7 +242,7 @@ object KafkaStore {
 
   private [kafka] class OffsetRebalanceListener(consumer: Consumer[Array[Byte], Array[Byte]],
                                                 manager: OffsetManager,
-                                                state: SharedState) extends ConsumerRebalanceListener {
+                                                callback: (Int, Long) => Unit) extends ConsumerRebalanceListener {
 
     // use reflection to work with kafak 0.9 or 0.10
     lazy val seekToBeginning: TopicPartition => Unit = {
@@ -267,14 +271,18 @@ object KafkaStore {
 
       topicPartitions.foreach { tp =>
         // ensure we have queues for each partition
-        state.ensurePartition(tp.partition)
         // read our last committed offsets and seek to them
+        consumer.pause(tp)
         val lastRead = manager.getOffset(tp.topic(), tp.partition())
         if (lastRead > 0) {
           consumer.seek(tp, lastRead)
+          callback.apply(tp.partition, lastRead)
         } else {
           seekToBeginning(tp)
+          callback.apply(tp.partition, consumer.position(tp))
         }
+        consumer.resume(tp)
+
       }
     }
   }
