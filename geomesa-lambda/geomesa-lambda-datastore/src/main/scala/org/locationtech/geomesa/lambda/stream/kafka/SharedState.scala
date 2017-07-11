@@ -11,6 +11,7 @@ package org.locationtech.geomesa.lambda.stream.kafka
 import java.util.Comparator
 import java.util.concurrent.{ConcurrentHashMap, PriorityBlockingQueue}
 
+import com.typesafe.scalalogging.LazyLogging
 import org.opengis.feature.simple.SimpleFeature
 
 import scala.collection.mutable.ArrayBuffer
@@ -18,7 +19,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * Locally cached features
   */
-class SharedState(partitions: Int, expire: Boolean) {
+class SharedState(partitions: Int, expire: Boolean) extends LazyLogging {
 
   // map of feature id -> feature
   private val features = new ConcurrentHashMap[String, SimpleFeature]
@@ -63,6 +64,11 @@ class SharedState(partitions: Int, expire: Boolean) {
 
   def remove(partition: Int, offset: Long): Unit = {
     val feature = offsets.remove((partition, offset))
+
+    if (feature == null) {
+      logger.error(s"  Tried to remove $partition, $offset, but it was not present in the offsets map.")
+    }
+
     // only remove from feature cache if there haven't been additional updates
     if (feature != null && feature.eq(features.get(feature.getID))) {
       features.remove(feature.getID)

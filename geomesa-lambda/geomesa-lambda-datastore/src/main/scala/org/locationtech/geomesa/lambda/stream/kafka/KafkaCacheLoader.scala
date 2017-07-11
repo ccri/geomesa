@@ -60,17 +60,22 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
 
   override def offsetChanged(partition: Int, offset: Long): Unit = {
     // remove the expired features from the cache
-    var current = offsets.getOrElse(partition, 0L)
-    logger.trace(s"Offsets changed for [$topic:$partition]: $current->$offset")
-    logger.trace(s"Size of cached state (before removal) for [$topic]: ${state.debug()}")
-    if (current < offset) {
-      offsets.put(partition, offset)
-      do {
-        state.remove(partition, current)
-        current += 1
-      } while (current < offset)
+    offsets.get(partition) match {
+      case Some(current) =>
+        logger.trace(s"Offsets changed for [$topic:$partition]: $current->$offset")
+        logger.trace(s"Size of cached state (before removal) for [$topic]: ${state.debug()}")
+        var loopCurrent = current
+        if (loopCurrent < offset) {
+          offsets.put(partition, offset)
+          do {
+            state.remove(partition, loopCurrent)
+            loopCurrent += 1
+          } while (loopCurrent < offset)
+        }
+        logger.trace(s"Size of cached state (after removal) for [$topic]: ${state.debug()}")
+      case None =>
+        logger.trace(s"First time in offsetChanged for partitiont $partition.  Setting initial offset to $offset.")
     }
-    logger.trace(s"Size of cached state (after removal) for [$topic]: ${state.debug()}")
   }
 
   override def close(): Unit = {
