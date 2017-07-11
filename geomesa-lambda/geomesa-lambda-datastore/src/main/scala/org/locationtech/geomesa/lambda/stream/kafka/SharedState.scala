@@ -18,7 +18,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * Locally cached features
   */
-class SharedState(partitions: Int) {
+class SharedState(partitions: Int, expire: Boolean) {
 
   // map of feature id -> feature
   private val features = new ConcurrentHashMap[String, SimpleFeature]
@@ -54,14 +54,16 @@ class SharedState(partitions: Int) {
   def add(f: SimpleFeature, partition: Int, offset: Long, created: Long): Unit = {
     features.put(f.getID, f)
     offsets.put((partition, offset), f)
-    expiry(partition).offer((offset, created, f))
+    if (expire) {
+      expiry(partition).offer((offset, created, f))
+    }
   }
 
   def delete(f: SimpleFeature, partition: Int, offset: Long, created: Long): Unit = features.remove(f.getID)
 
   def remove(partition: Int, offset: Long): Unit = {
     val feature = offsets.remove((partition, offset))
-    // only remove if there haven't been additional updates
+    // only remove from feature cache if there haven't been additional updates
     if (feature != null && feature.eq(features.get(feature.getID))) {
       features.remove(feature.getID)
       // note: don't remove from expiry queue, it requires a synchronous traversal
