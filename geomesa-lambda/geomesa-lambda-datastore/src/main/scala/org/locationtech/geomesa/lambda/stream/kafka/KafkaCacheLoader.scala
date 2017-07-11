@@ -75,6 +75,7 @@ class KafkaCacheLoader(offsetManager: OffsetManager,
         logger.trace(s"Size of cached state (after removal) for [$topic]: ${state.debug()}")
       case None =>
         logger.trace(s"First time in offsetChanged for partitiont $partition.  Setting initial offset to $offset.")
+        offsets.put(partition, offset)
     }
   }
 
