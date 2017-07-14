@@ -171,37 +171,37 @@ object HBaseDataStoreFactory extends LazyLogging {
   }
 
   def buildAuthsProvider(connection: Connection, params: java.util.Map[String, Serializable]): AuthorizationsProvider = {
-    val forceEmptyOpt: Option[java.lang.Boolean] = security.ForceEmptyAuthsParam.lookupOpt[java.lang.Boolean](params)
-    val forceEmptyAuths = forceEmptyOpt.getOrElse(java.lang.Boolean.FALSE).asInstanceOf[Boolean]
-
-    if (!VisibilityClient.isCellVisibilityEnabled(connection)) {
-      throw new IllegalArgumentException("HBase cell visibility is not enabled on cluster")
-    }
-
-    // master auths is the superset of auths this connector/user can support
-    val userName = User.getCurrent.getName
-    val masterAuths = VisibilityClient.getAuths(connection, userName).getAuthList.map(a => Bytes.toString(a.toByteArray))
+//    val forceEmptyOpt: Option[java.lang.Boolean] = security.ForceEmptyAuthsParam.lookupOpt[java.lang.Boolean](params)
+//    val forceEmptyAuths = forceEmptyOpt.getOrElse(java.lang.Boolean.FALSE).asInstanceOf[Boolean]
+//
+//    if (!VisibilityClient.isCellVisibilityEnabled(connection)) {
+//      throw new IllegalArgumentException("HBase cell visibility is not enabled on cluster")
+//    }
+//
+//    // master auths is the superset of auths this connector/user can support
+//    val userName = User.getCurrent.getName
+//    val masterAuths = VisibilityClient.getAuths(connection, userName).getAuthList.map(a => Bytes.toString(a.toByteArray))
 
     // get the auth params passed in as a comma-delimited string
     val configuredAuths = AuthsParam.lookupOpt[String](params).getOrElse("").split(",").filter(s => !s.isEmpty)
 
-    // verify that the configured auths are valid for the connector we are using (fail-fast)
-    val invalidAuths = configuredAuths.filterNot(masterAuths.contains)
-    if (invalidAuths.nonEmpty) {
-      throw new IllegalArgumentException(s"The authorizations '${invalidAuths.mkString(",")}' " +
-        "are not valid for the HBase user and connection being used")
-    }
+//    // verify that the configured auths are valid for the connector we are using (fail-fast)
+//    val invalidAuths = configuredAuths.filterNot(masterAuths.contains)
+//    if (invalidAuths.nonEmpty) {
+//      throw new IllegalArgumentException(s"The authorizations '${invalidAuths.mkString(",")}' " +
+//        "are not valid for the HBase user and connection being used")
+//    }
+//
+//    // if the caller provided any non-null string for authorizations, use it;
+//    // otherwise, grab all authorizations to which the Accumulo user is entitled
+//    if (configuredAuths.length != 0 && forceEmptyAuths) {
+//      throw new IllegalArgumentException("Forcing empty auths is checked, but explicit auths are provided")
+//    }
+//    val auths: List[String] =
+//      if (forceEmptyAuths || configuredAuths.length > 0) configuredAuths.toList
+//      else masterAuths.toList
 
-    // if the caller provided any non-null string for authorizations, use it;
-    // otherwise, grab all authorizations to which the Accumulo user is entitled
-    if (configuredAuths.length != 0 && forceEmptyAuths) {
-      throw new IllegalArgumentException("Forcing empty auths is checked, but explicit auths are provided")
-    }
-    val auths: List[String] =
-      if (forceEmptyAuths || configuredAuths.length > 0) configuredAuths.toList
-      else masterAuths.toList
-
-    security.getAuthorizationsProvider(params, auths)
+    security.getAuthorizationsProvider(params, configuredAuths)
   }
 
   def configureSecurity(conf: Configuration): Unit = {
