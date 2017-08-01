@@ -32,6 +32,8 @@ import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleF
 import org.opengis.feature.`type`._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.apache.spark.sql.sources.Filter
+import org.geotools.util.DateRange
+import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
@@ -211,32 +213,45 @@ case class GeoMesaRelation(sqlContext: SQLContext,
 
   lazy val isMock = Try(params("useMock").toBoolean).getOrElse(false)
 
-  val cache = Try(params("cache").toBoolean).getOrElse(false)
+  var cache = Try(params("cache").toBoolean).getOrElse(false)
 
   val indexId = Try(params("indexId").toBoolean).getOrElse(false)
 
   val indexGeom = Try(params("indexGeom").toBoolean).getOrElse(false)
 
-  val numPartitions = Try(params("partitions").toInt).getOrElse(4)
+  var numPartitions = Try(params("partitions").toInt).getOrElse(4)
 
-  val spatiallyPartition = Try(params("spatial").toBoolean).getOrElse(false)
+  var spatiallyPartition = Try(params("spatial").toBoolean).getOrElse(false)
 
   val partitionStrategy = Try(params("strategy").toString).getOrElse("EQUAL")
 
   var partitionEnvelopes: List[Envelope] = null
 
+  // Attribute partitioning
+  var partitionBins: List[AnyRef] = null
+  val nonSpatialPart = Try(params("nonspatial").toBoolean).getOrElse(false)
+  val partBy = Try(params("partBy").toString).getOrElse("")
+
+  // Spatiotemporal partitioning
+  val spatiotemporal = Try(params("temporal").toBoolean).getOrElse(false)
+  val timeAttr = Try(params("timeAttr").toString).getOrElse("")
+  var partitionGrid: List[List[(Envelope, DateRange)]] = null
+
   // Control partitioning strategies that require a sample of the data
   val sampleSize = Try(params("sampleSize").toInt).getOrElse(100)
   val thresholdMultiplier = Try(params("threshold").toDouble).getOrElse(0.3)
+
+  val initialQuery = Try(params("query").toString).getOrElse("INCLUDE")
 
   lazy val rawRDD: SpatialRDD = buildRawRDD
 
   def buildRawRDD = {
     val raw = GeoMesaSpark(params).rdd(
       new Configuration(), sqlContext.sparkContext, params,
-      new Query(params(GEOMESA_SQL_FEATURE)))
+      new Query(params(GEOMESA_SQL_FEATURE),ECQL.toFilter(initialQuery)))
 
-    if (params.contains("partitions")) {
+    if (raw.getNumPartitions != numPartitions) {
+      println("repartitioning")
       SpatialRDD(raw.repartition(numPartitions), raw.schema)
     } else {
       raw
@@ -246,11 +261,15 @@ case class GeoMesaRelation(sqlContext: SQLContext,
   val encodedSFT: String = org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.encodeType(sft, true)
 
   if (partitionedRDD == null && spatiallyPartition) {
-    val bounds = SparkUtils.getBound(rawRDD)
-    partitionEnvelopes = partitionStrategy match {
-      case "EQUAL" => SparkUtils.equalPartitioning(bounds, numPartitions)
-      case "RTREE" => SparkUtils.rtreePartitioning(rawRDD, numPartitions, sampleSize, thresholdMultiplier)
+    if (partitionEnvelopes == null) {
+      val bounds = SparkUtils.getBound(rawRDD)
+      partitionEnvelopes = partitionStrategy match {
+        case "EARTH" => SparkUtils.wholeEarthPartitioning(numPartitions)
+        case "EQUAL" => SparkUtils.equalPartitioning(bounds, numPartitions)
+        case "RTREE" => SparkUtils.rtreePartitioning(rawRDD, numPartitions, sampleSize, thresholdMultiplier)
+      }
     }
+
 
 
     // Print in WKT for QGIS debugging
@@ -260,17 +279,19 @@ case class GeoMesaRelation(sqlContext: SQLContext,
         s"${env.getMaxX} ${env.getMaxY}, ${env.getMaxX} ${env.getMinY},${env.getMinX} ${env.getMinY}))")
       i+=1
     }
-
+    println("spatially partitioning")
     partitionedRDD = SparkUtils.spatiallyPartition(partitionEnvelopes, rawRDD, numPartitions)
     partitionedRDD.persist(StorageLevel.MEMORY_ONLY)
   }
 
-  if (indexRDD == null && indexPartRDD == null && cache) {
-    if (spatiallyPartition) {
+  if (cache) {
+    if (spatiallyPartition && indexPartRDD == null) {
+      println("indexing partitioned")
       indexPartRDD = SparkUtils.indexPartitioned(encodedSFT, sft.getTypeName, partitionedRDD, indexId, indexGeom)
       partitionedRDD.unpersist() // make this call blocking?
       indexPartRDD.persist(StorageLevel.MEMORY_ONLY)
-    } else {
+    } else if (indexRDD == null) {
+      println("indexing non-partitioned")
       indexRDD = SparkUtils.index(encodedSFT, sft.getTypeName, rawRDD, indexId, indexGeom)
       indexRDD.persist(StorageLevel.MEMORY_ONLY)
     }
@@ -338,19 +359,19 @@ object SparkUtils extends LazyLogging {
   // Returns -1 if no match was found
   // TODO: Filter duplicates when querying
   def gridIdMapper(sf: SimpleFeature, envelopes: List[Envelope]): List[(Int, SimpleFeature)] = {
-    var result = new ListBuffer[(Int, SimpleFeature)]
     val geom = sf.getDefaultGeometry.asInstanceOf[Geometry]
-    envelopes.indices.foreach { index =>
+    val mappings = envelopes.indices.flatMap { index =>
       if (envelopes(index).contains(geom.getEnvelopeInternal)) {
-        val pair = (index, sf)
-        result += pair
+        Some(index, sf)
+      } else {
+        None
       }
     }
-    if (result.isEmpty) {
-      val pair = (-1, sf)
-      result += pair
+    if (mappings.isEmpty) {
+      List((-1, sf))
+    } else {
+      mappings.toList
     }
-    result.toList
   }
 
   // Maps a geometry to the id of the envelope that contains it
@@ -370,7 +391,7 @@ object SparkUtils extends LazyLogging {
 
   def spatiallyPartition(envelopes: List[Envelope], rdd: RDD[SimpleFeature], numPartitions: Int): RDD[(Int, Iterable[SimpleFeature])] = {
     val keyedRdd = rdd.flatMap { gridIdMapper( _, envelopes)}
-    val partitioned = keyedRdd.groupByKey(new HashPartitioner(numPartitions))
+    val partitioned = keyedRdd.groupByKey(new IndexPartitioner(numPartitions))
     partitioned.foreachPartition{ iter =>
       iter.foreach{ case (key, features) =>
         println(s"partition $key has ${features.size} features")
@@ -388,6 +409,29 @@ object SparkUtils extends LazyLogging {
       (env1: Envelope, env2: Envelope) => {
         env1.expandToInclude(env2)
         env1
+      }
+    )
+  }
+
+  def getTimeBound(rdd: RDD[SimpleFeature], timeAttr: String): (Date, Date) = {
+    type DateRange = (Date, Date)
+    rdd.aggregate[DateRange]((new Date, new Date(0)))(
+      (dateRange, sf) => {
+        val date = sf.getAttribute(timeAttr).asInstanceOf[java.util.Date]
+        if (date.before(dateRange._1) && date.after(dateRange._2)) {
+          (date, date)
+        } else if (date.before(dateRange._1)) {
+          (date, dateRange._2)
+        } else if (date.after(dateRange._2)) {
+          (dateRange._1, date)
+        } else {
+          dateRange
+        }
+      },
+      (dateRange1, dateRange2) => {
+        val larger = if (dateRange1._2.after(dateRange2._2)) dateRange1._2 else dateRange2._2
+        val smaller = if (dateRange1._1.before(dateRange2._1)) dateRange1._2 else dateRange2._1
+        (smaller, larger)
       }
     )
   }
@@ -412,6 +456,28 @@ object SparkUtils extends LazyLogging {
       }
     }
     partitionEnvelopes.toList
+  }
+
+  def wholeEarthPartitioning(numPartitions: Int): List[Envelope] = {
+    equalPartitioning(new Envelope(-180,180,-90,90), numPartitions)
+  }
+
+  def equalPartitioningTime(spatialGrid: List[Envelope], dateRange: (Date, Date), numPartitions: Int): List[List[(Envelope, DateRange)]] = {
+    println(s"bounds are ${dateRange._1} to ${dateRange._2}")
+    val partitionsPerDim = Math.cbrt(numPartitions).toInt
+    // can potentially use any partitioning strategy for the spatial part. equal for now.
+    // val spatialGrid: List[Envelope] = rtreePartitioning(rawRDDbound, partitionsPerDim * partitionsPerDim)
+    val temporalWidth: Long = (dateRange._2.getTime - dateRange._1.getTime) / partitionsPerDim.toLong
+    val temporalStart = dateRange._1.getTime
+    spatialGrid.map{ e =>
+      List.range(0, partitionsPerDim).map { index =>
+        val start = temporalStart + (index * temporalWidth)
+        val end = start + temporalWidth
+        val range = new DateRange( new Date(start), new Date(end))
+        println(s"env: $e range: ${range.getMinValue} - ${range.getMaxValue}")
+        (e, range)
+      }
+    }
   }
 
   // Constructs an RTree based on a sample of the data and returns its bounds as envelopes
@@ -532,7 +598,6 @@ object SparkUtils extends LazyLogging {
          |requiredColumns = ${requiredColumns.mkString(",")}""".stripMargin)
     val compiledCQL = filters.flatMap(sparkFilterToCQLFilter).foldLeft[org.opengis.filter.Filter](filt) { (l, r) => ff.and(l,r) }
     logger.debug(s"compiledCQL = $compiledCQL")
-
     val requiredAttributes = requiredColumns.filterNot(_ == "__fid__")
     val rdd = GeoMesaSpark(params).rdd(
       new Configuration(), ctx, params,
@@ -607,13 +672,13 @@ object SparkUtils extends LazyLogging {
     import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeatureReader
 
     val requiredAttributes = requiredColumns.filterNot(_ == "__fid__")
+
     val result = reducedRdd.flatMap { case (key, engine) =>
         val cqlFilter = ECQL.toFilter(filterString)
         val query = new Query(params(GEOMESA_SQL_FEATURE), cqlFilter, requiredAttributes)
         val fr = engine.getFeatureReader(query, Transaction.AUTO_COMMIT)
         fr.toIterator
     }.map(SparkUtils.sf2row(schema, _, extractors))
-
     result.asInstanceOf[RDD[Row]]
   }
 

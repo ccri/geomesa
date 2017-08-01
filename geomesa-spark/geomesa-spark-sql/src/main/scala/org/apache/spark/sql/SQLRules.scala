@@ -14,11 +14,12 @@ import org.apache.spark.sql.SQLTypes._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, Expression, GenericInternalRow, LeafExpression, Literal, PredicateHelper, ScalaUDF}
-import org.apache.spark.sql.catalyst.plans.logical.{Filter, Join, LogicalPlan, Sort}
+import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.DataType
+import org.apache.spark.storage.StorageLevel
 import org.locationtech.geomesa.spark.{GeoMesaRelation, SparkUtils}
 import org.opengis.filter.expression.{Expression => GTExpression}
 import org.opengis.filter.{Filter => GTFilter}
@@ -120,6 +121,18 @@ object SQLRules extends LazyLogging {
       case _ => None
     }
 
+    private def partitionRelation(envelopes: List[Envelope], numPartitions: Int, relation: GeoMesaRelation) = {
+      relation.rawRDD.repartition(numPartitions)
+      relation.partitionEnvelopes = envelopes
+      relation.numPartitions = numPartitions
+      relation.partitionedRDD = SparkUtils.spatiallyPartition(envelopes, relation.rawRDD, numPartitions)
+      relation.indexPartRDD = SparkUtils.indexPartitioned(relation.encodedSFT,relation.sft.getTypeName,relation.partitionedRDD,false,true)
+      relation.indexPartRDD.persist(StorageLevel.MEMORY_ONLY)
+      relation.spatiallyPartition = true
+      relation.cache = true
+      relation
+    }
+
     override def apply(plan: LogicalPlan): LogicalPlan = {
       println(s"Optimizer sees $plan")
       plan.transform {
@@ -129,16 +142,32 @@ object SQLRules extends LazyLogging {
                           condition) =>
           // If one of the relations has been spatially partitioned,
           // partition the second relation by the same grid to allow join optimizations
-          if (gmRelLeft.spatiallyPartition) {
+
+          if (gmRelLeft.spatiallyPartition && !gmRelRight.spatiallyPartition) {
+            println("Partitioning RDD2")
             val partitionEnvs = gmRelLeft.partitionEnvelopes
             val numPartitions = gmRelLeft.numPartitions
-            gmRelRight.partitionedRDD = SparkUtils.spatiallyPartition(partitionEnvs, gmRelRight.rawRDD, numPartitions)
-            val newRight = right.copy(expectedOutputAttributes = Some(right.output), relation = gmRelRight)
+            val newRelation = partitionRelation(partitionEnvs, numPartitions, gmRelRight)
+            val newRight = right.copy(expectedOutputAttributes = Some(right.output), relation = newRelation)
             Join(left, newRight, joinType, condition)
           } else {
             inner
           }
-
+        case inner @ Join(left@Project(projectListLeft,lrLeft@LogicalRelation(gmRelLeft: GeoMesaRelation, _, _)),
+                          right@Project(projectListRight,lrRight@LogicalRelation(gmRelRight: GeoMesaRelation, _, _)),
+                          joinType,
+                          condition) =>
+          if (gmRelLeft.spatiallyPartition && !gmRelRight.spatiallyPartition) {
+            println("Partitioning RDD2")
+            val partitionEnvs = gmRelLeft.partitionEnvelopes
+            val numPartitions = gmRelLeft.numPartitions
+            val newRelation = partitionRelation(partitionEnvs, numPartitions, gmRelRight)
+            val newRight = lrRight.copy(expectedOutputAttributes = Some(lrRight.output), relation = newRelation)
+            val newProject = right.copy(projectList = projectListRight, child = newRight)
+            Join(left, newProject, joinType, condition)
+          } else {
+            inner
+          }
         case sort @ Sort(_, _, _) => sort    // No-op.  Just realizing what we can do:)
         case filt @ Filter(f, lr@LogicalRelation(gmRel: GeoMesaRelation, _, _)) =>
           // TODO: deal with `or`
@@ -167,7 +196,6 @@ object SQLRules extends LazyLogging {
           if (gtFilters.nonEmpty) {
             val relation = gmRel.copy(filt = ff.and(gtFilters :+ gmRel.filt), partitionHints = partitionHints)
             val newrel = lr.copy(expectedOutputAttributes = Some(lr.output), relation = relation)
-
             if (sFilters.nonEmpty) {
               Filter(sFilters.reduce(And), newrel)
             } else {
@@ -209,11 +237,21 @@ object SQLRules extends LazyLogging {
 
     override def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
       //TODO: handle other kinds of joins
-      case logical.Join(left@LogicalRelation(gmRelLeft: GeoMesaRelation, _, _), right, joinType@Inner, condition) =>
-        if (gmRelLeft.spatiallyPartition) {
-          PartitionedJoinExec(planLater(left), planLater(right), condition) :: Nil
-        } else {
-          Nil
+      case logical.Join(left, right, joinType@Inner, condition) =>
+        left match {
+          case project@Project(_, lr@LogicalRelation(gmRel: GeoMesaRelation, _, _)) =>
+            if (gmRel.spatiallyPartition) {
+              PartitionedJoinExec(planLater(left), planLater(right), condition) :: Nil
+            } else {
+              Nil
+            }
+          case lr@LogicalRelation(gmRel: GeoMesaRelation, _, _) =>
+            if (gmRel.spatiallyPartition) {
+              PartitionedJoinExec(planLater(left), planLater(right), condition) :: Nil
+            } else {
+              Nil
+            }
+          case _ => Nil
         }
       case _ => Nil
     }
