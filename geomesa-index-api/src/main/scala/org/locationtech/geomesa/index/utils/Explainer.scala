@@ -10,6 +10,7 @@ package org.locationtech.geomesa.index.utils
 
 import java.io.PrintStream
 
+import com.typesafe.scalalogging.LazyLogging
 import org.slf4j.{Logger, LoggerFactory}
 
 trait Explainer {
@@ -48,6 +49,10 @@ class ExplainString extends Explainer {
 
 class ExplainLogger(logger: Logger) extends Explainer {
   override def output(s: => String): Unit = logger.trace(s)
+}
+
+class ScalaExplainLogger extends Explainer with LazyLogging {
+  override protected def output(s: => String): Unit = logger.trace(s)
 }
 
 class ExplainLogging extends ExplainLogger(ExplainLogging.logger)
