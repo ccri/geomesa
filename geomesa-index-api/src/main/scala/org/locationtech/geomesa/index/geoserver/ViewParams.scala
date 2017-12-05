@@ -14,6 +14,7 @@ import java.util.{Locale, Map => jMap}
 import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.Query
 import org.geotools.factory.{CommonFactoryFinder, Hints}
+import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.locationtech.geomesa.index.conf.QueryHints
 import org.locationtech.geomesa.index.planning.QueryPlanner.CostEvaluation
@@ -72,24 +73,29 @@ object ViewParams extends LazyLogging {
       }
     }
 
+    println(s" View Params: $params")
+
     params.foreach { case (original, value) =>
       val key = if (original == "STRATEGY") { "QUERY_INDEX" } else { original }
       hints.get(key) match {
         case None =>
           logger.debug(s"Ignoring view param $key=$value")
+          logger.debug(s"SFT: $sft")
+          logger.debug(s" with ad's: ${sft.getAttributeDescriptors.map(_.getLocalName).mkString}")
 
-          Option(sft.getDescriptor(key)).foreach {
+          sft.getAttributeDescriptors.find( _.getLocalName.equalsIgnoreCase(key)).foreach {
             ad =>
               println(s"Adding Query Filter for $key:$value")
 
               // TODO:  Add more handling for particular types.
               val addFilter =  if (ad.isInstanceOf[GeometryDescriptor]) {
-                ff.intersects(ff.property(key), ff.literal(WKTUtils.read(value)))
+                ff.intersects(ff.property(ad.getLocalName), ff.literal(WKTUtils.read(value)))
               } else {
                 // TODO:  Add handling for a list of values
-                ff.equal(ff.property(key), ff.literal(value))
+                ECQL.toFilter(s"${ad.getLocalName} = '$value'")
               }
               query.setFilter(ff.and(addFilter, query.getFilter))
+              println(s"UPDATED FILTER: ${query.getFilter}")
           }
 
         case Some(hint) =>

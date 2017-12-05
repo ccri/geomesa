@@ -66,6 +66,17 @@ class ViewParamsTest extends Specification {
       query.getFilter mustEqual filter
     }
 
+    "allow for updating a query with an equality filter in a case insensitive manner" in {
+      val sft: SimpleFeatureType = SimpleFeatureTypes.createType("testType", "name:String,*geom:Point,dtg:Date,attr1:String,attr2:Long")
+
+      val query = new Query()
+      query.getHints.put(Hints.VIRTUAL_TABLE_PARAMETERS, Collections.singletonMap("NAME", "Bill"))
+      ViewParams.setHints(sft, query)
+      query.getFilter.isInstanceOf[IncludeFilter] mustEqual false
+      val filter = ff.and(ff.equal(ff.property("name"), ff.literal("Bill")), Filter.INCLUDE)
+      query.getFilter mustEqual filter
+    }
+
     "allow for updating a query with a geometry filter" in {
       val sft: SimpleFeatureType = SimpleFeatureTypes.createType("testType", "name:String,*geom:Point,dtg:Date,attr1:String,attr2:Long")
 
