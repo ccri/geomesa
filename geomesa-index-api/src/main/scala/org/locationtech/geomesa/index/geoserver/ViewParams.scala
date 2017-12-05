@@ -8,17 +8,20 @@
 
 package org.locationtech.geomesa.index.geoserver
 
+import java.lang
 import java.util.{Locale, Map => jMap}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.geotools.data.Query
-import org.geotools.factory.Hints
+import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.geometry.jts.ReferencedEnvelope
 import org.locationtech.geomesa.index.conf.QueryHints
 import org.locationtech.geomesa.index.planning.QueryPlanner.CostEvaluation
 import org.locationtech.geomesa.index.planning.QueryPlanner.CostEvaluation.CostEvaluation
 import org.locationtech.geomesa.utils.text.WKTUtils
+import org.opengis.feature.`type`.GeometryDescriptor
 import org.opengis.feature.simple.SimpleFeatureType
+import org.opengis.filter.FilterFactory2
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -26,6 +29,8 @@ import scala.util.control.NonFatal
 object ViewParams extends LazyLogging {
 
   import scala.collection.JavaConversions._
+
+  val ff: FilterFactory2 = CommonFactoryFinder.getFilterFactory2
 
   // note: keys in the view params map are always uppercase
   private val hints = {
@@ -50,25 +55,45 @@ object ViewParams extends LazyLogging {
       Option(viewParams).map(_.toMap).getOrElse(Map.empty)
     }
 
+    def setHint(value: String, key: String, hint: Hints.Key): Unit = {
+      try {
+        val setHint = setQueryHint(query, key, hint) _
+        hint.getValueClass match {
+          case c if c == classOf[String] => setHint(value)
+          case c if c == classOf[lang.Boolean] => toBoolean(key, value).foreach(setHint.apply)
+          case c if c == classOf[Integer] => toInt(key, value).foreach(setHint.apply)
+          case c if c == classOf[lang.Float] => toFloat(key, value).foreach(setHint.apply)
+          case c if c == classOf[ReferencedEnvelope] => toEnvelope(key, value).foreach(setHint.apply)
+          case c if c == classOf[CostEvaluation] => toCost(value).foreach(setHint.apply)
+          case c => logger.warn(s"Unhandled hint type for '$key'")
+        }
+      } catch {
+        case NonFatal(e) => logger.warn(s"Error invoking query hint for $key=$value", e)
+      }
+    }
+
     params.foreach { case (original, value) =>
       val key = if (original == "STRATEGY") { "QUERY_INDEX" } else { original }
       hints.get(key) match {
-        case None => logger.debug(s"Ignoring view param $key=$value")
-        case Some(hint) =>
-          try {
-            val setHint = setQueryHint(query, key, hint) _
-            hint.getValueClass match {
-              case c if c == classOf[String]             => setHint(value)
-              case c if c == classOf[java.lang.Boolean]  => toBoolean(key, value).foreach(setHint.apply)
-              case c if c == classOf[java.lang.Integer]  => toInt(key, value).foreach(setHint.apply)
-              case c if c == classOf[java.lang.Float]    => toFloat(key, value).foreach(setHint.apply)
-              case c if c == classOf[ReferencedEnvelope] => toEnvelope(key, value).foreach(setHint.apply)
-              case c if c == classOf[CostEvaluation]     => toCost(value).foreach(setHint.apply)
-              case c => logger.warn(s"Unhandled hint type for '$key'")
-            }
-          } catch {
-            case NonFatal(e) => logger.warn(s"Error invoking query hint for $key=$value", e)
+        case None =>
+          logger.debug(s"Ignoring view param $key=$value")
+
+          Option(sft.getDescriptor(key)).foreach {
+            ad =>
+              println(s"Adding Query Filter for $key:$value")
+
+              // TODO:  Add more handling for particular types.
+              val addFilter =  if (ad.isInstanceOf[GeometryDescriptor]) {
+                ff.intersects(ff.property(key), ff.literal(WKTUtils.read(value)))
+              } else {
+                // TODO:  Add handling for a list of values
+                ff.equal(ff.property(key), ff.literal(value))
+              }
+              query.setFilter(ff.and(addFilter, query.getFilter))
           }
+
+        case Some(hint) =>
+          setHint(value, key, hint)
       }
     }
   }
