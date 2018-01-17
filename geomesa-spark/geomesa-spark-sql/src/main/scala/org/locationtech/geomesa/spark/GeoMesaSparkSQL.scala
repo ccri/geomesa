@@ -176,7 +176,7 @@ class GeoMesaDataSource extends DataSourceRegister
     val schemaInDs = ds.getTypeNames.contains(newFeatureName)
 
     if (schemaInDs) {
-      if (compare(ds.getSchema(newFeatureName),sft.getTypes) != 0) {
+      if (compare(ds.getSchema(newFeatureName),sft) != 0) {
         throw new IllegalStateException(s"The schema of the RDD conflicts with schema:$newFeatureName in the data store")
       }
     } else {
