@@ -15,12 +15,13 @@ import java.util.{Date, UUID}
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.strtree.{AbstractNode, Boundable, STRtree}
+import com.vividsolutions.jts.index.sweepline.{SweepLineIndex, SweepLineInterval, SweepLineOverlapAction}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Expression, GenericRowWithSchema, ScalaUDF}
-import org.apache.spark.sql.sources._
+import org.apache.spark.sql.sources.{Filter, _}
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType, TimestampType}
 import org.apache.spark.storage.StorageLevel
 import org.geotools.data.{DataStoreFinder, Query, Transaction}
@@ -28,12 +29,11 @@ import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.simple.{SimpleFeatureBuilder, SimpleFeatureTypeBuilder}
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.memory.cqengine.datastore.GeoCQEngineDataStore
+import org.locationtech.geomesa.utils.collection.SelfClosingIterator
 import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleFeatureTypes}
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.opengis.feature.`type`._
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
-import org.apache.spark.sql.sources.Filter
-import com.vividsolutions.jts.index.sweepline.{SweepLineIndex, SweepLineInterval, SweepLineOverlapAction}
-import org.locationtech.geomesa.utils.text.WKTUtils
 
 import scala.collection.Iterator
 import scala.collection.JavaConversions._
@@ -172,8 +172,17 @@ class GeoMesaDataSource extends DataSourceRegister
 
 
     val ds = DataStoreFinder.getDataStore(parameters)
-    sft.getUserData.put("override.reserved.words", java.lang.Boolean.TRUE)
-    ds.createSchema(sft)
+    val schemaInDs = ds.getTypeNames.contains(newFeatureName)
+
+    if (schemaInDs) {
+      if (ds.getSchema(newFeatureName) != sft.getTypes) {
+        throw new IllegalStateException(s"The schema of the RDD conflicts with schema:$newFeatureName in the data store")
+      }
+    } else {
+      sft.getUserData.put("override.reserved.words", java.lang.Boolean.TRUE)
+      ds.createSchema(sft)
+    }
+
 
     val structType = if (data.queryExecution == null) {
       sft2StructType(sft)
@@ -212,33 +221,25 @@ case class GeoMesaRelation(sqlContext: SQLContext,
                            var indexPartRDD: RDD[(Int, GeoCQEngineDataStore)] = null)
   extends BaseRelation with PrunedFilteredScan {
 
-  lazy val isMock = Try(params("useMock").toBoolean).getOrElse(false)
-
-  val cache = Try(params("cache").toBoolean).getOrElse(false)
-
-  val indexId = Try(params("indexId").toBoolean).getOrElse(false)
-
-  val indexGeom = Try(params("indexGeom").toBoolean).getOrElse(false)
-
-  val numPartitions = Try(params("partitions").toInt).getOrElse(4)
-
-  val spatiallyPartition = Try(params("spatial").toBoolean).getOrElse(false)
-
-  val partitionStrategy = Try(params("strategy").toString).getOrElse("EQUAL")
-
+  val cache: Boolean = Try(params("cache").toBoolean).getOrElse(false)
+  val indexId: Boolean = Try(params("indexId").toBoolean).getOrElse(false)
+  val indexGeom: Boolean  = Try(params("indexGeom").toBoolean).getOrElse(false)
+  val numPartitions: Int = Try(params("partitions").toInt).getOrElse(sqlContext.sparkContext.defaultParallelism)
+  val spatiallyPartition: Boolean = Try(params("spatial").toBoolean).getOrElse(false)
+  val partitionStrategy: String = Try(params("strategy").toString).getOrElse("EQUAL")
   var partitionEnvelopes: List[Envelope] = null
-
-  val providedBounds = Try(params("bounds").toString).getOrElse(null)
-
+  val providedBounds: String = Try(params("bounds").toString).getOrElse(null)
+  val coverPartition: Boolean = Try(params("cover").toBoolean).getOrElse(false)
   // Control partitioning strategies that require a sample of the data
-  val sampleSize = Try(params("sampleSize").toInt).getOrElse(100)
-  val thresholdMultiplier = Try(params("threshold").toDouble).getOrElse(0.3)
+  val sampleSize: Int = Try(params("sampleSize").toInt).getOrElse(100)
+  val thresholdMultiplier: Double = Try(params("threshold").toDouble).getOrElse(0.3)
 
-  val initialQuery = Try(params("query").toString).getOrElse("INCLUDE")
+  val initialQuery: String = Try(params("query").toString).getOrElse("INCLUDE")
+  val geometryOrdinal: Int = sft.indexOf(sft.getGeometryDescriptor.getLocalName)
 
   lazy val rawRDD: SpatialRDD = buildRawRDD
 
-  def buildRawRDD = {
+  def buildRawRDD: SpatialRDD = {
     val raw = GeoMesaSpark(params).rdd(
       new Configuration(), sqlContext.sparkContext, params,
       new Query(params(GEOMESA_SQL_FEATURE), ECQL.toFilter(initialQuery)))
@@ -267,12 +268,14 @@ case class GeoMesaRelation(sqlContext: SQLContext,
         case _ => throw new IllegalArgumentException(s"Invalid partitioning strategy specified: $partitionStrategy")
       }
     }
-
-    partitionedRDD = RelationUtils.spatiallyPartition(partitionEnvelopes, rawRDD, numPartitions)
+    partitionedRDD = RelationUtils.spatiallyPartition(partitionEnvelopes, rawRDD, numPartitions, geometryOrdinal)
     partitionedRDD.persist(StorageLevel.MEMORY_ONLY)
   }
 
   if (cache) {
+    if (!DataStoreFinder.getAvailableDataStores.exists(spi => spi.canProcess(Map("cqengine"->"true")))) {
+      throw new IllegalArgumentException("Cache argument set to true but GeoCQEngineDataStore is not on the classpath")
+    }
     if (spatiallyPartition && indexPartRDD == null) {
       indexPartRDD = RelationUtils.indexPartitioned(encodedSFT, sft.getTypeName, partitionedRDD, indexId, indexGeom)
       partitionedRDD.unpersist() // make this call blocking?
@@ -315,7 +318,6 @@ case class GeoMesaJoinRelation(sqlContext: SQLContext,
                            props: Option[Seq[String]] = None)
   extends BaseRelation with PrunedFilteredScan {
 
-  // Uses sweep-line algorithm to join a spatially partitioned RDD
   def sweeplineJoin(overlapAction: OverlapAction): RDD[(Int, (SimpleFeature, SimpleFeature))] = {
     implicit val ordering = RelationUtils.CoordinateOrdering
     val partitionPairs = leftRel.partitionedRDD.join(rightRel.partitionedRDD)
@@ -345,7 +347,7 @@ case class GeoMesaJoinRelation(sqlContext: SQLContext,
 
     // Extract geometry indexes and spatial function from condition expression and relation SFTs
     val (leftIndex, rightIndex, conditionFunction) = condition match {
-      case ScalaUDF(function: ((Geometry, Geometry) => Boolean), _, children: Seq[AttributeReference], _) =>
+      case ScalaUDF(function: ((Geometry, Geometry) => Boolean), _, children: Seq[AttributeReference], _, _) =>
         // Because the predicate may not have parameters in the right order, we must check both
         val leftAttr = children(0).name
         val rightAttr = children(1).name
@@ -419,8 +421,8 @@ object RelationUtils extends LazyLogging {
   // Will duplicate features that belong to more than one envelope
   // Returns -1 if no match was found
   // TODO: Filter duplicates when querying
-  def gridIdMapper(sf: SimpleFeature, envelopes: List[Envelope]): List[(Int, SimpleFeature)] = {
-    val geom = sf.getDefaultGeometry.asInstanceOf[Geometry]
+  def gridIdMapper(sf: SimpleFeature, envelopes: List[Envelope], geometryOrdinal: Int): List[(Int, SimpleFeature)] = {
+    val geom = sf.getAttribute(geometryOrdinal).asInstanceOf[Geometry]
     val mappings = envelopes.indices.flatMap { index =>
       if (envelopes(index).intersects(geom.getEnvelopeInternal)) {
         Some(index, sf)
@@ -452,15 +454,12 @@ object RelationUtils extends LazyLogging {
     }
   }
 
-  def spatiallyPartition(envelopes: List[Envelope], rdd: RDD[SimpleFeature], numPartitions: Int): RDD[(Int, Iterable[SimpleFeature])] = {
-    val keyedRdd = rdd.flatMap { gridIdMapper( _, envelopes)}
-    val partitioned = keyedRdd.groupByKey(new IndexPartitioner(numPartitions))
-    partitioned.foreachPartition{ iter =>
-      iter.foreach{ case (key, features) =>
-        logger.info(s"partition $key has ${features.size} features")
-      }
-    }
-    partitioned
+  def spatiallyPartition(envelopes: List[Envelope],
+                         rdd: RDD[SimpleFeature],
+                         numPartitions: Int,
+                         geometryOrdinal: Int): RDD[(Int, Iterable[SimpleFeature])] = {
+    val keyedRdd = rdd.flatMap { gridIdMapper( _, envelopes, geometryOrdinal)}
+    keyedRdd.groupByKey(new IndexPartitioner(numPartitions))
   }
 
   def getBound(rdd: RDD[SimpleFeature]): Envelope = {
@@ -634,14 +633,11 @@ object RelationUtils extends LazyLogging {
 
     val extractors = SparkUtils.getExtractors(requiredColumns, schema)
 
-    import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeatureReader
-
     val requiredAttributes = requiredColumns.filterNot(_ == "__fid__")
     val result = indexRDD.flatMap { engine =>
       val cqlFilter = ECQL.toFilter(filterString)
       val query = new Query(params(GEOMESA_SQL_FEATURE), cqlFilter, requiredAttributes)
-      val fr = engine.getFeatureReader(query, Transaction.AUTO_COMMIT)
-      fr.toIterator
+      SelfClosingIterator(engine.getFeatureReader(query, Transaction.AUTO_COMMIT))
     }.map(SparkUtils.sf2row(schema, _, extractors))
 
     result.asInstanceOf[RDD[Row]]
@@ -671,14 +667,11 @@ object RelationUtils extends LazyLogging {
 
     val extractors = SparkUtils.getExtractors(requiredColumns, schema)
 
-    import org.locationtech.geomesa.utils.geotools.Conversions.RichSimpleFeatureReader
-
     val requiredAttributes = requiredColumns.filterNot(_ == "__fid__")
     val result = reducedRdd.flatMap { case (key, engine) =>
       val cqlFilter = ECQL.toFilter(filterString)
       val query = new Query(params(GEOMESA_SQL_FEATURE), cqlFilter, requiredAttributes)
-      val fr = engine.getFeatureReader(query, Transaction.AUTO_COMMIT)
-      fr.toIterator
+      SelfClosingIterator(engine.getFeatureReader(query, Transaction.AUTO_COMMIT))
     }.map(SparkUtils.sf2row(schema, _, extractors))
     result.asInstanceOf[RDD[Row]]
   }

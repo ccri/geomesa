@@ -20,6 +20,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.geotools.data.Query
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.geotools.filter.text.ecql.ECQL
 import org.locationtech.geomesa.convert.{ConverterConfigLoader, SimpleFeatureConverters}
 import org.locationtech.geomesa.jobs.mapreduce.ConverterInputFormat
@@ -29,7 +30,7 @@ import org.locationtech.geomesa.utils.geotools.{SftArgResolver, SftArgs, SimpleF
 import org.locationtech.geomesa.utils.io.CloseQuietly
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
-
+import scala.collection.JavaConversions._
 import scala.util.control.NonFatal
 
 /**
@@ -64,9 +65,12 @@ class ConverterSpatialRDDProvider extends SpatialRDDProvider with LazyLogging {
     val job = Job.getInstance(conf)
     FileInputFormat.setInputPaths(job, params(InputFilesKey))
     conf.set(FileInputFormat.INPUT_DIR, job.getConfiguration.get(FileInputFormat.INPUT_DIR))
-
-    if (query.getPropertyNames != null && query.getPropertyNames.length > 0) {
-      logger.warn("Ignoring query transform - modify converter definition instead")
+    val queryProperties = query.getPropertyNames
+    val sftProperties = sft.getAttributeDescriptors.map{_.getLocalName}
+    if (queryProperties != null && queryProperties.nonEmpty && sftProperties != queryProperties.toSeq) {
+      logger.debug("Query transform retyping results")
+      val modifiedSft = SimpleFeatureTypeBuilder.retype(sft, query.getPropertyNames)
+      ConverterInputFormat.setRetypeSft(conf, modifiedSft)
     }
 
     if (query.getFilter != null && query.getFilter != Filter.INCLUDE) {
