@@ -1476,7 +1476,7 @@
             <dependency>
                 <groupId>com.esotericsoftware.kryo</groupId>
                 <artifactId>kryo</artifactId>
-                <version>2.21</version>
+                <version>2.24.0</version>
                 <exclusions>
                     <!-- included as shaded and relocated package in encapsulating dependency -->
                     <exclusion>
