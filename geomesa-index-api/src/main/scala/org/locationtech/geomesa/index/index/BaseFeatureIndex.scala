@@ -1,5 +1,5 @@
 /***********************************************************************
- * Copyright (c) 2013-2017 Commonwealth Computer Research, Inc.
+ * Copyright (c) 2013-2018 Commonwealth Computer Research, Inc.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Apache License, Version 2.0
  * which accompanies this distribution and is available at
@@ -73,14 +73,18 @@ trait BaseFeatureIndex[DS <: GeoMesaDataStore[DS, F, W], F <: WrappedFeature, W,
     val shards = nonEmpty(SplitArrays(sft))
 
     val splitter = sft.getTableSplitter.getOrElse(classOf[DefaultSplitter]).newInstance().asInstanceOf[TableSplitter]
-    val splits = nonEmpty(splitter.getSplits(name, sft, sft.getTableSplitterOptions))
+    val splits = nonEmpty(splitter.getSplits(sft, name, sft.getTableSplitterOptions))
 
     val result = for (shard <- shards; split <- splits) yield {
       Bytes.concat(sharing, shard, split)
     }
 
-    // drop the first split, which will otherwise be empty
-    result.drop(1)
+    // if not sharing, or the first feature in the table, drop the first split, which will otherwise be empty
+    if (sharing.isEmpty || sharing.head == 0.toByte) {
+      result.drop(1)
+    } else {
+      result
+    }
   }
 
   override def getQueryPlan(sft: SimpleFeatureType,

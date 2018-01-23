@@ -1,5 +1,5 @@
 /***********************************************************************
- * Copyright (c) 2013-2017 Commonwealth Computer Research, Inc.
+ * Copyright (c) 2013-2018 Commonwealth Computer Research, Inc.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Apache License, Version 2.0
  * which accompanies this distribution and is available at
@@ -43,7 +43,7 @@ case object RecordIndexV1 extends AccumuloFeatureIndex with RecordWritableIndex 
     val sharing = sft.getTableSharingBytes
 
     val splitter = sft.getTableSplitter.getOrElse(classOf[DefaultSplitter]).newInstance().asInstanceOf[TableSplitter]
-    val splits = nonEmpty(splitter.getSplits(name, sft, sft.getTableSplitterOptions))
+    val splits = nonEmpty(splitter.getSplits(sft, name, sft.getTableSplitterOptions))
 
     for (split <- splits) yield {
       Bytes.concat(sharing, split)
