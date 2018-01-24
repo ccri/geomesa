@@ -7,20 +7,26 @@
 # http://www.opensource.org/licenses/apache2.0.php.
 #
 
-# This script will attempt to install the client dependencies for hadoop and accumulo
+# This script will attempt to install the client dependencies for hadoop (for GeoMesa HBase)
 # into a given directory. Usually this is used to install the deps into either the
 # geomesa tools lib dir or the WEB-INF/lib dir of geoserver.
 
-accumulo_version="%%accumulo.version.recommended%%"
 hadoop_version="%%hadoop.version.recommended%%"
+hadoop_version_min="%%hadoop.version.minimum%%"
 zookeeper_version="%%zookeeper.version.recommended%%"
-thrift_version="%%thrift.version%%"
 
 # for hadoop 2.5 and 2.6 to work we need these
+# These should match up to what the hadoop version desires
 guava_version="11.0.2"
 com_log_version="1.1.3"
-commons_vfs2_version="2.1"
-htrace_core_version="3.1.0-incubating"
+aws_sdk_version="1.7.4"
+commons_config_version="1.6"
+htrace_version="3.1.0-incubating"
+netty3_version="3.6.2.Final"
+netty4_version="%%netty.version%%"
+
+# this should match the parquet desired version
+snappy_version="1.1.1.6"
 
 # Load common functions and setup
 if [ -z "${%%gmtools.dist.name%%_HOME}" ]; then
@@ -34,22 +40,28 @@ install_dir="${1:-${%%gmtools.dist.name%%_HOME}/lib}"
 base_url="${GEOMESA_MAVEN_URL:-https://search.maven.org/remotecontent?filepath=}"
 
 declare -a urls=(
-  "${base_url}org/apache/accumulo/accumulo-core/${accumulo_version}/accumulo-core-${accumulo_version}.jar"
-  "${base_url}org/apache/accumulo/accumulo-fate/${accumulo_version}/accumulo-fate-${accumulo_version}.jar"
-  "${base_url}org/apache/accumulo/accumulo-trace/${accumulo_version}/accumulo-trace-${accumulo_version}.jar"
-  "${base_url}org/apache/accumulo/accumulo-server-base/${accumulo_version}/accumulo-server-base-${accumulo_version}.jar"
-  "${base_url}org/apache/accumulo/accumulo-start/${accumulo_version}/accumulo-start-${accumulo_version}.jar"
-  "${base_url}org/apache/thrift/libthrift/${thrift_version}/libthrift-${thrift_version}.jar"
   "${base_url}org/apache/zookeeper/zookeeper/${zookeeper_version}/zookeeper-${zookeeper_version}.jar"
-  "${base_url}commons-configuration/commons-configuration/1.6/commons-configuration-1.6.jar"
   "${base_url}org/apache/hadoop/hadoop-auth/${hadoop_version}/hadoop-auth-${hadoop_version}.jar"
   "${base_url}org/apache/hadoop/hadoop-client/${hadoop_version}/hadoop-client-${hadoop_version}.jar"
   "${base_url}org/apache/hadoop/hadoop-common/${hadoop_version}/hadoop-common-${hadoop_version}.jar"
   "${base_url}org/apache/hadoop/hadoop-hdfs/${hadoop_version}/hadoop-hdfs-${hadoop_version}.jar"
+  "${base_url}org/apache/hadoop/hadoop-aws/${hadoop_version}/hadoop-aws-${hadoop_version}.jar"
+  "${base_url}org/apache/htrace/htrace-core/${htrace_version}/htrace-core-${htrace_version}.jar"
+  "${base_url}com/amazonaws/aws-java-sdk/${aws_sdk_version}/aws-java-sdk-${aws_sdk_version}.jar"
+  "${base_url}org/xerial/snappy/snappy-java/${snappy_version}/snappy-java-${snappy_version}.jar"
+  "${base_url}commons-configuration/commons-configuration/${commons_config_version}/commons-configuration-${commons_config_version}.jar"
   "${base_url}commons-logging/commons-logging/${com_log_version}/commons-logging-${com_log_version}.jar"
   "${base_url}com/google/guava/guava/${guava_version}/guava-${guava_version}.jar"
-  "${base_url}org/apache/commons/commons-vfs2/${commons_vfs2_version}/commons-vfs2-${commons_vfs2_version}.jar"
-  "${base_url}org/apache/htrace/htrace-core/${htrace_core_version}/htrace-core-${htrace_core_version}.jar"
+  "${base_url}commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
+  "${base_url}com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar"
+  "${base_url}commons-io/commons-io/2.5/commons-io-2.5.jar"
+  "${base_url}org/apache/httpcomponents/httpclient/4.3.4/httpclient-4.3.4.jar"
+  "${base_url}org/apache/httpcomponents/httpcore/4.3.3/httpcore-4.3.3.jar"
+  "${base_url}commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar"
+  "${base_url}javax/servlet/servlet-api/2.4/servlet-api-2.4.jar"
+  "${base_url}io/netty/netty-all/${netty4_version}/netty-all-${netty4_version}.jar"
+  "${base_url}io/netty/netty/${netty3_version}/netty-${netty3_version}.jar"
+  "${base_url}com/yammer/metrics/metrics-core/2.2.0/metrics-core-2.2.0.jar"
 )
 
 downloadUrls "$install_dir" urls[@]
