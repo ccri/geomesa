@@ -23,9 +23,9 @@ Copy the following jars into geoserver's ``WEB-INF/lib`` directory:
 
 Also copy the following jars if not already present:
 
--  scala-library-2.11.7.jar
--  scala-logging\_2.11-3.1.0.jar
--  scala-reflect-2.11.7.jar
+-  scala-library-2.11.8.jar
+-  scala-logging\_2.11-3.4.0.jar
+-  scala-reflect-2.11.8.jar
 -  config-1.2.1.jar
 -  joda-time-2.3.jar
 
