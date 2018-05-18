@@ -1,1 +1,2 @@
 org.locationtech.geomesa.spark.GeoMesaDataSource
+org.locationtech.geomesa.spark.GeoJsonDataSource

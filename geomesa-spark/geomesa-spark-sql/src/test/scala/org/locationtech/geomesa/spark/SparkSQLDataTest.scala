@@ -65,6 +65,17 @@ class SparkSQLDataTest extends Specification with LazyLogging {
       df.collect.length mustEqual 3
     }
 
+    "read geojson format" >> {
+      val path = getClass.getResource("/geojson-data.json").getPath
+      val geojsonDf = spark.read
+        .format("geojson")
+        .options(Map("path" -> path))
+        .load()
+      geojsonDf.collect.length mustEqual 3
+      geojsonDf.createOrReplaceTempView("geojson")
+      sc.sql("select * from geojson where name = 'Wuhu Islands'").collect.length mustEqual 1
+    }
+
     "create indexed relation" >> {
       dfIndexed = spark.read
         .format("geomesa")
