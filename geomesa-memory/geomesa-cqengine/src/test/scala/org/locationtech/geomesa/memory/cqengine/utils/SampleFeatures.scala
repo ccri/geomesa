@@ -274,4 +274,31 @@ object SampleFilters {
     "WhatLong * WhatDouble > 1.0 OR WhatLong * WhatDouble < 2.0",
     "WhatLong * WhatDouble >= 1.0 OR WhatLong * WhatDouble <= 2.0"
   )
+
+  val allFilters = Seq(
+    andedSpatialPredicates,
+    attributePredicates,
+    comparableFilters,
+    equalityFilters,
+    functionPredicates,
+    nullFilters,
+    oneLevelAndFilters,
+    oneLevelMultipleAndsFilters,
+    oneLevelMultipleOrsFilters,
+    oneLevelOrFilters,
+    simpleNotFilters,
+    spatialPredicates,
+    specialFilters,
+    temporalFilters).flatten.toList
+
+  val rand = Random.shuffle(allFilters).take(15)
+
+  val moreFilters = rand.combinations(3).map {
+    filters =>
+      val f1 = filters(0)
+      val f2 = filters(1)
+      val f3 = filters(2)
+      ff.and(f1, ff.or(f2, ff.not(f3)))
+  }.toSeq
+
 }
