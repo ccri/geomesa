@@ -11,6 +11,7 @@ package org.locationtech.geomesa.hbase.utils
 import java.io.IOException
 import java.util.Collections
 
+import org.apache.hadoop.hbase.client.metrics.ScanMetrics
 import org.apache.hadoop.hbase.client.{Result, ResultScanner}
 
 object EmptyScanner extends ResultScanner {
@@ -18,4 +19,8 @@ object EmptyScanner extends ResultScanner {
   override def next(i: Int): Array[Result] = throw new IOException("Next on an empty iterator")
   override def close(): Unit = {}
   override def iterator(): java.util.Iterator[Result] = Collections.emptyIterator()
+
+  override def getScanMetrics: ScanMetrics = null
+
+  override def renewLease(): Boolean = false
 }
