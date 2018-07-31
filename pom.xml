@@ -2136,19 +2136,9 @@
                 <version>2.7.1</version>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.janino</groupId>
-                <artifactId>commons-compiler</artifactId>
-                <version>2.7.8</version>
-            </dependency>
-            <dependency>
                 <groupId>com.thoughtworks.paranamer</groupId>
                 <artifactId>paranamer</artifactId>
                 <version>2.6</version>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.janino</groupId>
-                <artifactId>janino</artifactId>
-                <version>2.7.8</version>
             </dependency>
             <dependency>
                 <groupId>com.twitter</groupId>
