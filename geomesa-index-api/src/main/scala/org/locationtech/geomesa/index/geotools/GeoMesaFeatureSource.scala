@@ -15,7 +15,7 @@ import java.util.Collections
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data._
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureIterator, SimpleFeatureSource}
 import org.geotools.data.store.DataFeatureCollection

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.lambda
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.lambda.LambdaTestRunnerTest.LambdaTest
 import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
 import org.locationtech.geomesa.lambda.stream.ZookeeperOffsetManager

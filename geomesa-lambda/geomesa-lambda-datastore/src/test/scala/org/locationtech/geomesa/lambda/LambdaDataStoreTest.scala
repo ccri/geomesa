@@ -11,7 +11,7 @@ package org.locationtech.geomesa.lambda
 import java.io.ByteArrayInputStream
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.arrow.memory.{BufferAllocator, RootAllocator}
 import org.geotools.data.{DataStoreFinder, DataUtilities, Query, Transaction}
 import org.geotools.factory.Hints

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.tools.ingest
 
 import java.io.File
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat

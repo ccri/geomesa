@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 import com.github.benmanes.caffeine.cache.Caffeine
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.geotools.data.{Query, Transaction}
 import org.geotools.factory.Hints

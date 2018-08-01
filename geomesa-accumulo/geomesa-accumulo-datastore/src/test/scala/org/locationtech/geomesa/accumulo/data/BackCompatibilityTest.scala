@@ -11,7 +11,7 @@ package org.locationtech.geomesa.accumulo.data
 import java.io._
 
 import com.esotericsoftware.kryo.io.{Input, Output}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.BatchWriterConfig
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken

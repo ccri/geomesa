@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.{ByteBuffer, ByteOrder}
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Geometry, LineString, Point}
 import org.locationtech.geomesa.utils.bin.BinaryEncodeCallback.{ByteArrayCallback, ByteStreamCallback}
 import org.locationtech.geomesa.utils.bin.BinaryOutputEncoder.ToValues

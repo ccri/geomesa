@@ -11,7 +11,7 @@ package org.locationtech.geomesa.convert.shp
 import java.nio.charset.StandardCharsets
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.shapefile.ShapefileDataStore
 import org.geotools.referencing.CRS
 import org.locationtech.geomesa.convert.{ErrorMode, ParseMode, SimpleFeatureValidator}

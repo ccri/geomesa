@@ -12,7 +12,7 @@ import java.io._
 import java.util.zip.{Deflater, GZIPOutputStream}
 
 import com.beust.jcommander.ParameterException
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.data.{DataStore, Query}
 import org.geotools.factory.Hints

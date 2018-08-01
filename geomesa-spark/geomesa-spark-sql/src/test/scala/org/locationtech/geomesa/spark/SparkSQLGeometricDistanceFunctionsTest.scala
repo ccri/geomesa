@@ -10,7 +10,7 @@ package org.locationtech.geomesa.spark
 
 import java.util.{Map => JMap}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.DataStoreFinder
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification

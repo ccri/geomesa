@@ -11,7 +11,7 @@ package org.locationtech.geomesa.hbase.data
 import java.awt.RenderingHints
 import java.io.Serializable
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.Connection

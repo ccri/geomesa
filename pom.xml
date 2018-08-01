@@ -37,7 +37,7 @@
         <module>geomesa-jobs</module>
         <module>geomesa-jupyter</module>
         <module>geomesa-kafka</module>
-        <module>geomesa-kudu</module>
+        <!--<module>geomesa-kudu</module>-->
         <module>geomesa-lambda</module>
         <module>geomesa-memory</module>
         <module>geomesa-metrics</module>
@@ -118,7 +118,7 @@
         <!-- logging properties - we expect logging jars to be provided -->
         <!-- 1.7.x is for hadoop 2 and accumulo 1.5.x -->
         <slf4j.version>1.7.21</slf4j.version>
-        <scalalogging.version>3.1.0</scalalogging.version>
+        <scalalogging.version>2.1.2</scalalogging.version>
         <log4j.version>1.2.17</log4j.version>
 
         <specs2.version>4.3.2</specs2.version>
@@ -337,7 +337,12 @@
             </dependency>
             <dependency>
                 <groupId>com.typesafe.scala-logging</groupId>
-                <artifactId>scala-logging_${scala.binary.version}</artifactId>
+                <artifactId>scala-logging-api_${scala.binary.version}</artifactId>
+                <version>${scalalogging.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.scala-logging</groupId>
+                <artifactId>scala-logging-slf4j_${scala.binary.version}</artifactId>
                 <version>${scalalogging.version}</version>
             </dependency>
             <!-- we've removed our direct joda dependency, but it still gets pulled in
@@ -1932,7 +1937,7 @@
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
-                <version>2.5.6</version>
+                <version>1.3.3</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.gson</groupId>

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.web.core
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import javax.servlet.ServletContext
 import org.scalatra.servlet.RichServletContext
 import org.springframework.context.{ApplicationContext, ApplicationContextAware}

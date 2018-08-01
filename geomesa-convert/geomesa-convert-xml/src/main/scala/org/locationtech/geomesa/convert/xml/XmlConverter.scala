@@ -12,7 +12,7 @@ import java.io._
 import java.nio.charset.Charset
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
 import javax.xml.namespace.NamespaceContext
 import javax.xml.parsers.DocumentBuilderFactory
@@ -128,7 +128,7 @@ class XmlConverter(targetSft: SimpleFeatureType, config: XmlConfig, fields: Seq[
   }
 }
 
-object XmlConverter extends StrictLogging {
+object XmlConverter extends LazyLogging {
 
   // paths can be absolute, or relative to the feature node
   // they can also include xpath functions to manipulate the result

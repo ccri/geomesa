@@ -10,7 +10,7 @@ package org.locationtech.geomesa.jobs.mapreduce
 
 import java.io.IOException
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat

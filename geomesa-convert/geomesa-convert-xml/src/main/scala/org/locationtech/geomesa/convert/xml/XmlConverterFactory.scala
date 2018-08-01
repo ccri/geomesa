@@ -11,7 +11,7 @@ package org.locationtech.geomesa.convert.xml
 import java.nio.charset.Charset
 
 import com.typesafe.config.{Config, ConfigFactory}
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert.ErrorMode.ErrorMode
 import org.locationtech.geomesa.convert.ParseMode.ParseMode
 import org.locationtech.geomesa.convert.xml.XmlConverter._
@@ -37,7 +37,7 @@ class XmlConverterFactory extends AbstractConverterFactory[XmlConverter, XmlConf
 
 object XmlConverterFactory {
 
-  object XmlConfigConvert extends ConverterConfigConvert[XmlConfig] with OptionConvert with StrictLogging {
+  object XmlConfigConvert extends ConverterConfigConvert[XmlConfig] with OptionConvert with LazyLogging {
 
     import scala.collection.JavaConverters._
 

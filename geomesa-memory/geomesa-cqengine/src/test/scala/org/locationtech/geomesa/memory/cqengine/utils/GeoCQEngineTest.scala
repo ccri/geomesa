@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.memory.cqengine.utils
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.memory.cqengine.GeoCQEngine
 import org.locationtech.geomesa.memory.cqengine.utils.SampleFeatures._

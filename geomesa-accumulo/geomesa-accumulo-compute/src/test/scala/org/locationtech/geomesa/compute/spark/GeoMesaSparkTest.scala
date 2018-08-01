@@ -12,7 +12,7 @@ package org.locationtech.geomesa.compute.spark
 import java.io.{Serializable => JSerializable}
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.security.Authorizations

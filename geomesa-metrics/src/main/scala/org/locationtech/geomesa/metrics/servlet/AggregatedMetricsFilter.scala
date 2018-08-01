@@ -15,7 +15,7 @@ import javax.servlet.http.{HttpSessionEvent, HttpSessionListener, HttpServletReq
 
 import com.codahale.metrics._
 import com.typesafe.config.ConfigFactory
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.metrics.config.MetricsConfig
 
 /**

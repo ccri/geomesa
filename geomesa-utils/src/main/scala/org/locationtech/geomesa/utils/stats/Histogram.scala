@@ -10,7 +10,7 @@ package org.locationtech.geomesa.utils.stats
 
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Coordinate, Geometry}
 import org.locationtech.geomesa.utils.geotools.GeometryUtils
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}

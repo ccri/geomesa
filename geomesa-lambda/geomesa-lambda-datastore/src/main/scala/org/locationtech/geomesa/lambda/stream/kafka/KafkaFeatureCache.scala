@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.lambda.stream.OffsetManager.OffsetListener
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaFeatureCache.{ExpiringFeatureCache, ReadableFeatureCache, WritableFeatureCache}
 import org.opengis.feature.simple.SimpleFeature

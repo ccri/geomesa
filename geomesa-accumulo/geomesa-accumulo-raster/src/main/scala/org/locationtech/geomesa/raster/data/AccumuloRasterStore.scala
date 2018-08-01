@@ -16,7 +16,7 @@ import java.util.{Date, Map => JMap}
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.google.common.collect.{ImmutableMap, ImmutableSetMultimap}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.{BatchWriterConfig, Connector, TableExistsException}
 import org.apache.accumulo.core.data.{Key, Mutation, Range, Value}
 import org.apache.accumulo.core.security.TablePermission

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.convert2
 
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.convert2.TypeInference.{DerivedTransform, LatLon}
 import org.locationtech.geomesa.utils.text.WKTUtils

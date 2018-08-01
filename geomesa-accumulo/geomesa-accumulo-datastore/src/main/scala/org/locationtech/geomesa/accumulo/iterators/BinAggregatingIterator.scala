@@ -11,7 +11,7 @@ package org.locationtech.geomesa.accumulo.iterators
 import java.util.Date
 import java.util.Map.Entry
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom._
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._

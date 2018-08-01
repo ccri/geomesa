@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets
 
 import com.datastax.driver.core._
 import com.datastax.driver.core.querybuilder.{QueryBuilder, Select}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.cassandra.data._
 import org.locationtech.geomesa.cassandra.index.legacy.{CassandraAttributeIndexV1, CassandraZ2IndexV1, CassandraZ3IndexV1}

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.index.utils.bin
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 /**
   * Sorts aggregated bin arrays

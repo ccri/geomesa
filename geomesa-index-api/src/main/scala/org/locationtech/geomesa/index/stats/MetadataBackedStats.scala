@@ -11,7 +11,7 @@ package org.locationtech.geomesa.index.stats
 import java.time.{Instant, ZoneOffset}
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.curve.BinnedTime
 import org.locationtech.geomesa.filter.visitor.QueryPlanFilterVisitor
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore

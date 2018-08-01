@@ -10,7 +10,7 @@ package org.locationtech.geomesa.index.index.attribute
 
 import java.nio.charset.StandardCharsets
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.filter.{Bounds, FilterHelper, FilterValues, filterToString}
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory.GeoMesaDataStoreConfig

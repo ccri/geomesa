@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.geotools
 import java.io.{IOException, Serializable, StringReader, StringWriter}
 import java.util.{Collections, Properties}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.Parameter
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty

@@ -17,7 +17,7 @@ import com.codahale.metrics.ganglia.GangliaReporter
 import com.codahale.metrics.graphite.{Graphite, GraphiteReporter}
 import com.codahale.metrics.{MetricRegistry, _}
 import com.typesafe.config.{ConfigFactory, Config}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import info.ganglia.gmetric4j.gmetric.GMetric
 import info.ganglia.gmetric4j.gmetric.GMetric.UDPAddressingMode
 import org.locationtech.geomesa.metrics.reporters.{DelimitedFileReporter, AccumuloReporter}

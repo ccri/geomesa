@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.iterators.legacy
 
 import java.util
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.data._
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, WrappingIterator}
 

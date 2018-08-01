@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.text
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}

@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.uuid
 import java.util.{Date, UUID}
 
 import com.google.common.primitives.{Bytes, Longs, Shorts}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Geometry, Point}
 import org.locationtech.geomesa.curve.TimePeriod.TimePeriod
 import org.locationtech.geomesa.curve.{BinnedTime, Z3SFC}

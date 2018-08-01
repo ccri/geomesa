@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.iterators
 import java.util.Date
 import java.util.concurrent.{Executors, LinkedBlockingQueue}
 
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.{DataStore, Query, Transaction}
 import org.geotools.factory.{CommonFactoryFinder, Hints}
 import org.geotools.feature.simple.SimpleFeatureImpl
@@ -46,7 +46,7 @@ class PlaybackIterator(ds: DataStore,
                        transforms: Array[String] = null,
                        window: Option[Duration] = None,
                        rate: Float = 10f,
-                       readAhead: Int = 10000) extends CloseableIterator[SimpleFeature] with StrictLogging {
+                       readAhead: Int = 10000) extends CloseableIterator[SimpleFeature] with LazyLogging {
 
   import PlaybackIterator.ff
   import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType

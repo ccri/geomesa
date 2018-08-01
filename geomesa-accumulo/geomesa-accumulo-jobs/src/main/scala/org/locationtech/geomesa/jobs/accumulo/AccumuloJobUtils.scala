@@ -10,7 +10,7 @@ package org.locationtech.geomesa.jobs.accumulo
 
 import java.io.File
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.Connector
 import org.apache.hadoop.conf.Configuration
 import org.geotools.data.Query

@@ -12,7 +12,7 @@ import java.io.Closeable
 import java.time.ZonedDateTime
 
 import com.google.gson.{Gson, GsonBuilder}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 import scala.reflect.ClassTag
 

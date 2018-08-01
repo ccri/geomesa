@@ -12,7 +12,7 @@ import java.io.Closeable
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.google.common.util.concurrent.MoreExecutors
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 import scala.util.control.NonFatal
 

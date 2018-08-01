@@ -10,7 +10,7 @@ package org.locationtech.geomesa.kafka.index
 
 import java.util.concurrent._
 
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.filter.factory.FastFilterFactory
 import org.locationtech.geomesa.filter.index.{BucketIndexSupport, SizeSeparatedBucketIndexSupport}
 import org.locationtech.geomesa.kafka.data.KafkaDataStore.IndexConfig
@@ -28,7 +28,7 @@ import scala.concurrent.duration.Duration
   * @param config index config
   */
 class KafkaFeatureCacheImpl(sft: SimpleFeatureType, config: IndexConfig)
-    extends KafkaFeatureCache with FeatureExpiration with StrictLogging {
+    extends KafkaFeatureCache with FeatureExpiration with LazyLogging {
 
   import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 

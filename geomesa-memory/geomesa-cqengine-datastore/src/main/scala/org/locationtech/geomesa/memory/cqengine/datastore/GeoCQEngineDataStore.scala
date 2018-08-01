@@ -10,7 +10,7 @@ package org.locationtech.geomesa.memory.cqengine.datastore
 
 import java.util
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.Query
 import org.geotools.data.store.{ContentDataStore, ContentEntry, ContentFeatureSource}
 import org.geotools.feature.NameImpl

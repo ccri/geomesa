@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.accumulo.data.stats
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.{Connector, IteratorSetting}
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope

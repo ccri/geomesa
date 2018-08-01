@@ -10,7 +10,7 @@ package org.locationtech.geomesa.web.core
 
 import java.util.concurrent.ConcurrentHashMap
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.DataStore
 import org.opengis.feature.simple.SimpleFeatureType
 

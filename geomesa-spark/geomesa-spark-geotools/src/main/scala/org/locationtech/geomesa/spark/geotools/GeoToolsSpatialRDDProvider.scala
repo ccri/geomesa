@@ -11,7 +11,7 @@ package org.locationtech.geomesa.spark.geotools
 import java.io.Serializable
 import java.util
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD

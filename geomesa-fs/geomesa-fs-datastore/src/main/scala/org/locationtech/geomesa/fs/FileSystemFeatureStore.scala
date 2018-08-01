@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.cache._
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.simple.DelegateSimpleFeatureReader
 import org.geotools.data.store.{ContentEntry, ContentFeatureStore}
 import org.geotools.data.{FeatureReader, FeatureWriter, Query}

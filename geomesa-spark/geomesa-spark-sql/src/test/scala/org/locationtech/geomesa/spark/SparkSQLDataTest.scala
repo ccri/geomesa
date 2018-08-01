@@ -11,7 +11,7 @@ package org.locationtech.geomesa.spark
 import java.{util => ju}
 import java.util.{Map => JMap}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.apache.spark.sql.{Column, DataFrame, SQLContext, SQLTypes, SparkSession}
 import org.geotools.data.{DataStore, DataStoreFinder}

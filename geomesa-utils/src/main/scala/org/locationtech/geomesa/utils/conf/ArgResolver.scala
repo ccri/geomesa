@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.utils.conf
 
 import com.typesafe.config.ConfigParseOptions
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 /**
  * Trait for resolving sft/config parameters and handling errors around

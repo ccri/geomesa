@@ -11,7 +11,7 @@ package org.locationtech.geomesa.arrow.io
 import java.io.ByteArrayOutputStream
 import java.util.Collections
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.apache.arrow.memory.BufferAllocator
 import org.apache.arrow.vector._

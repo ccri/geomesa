@@ -12,7 +12,7 @@ import java.io._
 import java.util.zip.Deflater
 
 import com.beust.jcommander.{ParameterException, Parameters}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.geotools.data.Query
 import org.geotools.factory.Hints

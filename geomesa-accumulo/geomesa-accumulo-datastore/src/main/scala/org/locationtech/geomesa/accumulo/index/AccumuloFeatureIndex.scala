@@ -12,7 +12,7 @@ import java.util.Collections
 import java.util.Map.Entry
 
 import com.google.common.collect.ImmutableSortedSet
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.mock.MockConnector
 import org.apache.accumulo.core.conf.Property
 import org.apache.accumulo.core.data.{Key, Range, Value}

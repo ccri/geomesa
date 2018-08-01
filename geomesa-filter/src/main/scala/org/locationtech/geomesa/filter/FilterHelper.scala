@@ -11,7 +11,7 @@ package org.locationtech.geomesa.filter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.{Date, Locale}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom._
 import org.geotools.data.DataUtilities
 import org.geotools.filter.spatial.BBOXImpl

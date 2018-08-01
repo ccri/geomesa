@@ -13,7 +13,7 @@ import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicLong
 
 import com.beust.jcommander.ParameterException
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.geotools.data._
 import org.geotools.factory.Hints

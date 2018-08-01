@@ -10,7 +10,7 @@ package org.locationtech.geomesa.utils.stats
 
 import java.util.concurrent.atomic.AtomicLong
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 trait MethodProfiling {
 

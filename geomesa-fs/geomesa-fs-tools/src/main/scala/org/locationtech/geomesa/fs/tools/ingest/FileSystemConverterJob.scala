@@ -12,7 +12,7 @@ import java.io.File
 import java.lang.Iterable
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{BytesWritable, LongWritable, Text}

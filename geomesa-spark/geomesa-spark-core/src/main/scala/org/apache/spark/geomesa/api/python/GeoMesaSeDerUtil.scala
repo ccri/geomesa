@@ -10,7 +10,7 @@ package org.apache.spark.geomesa.api.python
 
 import java.io.OutputStream
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import net.razorvine.pickle.{IObjectPickler, Pickler}
 import org.apache.spark.api.java.JavaRDD

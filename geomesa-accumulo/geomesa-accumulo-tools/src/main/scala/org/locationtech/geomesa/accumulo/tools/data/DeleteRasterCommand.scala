@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.accumulo.tools.data
 
 import com.beust.jcommander.Parameters
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.data.{Range => ARange}
 import org.locationtech.geomesa.accumulo.tools.{AccumuloConnectionParams, AccumuloRasterTableParam}
 import org.locationtech.geomesa.accumulo.tools.data.DeleteRasterCommand.DeleteRasterParams

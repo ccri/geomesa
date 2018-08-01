@@ -12,7 +12,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data._
 import org.locationtech.geomesa.index.api.{WrappedFeature, _}
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore.VersionKey

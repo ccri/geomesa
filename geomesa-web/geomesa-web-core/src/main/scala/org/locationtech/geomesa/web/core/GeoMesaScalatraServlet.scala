@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.web.core
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import javax.servlet.http.{HttpServletRequest, HttpServletRequestWrapper, HttpServletResponse}
 import org.apache.commons.lang.exception.ExceptionUtils
 import org.geotools.data.DataStoreFinder

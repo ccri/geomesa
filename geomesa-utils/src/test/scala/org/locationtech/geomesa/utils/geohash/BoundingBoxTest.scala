@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.utils.geohash
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.{Assert, Test}
 
 class BoundingBoxTest extends LazyLogging {

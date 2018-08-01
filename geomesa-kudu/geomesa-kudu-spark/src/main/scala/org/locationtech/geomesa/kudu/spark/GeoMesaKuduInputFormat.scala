@@ -17,7 +17,7 @@ import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import javax.naming.NamingException
 import org.apache.hadoop.conf.{Configurable, Configuration}
 import org.apache.hadoop.io.{NullWritable, Text, Writable}

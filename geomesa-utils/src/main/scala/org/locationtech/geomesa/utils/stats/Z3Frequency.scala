@@ -10,7 +10,7 @@ package org.locationtech.geomesa.utils.stats
 
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.locationtech.geomesa.curve.TimePeriod.TimePeriod
 import org.locationtech.geomesa.curve.{BinnedTime, Z3SFC}

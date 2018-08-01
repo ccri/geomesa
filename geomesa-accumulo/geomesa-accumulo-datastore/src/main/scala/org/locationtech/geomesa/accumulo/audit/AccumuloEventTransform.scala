@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.Map.Entry
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.Scanner
 import org.apache.accumulo.core.data.{Key, Mutation, Value}
 import org.apache.hadoop.io.Text

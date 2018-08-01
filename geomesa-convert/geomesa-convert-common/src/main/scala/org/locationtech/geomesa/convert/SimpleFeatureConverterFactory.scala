@@ -12,7 +12,7 @@ import java.io.{Closeable, IOException, InputStream}
 import java.nio.charset.StandardCharsets
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.convert.ErrorMode.ErrorMode

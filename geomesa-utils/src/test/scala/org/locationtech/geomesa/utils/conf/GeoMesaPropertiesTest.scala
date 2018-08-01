@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.utils.conf
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.specs2.mutable.Specification

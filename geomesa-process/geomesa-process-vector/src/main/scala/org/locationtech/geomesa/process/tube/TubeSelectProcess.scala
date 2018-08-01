@@ -10,7 +10,7 @@ package org.locationtech.geomesa.process.tube
 
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom._
 import org.geotools.data.Query
 import org.geotools.data.collection.ListFeatureCollection

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.hbase.index
 
 import java.util.Locale
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase._
 import org.apache.hadoop.hbase.client._

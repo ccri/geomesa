@@ -10,7 +10,7 @@ package org.locationtech.geomesa.kafka.utils
 
 import java.nio.charset.StandardCharsets
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.kafka.clients.producer.Partitioner
 import org.apache.kafka.common.Cluster
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer

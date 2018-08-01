@@ -11,7 +11,7 @@ package org.locationtech.geomesa.accumulo.iterators
 import java.time.{Instant, ZoneOffset, ZonedDateTime}
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Geometry, GeometryFactory}
 import org.apache.accumulo.core.data.Value
 import org.apache.accumulo.core.security.Authorizations

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.kafka.data
 
 import java.util.concurrent.atomic.AtomicLong
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.kafka.clients.producer.{Producer, ProducerRecord}
 import org.geotools.data.simple.SimpleFeatureWriter
 import org.geotools.factory.Hints

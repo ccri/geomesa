@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.index.iterators
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.codec.binary.Base64
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.features.ScalaSimpleFeature

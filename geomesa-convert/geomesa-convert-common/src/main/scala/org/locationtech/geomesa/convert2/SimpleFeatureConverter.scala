@@ -12,7 +12,7 @@ import java.io.InputStream
 import java.util.ServiceLoader
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert
 import org.locationtech.geomesa.convert._
 import org.locationtech.geomesa.utils.collection.CloseableIterator
@@ -50,7 +50,7 @@ trait SimpleFeatureConverter {
   }
 }
 
-object SimpleFeatureConverter extends StrictLogging {
+object SimpleFeatureConverter extends LazyLogging {
 
   import scala.collection.JavaConverters._
 

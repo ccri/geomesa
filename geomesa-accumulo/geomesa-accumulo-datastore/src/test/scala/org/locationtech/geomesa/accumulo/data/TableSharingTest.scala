@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.data
 
 import java.util
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.mock.MockInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.geotools.data.DataStoreFinder

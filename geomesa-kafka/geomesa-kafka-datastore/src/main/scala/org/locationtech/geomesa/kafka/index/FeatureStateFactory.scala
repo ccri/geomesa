@@ -12,7 +12,7 @@ import java.io.Closeable
 import java.util.Date
 import java.util.concurrent.{ScheduledExecutorService, ScheduledFuture, TimeUnit}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.geotools.util.Converters
 import org.locationtech.geomesa.kafka.index.FeatureStateFactory.FeatureState

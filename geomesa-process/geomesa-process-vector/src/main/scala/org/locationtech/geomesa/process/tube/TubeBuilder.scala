@@ -11,7 +11,7 @@ package org.locationtech.geomesa.process.tube
 import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequence
 import org.geotools.data.simple.SimpleFeatureCollection

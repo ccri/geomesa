@@ -10,7 +10,7 @@ package org.locationtech.geomesa.utils.index
 
 import java.util.concurrent.ConcurrentHashMap
 
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Envelope, Geometry}
 import org.locationtech.geomesa.utils.geotools.GridSnap
 
@@ -35,7 +35,7 @@ class SizeSeparatedBucketIndex[T](sizes: Seq[(Double, Double)] = SizeSeparatedBu
                                   xBucketMultiplier: Double = 1,
                                   yBucketMultiplier: Double = 1,
                                   extents: Envelope = new Envelope(-180.0, 180.0, -90.0, 90.0))
-    extends SpatialIndex[T] with StrictLogging {
+    extends SpatialIndex[T] with LazyLogging {
 
   // TODO https://geomesa.atlassian.net/browse/GEOMESA-2323 better anti-meridian handling
 

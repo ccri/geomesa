@@ -10,7 +10,7 @@ package org.locationtech.geomesa.jobs
 
 import java.io.File
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.locationtech.geomesa.utils.classpath.ClassPathUtils
 

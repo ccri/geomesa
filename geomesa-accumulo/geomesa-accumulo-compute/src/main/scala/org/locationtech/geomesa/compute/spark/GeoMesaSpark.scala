@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.compute.spark
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}

@@ -13,7 +13,7 @@ import java.nio.charset.Charset
 import java.util.Collections
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigObject, ConfigValueFactory}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert.ErrorMode.ErrorMode
 import org.locationtech.geomesa.convert.ParseMode.ParseMode
 import org.locationtech.geomesa.convert.SimpleFeatureValidator.{HasDtgValidator, HasGeoValidator}

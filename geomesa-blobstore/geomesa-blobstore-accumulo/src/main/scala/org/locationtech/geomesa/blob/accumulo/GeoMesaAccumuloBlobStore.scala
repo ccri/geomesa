@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.blob.accumulo
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore
 import org.locationtech.geomesa.accumulo.util.GeoMesaBatchWriterConfig
 import org.locationtech.geomesa.blob.api.GeoMesaGenericBlobStore

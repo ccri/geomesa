@@ -10,7 +10,7 @@ package org.locationtech.geomesa.index.conf
 
 import java.nio.charset.StandardCharsets
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.index.index.id.IdIndex
 import org.locationtech.geomesa.utils.text.KVPairParser
 import org.opengis.feature.simple.SimpleFeatureType

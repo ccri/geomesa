@@ -11,7 +11,7 @@ package org.locationtech.geomesa.tools
 import java.io.File
 
 import com.beust.jcommander.{JCommander, ParameterException}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.locationtech.geomesa.tools.utils.GeoMesaIStringConverterFactory
 

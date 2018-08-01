@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.cache
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.util.Properties
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 /**
  * Simple persistence strategy that keeps values in memory and writes them to a prop file on disk.

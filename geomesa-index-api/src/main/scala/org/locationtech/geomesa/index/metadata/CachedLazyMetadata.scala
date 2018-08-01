@@ -11,7 +11,7 @@ package org.locationtech.geomesa.index.metadata
 import java.util.concurrent.TimeUnit
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.utils.collection.{CloseableIterator, IsSynchronized, MaybeSynchronized, NotSynchronized}
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.locationtech.geomesa.utils.io.WithClose

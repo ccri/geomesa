@@ -10,7 +10,7 @@ package org.locationtech.geomesa.utils.index
 
 import java.util.concurrent.ConcurrentHashMap
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Envelope, Geometry, Point}
 import org.locationtech.geomesa.utils.geotools.GridSnap
 

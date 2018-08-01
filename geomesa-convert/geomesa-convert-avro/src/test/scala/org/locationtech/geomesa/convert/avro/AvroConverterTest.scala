@@ -11,7 +11,7 @@ package org.locationtech.geomesa.convert.avro
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 import com.typesafe.config.{ConfigFactory, ConfigRenderOptions}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.junit.runner.RunWith

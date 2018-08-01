@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.hbase.jobs
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.client.{Mutation, Put}
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable

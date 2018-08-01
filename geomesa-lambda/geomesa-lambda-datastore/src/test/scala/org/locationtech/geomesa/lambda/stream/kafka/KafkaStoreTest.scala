@@ -10,7 +10,7 @@ package org.locationtech.geomesa.lambda.stream.kafka
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import kafka.admin.AdminUtils
 import kafka.javaapi.TopicMetadataRequest
 import org.geotools.data.memory.MemoryDataStore

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.web.stats
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import org.geotools.filter.text.ecql.ECQL
 import org.json4s.{DefaultFormats, Formats}

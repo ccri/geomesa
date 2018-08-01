@@ -12,7 +12,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{Instant, ZoneOffset, ZonedDateTime}
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.filter.text.ecql.ECQL
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.temporal.`object`.{DefaultInstant, DefaultPeriod, DefaultPosition}

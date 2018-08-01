@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.accumulo.index.legacy.z3
 
 import com.google.common.primitives.{Bytes, Longs, Shorts}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.data.{Mutation, Range => aRange}
 import org.apache.hadoop.io.Text
 import org.geotools.factory.Hints

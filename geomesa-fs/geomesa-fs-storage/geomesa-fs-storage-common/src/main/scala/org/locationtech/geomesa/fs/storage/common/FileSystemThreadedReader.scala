@@ -10,7 +10,7 @@ package org.locationtech.geomesa.fs.storage.common
 
 import java.util.concurrent.{Executors, LinkedBlockingQueue, TimeUnit}
 
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.fs.Path
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.fs.storage.api.FileSystemReader
@@ -60,7 +60,7 @@ object FileSystemThreadedReader {
   }
 
   class MultiThreadedFileSystemReader(factory: FileSystemPathReader, paths: Iterator[Path], threads: Int)
-      extends FileSystemReader with StrictLogging {
+      extends FileSystemReader with LazyLogging {
 
     private val es = Executors.newFixedThreadPool(threads)
 

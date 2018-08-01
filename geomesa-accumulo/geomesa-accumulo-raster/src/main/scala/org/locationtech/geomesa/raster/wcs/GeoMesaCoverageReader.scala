@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.raster.wcs
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.coverage.CoverageFactoryFinder
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader
 import org.geotools.coverage.grid.{GridCoverage2D, GridEnvelope2D}

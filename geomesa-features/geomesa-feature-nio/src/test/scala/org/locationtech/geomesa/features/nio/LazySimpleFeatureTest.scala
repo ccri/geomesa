@@ -11,7 +11,7 @@ package org.locationtech.geomesa.features.nio
 import java.nio.ByteBuffer
 import java.util
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.features.nio.AttributeAccessor.ByteBufferSimpleFeatureSerializer

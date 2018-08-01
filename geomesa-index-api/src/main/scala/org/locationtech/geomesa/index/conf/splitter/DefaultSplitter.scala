@@ -11,7 +11,7 @@ package org.locationtech.geomesa.index.conf.splitter
 import java.nio.charset.StandardCharsets
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.util.Converters
 import org.locationtech.geomesa.curve.BinnedTime
 import org.locationtech.geomesa.curve.TimePeriod.TimePeriod

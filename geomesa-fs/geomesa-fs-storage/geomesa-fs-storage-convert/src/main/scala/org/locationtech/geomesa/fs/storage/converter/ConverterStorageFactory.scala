@@ -11,7 +11,7 @@ package org.locationtech.geomesa.fs.storage.converter
 import java.util.Optional
 import java.util.regex.Pattern
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileContext, Path}
 import org.locationtech.geomesa.convert.{ConfArgs, ConverterConfigResolver}

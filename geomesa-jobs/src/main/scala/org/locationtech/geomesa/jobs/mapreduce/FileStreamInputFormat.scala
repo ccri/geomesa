@@ -10,7 +10,7 @@ package org.locationtech.geomesa.jobs.mapreduce
 
 import java.io.{Closeable, InputStream}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, Seekable}

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.iterators
 
 import java.util.Map.Entry
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data._
 import org.geotools.factory.Hints

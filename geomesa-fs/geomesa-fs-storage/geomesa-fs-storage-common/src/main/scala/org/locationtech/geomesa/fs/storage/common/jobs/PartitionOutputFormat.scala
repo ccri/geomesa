@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.fs.storage.common.jobs
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapred.InvalidJobConfException
 import org.apache.hadoop.mapreduce._

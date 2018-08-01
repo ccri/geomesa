@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.raster.data
 
 import com.google.common.collect.{ImmutableMap, ImmutableSetMultimap}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.raster.RasterTestsUtils._
 import org.locationtech.geomesa.raster._

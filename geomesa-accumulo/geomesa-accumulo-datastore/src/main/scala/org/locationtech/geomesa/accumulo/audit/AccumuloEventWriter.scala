@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.google.common.util.concurrent.MoreExecutors
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.{BatchWriter, Connector}
 import org.apache.accumulo.core.data.Mutation
 import org.locationtech.geomesa.accumulo.AccumuloVersion

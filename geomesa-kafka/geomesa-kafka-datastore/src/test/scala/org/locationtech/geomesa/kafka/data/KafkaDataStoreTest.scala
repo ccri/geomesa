@@ -14,7 +14,7 @@ import java.util.concurrent.{ScheduledExecutorService, TimeUnit}
 import java.util.{Collections, Date}
 import java.{io, util}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Point
 import kafka.admin.AdminUtils
 import org.apache.curator.framework.CuratorFrameworkFactory

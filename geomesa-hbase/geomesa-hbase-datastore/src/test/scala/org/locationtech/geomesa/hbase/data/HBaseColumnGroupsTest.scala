@@ -12,7 +12,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.util.Date
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Envelope, Point}
 import org.apache.arrow.memory.RootAllocator
 import org.apache.hadoop.hbase.TableName

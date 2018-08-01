@@ -13,7 +13,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.{Properties, UUID}
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import kafka.admin.AdminUtils
 import kafka.utils.ZkUtils
 import org.apache.kafka.clients.consumer.{Consumer, KafkaConsumer}

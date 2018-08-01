@@ -11,7 +11,7 @@ package org.apache.spark.sql
 import java.time.{LocalDateTime, ZoneId, ZoneOffset}
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Envelope, Geometry}
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.logical._

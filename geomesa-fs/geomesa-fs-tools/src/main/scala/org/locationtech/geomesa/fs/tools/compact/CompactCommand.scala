@@ -11,7 +11,7 @@ package org.locationtech.geomesa.fs.tools.compact
 import java.io.File
 
 import com.beust.jcommander.{ParameterException, Parameters}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.fs.Path
 import org.locationtech.geomesa.fs.FileSystemDataStore
 import org.locationtech.geomesa.fs.storage.orc.OrcFileSystemStorage

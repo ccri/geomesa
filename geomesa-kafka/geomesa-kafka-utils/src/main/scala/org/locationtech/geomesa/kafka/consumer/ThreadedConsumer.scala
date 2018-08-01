@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kafka.consumer
 import java.io.Closeable
 import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.kafka.clients.consumer.{Consumer, ConsumerRecord, OffsetAndMetadata, OffsetCommitCallback}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.{InterruptException, WakeupException}

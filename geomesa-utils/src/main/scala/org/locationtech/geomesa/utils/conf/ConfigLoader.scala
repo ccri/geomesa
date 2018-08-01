@@ -10,7 +10,7 @@ package org.locationtech.geomesa.utils.conf
 
 import java.io.InputStream
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Try}

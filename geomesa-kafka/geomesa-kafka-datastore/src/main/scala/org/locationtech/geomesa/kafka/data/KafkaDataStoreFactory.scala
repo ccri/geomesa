@@ -13,7 +13,7 @@ import java.io.Serializable
 import java.util.Properties
 import java.util.concurrent.ScheduledExecutorService
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.DataStoreFactorySpi
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStoreFactory

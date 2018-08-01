@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.accumulo.index.legacy.attribute
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.data.{Range => AccRange}
 import org.apache.hadoop.io.Text

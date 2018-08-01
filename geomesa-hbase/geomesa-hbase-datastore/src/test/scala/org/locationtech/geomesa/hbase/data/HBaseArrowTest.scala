@@ -10,7 +10,7 @@ package org.locationtech.geomesa.hbase.data
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.arrow.memory.{BufferAllocator, RootAllocator}
 import org.apache.hadoop.hbase.filter.FilterList
 import org.geotools.data.{DataStoreFinder, Query, Transaction}

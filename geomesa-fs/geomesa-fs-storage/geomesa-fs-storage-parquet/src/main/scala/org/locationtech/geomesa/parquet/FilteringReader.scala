@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.parquet
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.parquet.filter2.compat.FilterCompat

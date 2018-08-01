@@ -12,7 +12,7 @@ import java.util.Map.Entry
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{Executors, Future, LinkedBlockingQueue, TimeUnit}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.ScannerBase
 import org.apache.accumulo.core.data.{Key, Value}
 import org.locationtech.geomesa.accumulo.data.AccumuloDataStore

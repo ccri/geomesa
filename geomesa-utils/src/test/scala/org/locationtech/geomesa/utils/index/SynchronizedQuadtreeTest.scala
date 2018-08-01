@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.index
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.Lock
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Point
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.utils.text.WKTUtils

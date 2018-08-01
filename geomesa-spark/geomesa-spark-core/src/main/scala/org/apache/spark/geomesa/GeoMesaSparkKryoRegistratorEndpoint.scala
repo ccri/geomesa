@@ -10,7 +10,7 @@ package org.apache.spark.geomesa
 
 import java.io.Serializable
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.spark.rpc.{RpcCallContext, RpcEndpoint, RpcEnv, RpcTimeout}
 import org.apache.spark.util.RpcUtils
 import org.apache.spark.{SparkContext, SparkEnv}

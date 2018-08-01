@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.utils.io
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.utils.io.SafeClose.AnyCloseable
 import org.locationtech.geomesa.utils.io.SafeFlush.AnyFlushable
 

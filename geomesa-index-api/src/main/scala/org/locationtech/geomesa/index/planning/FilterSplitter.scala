@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.index.planning
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.filter._
 import org.locationtech.geomesa.filter.visitor.IdDetectingFilterVisitor
 import org.locationtech.geomesa.index.api.{FilterPlan, FilterStrategy, GeoMesaFeatureIndex, WrappedFeature}

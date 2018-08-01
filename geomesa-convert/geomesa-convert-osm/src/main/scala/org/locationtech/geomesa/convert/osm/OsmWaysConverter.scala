@@ -13,7 +13,7 @@ import java.nio.file.Files
 import java.sql.{Connection, DriverManager}
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Coordinate
 import de.topobyte.osm4j.core.model.iface._
 import de.topobyte.osm4j.core.model.impl.Node

@@ -12,7 +12,7 @@ import java.io.{File, FileWriter, PrintWriter}
 
 import com.beust.jcommander.{Parameter, ParameterException}
 import com.typesafe.config.{Config, ConfigRenderOptions}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.FilenameUtils
 import org.geotools.data.DataStore
 import org.locationtech.geomesa.convert.shp.ShapefileConverterFactory

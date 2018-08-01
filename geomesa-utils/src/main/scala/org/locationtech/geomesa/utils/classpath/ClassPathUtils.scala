@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.classpath
 import java.io.{File, FileFilter, FilenameFilter}
 import java.net.{URLClassLoader, URLDecoder}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 import scala.collection.mutable.ArrayBuffer
 

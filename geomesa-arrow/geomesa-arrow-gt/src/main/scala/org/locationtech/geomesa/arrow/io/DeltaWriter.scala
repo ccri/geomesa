@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import com.google.common.collect.HashBiMap
 import com.google.common.primitives.{Ints, Longs}
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.apache.arrow.memory.BufferAllocator
 import org.apache.arrow.vector.complex.StructVector
@@ -50,7 +50,7 @@ class DeltaWriter(val sft: SimpleFeatureType,
                   encoding: SimpleFeatureEncoding,
                   sort: Option[(String, Boolean)],
                   initialCapacity: Int)
-                 (implicit allocator: BufferAllocator) extends Closeable with StrictLogging {
+                 (implicit allocator: BufferAllocator) extends Closeable with LazyLogging {
 
   import DeltaWriter._
 
@@ -201,7 +201,7 @@ class DeltaWriter(val sft: SimpleFeatureType,
   }
 }
 
-object DeltaWriter extends StrictLogging {
+object DeltaWriter extends LazyLogging {
 
   // empty provider
   private val provider = new MapDictionaryProvider()

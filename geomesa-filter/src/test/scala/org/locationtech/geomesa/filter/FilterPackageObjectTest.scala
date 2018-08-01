@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.filter
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.factory.CommonFactoryFinder
 import org.geotools.filter.text.ecql.ECQL
 import org.junit.runner.RunWith

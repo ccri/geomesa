@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.process.analytic
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.Query
 import org.geotools.data.collection.ListFeatureCollection
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.features.serialization
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.factory.Hints
 
 // noinspection LanguageFeature

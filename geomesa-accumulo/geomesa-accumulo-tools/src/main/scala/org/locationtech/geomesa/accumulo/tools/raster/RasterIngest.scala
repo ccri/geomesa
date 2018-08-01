@@ -11,7 +11,7 @@ package org.locationtech.geomesa.accumulo.tools.raster
 import java.io.{File, Serializable}
 import java.util.{Map => JMap}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.coverage.grid.io.{AbstractGridCoverage2DReader, GridFormatFinder}
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.accumulo.data.{AccumuloDataStoreParams => dsp}

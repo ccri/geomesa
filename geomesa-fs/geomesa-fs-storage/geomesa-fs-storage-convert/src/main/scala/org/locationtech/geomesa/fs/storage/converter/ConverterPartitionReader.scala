@@ -10,7 +10,7 @@ package org.locationtech.geomesa.fs.storage.converter
 
 import java.util.concurrent.TimeUnit
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert2.SimpleFeatureConverter
 import org.locationtech.geomesa.fs.storage.api.FileSystemReader
 import org.locationtech.geomesa.utils.collection.CloseableIterator

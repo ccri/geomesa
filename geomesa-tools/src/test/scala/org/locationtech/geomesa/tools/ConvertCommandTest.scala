@@ -11,7 +11,7 @@ package org.locationtech.geomesa.tools
 import java.io.{File, FilenameFilter}
 import java.nio.charset.StandardCharsets
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.tools.utils.DataFormats.DataFormat

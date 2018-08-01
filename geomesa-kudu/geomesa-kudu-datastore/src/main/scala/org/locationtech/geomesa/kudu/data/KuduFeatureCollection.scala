@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.kudu.data
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.Query
 import org.locationtech.geomesa.index.geotools.{GeoMesaFeatureCollection, GeoMesaFeatureSource}
 import org.locationtech.geomesa.process.GeoMesaProcessVisitor

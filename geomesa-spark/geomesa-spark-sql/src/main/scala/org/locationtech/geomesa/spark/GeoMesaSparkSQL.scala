@@ -12,7 +12,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.{Date, UUID}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.index.strtree.{AbstractNode, Boundable, STRtree}
 import com.vividsolutions.jts.index.sweepline.{SweepLineIndex, SweepLineInterval, SweepLineOverlapAction}

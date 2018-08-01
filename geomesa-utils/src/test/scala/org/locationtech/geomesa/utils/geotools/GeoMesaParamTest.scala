@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.geotools
 
 import java.io.IOException
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.locationtech.geomesa.utils.geotools.GeoMesaParam.{SystemPropertyBooleanParam, SystemPropertyDurationParam, SystemPropertyIntegerParam, SystemPropertyStringParam}

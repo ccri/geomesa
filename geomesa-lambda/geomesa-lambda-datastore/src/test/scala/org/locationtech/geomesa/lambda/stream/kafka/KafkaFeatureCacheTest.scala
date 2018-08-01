@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.lambda.stream.kafka
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.features.ScalaSimpleFeature.ImmutableSimpleFeature
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes

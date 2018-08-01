@@ -12,7 +12,7 @@ import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 
 import com.typesafe.config.{Config, ConfigFactory}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.utils.conf.ArgResolver
 import org.locationtech.geomesa.utils.io.PathUtils
 

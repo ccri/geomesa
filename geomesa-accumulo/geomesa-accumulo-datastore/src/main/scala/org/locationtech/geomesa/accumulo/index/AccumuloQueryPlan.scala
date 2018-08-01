@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.index
 
 import java.util.Map.Entry
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.{IteratorSetting, ScannerBase}
 import org.apache.accumulo.core.data.{Key, Value, Range => aRange}
 import org.apache.accumulo.core.security.Authorizations

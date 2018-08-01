@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.convert2.transforms
 
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert2.transforms.Expression._
 import org.locationtech.geomesa.utils.text.BasicParser
 import org.parboiled.errors.{ErrorUtils, ParsingException}
@@ -17,7 +17,7 @@ import org.parboiled.scala.parserunners.{BasicParseRunner, ReportingParseRunner}
 /**
   * Parser for converter transforms
   */
-object ExpressionParser extends StrictLogging {
+object ExpressionParser extends LazyLogging {
 
   private val Parser = new ExpressionParser()
 

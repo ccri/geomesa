@@ -10,7 +10,7 @@ package org.locationtech.geomesa.bigtable.index
 
 import com.google.cloud.bigtable.hbase.BigtableExtendedScan
 import com.google.common.collect.Lists
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange

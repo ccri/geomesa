@@ -12,7 +12,7 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.csv.{CSVFormat, CSVParser, CSVPrinter}
 import org.opengis.feature.simple.SimpleFeatureType
 

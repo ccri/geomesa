@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.hbase.data
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.hbase.HBaseTestingUtility
 import org.apache.hadoop.hbase.client.Connection
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost

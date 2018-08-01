@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.index.index
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.{Query, Transaction}
 import org.geotools.factory.Hints
 import org.geotools.filter.text.ecql.ECQL

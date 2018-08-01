@@ -12,7 +12,7 @@ import java.awt.RenderingHints
 import java.io.Serializable
 import java.nio.charset.StandardCharsets
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.kudu.client.KuduClient
 import org.geotools.data.DataAccessFactory.Param
 import org.geotools.data.{DataStore, DataStoreFactorySpi}

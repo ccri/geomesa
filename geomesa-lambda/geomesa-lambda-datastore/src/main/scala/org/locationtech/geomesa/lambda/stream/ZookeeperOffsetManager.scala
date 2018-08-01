@@ -12,7 +12,7 @@ import java.io.Closeable
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.{Executors, TimeUnit}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.curator.framework.recipes.cache.{PathChildrenCache, PathChildrenCacheEvent, PathChildrenCacheListener}
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}

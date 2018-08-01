@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.utils.geotools
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.filter.expression.{PropertyAccessor, PropertyAccessors}
 import org.opengis.feature.simple.SimpleFeature
 

@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kafka.index
 import java.io.Closeable
 import java.util.concurrent._
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.filter.factory.FastFilterFactory
 import org.locationtech.geomesa.filter.index.SpatialIndexSupport
 import org.locationtech.geomesa.kafka.data.KafkaDataStore

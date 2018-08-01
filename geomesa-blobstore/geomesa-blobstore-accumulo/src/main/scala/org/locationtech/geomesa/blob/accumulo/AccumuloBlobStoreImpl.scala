@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.blob.accumulo
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.{BatchWriterConfig, Connector}
 import org.apache.accumulo.core.data.{Mutation, Range, Value}
 import org.apache.hadoop.io.Text

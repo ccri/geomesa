@@ -12,7 +12,7 @@ import java.awt.image.RenderedImage
 import java.io.{ByteArrayInputStream, ObjectInputStream}
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.hadoop.io.Text

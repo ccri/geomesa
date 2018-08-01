@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets
 import java.util.{Date, UUID}
 
 import com.google.common.hash.Hashing
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Geometry, Point}
 import org.apache.commons.codec.binary.Base64
 import org.locationtech.geomesa.convert.EvaluationContext

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.features.kryo.json
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.filter.FunctionExpressionImpl
 import org.geotools.filter.capability.FunctionNameImpl
 import org.geotools.filter.capability.FunctionNameImpl.parameter

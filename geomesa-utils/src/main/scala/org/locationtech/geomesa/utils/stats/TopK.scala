@@ -7,7 +7,7 @@
  ***********************************************************************/
 
 package org.locationtech.geomesa.utils.stats
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.utils.clearspring.StreamSummary
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 

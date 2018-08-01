@@ -11,7 +11,7 @@ package org.locationtech.geomesa.geojson
 import java.io.Closeable
 
 import com.github.benmanes.caffeine.cache.Caffeine
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{Geometry, Point}
 import org.geotools.data.{DataStore, FeatureWriter, Query, Transaction}
 import org.geotools.factory.Hints

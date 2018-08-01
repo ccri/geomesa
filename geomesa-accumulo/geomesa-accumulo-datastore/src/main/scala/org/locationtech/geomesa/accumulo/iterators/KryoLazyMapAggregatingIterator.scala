@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.iterators
 
 import java.util.{UUID, Map => jMap}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.IteratorSetting
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.accumulo.{AccumuloFeatureIndexType, sumNumericValueMutableMaps}

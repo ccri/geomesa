@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets
 import java.time.{Instant, ZoneOffset}
 import java.util.{List => jList}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data._
 import org.geotools.data.simple.{SimpleFeatureSource, SimpleFeatureWriter}
 import org.geotools.factory.Hints

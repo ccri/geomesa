@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.text.SimpleDateFormat
 import java.util.UUID
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.{LineString, Point, Polygon}
 import org.apache.avro.io.{DecoderFactory, EncoderFactory}
 import org.geotools.data.DataUtilities

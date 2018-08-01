@@ -11,7 +11,7 @@ package org.locationtech.geomesa.lambda.data
 import java.time.Clock
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import kafka.admin.AdminUtils
 import org.apache.kafka.clients.producer.Producer
 import org.geotools.data._

@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.{Collections, ServiceLoader}
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert2
 import org.locationtech.geomesa.convert2.{AbstractConverter, ConverterConfig}
 import org.locationtech.geomesa.utils.collection.{CloseableIterator, SelfClosingIterator}

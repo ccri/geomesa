@@ -12,7 +12,7 @@ import java.time.{Instant, ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 
 import com.beust.jcommander.{ParameterException, Parameters}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.{DataUtilities, FeatureEvent, FeatureListener}
 import org.locationtech.geomesa.kafka.tools.export.KafkaListenCommand.{ListenParameters, OutFeatureListener}
 import org.locationtech.geomesa.kafka.tools.{ConsumerDataStoreParams, KafkaDataStoreCommand}

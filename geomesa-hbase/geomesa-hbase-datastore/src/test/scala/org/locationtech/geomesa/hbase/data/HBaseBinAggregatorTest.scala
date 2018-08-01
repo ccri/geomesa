@@ -10,7 +10,7 @@ package org.locationtech.geomesa.hbase.data
 
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Point
 import org.geotools.data._
 import org.geotools.data.simple.SimpleFeatureStore

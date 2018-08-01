@@ -9,7 +9,7 @@
 package org.locationtech.geomesa.hbase.filters
 
 import com.google.common.primitives.{Bytes, Ints}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.hbase.Cell
 import org.apache.hadoop.hbase.exceptions.DeserializationException
 import org.apache.hadoop.hbase.filter.{Filter, FilterBase}

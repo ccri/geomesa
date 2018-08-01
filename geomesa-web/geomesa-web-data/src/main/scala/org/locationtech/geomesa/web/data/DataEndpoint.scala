@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.web.data
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.DataStoreFinder
 import org.locationtech.geomesa.web.core.GeoMesaScalatraServlet
 import org.scalatra.{BadRequest, InternalServerError, Ok}

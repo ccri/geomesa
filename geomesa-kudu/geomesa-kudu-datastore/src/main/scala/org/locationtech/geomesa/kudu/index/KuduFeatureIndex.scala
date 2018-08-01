@@ -11,7 +11,7 @@ package org.locationtech.geomesa.kudu.index
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
 import org.apache.kudu.{ColumnSchema, Schema}

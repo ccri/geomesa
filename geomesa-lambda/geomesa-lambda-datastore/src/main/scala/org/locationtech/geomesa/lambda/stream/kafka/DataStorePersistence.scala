@@ -12,7 +12,7 @@ import java.io.Closeable
 import java.time.Clock
 import java.util.concurrent.{Executors, TimeUnit}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.{DataStore, Transaction}
 import org.locationtech.geomesa.lambda.stream.OffsetManager
 import org.locationtech.geomesa.lambda.stream.kafka.KafkaFeatureCache.ExpiringFeatureCache

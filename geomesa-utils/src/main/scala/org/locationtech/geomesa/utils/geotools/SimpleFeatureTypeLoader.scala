@@ -12,7 +12,7 @@ import java.net.URL
 import java.util.{ServiceLoader, List => JList}
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.utils.conf.GeoMesaSystemProperties.SystemProperty
 import org.opengis.feature.simple.SimpleFeatureType
 

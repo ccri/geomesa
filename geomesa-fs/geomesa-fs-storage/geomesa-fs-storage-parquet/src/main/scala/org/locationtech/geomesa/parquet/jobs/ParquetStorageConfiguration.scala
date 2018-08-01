@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.parquet.jobs
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.mapreduce.Job
 import org.apache.parquet.hadoop.metadata.CompressionCodecName
 import org.apache.parquet.hadoop.{ParquetInputFormat, ParquetOutputFormat}

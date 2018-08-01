@@ -10,7 +10,7 @@ package org.locationtech.geomesa.raster.iterators
 
 import java.util.{Map => JMap}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.data.{Key, Value}
 import org.apache.accumulo.core.iterators.{IteratorEnvironment, SortedKeyValueIterator}
 

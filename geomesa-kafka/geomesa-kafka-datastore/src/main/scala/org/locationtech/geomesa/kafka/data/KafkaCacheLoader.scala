@@ -13,7 +13,7 @@ import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ConcurrentHashMap, CountDownLatch, Executors}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.kafka.clients.consumer.{Consumer, ConsumerRecord}
 import org.geotools.data.simple.SimpleFeatureSource
 import org.geotools.data.{FeatureEvent, FeatureListener}

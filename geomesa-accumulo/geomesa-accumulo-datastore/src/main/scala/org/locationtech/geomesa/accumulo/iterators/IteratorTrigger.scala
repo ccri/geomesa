@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.accumulo.iterators
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.DataUtilities
 import org.geotools.factory.Hints
 import org.geotools.process.vector.TransformProcess

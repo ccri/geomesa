@@ -9,7 +9,7 @@
 
 package org.locationtech.geomesa.spark.accumulo
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.ClientConfiguration
 import org.apache.accumulo.core.client.mapred.AbstractInputFormat
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat

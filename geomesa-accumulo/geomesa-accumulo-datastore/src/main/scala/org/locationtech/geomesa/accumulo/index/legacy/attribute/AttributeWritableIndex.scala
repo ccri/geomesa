@@ -17,7 +17,7 @@ import java.util.{Date, Locale, Collection => JCollection}
 
 import com.google.common.collect.ImmutableSortedSet
 import com.google.common.primitives.Bytes
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.data.{Range => AccRange}
 import org.apache.hadoop.io.Text
 import org.calrissian.mango.types.{LexiTypeEncoders, SimpleTypeEncoders, TypeEncoder}

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.index.utils
 
 import java.io.PrintStream
 
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 trait Explainer {

@@ -11,7 +11,7 @@ package org.locationtech.geomesa.index.geoserver
 import java.util.{Locale, Map => jMap}
 
 import com.google.common.collect.ImmutableBiMap
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.Query
 import org.geotools.factory.Hints
 import org.geotools.geometry.jts.ReferencedEnvelope

@@ -10,7 +10,7 @@ package org.locationtech.geomesa.index.filters
 
 import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.features.SerializationOption.SerializationOptions
 import org.locationtech.geomesa.features.kryo.KryoBufferSimpleFeature
 import org.locationtech.geomesa.index.api.{GeoMesaFeatureIndex, GeoMesaIndexManager}

@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.hbase.spark
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.spark.sql.{DataFrame, SQLContext, SQLTypes, SparkSession}
 import org.geotools.data.{Query, Transaction}
 import org.junit.runner.RunWith

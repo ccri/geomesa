@@ -11,7 +11,7 @@ package org.locationtech.geomesa.features.kryo.json
 import java.nio.charset.StandardCharsets
 
 import com.esotericsoftware.kryo.io.{Input, Output}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods.{parse => _, _}
 import org.locationtech.geomesa.features.kryo.json.JsonPathParser.JsonPathFunction.JsonPathFunction

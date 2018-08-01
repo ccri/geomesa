@@ -8,13 +8,13 @@
 
 package org.locationtech.geomesa.convert2.transforms
 
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert2.transforms.Predicate._
 import org.locationtech.geomesa.convert2.transforms.PredicateParser.Comparisons
 import org.parboiled.errors.{ErrorUtils, ParsingException}
 import org.parboiled.scala.parserunners.{BasicParseRunner, ReportingParseRunner}
 
-object PredicateParser extends StrictLogging {
+object PredicateParser extends LazyLogging {
 
   private val Parser = new PredicateParser()
 

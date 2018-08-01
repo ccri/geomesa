@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.convert
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.locationtech.geomesa.convert2
 import org.locationtech.geomesa.convert2.transforms.Expression.Column
 import org.locationtech.geomesa.convert2.transforms._

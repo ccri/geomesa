@@ -10,7 +10,7 @@ package org.locationtech.geomesa.process.query
 
 import java.util.concurrent.ConcurrentHashMap
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom._
 import com.vividsolutions.jts.operation.distance.DistanceOp
 import org.geotools.data.Query

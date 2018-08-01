@@ -14,7 +14,7 @@ import java.util.concurrent._
 
 import com.google.common.util.concurrent.MoreExecutors
 import com.google.protobuf.{ByteString, RpcCallback, RpcController, Service}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Call
 import org.apache.hadoop.hbase.client.{Scan, Table}
 import org.apache.hadoop.hbase.coprocessor.{CoprocessorException, CoprocessorService, RegionCoprocessorEnvironment}

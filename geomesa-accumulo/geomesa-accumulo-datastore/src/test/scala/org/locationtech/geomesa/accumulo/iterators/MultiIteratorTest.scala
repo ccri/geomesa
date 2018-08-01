@@ -10,7 +10,7 @@ package org.locationtech.geomesa.accumulo.iterators
 
 import java.time.{ZoneOffset, ZonedDateTime}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Polygon
 import org.geotools.data.Query
 import org.geotools.data.simple.SimpleFeatureCollection

@@ -20,7 +20,7 @@ import com.googlecode.cqengine.query.option.DeduplicationStrategy
 import com.googlecode.cqengine.query.simple.{All, Equal}
 import com.googlecode.cqengine.query.{Query, QueryFactory}
 import com.googlecode.cqengine.{ConcurrentIndexedCollection, IndexedCollection}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
 import org.locationtech.geomesa.memory.cqengine.attribute.SimpleFeatureAttribute
 import org.locationtech.geomesa.memory.cqengine.index.GeoIndex

@@ -12,7 +12,7 @@ package org.locationtech.geomesa.jobs.mapreduce
 import java.io._
 import java.net.{URL, URLClassLoader}
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.accumulo.core.client.impl.{AuthenticationTokenIdentifier, DelegationTokenImpl}
 import org.apache.accumulo.core.client.mapreduce.{AbstractInputFormat, AccumuloInputFormat, InputFormatBase, RangeInputSplit}
 import org.apache.accumulo.core.client.security.tokens.{KerberosToken, PasswordToken}

@@ -15,7 +15,7 @@ import java.util.Collections
 import javax.script.{Invocable, ScriptContext, ScriptEngine, ScriptEngineManager}
 
 import com.google.common.io.Files
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.commons.io.filefilter.TrueFileFilter
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.locationtech.geomesa.convert.{EvaluationContext, TransformerFn, TransformerFunctionFactory}

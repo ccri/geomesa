@@ -10,7 +10,7 @@ package org.locationtech.geomesa.security
 
 import java.util.ServiceLoader
 
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.geotools.data.{FeatureReader, FeatureSource, Query}
 import org.geotools.feature.FeatureCollection
 import org.locationtech.geomesa.utils.geotools.{ContentFeatureSourceSupport, FR}

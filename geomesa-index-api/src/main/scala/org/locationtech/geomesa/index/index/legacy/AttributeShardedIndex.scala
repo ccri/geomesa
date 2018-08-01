@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets
 import java.util.{Locale, Collection => JCollection}
 
 import com.google.common.primitives.{Bytes, Shorts, UnsignedBytes}
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.calrissian.mango.types.{LexiTypeEncoders, TypeRegistry}
 import org.geotools.data.DataUtilities
 import org.geotools.factory.Hints

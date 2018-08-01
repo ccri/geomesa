@@ -12,7 +12,7 @@ import java.time.Clock
 import java.util.{Properties, UUID}
 
 import com.google.common.primitives.Longs
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import kafka.admin.AdminUtils
 import kafka.common.TopicAlreadyMarkedForDeletionException
 import kafka.utils.ZkUtils

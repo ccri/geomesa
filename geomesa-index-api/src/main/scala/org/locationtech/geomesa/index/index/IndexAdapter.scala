@@ -13,7 +13,7 @@
 
 package org.locationtech.geomesa.index.index
 
-import com.typesafe.scalalogging.{LazyLogging, Logger}
+import com.typesafe.scalalogging.slf4j.{LazyLogging, Logger}
 import org.geotools.factory.Hints
 import org.locationtech.geomesa.index.api.{FilterStrategy, QueryPlan, WrappedFeature}
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore

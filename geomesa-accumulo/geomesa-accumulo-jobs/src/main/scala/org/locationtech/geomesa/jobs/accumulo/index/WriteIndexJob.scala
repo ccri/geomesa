@@ -12,7 +12,7 @@ package org.locationtech.geomesa.jobs.accumulo.index
 import java.io.File
 
 import com.beust.jcommander.Parameter
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.mapreduce.{Counter, Job, Mapper}
