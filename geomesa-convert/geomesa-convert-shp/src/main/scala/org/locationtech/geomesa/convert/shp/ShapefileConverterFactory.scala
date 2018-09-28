@@ -19,6 +19,7 @@ import org.locationtech.geomesa.convert2.AbstractConverter.{BasicConfig, BasicFi
 import org.locationtech.geomesa.convert2.AbstractConverterFactory
 import org.locationtech.geomesa.convert2.AbstractConverterFactory._
 import org.locationtech.geomesa.convert2.transforms.Expression.Column
+import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes.Configs
 import org.opengis.feature.simple.SimpleFeatureType
 
 import scala.util.control.NonFatal
@@ -82,7 +83,13 @@ object ShapefileConverterFactory extends LazyLogging {
           .withFallback(BasicOptionsConvert.to(options))
           .toConfig
 
-      Some((sft.getOrElse(ds.getSchema), config))
+      val schema = sft.getOrElse {
+        val fromFile = ds.getSchema
+        fromFile.getUserData.put(Configs.RESERVED_WORDS, "true")
+        fromFile
+      }
+
+      Some((schema, config))
     } catch {
       case NonFatal(e) =>
         logger.debug(s"Could not infer Shapefile converter from path '$path':", e)
