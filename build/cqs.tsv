@@ -77,7 +77,6 @@ io.dropwizard.metrics:metrics-graphite	3.1.2	compile
 io.netty:netty-all	4.1.17.Final	compile
 io.netty:netty-buffer	4.1.17.Final	compile
 io.netty:netty-common	4.1.17.Final	compile
-it.geosolutions.imageio-ext:imageio-ext-gdalsrp	1.1.25	compile
 it.geosolutions.jaiext.affine:jt-affine	1.1.1	compile
 it.geosolutions.jaiext.algebra:jt-algebra	1.1.1	compile
 it.geosolutions.jaiext.bandcombine:jt-bandcombine	1.1.1	compile
