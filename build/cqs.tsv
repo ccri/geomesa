@@ -20,7 +20,6 @@ com.googlecode.cqengine:cqengine	2.7.1	compile
 com.googlecode.efficient-java-matrix-library:core	0.26	compile
 com.google.code.gson:gson	2.8.1	compile
 com.googlecode.json-simple:json-simple	1.1.1	compile
-com.googlecode.json-simple:json-simple	1.1	compile
 com.googlecode.juniversalchardet:juniversalchardet	1.0.3	compile
 com.google.guava:guava	12.0.1	compile
 com.google.guava:guava	14.0.1	compile
