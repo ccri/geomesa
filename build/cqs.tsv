@@ -136,6 +136,7 @@ org.apache.commons:commons-csv	1.5	compile
 org.apache.commons:commons-lang3	3.6	compile
 org.apache.commons:commons-math	2.2	compile
 org.apache.commons:commons-pool2	2.4.2	compile
+org.apache.commons:commons-text	1.4	compile
 org.apache.commons:commons-vfs2	2.1	compile
 org.apache.curator:curator-client	2.4.0	compile
 org.apache.curator:curator-client	2.7.1	compile
@@ -216,7 +217,7 @@ org.jruby.jcodings:jcodings	1.0.8	compile
 org.jruby.joni:joni	2.1.2	compile
 org.json4s:json4s-ast_2.11	3.5.4	compile
 org.json4s:json4s-core_2.11	3.5.4	compile
-org.json4s:json4s-ext_2.11	3.5.2	compile
+org.json4s:json4s-ext_2.11	3.5.4	compile
 org.json4s:json4s-native_2.11	3.5.4	compile
 org.json4s:json4s-scalap_2.11	3.5.4	compile
 org.locationtech.jts.io:jts-io-common	1.16.0	compile
@@ -286,6 +287,7 @@ org.apache.kafka:kafka-clients	test:2.0.0	test
 org.cassandraunit:cassandra-unit	2.2.2.1	test
 org.codehaus.groovy:groovy-jsr223	2.4.5	test
 org.geotools:gt-geometry	20.0	test
+org.geotools.jdbc:gt-jdbc-h2	20.0	test
 org.jruby:jruby	9.0.4.0	test
 org.mortbay.jetty:jetty	6.1.26	test
 org.scalatra:scalatra-specs2_2.11	2.6.3	test
