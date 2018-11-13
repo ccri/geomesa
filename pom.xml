@@ -767,6 +767,11 @@
                         <artifactId>jai_imageio</artifactId>
                     </exclusion>
                     <exclusion>
+                        <!-- excluded due to license issues -->
+                        <groupId>org.jaitools</groupId>
+                        <artifactId>jt-utils</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>org.locationtech.jts</groupId>
                         <artifactId>jts-example</artifactId>
                     </exclusion>
