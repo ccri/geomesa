@@ -10,7 +10,7 @@
     <groupId>org.locationtech.geomesa</groupId>
     <artifactId>geomesa_2.11</artifactId>
     <packaging>pom</packaging>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.2.0-SNAPSHOT</version>
 
     <licenses>
         <license>
@@ -58,8 +58,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- bump version right before performing releases for the README and the documentation -->
-        <geomesa.release.version>2.0.2</geomesa.release.version>
-        <geomesa.devel.version>2.1.0-SNAPSHOT</geomesa.devel.version>
+        <geomesa.release.version>2.1.0</geomesa.release.version>
+        <geomesa.devel.version>2.2.0-SNAPSHOT</geomesa.devel.version>
 
         <!-- this must remain outside of version specific scala profiles for sbt/ivy -->
         <scala.binary.version>2.11</scala.binary.version>
@@ -76,6 +76,7 @@
         <avro.version>1.7.5</avro.version>
         <parquet.version>1.9.0</parquet.version>
         <orc.version>1.4.4</orc.version>
+        <jackson.version>2.6.5</jackson.version> <!-- used by spark and arrow (which defaults to 2.7.1) -->
         <jackson.codehaus.version>1.9.3</jackson.codehaus.version>
         <gdal.version>2.0.0</gdal.version>
         <json4s.version>3.5.4</json4s.version>
@@ -549,6 +550,30 @@
             <dependency>
                 <groupId>org.geotools</groupId>
                 <artifactId>gt-api</artifactId>
+                <version>${gt.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- excluded due to license issues -->
+                        <groupId>javax.media</groupId>
+                        <artifactId>jai_core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools</groupId>
+                <artifactId>gt-jdbc</artifactId>
+                <version>${gt.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- excluded due to license issues -->
+                        <groupId>javax.media</groupId>
+                        <artifactId>jai_core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.geotools.jdbc</groupId>
+                <artifactId>gt-jdbc-h2</artifactId>
                 <version>${gt.version}</version>
                 <exclusions>
                     <exclusion>
@@ -2005,9 +2030,19 @@
                 <version>2.6</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.6</version>
+            </dependency>
+            <dependency>
                 <groupId>commons-collections</groupId>
                 <artifactId>commons-collections</artifactId>
                 <version>3.2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>1.4</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>
@@ -2083,6 +2118,11 @@
             <dependency>
                 <groupId>org.json4s</groupId>
                 <artifactId>json4s-core_${scala.binary.version}</artifactId>
+                <version>${json4s.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.json4s</groupId>
+                <artifactId>json4s-ext_${scala.binary.version}</artifactId>
                 <version>${json4s.version}</version>
             </dependency>
             <dependency>
@@ -2207,17 +2247,17 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>2.6.5</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>2.6.5</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.6.5</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.scalatra</groupId>
@@ -2516,12 +2556,6 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>3.6.2.Final</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.6</version>
             </dependency>
 
             <!-- geoserver 2.14 spring version -->

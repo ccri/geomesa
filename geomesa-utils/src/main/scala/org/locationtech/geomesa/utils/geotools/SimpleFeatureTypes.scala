@@ -11,7 +11,7 @@ package org.locationtech.geomesa.utils.geotools
 import java.util.Date
 
 import com.typesafe.config.Config
-import org.apache.commons.lang.StringEscapeUtils
+import org.apache.commons.text.StringEscapeUtils
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder
 import org.locationtech.geomesa.utils.geotools.AttributeSpec.GeomAttributeSpec
 import org.locationtech.geomesa.utils.geotools.NameableFeatureTypeFactory.NameableSimpleFeatureType
@@ -32,7 +32,7 @@ object SimpleFeatureTypes {
     val VIS_LEVEL_KEY        = "geomesa.visibility.level"
     val Z3_INTERVAL_KEY      = "geomesa.z3.interval"
     val XZ_PRECISION_KEY     = "geomesa.xz.precision"
-    val TABLE_SPLITTER       = "table.splitter.class"
+    val TABLE_SPLITTER       = "table.splitter.class" // note: doesn't start with geomesa so we don't persist it
     val TABLE_SPLITTER_OPTS  = "table.splitter.options"
     val MIXED_GEOMETRIES     = "geomesa.mixed.geometries"
     val RESERVED_WORDS       = "override.reserved.words" // note: doesn't start with geomesa so we don't persist it
@@ -50,15 +50,18 @@ object SimpleFeatureTypes {
     val COMPRESSION_TYPE     = "geomesa.table.compression.type"  // valid: snappy, lzo, gz(default), bzip2, lz4, zstd
     val FID_UUID_KEY         = "geomesa.fid.uuid"
     val FID_UUID_ENCODED_KEY = "geomesa.fid.uuid-encoded"
+    val TABLE_PARTITIONING   = "geomesa.table.partition"
   }
 
   private [geomesa] object InternalConfigs {
-    val GEOMESA_PREFIX      = "geomesa."
-    val SHARING_PREFIX_KEY  = "geomesa.table.sharing.prefix"
-    val USER_DATA_PREFIX    = "geomesa.user-data.prefix"
-    val INDEX_VERSIONS      = "geomesa.indices"
-    val REMOTE_VERSION      = "gm.remote.version" // note: doesn't start with geomesa so we don't persist it
-    val KEYWORDS_DELIMITER  = "\u0000"
+    val GEOMESA_PREFIX          = "geomesa."
+    val SHARING_PREFIX_KEY      = "geomesa.table.sharing.prefix"
+    val USER_DATA_PREFIX        = "geomesa.user-data.prefix"
+    val INDEX_VERSIONS          = "geomesa.indices"
+    val PARTITION_SPLITTER      = "geomesa.splitter.class"
+    val PARTITION_SPLITTER_OPTS = "geomesa.splitter.opts"
+    val REMOTE_VERSION          = "gm.remote.version" // note: doesn't start with geomesa so we don't persist it
+    val KEYWORDS_DELIMITER      = "\u0000"
   }
 
   object AttributeOptions {
@@ -158,10 +161,19 @@ object SimpleFeatureTypes {
     * Encode a SimpleFeatureType as a comma-separated String
     *
     * @param sft - SimpleFeatureType to encode
+    * @return a string representing a serialization of the sft
+    */
+  def encodeType(sft: SimpleFeatureType): String =
+    sft.getAttributeDescriptors.map(encodeDescriptor(sft, _)).mkString(",")
+
+  /**
+    * Encode a SimpleFeatureType as a comma-separated String
+    *
+    * @param sft - SimpleFeatureType to encode
     * @param includeUserData - defaults to false
     * @return a string representing a serialization of the sft
     */
-  def encodeType(sft: SimpleFeatureType, includeUserData: Boolean = false): String = {
+  def encodeType(sft: SimpleFeatureType, includeUserData: Boolean): String = {
     val userData = if (includeUserData) { encodeUserData(sft) } else { "" }
     sft.getAttributeDescriptors.map(encodeDescriptor(sft, _)).mkString("", ",", userData)
   }
