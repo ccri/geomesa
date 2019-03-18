@@ -51,7 +51,7 @@ trait TwkbSerialization[T <: NumericWriter, V <: NumericReader]
         val coord = geometry.getCoordinate
         // check for dimensions - use NaN != NaN to verify z coordinate
         // TODO check for M coordinate when added to JTS
-        if (coord == null || java.lang.Double.isNaN(coord.getZ)) {
+        if (coord == null || java.lang.Double.isNaN(coord.z)) {
           new XYState(precision.xy)
         } else {
           new XYZState(precision.xy, precision.z)
@@ -515,7 +515,7 @@ trait TwkbSerialization[T <: NumericWriter, V <: NumericReader]
 
     override def writeCoordinate(out: T, coordinate: Coordinate): Unit = {
       super.writeCoordinate(out, coordinate)
-      val cz = math.round(coordinate.getZ * pz).toInt
+      val cz = math.round(coordinate.z * pz).toInt
       writeVarInt(out, cz - z)
       z = cz
     }
@@ -523,7 +523,7 @@ trait TwkbSerialization[T <: NumericWriter, V <: NumericReader]
     override def readCoordinate(in: V): Coordinate = {
       val coord = super.readCoordinate(in)
       z = z + readVarInt(in)
-      coord.setZ(z / pz)
+      coord.z = z / pz
       coord
     }
 
