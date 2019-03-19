@@ -55,6 +55,58 @@ class KryoFeatureSerializerTest extends Specification with LazyLogging {
       util.Arrays.equals(aBytes, bBytes) must beTrue
     }
 
+    "do good things" in {
+      val spec = "registrationid:String:index=full,ts:Long,source:String,app_name:String,environment:String,geo_country:String,inventory_source:String,platform_browser:String,platform_device_make:String,platform_os:String,platform_os_version:String,placement_typ:String,metadata:String:json=true,dtg:Date:default=true,*geom:Point:srid=4326:precision=6"
+      val sft = SimpleFeatureTypes.createType("rtb", spec)
+
+      val sf = new ScalaSimpleFeature(sft, "fakeid")
+
+      val serializer = KryoFeatureSerializer(sft, SerializationOptions.none)
+
+      def deserializeInt(bytes: Array[Byte]): Int = {
+        val stream = new ByteArrayInputStream(bytes)
+        val ois = new ObjectInputStream(stream)
+        try {
+          ois.readInt()
+        } finally {
+          ois.close()
+          stream.close()
+        }
+      }
+
+      def readInt(bis: BufferedInputStream): Int = {
+        val intArr = new Array[Byte](10)
+        val readLength = bis.read(intArr, 0, 10)
+        require(readLength == 10, "Invalid file")
+        deserializeInt(intArr)
+      }
+
+      def readArray(bis: BufferedInputStream): Array[Byte] = {
+        val length = readInt(bis)
+        val keyArr = new Array[Byte](length)
+        bis.read(keyArr, 0, length)
+        keyArr
+      }
+
+      val is = getClass.getClassLoader.getResourceAsStream(s"bad_data")
+      val bis = new BufferedInputStream(is)
+      val value = readArray(bis)
+      val valueOffset = readInt(bis)
+      val valueLength = readInt(bis)
+
+      val deserialized = KryoFeatureSerializer(sft, Set.empty[SerializationOption]).deserialize(value, valueOffset, valueLength)
+
+      //      val badValueRaw = "\\x02\\x00\\x00\\x00\\xE6\\xC1\\x016b88c933c27c7f744b955afdf7dbf7d0f3810de8143c5aa59cf3fdaea46b0653\\x01\\x00\\x05~Z\\xC7\\x1F\\xBAx\\x82B\\xC1\\x011f890c5900dfba03c7b0d0c34fc9267ec0b6f51dc94902a14a3bf745e1f08adeAP\\xD0KORGOOGLE_AD\\xD8Chrome Mobil\\xE5Samsun\\xE7Androi\\xE48.\\xB0BANNER_AND_VIDE\\xCF\\x00\\x01\\x00\\x00\\x01h\\x06\\xDA\\xE9g\\xC1\\x00\\xBC\\x95\\xFEx\\xA8\\xED\\xBE!\\x05GPR\\x94\\x01\\x97\\x01\\x9A\\x01\\xA4\\x01\\xB1\\x01\\xB8\\x01\\xBF\\x01\\xC2\\x01\\xD2\\x01\\xD3\\x01\\xDC\\x01"
+
+      //      foreach(options) { opts =>
+      //      val deserialized = KryoFeatureSerializer(sft, Set.empty[SerializationOption]).deserialize(badValueRaw.toCharArray.map(_.toByte))
+      //      }
+
+
+      deserialized must not(beNull)
+      deserialized.getType mustEqual sf.getType
+    }
+
     "correctly deserialize basic features" in {
       val spec = "a:Integer,b:Float,c:Double,d:Long,e:UUID,f:String,g:Boolean,dtg:Date,*geom:Point:srid=4326,bytes:Bytes"
       val sft = SimpleFeatureTypes.createType("testType", spec)
@@ -452,56 +504,6 @@ class KryoFeatureSerializerTest extends Specification with LazyLogging {
       success
     }
 
-    "do good things" in {
-      val spec = "registrationid:String:index=full,ts:Long,source:String,app_name:String,environment:String,geo_country:String,inventory_source:String,platform_browser:String,platform_device_make:String,platform_os:String,platform_os_version:String,placement_typ:String,metadata:String:json=true,dtg:Date:default=true,*geom:Point:srid=4326:precision=6"
-      val sft = SimpleFeatureTypes.createType("rtb", spec)
 
-      val sf = new ScalaSimpleFeature(sft, "fakeid")
-
-      val serializer = KryoFeatureSerializer(sft, SerializationOptions.none)
-
-      def deserializeInt(bytes: Array[Byte]): Int = {
-        val stream = new ByteArrayInputStream(bytes)
-        val ois = new ObjectInputStream(stream)
-        try {
-          ois.readInt()
-        } finally {
-          ois.close()
-          stream.close()
-        }
-      }
-
-      def readInt(bis: BufferedInputStream): Int = {
-        val intArr = new Array[Byte](10)
-        val readLength = bis.read(intArr, 0, 10)
-        require(readLength == 10, "Invalid file")
-        deserializeInt(intArr)
-      }
-
-      def readArray(bis: BufferedInputStream): Array[Byte] = {
-        val length = readInt(bis)
-        val keyArr = new Array[Byte](length)
-        bis.read(keyArr, 0, length)
-        keyArr
-      }
-
-      val is = getClass.getClassLoader.getResourceAsStream(s"bad_data")
-      val bis = new BufferedInputStream(is)
-      val value = readArray(bis)
-      val valueOffset = readInt(bis)
-      val valueLength = readInt(bis)
-
-      val deserialized = KryoFeatureSerializer(sft, Set.empty[SerializationOption]).deserialize(value, valueOffset, valueLength)
-
-//      val badValueRaw = "\\x02\\x00\\x00\\x00\\xE6\\xC1\\x016b88c933c27c7f744b955afdf7dbf7d0f3810de8143c5aa59cf3fdaea46b0653\\x01\\x00\\x05~Z\\xC7\\x1F\\xBAx\\x82B\\xC1\\x011f890c5900dfba03c7b0d0c34fc9267ec0b6f51dc94902a14a3bf745e1f08adeAP\\xD0KORGOOGLE_AD\\xD8Chrome Mobil\\xE5Samsun\\xE7Androi\\xE48.\\xB0BANNER_AND_VIDE\\xCF\\x00\\x01\\x00\\x00\\x01h\\x06\\xDA\\xE9g\\xC1\\x00\\xBC\\x95\\xFEx\\xA8\\xED\\xBE!\\x05GPR\\x94\\x01\\x97\\x01\\x9A\\x01\\xA4\\x01\\xB1\\x01\\xB8\\x01\\xBF\\x01\\xC2\\x01\\xD2\\x01\\xD3\\x01\\xDC\\x01"
-
-//      foreach(options) { opts =>
-//      val deserialized = KryoFeatureSerializer(sft, Set.empty[SerializationOption]).deserialize(badValueRaw.toCharArray.map(_.toByte))
-//      }
-
-
-      deserialized must not(beNull)
-      deserialized.getType mustEqual sf.getType
-    }
   }
 }
