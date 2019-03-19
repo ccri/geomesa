@@ -10,7 +10,7 @@ package org.locationtech.geomesa.features.kryo
 
 import java.nio.charset.StandardCharsets
 import java.util
-import java.util.{Date, UUID}
+import java.util.{Date, Scanner, UUID}
 
 import com.typesafe.scalalogging.LazyLogging
 import com.vividsolutions.jts.geom.Geometry
@@ -25,6 +25,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuilder
 
 @RunWith(classOf[JUnitRunner])
 class KryoFeatureSerializerTest extends Specification with LazyLogging {
@@ -333,7 +334,7 @@ class KryoFeatureSerializerTest extends Specification with LazyLogging {
 
       // note: can't append attributes while also serializing user data
       forall(options.filterNot(_.withUserData)) { opts =>
-        val serialized = KryoFeatureSerializer(sft, opts).serialize(sf)
+        val serialized: Array[Byte] = KryoFeatureSerializer(sft, opts).serialize(sf)
         val deserialized = KryoFeatureSerializer(newSft, opts).deserialize(serialized)
 
         deserialized.getID mustEqual sf.getID
@@ -447,6 +448,23 @@ class KryoFeatureSerializerTest extends Specification with LazyLogging {
 
       logger.debug("\n\n")
       success
+    }
+
+    "do good things" in {
+      val spec = "registrationid:String:index=full,ts:Long,source:String,app_name:String,environment:String,geo_country:String,inventory_source:String,platform_browser:String,platform_device_make:String,platform_os:String,platform_os_version:String,placement_typ:String,metadata:String:json=true,dtg:Date:default=true,*geom:Point:srid=4326:precision=6"
+      val sft = SimpleFeatureTypes.createType("rtb", spec)
+
+      val sf = new ScalaSimpleFeature(sft, "fakeid")
+
+      val serializer = KryoFeatureSerializer(sft, SerializationOptions.none)
+
+      val badValueRaw = "\\x02\\x00\\x00\\x00\\xE6\\xC1\\x016b88c933c27c7f744b955afdf7dbf7d0f3810de8143c5aa59cf3fdaea46b0653\\x01\\x00\\x05~Z\\xC7\\x1F\\xBAx\\x82B\\xC1\\x011f890c5900dfba03c7b0d0c34fc9267ec0b6f51dc94902a14a3bf745e1f08adeAP\\xD0KORGOOGLE_AD\\xD8Chrome Mobil\\xE5Samsun\\xE7Androi\\xE48.\\xB0BANNER_AND_VIDE\\xCF\\x00\\x01\\x00\\x00\\x01h\\x06\\xDA\\xE9g\\xC1\\x00\\xBC\\x95\\xFEx\\xA8\\xED\\xBE!\\x05GPR\\x94\\x01\\x97\\x01\\x9A\\x01\\xA4\\x01\\xB1\\x01\\xB8\\x01\\xBF\\x01\\xC2\\x01\\xD2\\x01\\xD3\\x01\\xDC\\x01"
+
+//      foreach(options) { opts =>
+      val deserialized = KryoFeatureSerializer(sft, Set.empty[SerializationOption]).deserialize(badValueRaw.toCharArray.map(_.toByte))
+//      }
+      deserialized must not(beNull)
+      deserialized.getType mustEqual sf.getType
     }
   }
 }
