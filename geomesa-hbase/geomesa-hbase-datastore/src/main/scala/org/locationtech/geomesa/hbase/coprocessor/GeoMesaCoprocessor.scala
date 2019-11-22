@@ -64,7 +64,7 @@ class GeoMesaCoprocessor extends GeoMesaCoprocessorService with Coprocessor with
 
     try {
       val options = GeoMesaCoprocessor.deserializeOptions(request.getOptions.toByteArray)
-      val timeout = options.get(GeoMesaCoprocessor.TimeoutOpt).map(_.toLong + System.currentTimeMillis())
+      val timeout = options.get(GeoMesaCoprocessor.TimeoutOpt).map(_.toLong)
       if (!controller.isCanceled) {
         val clas = options(GeoMesaCoprocessor.AggregatorClass)
         WithClose(Class.forName(clas).newInstance().asInstanceOf[Aggregator]) { aggregator =>
@@ -168,7 +168,7 @@ object GeoMesaCoprocessor extends LazyLogging {
    * @param millis milliseconds
    * @return
    */
-  def timeout(millis: Long): (String, String) = TimeoutOpt -> millis.toString
+  def timeout(millis: Long): (String, String) = TimeoutOpt -> (millis + System.currentTimeMillis()).toString
 
   /**
    * Closeable iterator implementation for invoking coprocessor rpcs
