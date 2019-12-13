@@ -32,8 +32,7 @@ import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 class SimpleFeatureArrowFileWriter private (vector: SimpleFeatureVector,
                                             provider: MapDictionaryProvider,
                                             os: OutputStream,
-                                            sort: Option[(String, Boolean)])
-                                           (implicit allocator: BufferAllocator) extends Closeable with Flushable {
+                                            sort: Option[(String, Boolean)]) extends Closeable with Flushable {
 
   private val metadata = sort.map { case (field, reverse) => SimpleFeatureArrowIO.getSortAsMetadata(field, reverse) }.orNull
   private val root = SimpleFeatureArrowIO.createRoot(vector.underlying, metadata)

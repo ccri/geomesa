@@ -80,6 +80,7 @@ class SimpleFeatureVector private [arrow] (val sft: SimpleFeatureType,
     }
 
     private [vector] def close(): Unit = arrowWriter.close()
+    // JNH Close underlying here?
   }
 
   class Reader(vector: SimpleFeatureVector) {

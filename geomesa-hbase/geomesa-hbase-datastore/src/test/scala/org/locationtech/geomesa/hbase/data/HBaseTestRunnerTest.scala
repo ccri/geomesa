@@ -32,19 +32,19 @@ class HBaseTestRunnerTest extends Specification with BeforeAfterAll with LazyLog
 
   // add new tests here
   val specs = Seq(
-    new HBaseAlterSchemaTest,
-    new HBaseArrowTest,
-    new HBaseBinAggregatorTest,
-    new HBaseColumnGroupsTest,
-    new HBaseDataStoreTest,
-    new HBaseDensityFilterTest,
-    new HBaseStatsAggregatorTest,
-    new HBaseVisibilityTest,
-    new HBasePartitioningTest,
-    new HBaseS2IndexTest,
-    new HBaseS3IndexTest,
-    new HBaseBackCompatibilityTest,
-    new HBaseSamplingFilterTest
+//    new HBaseAlterSchemaTest,
+    new HBaseArrowTest
+//    new HBaseBinAggregatorTest,
+//    new HBaseColumnGroupsTest,
+//    new HBaseDataStoreTest,
+//    new HBaseDensityFilterTest,
+//    new HBaseStatsAggregatorTest,
+//    new HBaseVisibilityTest,
+//    new HBasePartitioningTest,
+//    new HBaseS2IndexTest,
+//    new HBaseS3IndexTest,
+//    new HBaseBackCompatibilityTest,
+//    new HBaseSamplingFilterTest
   )
 
   override def beforeAll(): Unit = {

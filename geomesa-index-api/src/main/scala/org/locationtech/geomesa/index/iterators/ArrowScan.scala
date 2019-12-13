@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.index.iterators
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, Closeable}
 import java.util.Objects
 
 import org.geotools.util.factory.Hints
@@ -83,13 +83,22 @@ trait ArrowScan extends AggregatingScan[ArrowAggregate] {
     }
 
     aggregateCache.getOrElseUpdate(cacheKey, create()).init(batchSize)
+
+    //  If we turn off caching, then you can get a pretty clear 'leak'.
+    //  I ran the tests with -XX:MaxDirectMemorySize=96m and got it to error out after ~100 iterations.
+    // create()
   }
 
   override protected def notFull(result: ArrowAggregate): Boolean = result.size < batchSize
 
   override protected def aggregateResult(sf: SimpleFeature, result: ArrowAggregate): Unit = result.add(sf)
 
-  override protected def encodeResult(result: ArrowAggregate): Array[Byte] = result.encode()
+  override protected def encodeResult(result: ArrowAggregate): Array[Byte] = {
+    val ret = result.encode()
+    result.clear()
+    //result.close()
+    ret
+  }
 }
 
 object ArrowScan {
@@ -295,7 +304,7 @@ object ArrowScan {
   /**
     * Trait for aggregating arrow files
     */
-  trait ArrowAggregate {
+  trait ArrowAggregate extends Closeable {
     def size: Int
     def add(sf: SimpleFeature): Unit
     def encode(): Array[Byte]
@@ -322,7 +331,10 @@ object ArrowScan {
 
     override def size: Int = writer.size
 
-    override def clear(): Unit = writer.clear()
+    override def clear(): Unit = {
+      writer.underlying.clear()
+      writer.clear()
+    }
 
     override def encode(): Array[Byte] = {
       os.reset()
@@ -331,6 +343,10 @@ object ArrowScan {
     }
 
     override def init(size: Int): ArrowAggregate = this
+
+    override def close(): Unit = {
+      writer.close()
+    }
   }
 
   /**
@@ -393,6 +409,8 @@ object ArrowScan {
       }
       this
     }
+
+    override def close(): Unit = writer.close
   }
 
   /**
@@ -481,6 +499,10 @@ object ArrowScan {
     override def encode(): Array[Byte] = batchWriter.unload(index)
 
     override def init(size: Int): ArrowAggregate = this
+
+    override def close(): Unit = {
+
+    }
   }
 
   /**
@@ -540,6 +562,10 @@ object ArrowScan {
         features = Array.ofDim[SimpleFeature](size)
       }
       this
+    }
+
+    override def close(): Unit = {
+
     }
   }
 
@@ -645,6 +671,8 @@ object ArrowScan {
       }
       this
     }
+
+    override def close(): Unit = writer.close()
   }
 
   /**

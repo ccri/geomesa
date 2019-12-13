@@ -113,6 +113,7 @@ class DictionaryBuildingWriter private (val sft: SimpleFeatureType,
   }
 
   override def close(): Unit = {
+    println(s" *** CLOSING underlying $underlying")
     underlying.close()
     arrowWriter.close()
   }
@@ -137,7 +138,11 @@ object DictionaryBuildingWriter {
              maxSize: Int = Short.MaxValue)
             (implicit allocator: BufferAllocator): DictionaryBuildingWriter = {
     val underlying = StructVector.empty(sft.getTypeName, allocator)
+    println(s" **** Creating $underlying.  Allocator at $allocator ****")
+
     underlying.allocateNew()
+    //println(s"Allocator state: ${allocator.toVerboseString}")
+    //Thread.sleep(10010)
     new DictionaryBuildingWriter(sft, underlying, dictionaries, encoding, maxSize)
   }
 
