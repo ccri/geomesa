@@ -140,7 +140,7 @@ class GeoMesaCoprocessor extends GeoMesaCoprocessorService with Coprocessor with
       case NonFatal(e) => ResponseConverter.setControllerException(controller, new IOException(e))
     }
 
-    logger.debug(s"GeoMesa Coprocessors Results have total size ${results.map(_.size()).sum}.  Individually they are size: ${results.map(_.length).mkString(",")}.")
+    logger.debug(s"GeoMesa Coprocessors Results have total size ${results.map(_.size()).sum}.  Individually they are size: ${results.map(_.size).mkString(",")}.")
 
     done.run(GeoMesaCoprocessorResponse.newBuilder.addAllPayload(results.asJava).build)
   }
