@@ -68,7 +68,6 @@ class HBaseMergedDataStoreViewTest extends HBaseTest {
   val params: util.Map[String, String] = Map(ZookeeperParam.getName -> "localhost:2181", HBaseCatalogParam.getName -> catalogTableName).asJava
   val params2 = Map(ZookeeperParam.getName -> "localhost:2181", HBaseCatalogParam.getName -> catalogTableName2).asJava
 
-  var path: Path = _
   var ds: MergedDataStoreView = _
 
   def comboParams(params: java.util.Map[String, String]*): java.util.Map[String, String] = {
@@ -134,7 +133,6 @@ class HBaseMergedDataStoreViewTest extends HBaseTest {
 
   step {
     ds.dispose()
-    PathUtils.deleteRecursively(path)
     allocator.close()
   }
 }
