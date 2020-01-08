@@ -73,7 +73,16 @@ class MergedDataStoreViewTest extends Specification {
     AccumuloDataStoreParams.MockParam.key       -> "true"
   ).asJava
 
-  var h2Params: java.util.Map[String, String] = _
+  val accumuloParams2 = Map(
+    AccumuloDataStoreParams.InstanceIdParam.key -> "mycloud",
+    AccumuloDataStoreParams.ZookeepersParam.key -> "myzoo",
+    AccumuloDataStoreParams.UserParam.key       -> "user",
+    AccumuloDataStoreParams.PasswordParam.key   -> "password",
+    AccumuloDataStoreParams.CatalogParam.key    -> "george",
+    AccumuloDataStoreParams.MockParam.key       -> "true"
+  ).asJava
+
+  //var h2Params: java.util.Map[String, String] = _
 
   var path: Path = _
   var ds: MergedDataStoreView = _
@@ -87,12 +96,12 @@ class MergedDataStoreViewTest extends Specification {
   step {
     path = Files.createTempDirectory(s"combo-ds-test")
 
-    h2Params = Map(
-      "dbtype"   -> "h2",
-      "database" -> path.toFile.getAbsolutePath
-    ).asJava
+//    accumuloParams2 = Map(
+//      "dbtype"   -> "h2",
+//      "database" -> path.toFile.getAbsolutePath
+//    ).asJava
 
-    val h2Ds = DataStoreFinder.getDataStore(h2Params)
+    val h2Ds = DataStoreFinder.getDataStore(accumuloParams2)
     val accumuloDs = DataStoreFinder.getDataStore(accumuloParams)
 
     val copied = features.iterator
@@ -112,7 +121,7 @@ class MergedDataStoreViewTest extends Specification {
     h2Ds.dispose()
     accumuloDs.dispose()
 
-    ds = DataStoreFinder.getDataStore(comboParams(h2Params, accumuloParams)).asInstanceOf[MergedDataStoreView]
+    ds = DataStoreFinder.getDataStore(comboParams(accumuloParams2, accumuloParams)).asInstanceOf[MergedDataStoreView]
     ds must not(beNull)
   }
 
@@ -130,7 +139,7 @@ class MergedDataStoreViewTest extends Specification {
     }
 
     "load via SPI config" in {
-      val h2Config = ConfigValueFactory.fromMap(h2Params)
+      val h2Config = ConfigValueFactory.fromMap(accumuloParams2)
       val accumuloConfig = ConfigValueFactory.fromMap(accumuloParams)
 
       def testParams(config: Config): MatchResult[Any] = {
@@ -209,7 +218,7 @@ class MergedDataStoreViewTest extends Specification {
       )
 
       // these filters exclude the '5' feature
-      val h2FilteredParams = new java.util.HashMap[String, String](h2Params)
+      val h2FilteredParams = new java.util.HashMap[String, String](accumuloParams2)
       h2FilteredParams.put(MergedDataStoreViewFactory.StoreFilterParam.key, "dtg < '2018-01-01T00:06:00.000Z'")
       val accumuloFilteredParams = new java.util.HashMap[String, String](accumuloParams)
       accumuloFilteredParams.put(MergedDataStoreViewFactory.StoreFilterParam.key, "dtg >= '2018-01-01T00:06:00.000Z'")
@@ -272,6 +281,7 @@ class MergedDataStoreViewTest extends Specification {
       query.getHints.put(QueryHints.ARROW_DICTIONARY_FIELDS, "name")
       query.getHints.put(QueryHints.ARROW_SORT_FIELD, "dtg")
       query.getHints.put(QueryHints.ARROW_BATCH_SIZE, 100)
+      query.getHints.put(QueryHints.ARROW_DOUBLE_PASS, true)
       val results = SelfClosingIterator(ds.getFeatureReader(query, Transaction.AUTO_COMMIT))
       val out = new ByteArrayOutputStream
       results.foreach(sf => out.write(sf.getAttribute(0).asInstanceOf[Array[Byte]]))
