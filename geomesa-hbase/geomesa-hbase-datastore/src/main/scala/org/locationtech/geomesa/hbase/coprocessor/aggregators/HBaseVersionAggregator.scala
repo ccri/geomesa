@@ -24,22 +24,22 @@ class HBaseVersionAggregator extends HBaseAggregator[VersionAggregator] {
 
   override def setScanner(scanner: RegionScanner): Unit = {}
 
-  // we always return true exactly once so that we trigger aggregation, but then don't actually read any rows
-  override def hasNextData: Boolean = if (scanned) { false } else { scanned = true; true }
+  override def init(options: Map[String, String]): Unit = {}
 
-  override protected def initResult(sft: SimpleFeatureType,
-                                    transform: Option[SimpleFeatureType],
-                                    options: Map[String, String]): VersionAggregator = {
-    scanned = false
-    new VersionAggregator
-  }
+  override def aggregate(): Array[Byte] =
+    if (scanned) { null } else { scanned = true; GeoMesaProperties.ProjectVersion.getBytes(StandardCharsets.UTF_8) }
 
-  override protected def aggregateResult(sf: SimpleFeature, result: VersionAggregator): Unit = {}
+  override protected def initResult(
+      sft: SimpleFeatureType,
+      transform: Option[SimpleFeatureType],
+      options: Map[String, String]): VersionAggregator = throw new NotImplementedError()
 
-  override protected def notFull(result: VersionAggregator): Boolean = true
+  override protected def notFull(result: VersionAggregator): Boolean = throw new NotImplementedError()
 
-  override protected def encodeResult(result: VersionAggregator): Array[Byte] =
-    GeoMesaProperties.ProjectVersion.getBytes(StandardCharsets.UTF_8)
+  override protected def aggregateResult(sf: SimpleFeature, result: VersionAggregator): Unit =
+    throw new NotImplementedError()
+
+  override protected def encodeResult(result: VersionAggregator): Array[Byte] = throw new NotImplementedError()
 }
 
 object HBaseVersionAggregator {

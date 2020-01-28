@@ -11,8 +11,9 @@ package org.locationtech.geomesa.hbase.coprocessor.aggregators
 import org.apache.hadoop.hbase.Cell
 import org.apache.hadoop.hbase.regionserver.RegionScanner
 import org.locationtech.geomesa.index.iterators.AggregatingScan
+import org.locationtech.geomesa.index.iterators.AggregatingScan.RowValue
 
-trait HBaseAggregator[T <: AnyRef { def isEmpty: Boolean; def clear(): Unit }] extends AggregatingScan[T] {
+trait HBaseAggregator[T <: AggregatingScan.Result] extends AggregatingScan[T] {
 
   private val results = new java.util.ArrayList[Cell]
   private var scanner: RegionScanner = _
@@ -26,16 +27,16 @@ trait HBaseAggregator[T <: AnyRef { def isEmpty: Boolean; def clear(): Unit }] e
     iter = results.iterator()
   }
 
-  override def hasNextData: Boolean = iter.hasNext || more && {
+  override protected def hasNextData: Boolean = iter.hasNext || more && {
     results.clear()
     more = scanner.next(results)
     iter = results.iterator()
     hasNextData
   }
 
-  override def nextData(setValues: (Array[Byte], Int, Int, Array[Byte], Int, Int) => Unit): Unit = {
+  override protected def nextData(): RowValue = {
     val cell = iter.next()
-    setValues(cell.getRowArray, cell.getRowOffset, cell.getRowLength,
+    RowValue(cell.getRowArray, cell.getRowOffset, cell.getRowLength,
       cell.getValueArray, cell.getValueOffset, cell.getValueLength)
   }
 }

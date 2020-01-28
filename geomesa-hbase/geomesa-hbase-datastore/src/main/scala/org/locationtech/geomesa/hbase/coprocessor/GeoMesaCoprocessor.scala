@@ -16,22 +16,23 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import com.google.protobuf.{ByteString, RpcCallback, RpcController, Service}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Call
-import org.apache.hadoop.hbase.client.{Scan, Table}
+import org.apache.hadoop.hbase.client.{Connection, Scan}
 import org.apache.hadoop.hbase.coprocessor.{CoprocessorException, CoprocessorService, RegionCoprocessorEnvironment}
 import org.apache.hadoop.hbase.filter.FilterList
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos
 import org.apache.hadoop.hbase.protobuf.{ProtobufUtil, ResponseConverter}
 import org.apache.hadoop.hbase.util.Base64
-import org.apache.hadoop.hbase.{Coprocessor, CoprocessorEnvironment}
+import org.apache.hadoop.hbase.{Coprocessor, CoprocessorEnvironment, TableName}
+import org.locationtech.geomesa.hbase.coprocessor.GeoMesaCoprocessor.Aggregator
 import org.locationtech.geomesa.hbase.coprocessor.aggregators.HBaseAggregator
 import org.locationtech.geomesa.hbase.coprocessor.utils.{GeoMesaHBaseCallBack, GeoMesaHBaseRpcController}
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.{GeoMesaCoprocessorRequest, GeoMesaCoprocessorResponse, GeoMesaCoprocessorService}
 import org.locationtech.geomesa.index.iterators.AggregatingScan.Configuration.CqlOpt
+import org.locationtech.geomesa.index.iterators.AggregatingScan.Result
 import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.io.WithClose
 
-import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
 
 class GeoMesaCoprocessor extends GeoMesaCoprocessorService with Coprocessor with CoprocessorService with LazyLogging {
@@ -61,57 +62,48 @@ class GeoMesaCoprocessor extends GeoMesaCoprocessorService with Coprocessor with
 
     val queryNumber = GeoMesaCoprocessor.requestNumber.incrementAndGet
 
-    val results = ArrayBuffer.empty[Array[Byte]]
+    val results = GeoMesaCoprocessorResponse.newBuilder()
 
     try {
-      logger.debug(s"Starting to process request $queryNumber.")
-      GeoMesaCoprocessor.logMemoryInfo(s"start of request $queryNumber")
+            logger.debug(s"Starting to process request $queryNumber.")
+            GeoMesaCoprocessor.logMemoryInfo(s"start of request $queryNumber")
       val options = GeoMesaCoprocessor.deserializeOptions(request.getOptions.toByteArray)
-      val timeout = options.get(GeoMesaCoprocessor.TimeoutOpt).map(_.toLong)
+      val timeout = options.get(GeoMesaCoprocessor.TimeoutOpt).map(_.toLong + System.currentTimeMillis())
+      if (!controller.isCanceled) {
+        val clas = options(GeoMesaCoprocessor.AggregatorClass)
+        logger.debug(s"Instantiating $clas for request $queryNumber.")
+        WithClose(Class.forName(clas).newInstance().asInstanceOf[Aggregator]) { aggregator =>
 
-      if (!controller.isCanceled && timeout.forall(_ > System.currentTimeMillis())) {
+          //logger.debug(s"Initializing aggregator $aggregator with options ${options.mkString(", ")}")
+          aggregator.init(options)
 
-        val options = GeoMesaCoprocessor.deserializeOptions(request.getOptions.toByteArray)
-        val timeout = options.get(GeoMesaCoprocessor.TimeoutOpt).map(_.toLong)
-        val aggregator = {
-          val classname = options(GeoMesaCoprocessor.AggregatorClass)
-          logger.debug(s"Instantiating $classname for request $queryNumber.")
-          Class.forName(classname).newInstance().asInstanceOf[HBaseAggregator[_]]
-        }
+          val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.decode(options(GeoMesaCoprocessor.ScanOpt))))
+          scan.setFilter(FilterList.parseFrom(Base64.decode(options(GeoMesaCoprocessor.FilterOpt))))
 
-        // Add filter to remove 'scan' (since it is garbage binary)
-        //logger.debug(s"Initializing aggregator $aggregator with options ${options.mkString(", ")}")
-        aggregator.init(options)
+          // enable visibilities by delegating to the region server configured coprocessors
+          env.getRegion.getCoprocessorHost.preScannerOpen(scan)
 
-        val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.decode(options(GeoMesaCoprocessor.ScanOpt))))
-        scan.setFilter(FilterList.parseFrom(Base64.decode(options(GeoMesaCoprocessor.FilterOpt))))
-
-        // enable visibilities by delegating to the region server configured coprocessors
-        env.getRegion.getCoprocessorHost.preScannerOpen(scan)
-
-        var cancelled = false
-        // TODO: Explore use of MultiRangeFilter
-        val scanner = env.getRegion.getScanner(scan)
-        try {
-          logger.debug(s"Starting scan for request $queryNumber.")  // Logging the CQL is hard since the serialized HBase filters are sent.
-          aggregator.setScanner(scanner)
-          while (!cancelled && aggregator.hasNextData) {
-            logger.trace(s"Running batch on aggregator $aggregator for request $queryNumber")
-            val agg = aggregator.aggregate()
-            if (agg != null) {
-              results.append(agg)
+          // TODO: Explore use of MultiRangeFilter
+          WithClose(env.getRegion.getScanner(scan)) { scanner =>
+            logger.debug(s"Starting scan for request $queryNumber.")
+            aggregator.setScanner(scanner)
+            var done = false
+            while (!done) {
+              logger.trace(s"Running batch on aggregator $aggregator")
+              val agg = aggregator.aggregate()
+              if (agg == null) { done = true } else {
+                results.addPayload(ByteString.copyFrom(agg))
+                if (controller.isCanceled) {
+                  logger.warn(s"Stopping aggregator $aggregator for request $queryNumber due to controller being cancelled")
+                  done = true
+                } else if (timeout.exists(_ < System.currentTimeMillis())) {
+                  logger.warn(s"Stopping aggregator $aggregator for request $queryNumber due to timeout of ${options(GeoMesaCoprocessor.TimeoutOpt)}ms")
+                  done = true
+                }
+              }
             }
-            if (controller.isCanceled) {
-              logger.warn(s"Stopping aggregator $aggregator for request $queryNumber due to controller being cancelled")
-              cancelled = true
-            } else if (timeout.exists(_ < System.currentTimeMillis())) {
-              logger.warn(s"Stopping aggregator $aggregator for request $queryNumber due to timeout of ${timeout.get}ms")
-              cancelled = true
-            }
+            logger.debug(s"Closing scanner for request $queryNumber.")  // Closing as we pass out of the WithClose block
           }
-        } finally {
-          logger.debug(s"Closing scanner for request $queryNumber.")
-          scanner.close()
         }
       } else {
         logger.debug(s"Request #$queryNumber timed out.")
@@ -131,16 +123,20 @@ class GeoMesaCoprocessor extends GeoMesaCoprocessorService with Coprocessor with
         e.printStackTrace()
     }
 
-    logger.debug(s"GeoMesa Coprocessors Results for request $queryNumber have total size ${results.map(_.length).sum}.  " +
-      s"Individually they are size: ${results.map(_.size).mkString(",")}.")
+    logger.debug(
+      s"Results for request $queryNumber have total size: ${results.getPayloadList.asScala.map(_.size()).sum}" +
+          s"\n\tBatch sizes: ${results.getPayloadList.asScala.map(_.size()).mkString(", ")}")
     GeoMesaCoprocessor.logMemoryInfo(s"end of request $queryNumber")
-    done.run(GeoMesaCoprocessorResponse.newBuilder.addAllPayload(results.map(ByteString.copyFrom).asJava).build)
+
+    done.run(results.build)
   }
 }
 
 object GeoMesaCoprocessor extends LazyLogging {
 
   val AggregatorClass = "geomesa.hbase.aggregator.class"
+
+  private type Aggregator = HBaseAggregator[_ <: Result]
 
   private val FilterOpt  = "filter"
   private val ScanOpt    = "scan"
@@ -205,15 +201,21 @@ object GeoMesaCoprocessor extends LazyLogging {
   }
 
   /**
-    * Executes a geomesa coprocessor
-    *
-    * @param table table to execute against
-    * @param scan scan to execute
-    * @param options configuration options
-    * @return serialized results
+   * Executes a geomesa coprocessor
+   *
+   * @param connection connection
+   * @param table table to execute against
+   * @param scan scan to execute
+   * @param options configuration options
+   * @param threads number of threads to use
+   * @return serialized results
     */
-  def execute(table: Table, scan: Scan, options: Map[String, String]): CloseableIterator[ByteString] =
-    new RpcIterator(table, scan, options)
+  def execute(
+      connection: Connection,
+      table: TableName,
+      scan: Scan,
+      options: Map[String, String],
+      threads: Int): CloseableIterator[ByteString] = new RpcIterator(connection, table, scan, options, threads)
 
   /**
    * Timeout configuration option
@@ -230,8 +232,16 @@ object GeoMesaCoprocessor extends LazyLogging {
    * @param scan scan
    * @param options coprocessor options
    */
-  class RpcIterator(table: Table, scan: Scan, options: Map[String, String]) extends CloseableIterator[ByteString] {
+  class RpcIterator(
+      connection: Connection,
+      table: TableName,
+      scan: Scan,
+      options: Map[String, String],
+      threads: Int
+    ) extends CloseableIterator[ByteString] {
 
+    private val pool = new ThreadPoolExecutor(1, threads, 60, TimeUnit.SECONDS, new SynchronousQueue[Runnable])
+    private val htable = connection.getTable(table, pool)
     private val closed = new AtomicBoolean(false)
 
     private val request = {
@@ -255,7 +265,6 @@ object GeoMesaCoprocessor extends LazyLogging {
 
           if (controller.failed()) {
             logger.error(s"Controller failed with error:\n${controller.errorText()}")
-            throw new IOException(controller.errorText())
           }
 
           callback.get()
@@ -263,15 +272,13 @@ object GeoMesaCoprocessor extends LazyLogging {
       }
     }
 
-    lazy private val result = if (closed.get) {
-      Iterator.empty
-    } else {
+    lazy private val result: Iterator[ByteString] = if (closed.get) { Iterator.empty } else {
       val callBack = new GeoMesaHBaseCallBack()
-      try { table.coprocessorService(classOf[GeoMesaCoprocessorService], null, null, callable, callBack) } catch {
+      try { htable.coprocessorService(classOf[GeoMesaCoprocessorService], null, null, callable, callBack) } catch {
         case e @ (_ :InterruptedException | _ :InterruptedIOException) =>
           logger.warn("Interrupted executing coprocessor query:", e)
       }
-      callBack.getResult.iterator
+      callBack.getResult
     }
 
     override def hasNext: Boolean = result.hasNext
@@ -279,10 +286,11 @@ object GeoMesaCoprocessor extends LazyLogging {
     override def next(): ByteString = result.next
 
     override def close(): Unit = {
-      table.close()  // In HBase 1.4.x, it looks like close is idempotent, so yeah, let's just call it!
       closed.set(true)
-      println("Do we make it here?")
-      logger.error("Do we make it here?")
+      pool.shutdownNow()
+      htable.close()
+        println("Do we make it here?")
+        logger.error("Do we make it here?")
     }
   }
 
