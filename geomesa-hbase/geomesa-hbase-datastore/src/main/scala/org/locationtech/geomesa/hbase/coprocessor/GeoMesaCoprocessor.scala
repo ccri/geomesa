@@ -281,6 +281,8 @@ object GeoMesaCoprocessor extends LazyLogging {
     override def close(): Unit = {
       table.close()  // In HBase 1.4.x, it looks like close is idempotent, so yeah, let's just call it!
       closed.set(true)
+      println("Do we make it here?")
+      logger.error("Do we make it here?")
     }
   }
 
