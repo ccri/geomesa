@@ -16,13 +16,13 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import com.google.protobuf.{ByteString, RpcCallback, RpcController, Service}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Call
-import org.apache.hadoop.hbase.client.{Connection, Scan}
+import org.apache.hadoop.hbase.client.{Scan, Table}
 import org.apache.hadoop.hbase.coprocessor.{CoprocessorException, CoprocessorService, RegionCoprocessorEnvironment}
 import org.apache.hadoop.hbase.filter.FilterList
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos
 import org.apache.hadoop.hbase.protobuf.{ProtobufUtil, ResponseConverter}
 import org.apache.hadoop.hbase.util.Base64
-import org.apache.hadoop.hbase.{Coprocessor, CoprocessorEnvironment, TableName}
+import org.apache.hadoop.hbase.{Coprocessor, CoprocessorEnvironment}
 import org.locationtech.geomesa.hbase.coprocessor.GeoMesaCoprocessor.Aggregator
 import org.locationtech.geomesa.hbase.coprocessor.aggregators.HBaseAggregator
 import org.locationtech.geomesa.hbase.coprocessor.utils.{GeoMesaHBaseCallBack, GeoMesaHBaseRpcController}
@@ -201,21 +201,15 @@ object GeoMesaCoprocessor extends LazyLogging {
   }
 
   /**
-   * Executes a geomesa coprocessor
-   *
-   * @param connection connection
-   * @param table table to execute against
-   * @param scan scan to execute
-   * @param options configuration options
-   * @param threads number of threads to use
-   * @return serialized results
+    * Executes a geomesa coprocessor
+    *
+    * @param table table to execute against
+    * @param scan scan to execute
+    * @param options configuration options
+    * @return serialized results
     */
-  def execute(
-      connection: Connection,
-      table: TableName,
-      scan: Scan,
-      options: Map[String, String],
-      threads: Int): CloseableIterator[ByteString] = new RpcIterator(connection, table, scan, options, threads)
+  def execute(table: Table, scan: Scan, options: Map[String, String]): CloseableIterator[ByteString] =
+    new RpcIterator(table, scan, options)
 
   /**
    * Timeout configuration option
@@ -232,16 +226,7 @@ object GeoMesaCoprocessor extends LazyLogging {
    * @param scan scan
    * @param options coprocessor options
    */
-  class RpcIterator(
-      connection: Connection,
-      table: TableName,
-      scan: Scan,
-      options: Map[String, String],
-      threads: Int
-    ) extends CloseableIterator[ByteString] {
-
-    private val pool = new ThreadPoolExecutor(1, threads, 60, TimeUnit.SECONDS, new LinkedBlockingQueue[Runnable])
-    private val htable = connection.getTable(table, pool)
+  class RpcIterator(table: Table, scan: Scan, options: Map[String, String]) extends CloseableIterator[ByteString] {
     private val closed = new AtomicBoolean(false)
 
     private val request = {
@@ -265,6 +250,7 @@ object GeoMesaCoprocessor extends LazyLogging {
 
           if (controller.failed()) {
             logger.error(s"Controller failed with error:\n${controller.errorText()}")
+            throw new IOException(controller.errorText())
           }
 
           callback.get()
@@ -272,13 +258,13 @@ object GeoMesaCoprocessor extends LazyLogging {
       }
     }
 
-    lazy private val result: Iterator[ByteString] = if (closed.get) { Iterator.empty } else {
+    lazy private val result = {
       val callBack = new GeoMesaHBaseCallBack()
-      try { htable.coprocessorService(classOf[GeoMesaCoprocessorService], null, null, callable, callBack) } catch {
+      try { table.coprocessorService(classOf[GeoMesaCoprocessorService], null, null, callable, callBack) } catch {
         case e @ (_ :InterruptedException | _ :InterruptedIOException) =>
           logger.warn("Interrupted executing coprocessor query:", e)
       }
-      callBack.getResult
+      callBack.getResult.iterator
     }
 
     override def hasNext: Boolean = result.hasNext
@@ -286,11 +272,8 @@ object GeoMesaCoprocessor extends LazyLogging {
     override def next(): ByteString = result.next
 
     override def close(): Unit = {
+      logger.debug(s"Closing RPCIterator")
       closed.set(true)
-      pool.shutdownNow()
-      htable.close()
-        println("Do we make it here?")
-        logger.error("Do we make it here?")
     }
   }
 

@@ -13,14 +13,14 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import com.google.protobuf.ByteString
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Callback
 
+import scala.collection.JavaConversions._
+
 class GeoMesaHBaseCallBack extends Callback[java.util.List[ByteString]] {
 
-  import scala.collection.JavaConverters._
+  private val finalResult = new ConcurrentLinkedQueue[ByteString]()
 
-  private val result = new ConcurrentLinkedQueue[ByteString]()
-
-  def getResult: Iterator[ByteString] = result.iterator().asScala
+  def getResult: List[ByteString] = finalResult.toList
 
   override def update(region: Array[Byte], row: Array[Byte], result: java.util.List[ByteString]): Unit =
-    if (result != null) { this.result.addAll(result) }
+    if (result != null) { finalResult.addAll(result) }
 }
