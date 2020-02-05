@@ -273,6 +273,7 @@ object GeoMesaCoprocessor extends LazyLogging {
 
     override def close(): Unit = {
       logger.debug(s"Closing RPCIterator")
+      table.close()
       closed.set(true)
     }
   }
