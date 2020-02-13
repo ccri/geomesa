@@ -31,10 +31,20 @@ package object utils {
   val interruptTimer = new Timer()
 
   class InterruptibleRunnable[T](timeout: Int, future: FutureTask[T]) extends ForwardingFuture[T] with Runnable {
+
+    override def get(): T = {
+      println("Shorter timeout called get!  Delegating to get without Timeout")
+      get(timeout / 2, TimeUnit.MILLISECONDS)
+    }
+
+
     override def run(): Unit = {
       val thread = Thread.currentThread()
       val killer = new TimerTask {
-        override def run(): Unit = thread.interrupt()
+        override def run(): Unit = {
+          println("Interrupting thread")
+          thread.interrupt()
+        }
       }
       interruptTimer.schedule(killer, timeout)
       println(s"Calling future.run.  We are probably losing. $printThread")
@@ -68,7 +78,7 @@ package object utils {
         println(s"Finishing work for $i ${printThread}")
         42
       } catch {
-        case t: Throwable => println(s"Caught ${t.toString}")
+        case t: Throwable => println(s"While working on $i Caught ${t.toString}")
           throw t
       }
     }
