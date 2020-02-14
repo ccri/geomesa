@@ -58,6 +58,8 @@ package object utils {
         println("Didn't timeout; cancelling canceller")
         canceller.cancel()
         ret
+      } finally {
+        future = null
       }
     }
   }
