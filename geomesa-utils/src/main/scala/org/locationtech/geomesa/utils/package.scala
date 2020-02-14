@@ -42,41 +42,54 @@ package object utils {
     }
   }
 
-//  class TimeOutExecutorService2(inputDelegate: ExecutorService, timeout: Int) extends ForwardingExecutorService {
-//    override def delegate(): ExecutorService = inputDelegate
-//
-//    override def submit[T](task: Callable[T]): Future[T] = {
-//
-//      val wrappedCallable = new Callable[T] {
-//        override def call(): T = {
-//          val interruptTimer = new Timer()
-//          interruptTimer.schedule(new TimerTask {
-//            override def run(): Unit =
-//          })
-//          try {
-//            task.call()
-//            interruptTimer.cancel()
-//          }
-//
-//          ???
-//        }
-//      }
-//
-//      println(s"Before submitting on thread $printThread")
-//      val fut: Future[T] = delegate().submit(task)
-//      println(s"After submitting on thread $printThread")
-//
-//      val canceller = new TimerTask {
-//        override def run(): Unit = {
-//          println("Called future.cancel(true)")
-//          fut.cancel(true)
-//        }
-//      }
-//      val request = interruptTimer.schedule(canceller, timeout)
-//
-//      fut
-//    }
-//  }
+  class WrappedCallabled[T](callable: Callable[T], timeout: Int) extends Callable[T] {
+    var future: Future[T] = _
+    override def call(): T = {
+      try {
+        // set timer
+        while (future == null) { }
+        val canceller = new TimerTask {
+          override def run(): Unit = {
+            future.cancel(true)
+          }
+        }
+        interruptTimer.schedule(canceller, timeout)
+        val ret = callable.call()
+        println("Didn't timeout; cancelling canceller")
+        canceller.cancel()
+        ret
+      }
+    }
+  }
+
+  class TimeOutExecutorService2(inputDelegate: ExecutorService, timeout: Int) extends ForwardingExecutorService {
+    override def delegate(): ExecutorService = inputDelegate
+
+    override def submit[T](task: Callable[T]): Future[T] = {
+
+      val wrappedCallable = new WrappedCallabled(task, timeout)
+      println(s"Before submitting on thread $printThread")
+      val fut: Future[T] = delegate().submit(wrappedCallable)
+      println(s"After submitting on thread $printThread")
+
+      wrappedCallable.future = fut
+
+      fut
+    }
+  }
+
+  val workQueue2 = new LinkedBlockingQueue[Runnable](1000)
+  val boundedQueue2 = new ArrayBlockingQueue[Runnable](1000)
+  val delegate2 = new ThreadPoolExecutor(10, 10, 60, TimeUnit.SECONDS, boundedQueue)
+  val toes2 = new TimeOutExecutorService2(delegate, 10000)
+  val work2 = new Work(0)
+  toes2.submit(work2).get
+  toes2.submit(new Work(15)).get
+
+  val works2 = (0 to 20).map(i => new Work(i))
+  val submissions2 = works2.map(toes2.submit(_))
+  submissions2.foreach{_.get}
+
 
   class Work(i: Int) extends Callable[Long] {
     override def call(): Long = {
@@ -91,6 +104,8 @@ package object utils {
       }
     }
   }
+
+
 
   val workQueue = new LinkedBlockingQueue[Runnable](1000)
   val boundedQueue = new ArrayBlockingQueue[Runnable](1000)
