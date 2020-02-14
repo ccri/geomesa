@@ -182,7 +182,7 @@ object GeoMesaCoprocessor extends LazyLogging {
       threads: Int
     ) extends CloseableIterator[ByteString] {
 
-    private val pool = new ThreadPoolExecutor(1, threads, 60, TimeUnit.SECONDS, new LinkedBlockingQueue[Runnable])
+    private val pool = new ThreadPoolExecutor(threads, threads, 60, TimeUnit.SECONDS, new LinkedBlockingQueue[Runnable])
     private val htable = connection.getTable(table, pool)
     private val closed = new AtomicBoolean(false)
 
