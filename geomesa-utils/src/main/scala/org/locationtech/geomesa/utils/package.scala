@@ -19,62 +19,70 @@ package object utils {
 
   def printThread = { s"Thread info: ${Thread.currentThread()}" }
 
-  class TimeOutFuture[T](timeout: Int, callable: Callable[T]) extends ForwardingFuture[T] {
-    override def get(): T = {
-      println("Called get!  Delegating to get without Timeout")
-      get(timeout, TimeUnit.MILLISECONDS)
-    }
-
-    override def delegate(): Future[T] =  new FutureTask[T](callable)
-  }
-
   val interruptTimer = new Timer()
-
-  class InterruptibleRunnable[T](timeout: Int, future: FutureTask[T]) extends ForwardingFuture[T] with Runnable {
-
-    override def get(): T = {
-      println("Shorter timeout called get!  Delegating to get without Timeout")
-      get(timeout / 2, TimeUnit.MILLISECONDS)
-    }
-
-
-    override def run(): Unit = {
-      val thread = Thread.currentThread()
-      val killer = new TimerTask {
-        override def run(): Unit = {
-          println("Interrupting thread")
-          thread.interrupt()
-        }
-      }
-      interruptTimer.schedule(killer, timeout)
-      println(s"Calling future.run.  We are probably losing. $printThread")
-      future.run
-    }
-
-    override def delegate(): Future[T] = future
-  }
 
   class TimeOutExecutorService(inputDelegate: ExecutorService, timeout: Int) extends ForwardingExecutorService {
     override def delegate(): ExecutorService = inputDelegate
 
     override def submit[T](task: Callable[T]): Future[T] = {
-      val future =  new FutureTask[T](task)
-      val toFuture = new InterruptibleRunnable[T](10000, future)
 
       println(s"Before submitting on thread $printThread")
-      delegate().execute(toFuture)
+      val fut: Future[T] = delegate().submit(task)
       println(s"After submitting on thread $printThread")
 
-      toFuture
+      val canceller = new TimerTask {
+        override def run(): Unit = {
+          println("Called future.cancel(true)")
+          fut.cancel(true)
+        }
+      }
+      val request = interruptTimer.schedule(canceller, timeout)
+
+      fut
     }
   }
 
+//  class TimeOutExecutorService2(inputDelegate: ExecutorService, timeout: Int) extends ForwardingExecutorService {
+//    override def delegate(): ExecutorService = inputDelegate
+//
+//    override def submit[T](task: Callable[T]): Future[T] = {
+//
+//      val wrappedCallable = new Callable[T] {
+//        override def call(): T = {
+//          val interruptTimer = new Timer()
+//          interruptTimer.schedule(new TimerTask {
+//            override def run(): Unit =
+//          })
+//          try {
+//            task.call()
+//            interruptTimer.cancel()
+//          }
+//
+//          ???
+//        }
+//      }
+//
+//      println(s"Before submitting on thread $printThread")
+//      val fut: Future[T] = delegate().submit(task)
+//      println(s"After submitting on thread $printThread")
+//
+//      val canceller = new TimerTask {
+//        override def run(): Unit = {
+//          println("Called future.cancel(true)")
+//          fut.cancel(true)
+//        }
+//      }
+//      val request = interruptTimer.schedule(canceller, timeout)
+//
+//      fut
+//    }
+//  }
 
   class Work(i: Int) extends Callable[Long] {
     override def call(): Long = {
       try {
         println(s"Starting work for $i. ${printThread}")
-        Thread.sleep(30000)
+        Thread.sleep(i * 1000)
         println(s"Finishing work for $i ${printThread}")
         42
       } catch {
