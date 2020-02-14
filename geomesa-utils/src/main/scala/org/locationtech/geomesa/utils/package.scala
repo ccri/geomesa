@@ -50,7 +50,9 @@ package object utils {
         while (future == null) { }
         val canceller = new TimerTask {
           override def run(): Unit = {
-            future.cancel(true)
+            if (future != null) {
+              future.cancel(true)
+            }
           }
         }
         interruptTimer.schedule(canceller, timeout)
