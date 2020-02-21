@@ -217,7 +217,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
         LocalQueryRunner.transform(schema, features, transform, hints, arrowHook)
       }
       if (tables.isEmpty || ranges.isEmpty) { EmptyPlan(strategy.filter, resultsToFeatures) } else {
-        val scans = configureScans(tables, ranges, small, colFamily, Seq.empty)
+        val scans = configureScans(tables, ranges, small, colFamily, Seq.empty, coprocessor = false)
         ScanPlan(filter, tables, ranges.asScala, scans, resultsToFeatures)
       }
     } else {
@@ -271,7 +271,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
         case None =>
           val resultsToFeatures = HBaseIndexAdapter.resultsToFeatures(index, returnSchema)
           if (tables.isEmpty || ranges.isEmpty) { EmptyPlan(strategy.filter, resultsToFeatures) } else {
-            val scans = configureScans(tables, ranges, small, colFamily, filters)
+            val scans = configureScans(tables, ranges, small, colFamily, filters, coprocessor = false)
             ScanPlan(filter, tables, ranges.asScala, scans, resultsToFeatures)
           }
 
@@ -279,7 +279,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
           if (tables.isEmpty || ranges.isEmpty) {
             EmptyPlan(strategy.filter, _ => c.reduce(CloseableIterator.empty))
           } else {
-            val scans = configureCoprocessor(tables, ranges, colFamily, filters)
+            val scans = configureScans(tables, ranges, small, colFamily, filters, coprocessor = true)
             CoprocessorPlan(filter, tables, ranges.asScala, scans, c)
           }
       }
@@ -299,6 +299,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
    * @param small whether 'small' ranges (i.e. gets)
    * @param colFamily col family to scan
    * @param filters scan filters
+   * @param coprocessor is this a coprocessor scan or not
    * @return
    */
   protected def configureScans(
@@ -306,14 +307,15 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
       ranges: java.util.List[RowRange],
       small: Boolean,
       colFamily: Array[Byte],
-      filters: Seq[HFilter]): Seq[Scan] = {
+      filters: Seq[HFilter],
+      coprocessor: Boolean): Seq[Scan] = {
 
     val cacheBlocks = HBaseSystemProperties.ScannerBlockCaching.toBoolean.get // has a default value so .get is safe
     val cacheSize = HBaseSystemProperties.ScannerCaching.toInt
 
     logger.debug(s"HBase client scanner: block caching: $cacheBlocks, caching: $cacheSize")
 
-    if (small) {
+    if (small && !coprocessor) {
       val filter = filters match {
         case Nil    => None
         case Seq(f) => Some(f)
@@ -332,22 +334,26 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
       Collections.sort(ranges)
 
       // group scans into batches to achieve some client side parallelism
-      val maxRangesPerGroup = math.min(ds.config.maxRangesPerExtendedScan,
+      val maxRangesPerGroup = if (coprocessor) { Int.MaxValue } else {
+        math.min(ds.config.maxRangesPerExtendedScan,
           math.max(1, math.ceil(ranges.size().toDouble / ds.config.queryThreads).toInt))
+      }
 
       val groupedScans = Seq.newBuilder[Scan]
 
       def addGroup(group: java.util.List[RowRange]): Unit = {
         val s = new Scan(group.get(0).getStartRow, group.get(group.size() - 1).getStopRow)
-        val filter = if (group.size() > 1) {
+        val mrrf = if (group.size() < 2) { Seq.empty } else {
           // TODO GEOMESA-1806
           // currently, the MultiRowRangeFilter constructor will call sortAndMerge a second time
           // this is unnecessary as we have already sorted and merged
-          val mrrf = new MultiRowRangeFilter(group)
-          // note: mrrf first priority
-          if (filters.nonEmpty) { new FilterList(filters.+:(mrrf): _*) } else { mrrf }
-        } else {
-          filters match {
+          Seq(new MultiRowRangeFilter(group))
+        }
+        // note: mrrf first priority
+        val combinedFilters = mrrf ++ filters
+        // note: coprocessors always expect a filter list
+        val filter = if (coprocessor) { new FilterList(combinedFilters: _*) } else {
+          combinedFilters match {
             case Nil    => null
             case Seq(f) => f
             case f      => new FilterList(f: _*)
@@ -363,94 +369,42 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
         groupedScans += s
       }
 
-      groupScans(tables.head, ranges, maxRangesPerGroup, addGroup)
+      WithClose(ds.connection.getRegionLocator(tables.head)) { locator =>
+        var i = 0
+        var groupStart = 0
+        var region = locator.getRegionLocation(ranges.get(0).getStartRow).getServerName
 
-      // shuffle the ranges, otherwise our threads will tend to all hit the same region server at once
-      Random.shuffle(groupedScans.result)
-    }
-  }
-
-  /**
-   * Configure the coprocessor scan
-   *
-   * @param tables tables being scanned, used for region location information
-   * @param ranges ranges to scan, non-empty. needs to be mutable as we will sort it in place
-   * @param colFamily col family to scan
-   * @param filters scan filters
-   * @return
-   */
-  protected def configureCoprocessor(
-      tables: Seq[TableName],
-      ranges: java.util.List[RowRange],
-      colFamily: Array[Byte],
-      filters: Seq[HFilter]): Seq[Scan] = {
-
-    val cacheBlocks = HBaseSystemProperties.ScannerBlockCaching.toBoolean.get // has a default value so .get is safe
-    val cacheSize = HBaseSystemProperties.ScannerCaching.toInt
-
-    logger.debug(s"HBase client scanner: block caching: $cacheBlocks, caching: $cacheSize")
-
-    // our ranges are non-overlapping, so just sort them but don't bother merging them
-    Collections.sort(ranges)
-
-    val groupedScans = Seq.newBuilder[Scan]
-
-    def addGroup(group: java.util.List[RowRange]): Unit = {
-      val s = new Scan(group.get(0).getStartRow, group.get(group.size() - 1).getStopRow)
-      // note: coprocessors always expect a filter list
-      // TODO GEOMESA-1806
-      // currently, the MultiRowRangeFilter constructor will call sortAndMerge a second time
-      // this is unnecessary as we have already sorted and merged
-      // note: mrrf first priority
-      s.setFilter(new FilterList(filters.+:(new MultiRowRangeFilter(group)): _*))
-      s.addFamily(colFamily).setCacheBlocks(cacheBlocks)
-      cacheSize.foreach(s.setCaching)
-
-      // apply visibilities
-      ds.applySecurity(s)
-
-      groupedScans += s
-    }
-
-    groupScans(tables.head, ranges, Int.MaxValue, addGroup)
-
-    groupedScans.result
-  }
-
-  private def groupScans(
-      table: TableName,
-      ranges: java.util.List[RowRange],
-      maxRangesPerGroup: Int,
-      callback: java.util.List[RowRange] => Unit): Unit = {
-
-    WithClose(ds.connection.getRegionLocator(table)) { locator =>
-      var i = 0
-      var groupStart = 0
-      var region = locator.getRegionLocation(ranges.get(0).getStartRow).getServerName
-
-      while (i < ranges.size()) {
-        val nextRange = ranges.get(i)
-        val start = locator.getRegionLocation(nextRange.getStartRow)
-        val end = locator.getRegionLocation(nextRange.getStopRow)
-        if (start.getServerName != end.getServerName) {
-          // split the range based on the current region
-          val split = start.getRegionInfo.getEndKey
-          // note: this invalidates any subLists, but they get copied in the MultiRowRangeFilter anyway so it doesn't matter
-          ranges.remove(i)
-          ranges.add(i, new RowRange(split, true, nextRange.getStopRow, false))
-          ranges.add(i, new RowRange(nextRange.getStartRow, true, split, false))
-          i -= 1 // re-evaluate the current range
-        } else if (start.getServerName != region || i - groupStart > maxRangesPerGroup) {
-          // note: excludes current range we're checking
-          callback(ranges.subList(groupStart, i))
-          groupStart = i
-          region = start.getServerName
+        while (i < ranges.size()) {
+          val nextRange = ranges.get(i)
+          val start = locator.getRegionLocation(nextRange.getStartRow)
+          val end = locator.getRegionLocation(nextRange.getStopRow)
+          if (start.getServerName != end.getServerName) {
+            // split the range based on the current region
+            val split = start.getRegionInfo.getEndKey
+            // note: this invalidates any subLists, but they get copied in the MultiRowRangeFilter anyway so it doesn't matter
+            ranges.remove(i)
+            ranges.add(i, new RowRange(split, true, nextRange.getStopRow, false))
+            ranges.add(i, new RowRange(nextRange.getStartRow, true, split, false))
+            i -= 1 // re-evaluate the current range
+          } else if (start.getServerName != region || i - groupStart > maxRangesPerGroup) {
+            // note: excludes current range we're checking
+            addGroup(ranges.subList(groupStart, i))
+            groupStart = i
+            region = start.getServerName
+          }
+          i += 1
         }
-        i += 1
+
+        // add the final group - there will always be at least one remaining range
+        addGroup(ranges.subList(groupStart, i))
       }
 
-      // add the final group - there will always be at least one remaining range
-      callback(ranges.subList(groupStart, i))
+      if (coprocessor) {
+        groupedScans.result
+      } else {
+        // shuffle the ranges, otherwise our threads will tend to all hit the same region server at once
+        Random.shuffle(groupedScans.result)
+      }
     }
   }
 }

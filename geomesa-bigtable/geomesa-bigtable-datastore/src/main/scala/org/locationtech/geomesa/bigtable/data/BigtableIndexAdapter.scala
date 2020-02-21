@@ -27,13 +27,16 @@ class BigtableIndexAdapter(ds: BigtableDataStore) extends HBaseIndexAdapter(ds) 
       ranges: java.util.List[RowRange],
       small: Boolean,
       colFamily: Array[Byte],
-      filters: Seq[HFilter]): Seq[Scan] = {
+      filters: Seq[HFilter],
+      coprocessor: Boolean): Seq[Scan] = {
     if (filters.nonEmpty) {
       // bigtable does support some filters, but currently we only use custom filters that aren't supported
-      throw new IllegalArgumentException(s"Bigtable doesn't support filters: ${filters.mkString(", ")}")
+      throw new IllegalArgumentException(s"Bigtable does not support filters: ${filters.mkString(", ")}")
+    } else if (coprocessor) {
+      throw new IllegalArgumentException("Bigtable does not support coprocessors")
     }
 
-    val hbase = super.configureScans(tables, ranges, small, colFamily, filters)
+    val hbase = super.configureScans(tables, ranges, small, colFamily, filters, coprocessor)
 
     if (small) { hbase } else {
       hbase.map { original =>
@@ -49,13 +52,5 @@ class BigtableIndexAdapter(ds: BigtableDataStore) extends HBaseIndexAdapter(ds) 
         scan
       }
     }
-  }
-
-  override protected def configureCoprocessor(
-      tables: Seq[TableName],
-      ranges: java.util.List[RowRange],
-      colFamily: Array[Byte],
-      filters: Seq[HFilter]): Seq[Scan] = {
-    throw new IllegalArgumentException("Bigtable doesn't support coprocessors")
   }
 }
