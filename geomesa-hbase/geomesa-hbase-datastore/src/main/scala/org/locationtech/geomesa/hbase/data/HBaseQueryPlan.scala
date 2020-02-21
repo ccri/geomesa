@@ -123,7 +123,6 @@ object HBaseQueryPlan {
     }
   }
 
-
   case class CoprocessorPlan(
       filter: FilterStrategy,
       tables: Seq[TableName],
@@ -160,9 +159,9 @@ object HBaseQueryPlan {
         table: TableName,
         copyScans: Boolean): CloseableIterator[SimpleFeature] = {
       val s = if (copyScans) { scans.map(new Scan(_)) } else { scans }
-      val threads = ds.config.queryThreads
+      // send out all requests at once, but restrict the total rpc threads used
       val rpcThreads = ds.config.coprocessorThreads
-      CoprocessorBatchScan(ds.connection, table, s, config.options, threads, rpcThreads).map(config.bytesToFeatures)
+      CoprocessorBatchScan(ds.connection, table, s, config.options, rpcThreads).map(config.bytesToFeatures)
     }
   }
 }

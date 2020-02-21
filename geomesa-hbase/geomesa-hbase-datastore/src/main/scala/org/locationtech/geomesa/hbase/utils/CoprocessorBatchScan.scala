@@ -56,7 +56,6 @@ object CoprocessorBatchScan {
    * @param table table
    * @param ranges ranges to scan
    * @param options coprocessor configuration
-   * @param scanThreads number of threads used to parallelize scans client side
    * @param rpcThreads size of thread pool used for hbase rpc calls, across all client scan threads
    * @return
    */
@@ -65,8 +64,7 @@ object CoprocessorBatchScan {
       table: TableName,
       ranges: Seq[Scan],
       options: Map[String, String],
-      scanThreads: Int,
       rpcThreads: Int): CloseableIterator[Array[Byte]] = {
-    new CoprocessorBatchScan(connection, table, ranges, options, scanThreads, rpcThreads, BufferSize).start()
+    new CoprocessorBatchScan(connection, table, ranges, options, ranges.length, rpcThreads, BufferSize).start()
   }
 }
