@@ -159,7 +159,26 @@ object GeoMesaCoprocessor extends LazyLogging {
       scan: Scan,
       options: Map[String, String],
       threads: Int): CloseableIterator[ByteString] = {
-    new RpcIterator(connection, table, scan, options, threads)
+    new RpcIterator(connection, table, scan, options,  new CachedThreadPool(threads))
+  }
+
+  /**
+   * Executes a geomesa coprocessor
+   *
+   * @param connection connection
+   * @param table table to execute against
+   * @param scan scan to execute
+   * @param options configuration options
+   * @param executor executor service to use for hbase rpc calls
+   * @return serialized results
+   */
+  def execute(
+      connection: Connection,
+      table: TableName,
+      scan: Scan,
+      options: Map[String, String],
+      executor: ExecutorService): CloseableIterator[ByteString] = {
+    new RpcIterator(connection, table, scan, options, executor)
   }
 
   /**
@@ -182,10 +201,9 @@ object GeoMesaCoprocessor extends LazyLogging {
       table: TableName,
       scan: Scan,
       options: Map[String, String],
-      threads: Int
+      pool: ExecutorService
     ) extends CloseableIterator[ByteString] {
 
-    private val pool = new CachedThreadPool(threads)
     private val htable = connection.getTable(table, pool)
     private val closed = new AtomicBoolean(false)
 
