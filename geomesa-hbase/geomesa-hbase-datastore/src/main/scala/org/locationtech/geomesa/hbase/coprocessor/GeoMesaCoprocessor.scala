@@ -159,7 +159,7 @@ object GeoMesaCoprocessor extends LazyLogging {
       scan: Scan,
       options: Map[String, String],
       threads: Int): CloseableIterator[ByteString] = {
-    new RpcIterator(connection, table, scan, options,  new CachedThreadPool(threads))
+    new RpcIterator(connection, table, scan, options,  new CachedThreadPool(threads), closePool = true)
   }
 
   /**
@@ -178,7 +178,7 @@ object GeoMesaCoprocessor extends LazyLogging {
       scan: Scan,
       options: Map[String, String],
       executor: ExecutorService): CloseableIterator[ByteString] = {
-    new RpcIterator(connection, table, scan, options, executor)
+    new RpcIterator(connection, table, scan, options, executor, closePool = false)
   }
 
   /**
@@ -196,12 +196,13 @@ object GeoMesaCoprocessor extends LazyLogging {
    * @param scan scan
    * @param options coprocessor options
    */
-  class RpcIterator(
+  private class RpcIterator(
       connection: Connection,
       table: TableName,
       scan: Scan,
       options: Map[String, String],
-      pool: ExecutorService
+      pool: ExecutorService,
+      closePool: Boolean
     ) extends CloseableIterator[ByteString] {
 
     private val htable = connection.getTable(table, pool)
@@ -250,7 +251,9 @@ object GeoMesaCoprocessor extends LazyLogging {
 
     override def close(): Unit = {
       closed.set(true)
-      pool.shutdownNow()
+      if (closePool) {
+        pool.shutdownNow()
+      }
       htable.close()
     }
   }
