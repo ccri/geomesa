@@ -160,8 +160,9 @@ object HBaseQueryPlan {
         table: TableName,
         copyScans: Boolean): CloseableIterator[SimpleFeature] = {
       val s = if (copyScans) { scans.map(new Scan(_)) } else { scans }
-      val bytes = CoprocessorBatchScan(ds.connection, table, s, config.options, ds.config.queryThreads)
-      bytes.map(config.bytesToFeatures)
+      val threads = ds.config.queryThreads
+      val rpcThreads = ds.config.coprocessorThreads
+      CoprocessorBatchScan(ds.connection, table, s, config.options, threads, rpcThreads).map(config.bytesToFeatures)
     }
   }
 }

@@ -25,10 +25,11 @@ private class CoprocessorBatchScan(
     ranges: Seq[Scan],
     options: Map[String, String],
     threads: Int,
+    rpcThreads: Int,
     buffer: Int
   ) extends AbstractBatchScan[Scan, Array[Byte]](ranges, threads, buffer, CoprocessorBatchScan.Sentinel) {
 
-  private val pool = new CachedThreadPool(threads)
+  private val pool = new CachedThreadPool(rpcThreads)
 
   override protected def scan(range: Scan, out: BlockingQueue[Array[Byte]]): Unit = {
     WithClose(GeoMesaCoprocessor.execute(connection, table, range, options, pool)) { results =>
@@ -48,12 +49,24 @@ object CoprocessorBatchScan {
   private val Sentinel = Array.empty[Byte]
   private val BufferSize = HBaseSystemProperties.ScanBufferSize.toInt.get
 
+  /**
+   * Start a coprocessor batch scan
+   *
+   * @param connection connection
+   * @param table table
+   * @param ranges ranges to scan
+   * @param options coprocessor configuration
+   * @param scanThreads number of threads used to parallelize scans client side
+   * @param rpcThreads size of thread pool used for hbase rpc calls, across all client scan threads
+   * @return
+   */
   def apply(
       connection: Connection,
       table: TableName,
       ranges: Seq[Scan],
       options: Map[String, String],
-      threads: Int): CloseableIterator[Array[Byte]] = {
-    new CoprocessorBatchScan(connection, table, ranges, options, threads, BufferSize).start()
+      scanThreads: Int,
+      rpcThreads: Int): CloseableIterator[Array[Byte]] = {
+    new CoprocessorBatchScan(connection, table, ranges, options, scanThreads, rpcThreads, BufferSize).start()
   }
 }
