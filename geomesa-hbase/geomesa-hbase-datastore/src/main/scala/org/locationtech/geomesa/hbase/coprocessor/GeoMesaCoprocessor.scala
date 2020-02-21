@@ -30,7 +30,6 @@ import org.locationtech.geomesa.hbase.proto.GeoMesaProto
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.{GeoMesaCoprocessorRequest, GeoMesaCoprocessorResponse, GeoMesaCoprocessorService}
 import org.locationtech.geomesa.index.iterators.AggregatingScan.Result
 import org.locationtech.geomesa.utils.collection.CloseableIterator
-import org.locationtech.geomesa.utils.concurrent.CachedThreadPool
 import org.locationtech.geomesa.utils.io.WithClose
 
 import scala.util.control.NonFatal
@@ -150,25 +149,6 @@ object GeoMesaCoprocessor extends LazyLogging {
    * @param table table to execute against
    * @param scan scan to execute
    * @param options configuration options
-   * @param threads number of threads to use
-   * @return serialized results
-    */
-  def execute(
-      connection: Connection,
-      table: TableName,
-      scan: Scan,
-      options: Map[String, String],
-      threads: Int): CloseableIterator[ByteString] = {
-    new RpcIterator(connection, table, scan, options,  new CachedThreadPool(threads), closePool = true)
-  }
-
-  /**
-   * Executes a geomesa coprocessor
-   *
-   * @param connection connection
-   * @param table table to execute against
-   * @param scan scan to execute
-   * @param options configuration options
    * @param executor executor service to use for hbase rpc calls
    * @return serialized results
    */
@@ -178,7 +158,7 @@ object GeoMesaCoprocessor extends LazyLogging {
       scan: Scan,
       options: Map[String, String],
       executor: ExecutorService): CloseableIterator[ByteString] = {
-    new RpcIterator(connection, table, scan, options, executor, closePool = false)
+    new RpcIterator(connection, table, scan, options, executor)
   }
 
   /**
@@ -201,8 +181,7 @@ object GeoMesaCoprocessor extends LazyLogging {
       table: TableName,
       scan: Scan,
       options: Map[String, String],
-      pool: ExecutorService,
-      closePool: Boolean
+      pool: ExecutorService
     ) extends CloseableIterator[ByteString] {
 
     private val htable = connection.getTable(table, pool)
@@ -251,9 +230,6 @@ object GeoMesaCoprocessor extends LazyLogging {
 
     override def close(): Unit = {
       closed.set(true)
-      if (closePool) {
-        pool.shutdownNow()
-      }
       htable.close()
     }
   }
