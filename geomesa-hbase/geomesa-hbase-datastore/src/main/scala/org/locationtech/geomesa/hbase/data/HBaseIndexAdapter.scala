@@ -22,7 +22,7 @@ import org.apache.hadoop.hbase.io.compress.Compression
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding
 import org.apache.hadoop.hbase.regionserver.BloomType
 import org.apache.hadoop.hbase.security.visibility.CellVisibility
-import org.apache.hadoop.hbase.{Coprocessor, HColumnDescriptor, HTableDescriptor, TableName}
+import org.apache.hadoop.hbase._
 import org.geotools.filter.identity.FeatureIdImpl
 import org.locationtech.geomesa.features.SerializationOption.SerializationOptions
 import org.locationtech.geomesa.features.kryo.KryoFeatureSerializer
@@ -49,6 +49,8 @@ import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.{CloseWithLogging, FlushWithLogging, WithClose}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import scala.util.control.NonFatal
 
@@ -193,11 +195,9 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
     // index api defines empty start/end for open-ended range
     // index api defines start row inclusive, end row exclusive
     // both these conventions match the conventions for hbase scan objects
-    // we create a mutable java list in order to avoid copying it over again before passing to hbase
-    val ranges = new java.util.ArrayList[RowRange](byteRanges.length)
-    byteRanges.foreach {
-      case BoundedByteRange(start, stop) => ranges.add(new RowRange(start, true, stop, false))
-      case SingleRowByteRange(row)       => ranges.add(new RowRange(row, true, ByteArrays.rowFollowingRow(row), false))
+    val ranges = byteRanges.map {
+      case BoundedByteRange(start, stop) => new RowRange(start, true, stop, false)
+      case SingleRowByteRange(row)       => new RowRange(row, true, ByteArrays.rowFollowingRow(row), false)
     }
     val small = byteRanges.headOption.exists(_.isInstanceOf[SingleRowByteRange])
 
@@ -218,7 +218,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
       }
       if (tables.isEmpty || ranges.isEmpty) { EmptyPlan(strategy.filter, resultsToFeatures) } else {
         val scans = configureScans(tables, ranges, small, colFamily, Seq.empty, coprocessor = false)
-        ScanPlan(filter, tables, ranges.asScala, scans, resultsToFeatures)
+        ScanPlan(filter, tables, ranges, scans, resultsToFeatures)
       }
     } else {
       lazy val returnSchema = transform.map(_._2).getOrElse(schema)
@@ -272,7 +272,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
           val resultsToFeatures = HBaseIndexAdapter.resultsToFeatures(index, returnSchema)
           if (tables.isEmpty || ranges.isEmpty) { EmptyPlan(strategy.filter, resultsToFeatures) } else {
             val scans = configureScans(tables, ranges, small, colFamily, filters, coprocessor = false)
-            ScanPlan(filter, tables, ranges.asScala, scans, resultsToFeatures)
+            ScanPlan(filter, tables, ranges, scans, resultsToFeatures)
           }
 
         case Some(c) =>
@@ -280,7 +280,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
             EmptyPlan(strategy.filter, _ => c.reduce(CloseableIterator.empty))
           } else {
             val scans = configureScans(tables, ranges, small, colFamily, filters, coprocessor = true)
-            CoprocessorPlan(filter, tables, ranges.asScala, scans, c)
+            CoprocessorPlan(filter, tables, ranges, scans, c)
           }
       }
     }
@@ -304,7 +304,7 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
    */
   protected def configureScans(
       tables: Seq[TableName],
-      ranges: java.util.List[RowRange],
+      ranges: Seq[RowRange],
       small: Boolean,
       colFamily: Array[Byte],
       filters: Seq[HFilter],
@@ -317,26 +317,25 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
 
     if (small && !coprocessor) {
       val filter = filters match {
-        case Nil    => None
-        case Seq(f) => Some(f)
-        case f      => Some(new FilterList(f: _*))
+        case Nil    => null
+        case Seq(f) => f
+        case f      => new FilterList(f: _*)
       }
-      ranges.asScala.map { r =>
+      ranges.map { r =>
         val scan = new Scan(r.getStartRow, r.getStopRow)
         scan.addFamily(colFamily).setCacheBlocks(cacheBlocks).setSmall(true)
-        filter.foreach(scan.setFilter)
+        scan.setFilter(filter)
         cacheSize.foreach(scan.setCaching)
         ds.applySecurity(scan)
         scan
       }
     } else {
-      // our ranges are non-overlapping, so just sort them but don't bother merging them
-      Collections.sort(ranges)
 
-      // group scans into batches to achieve some client side parallelism
-      val maxRangesPerGroup = if (coprocessor) { Int.MaxValue } else {
-        math.min(ds.config.maxRangesPerExtendedScan,
-          math.max(1, math.ceil(ranges.size().toDouble / ds.config.queryThreads).toInt))
+      // split and group ranges by region server
+      val rangesPerRegionServer = scala.collection.mutable.Map.empty[ServerName, ListBuffer[RowRange]]
+
+      WithClose(ds.connection.getRegionLocator(tables.head)) { locator =>
+        ranges.foreach(assignRange(_, locator, rangesPerRegionServer))
       }
 
       val groupedScans = Seq.newBuilder[Scan]
@@ -369,34 +368,24 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
         groupedScans += s
       }
 
-      WithClose(ds.connection.getRegionLocator(tables.head)) { locator =>
+      // for coprocessors, we want 1 scan per region server
+      val maxRangesPerGroup = if (coprocessor) { Int.MaxValue } else {
+        val totalRanges = rangesPerRegionServer.values.map(_.length).sum
+        math.min(ds.config.maxRangesPerExtendedScan,
+          math.max(1, math.ceil(totalRanges.toDouble / ds.config.queryThreads).toInt))
+      }
+
+      rangesPerRegionServer.foreach { case (_, ranges) =>
+        val list = new java.util.ArrayList[RowRange](ranges.asJava)
+        // our ranges are non-overlapping, so just sort them but don't bother merging them
+        Collections.sort(list)
+
         var i = 0
-        var groupStart = 0
-        var region = locator.getRegionLocation(ranges.get(0).getStartRow).getServerName
-
-        while (i < ranges.size()) {
-          val nextRange = ranges.get(i)
-          val start = locator.getRegionLocation(nextRange.getStartRow)
-          val end = locator.getRegionLocation(nextRange.getStopRow)
-          if (start.getServerName != end.getServerName) {
-            // split the range based on the current region
-            val split = start.getRegionInfo.getEndKey
-            // note: this invalidates any subLists, but they get copied in the MultiRowRangeFilter anyway so it doesn't matter
-            ranges.remove(i)
-            ranges.add(i, new RowRange(split, true, nextRange.getStopRow, false))
-            ranges.add(i, new RowRange(nextRange.getStartRow, true, split, false))
-            i -= 1 // re-evaluate the current range
-          } else if (start.getServerName != region || i - groupStart > maxRangesPerGroup) {
-            // note: excludes current range we're checking
-            addGroup(ranges.subList(groupStart, i))
-            groupStart = i
-            region = start.getServerName
-          }
-          i += 1
+        while (i < list.size()) {
+          val groupSize = math.min(maxRangesPerGroup, list.size() - i)
+          addGroup(list.subList(i, i + groupSize))
+          i += groupSize
         }
-
-        // add the final group - there will always be at least one remaining range
-        addGroup(ranges.subList(groupStart, i))
       }
 
       if (coprocessor) {
@@ -405,6 +394,25 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
         // shuffle the ranges, otherwise our threads will tend to all hit the same region server at once
         Random.shuffle(groupedScans.result)
       }
+    }
+  }
+
+  @tailrec
+  private def assignRange(
+      range: RowRange,
+      locator: RegionLocator,
+      result: scala.collection.mutable.Map[ServerName, ListBuffer[RowRange]]): Unit = {
+    val start = locator.getRegionLocation(range.getStartRow)
+    val end = locator.getRegionLocation(range.getStopRow)
+    if (start.getServerName == end.getServerName) {
+      result.getOrElseUpdate(start.getServerName, ListBuffer.empty) += range
+    } else {
+      // split the range based on the current region
+      val split = start.getRegionInfo.getEndKey
+      result.getOrElseUpdate(start.getServerName, ListBuffer.empty) +=
+          new RowRange(range.getStartRow, true, split, false)
+      // recursively check the split range in case it covers more than 2 region servers
+      assignRange(new RowRange(split, true, range.getStopRow, false), locator, result)
     }
   }
 }
