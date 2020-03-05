@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.ResponseConverter
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.GeoMesaCoprocessorResponse
 import org.locationtech.geomesa.hbase.rpc.coprocessor.GeoMesaCoprocessor
+import org.locationtech.geomesa.hbase.rpc.filter.LastReadFilter
 import org.locationtech.geomesa.hbase.server.common.CoprocessorScan.Aggregator
 import org.locationtech.geomesa.index.iterators.AggregatingScan
 import org.locationtech.geomesa.index.iterators.AggregatingScan.AggregateCallback
@@ -57,6 +58,7 @@ trait CoprocessorScan extends StrictLogging {
       done: RpcCallback[GeoMesaProto.GeoMesaCoprocessorResponse]): Unit = {
 
     val results = GeoMesaCoprocessorResponse.newBuilder()
+    val lastRead = new LastReadFilter
 
     try {
       val options = GeoMesaCoprocessor.deserializeOptions(request.getOptions.toByteArray)
@@ -68,7 +70,8 @@ trait CoprocessorScan extends StrictLogging {
         aggregator.init(options)
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
-        scan.setFilter(FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt))))
+
+        scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
 
         WithClose(getScanner(scan)) { scanner =>
           aggregator.setScanner(scanner)
@@ -84,7 +87,7 @@ trait CoprocessorScan extends StrictLogging {
     logger.debug(
       s"Results total size: ${results.getPayloadList.asScala.map(_.size()).sum}" +
           s"\n\tBatch sizes: ${results.getPayloadList.asScala.map(_.size()).mkString(", ")}")
-
+    println(s"Read ${lastRead.count} and finished on row ${lastRead.lastRead}")
     done.run(results.build)
   }
 
