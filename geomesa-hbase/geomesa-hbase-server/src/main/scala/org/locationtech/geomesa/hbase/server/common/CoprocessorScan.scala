@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.ResponseConverter
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.GeoMesaCoprocessorResponse
 import org.locationtech.geomesa.hbase.rpc.coprocessor.GeoMesaCoprocessor
+import org.locationtech.geomesa.hbase.rpc.filter.LastReadFilter
 import org.locationtech.geomesa.hbase.server.common.CoprocessorScan.Aggregator
 import org.locationtech.geomesa.index.iterators.AggregatingScan
 import org.locationtech.geomesa.index.iterators.AggregatingScan.AggregateCallback
@@ -57,6 +58,7 @@ trait CoprocessorScan extends StrictLogging {
       done: RpcCallback[GeoMesaProto.GeoMesaCoprocessorResponse]): Unit = {
 
     val results = GeoMesaCoprocessorResponse.newBuilder()
+    val lastRead = new LastReadFilter
 
     try {
       val options = GeoMesaCoprocessor.deserializeOptions(request.getOptions.toByteArray)
@@ -65,13 +67,16 @@ trait CoprocessorScan extends StrictLogging {
         val clas = options(GeoMesaCoprocessor.AggregatorClass)
         val aggregator = Class.forName(clas).newInstance().asInstanceOf[Aggregator]
         logger.debug(s"Initializing aggregator $aggregator with options ${options.mkString(", ")}")
-        aggregator.init(options)
+        //aggregator.init(options)
+        aggregator.init(options.updated("batch", "2"))
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
-        scan.setFilter(FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt))))
+
+        scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
 
         WithClose(getScanner(scan)) { scanner =>
           aggregator.setScanner(scanner)
+          // Connect CoprocessorAggCallback to last scanned
           aggregator.aggregate(new CoprocessorAggregateCallback(controller, aggregator, results, timeout))
         }
       }
@@ -84,7 +89,7 @@ trait CoprocessorScan extends StrictLogging {
     logger.debug(
       s"Results total size: ${results.getPayloadList.asScala.map(_.size()).sum}" +
           s"\n\tBatch sizes: ${results.getPayloadList.asScala.map(_.size()).mkString(", ")}")
-
+    println(s"Read ${lastRead.count} and finished on row ${lastRead.lastRead}")
     done.run(results.build)
   }
 
@@ -104,6 +109,7 @@ trait CoprocessorScan extends StrictLogging {
     ) extends AggregateCallback {
 
     private val start = System.currentTimeMillis()
+    private var count = 0
 
     logger.trace(s"Running first batch on aggregator $aggregator" +
         timeout.map(t => s" with remaining timeout ${t - System.currentTimeMillis()}ms").getOrElse(""))
@@ -117,12 +123,17 @@ trait CoprocessorScan extends StrictLogging {
       if (continue()) { true } else {
         // add the partial results and stop scanning
         results.addPayload(ByteString.copyFrom(bytes))
+        println("CALL PARTIAL RESULTS")
         false
       }
     }
 
     private def continue(): Boolean = {
-      if (controller.isCanceled) {
+      count += 1
+      if (count >= 10) {  // We've got 10 batches.  Let's return
+        logger.warn(s"Stopping aggregator $aggregator due to having 10 batches!")
+        false
+      } else if (controller.isCanceled) {
         logger.warn(s"Stopping aggregator $aggregator due to controller being cancelled")
         false
       } else if (timeout.exists(_ < System.currentTimeMillis())) {

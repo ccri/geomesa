@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.Cell
 import org.apache.hadoop.hbase.regionserver.RegionScanner
 import org.locationtech.geomesa.index.iterators.AggregatingScan
 import org.locationtech.geomesa.index.iterators.AggregatingScan.RowValue
+import org.opengis.feature.simple.SimpleFeatureType
 
 /**
  * HBase mixin for aggregating scans
@@ -45,3 +46,18 @@ trait HBaseAggregator[T <: AggregatingScan.Result] extends AggregatingScan[T] {
       cell.getValueArray, cell.getValueOffset, cell.getValueLength)
   }
 }
+
+//class LimitingHBaseAggregator extends HBaseAggregator {
+//  override protected def defaultBatchSize: Int = ???
+//
+//  /**
+//    * Create the result object for the current scan
+//    *
+//    * @param sft       simple feature type
+//    * @param transform transform, if any
+//    * @param batchSize batch size
+//    * @param options   scan options
+//    * @return
+//    */
+//  override protected def createResult(sft: SimpleFeatureType, transform: Option[SimpleFeatureType], batchSize: Int, options: Map[String, String]): T = ???
+//}
