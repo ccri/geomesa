@@ -133,16 +133,17 @@ class HBaseStatsAggregatorTest extends Specification with LazyLogging {
 
       val ss = decodeStat(sft)(sf.getAttribute(0).asInstanceOf[String]).asInstanceOf[SeqStat]
 
+      val ch = ss.stats(1).asInstanceOf[CountStat]
+      ch.count mustEqual 5
+
       val rh = ss.stats(0).asInstanceOf[Histogram[java.lang.Integer]]
+
       rh.length mustEqual 5
       rh.count(rh.indexOf(10)) mustEqual 1
       rh.count(rh.indexOf(11)) mustEqual 1
       rh.count(rh.indexOf(12)) mustEqual 1
       rh.count(rh.indexOf(13)) mustEqual 1
       rh.count(rh.indexOf(14)) mustEqual 1
-
-      val ch = ss.stats(1).asInstanceOf[CountStat]
-      ch.count mustEqual 5
     }
 
     "work with the count stat" in {

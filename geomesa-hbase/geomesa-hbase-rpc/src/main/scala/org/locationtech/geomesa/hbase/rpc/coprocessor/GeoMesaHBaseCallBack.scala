@@ -18,5 +18,9 @@ class GeoMesaHBaseCallBack extends Callback[java.util.List[ByteString]] {
   val result = new LinkedBlockingQueue[ByteString]()
 
   override def update(region: Array[Byte], row: Array[Byte], result: java.util.List[ByteString]): Unit =
-    if (result != null) { this.result.addAll(result) }
+    if (result != null) {
+      println(s"In update for region ${region} row: $row")
+      this.result.addAll(result)
+
+    }
 }
