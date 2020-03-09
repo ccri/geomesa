@@ -67,9 +67,9 @@ trait CoprocessorScan extends StrictLogging {
         val clas = options(GeoMesaCoprocessor.AggregatorClass)
         val aggregator = Class.forName(clas).newInstance().asInstanceOf[Aggregator]
         logger.debug(s"Initializing aggregator $aggregator with options ${options.mkString(", ")}")
-        aggregator.init(options)
+        //aggregator.init(options)
         // JNH: Test with the below to see if partialResults are working.
-        //aggregator.init(options.updated("batch", "2"))
+        aggregator.init(options.updated("batch", "2"))
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
 
