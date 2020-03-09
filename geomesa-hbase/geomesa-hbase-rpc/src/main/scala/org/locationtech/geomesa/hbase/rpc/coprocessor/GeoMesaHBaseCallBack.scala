@@ -12,15 +12,25 @@ import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
 
 import com.google.protobuf.ByteString
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Callback
+import org.locationtech.geomesa.hbase.proto.GeoMesaProto.GeoMesaCoprocessorResponse
 
-class GeoMesaHBaseCallBack extends Callback[java.util.List[ByteString]] {
+class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
+
+  var isDone = false
+  var lastRow: Array[Byte] = _
 
   val result = new LinkedBlockingQueue[ByteString]()
 
-  override def update(region: Array[Byte], row: Array[Byte], result: java.util.List[ByteString]): Unit =
+  override def update(region: Array[Byte], row: Array[Byte], response: GeoMesaCoprocessorResponse): Unit = {
+    isDone = true
+
+    val result =  Option(response).map(_.getPayloadList).orNull
     if (result != null) {
       println(s"In update for region ${region} row: $row")
       this.result.addAll(result)
 
     }
+  }
+
+
 }
