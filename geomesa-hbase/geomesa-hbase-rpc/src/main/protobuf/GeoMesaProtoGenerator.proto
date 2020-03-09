@@ -7,6 +7,7 @@
  ***********************************************************************/
 
 // Execute : protoc --java_out=./geomesa-hbase/geomesa-hbase-datastore/src/main/java ./geomesa-hbase/geomesa-hbase-datastore/src/main/protobuf/GeoMesaProtoGenerator.proto
+syntax = "proto2";
 
 option java_package = "org.locationtech.geomesa.hbase.proto";
 option java_outer_classname = "GeoMesaProto";
