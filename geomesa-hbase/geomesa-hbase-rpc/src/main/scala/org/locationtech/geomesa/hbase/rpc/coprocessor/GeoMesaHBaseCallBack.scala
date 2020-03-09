@@ -25,6 +25,16 @@ class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
     isDone = true
 
     val result =  Option(response).map(_.getPayloadList).orNull
+    val lastscanned: ByteString = Option(response).map(_.getLastscanned).orNull
+
+    if (lastscanned != null && !lastscanned.isEmpty) {
+      println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${lastscanned}")
+      lastRow = lastscanned.toByteArray
+      isDone = false
+    } else {
+      //println("Last scanned is null")
+    }
+
     if (result != null) {
       println(s"In update for region ${region} row: $row")
       this.result.addAll(result)

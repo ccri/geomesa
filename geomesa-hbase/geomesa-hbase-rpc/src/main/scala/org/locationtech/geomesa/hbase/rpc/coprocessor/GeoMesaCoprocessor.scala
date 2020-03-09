@@ -144,6 +144,7 @@ object GeoMesaCoprocessor extends LazyLogging {
           }
           // If the scan hasn't been killed and we are not done, then re-issue the request!
           while (!closed.get() && !callback.isDone) {
+            // TODO: Use 'nextRow mojo to advance and not re-read a row.
             println(s"Continuing scan from row: ${callback.lastRow}")
             htable.coprocessorService(service, callback.lastRow, scan.getStopRow, callable, callback)
           }

@@ -68,7 +68,8 @@ trait CoprocessorScan extends StrictLogging {
         val aggregator = Class.forName(clas).newInstance().asInstanceOf[Aggregator]
         logger.debug(s"Initializing aggregator $aggregator with options ${options.mkString(", ")}")
         aggregator.init(options)
-        // This will break the unit tests:) aggregator.init(options.updated("batch", "2"))
+        // JNH: Test with the below to see if partialResults are working.
+        //aggregator.init(options.updated("batch", "2"))
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
 
@@ -120,6 +121,7 @@ trait CoprocessorScan extends StrictLogging {
     }
 
     override def partial(bytes: => Array[Byte]): Boolean = {
+      // JNH: I don't understand the {true} case...
       if (continue()) { true } else {
         // add the partial results and stop scanning
         results.addPayload(ByteString.copyFrom(bytes))
@@ -132,11 +134,15 @@ trait CoprocessorScan extends StrictLogging {
       count += 1
       if (count >= 10) {  // We've got 10 batches.  Let's return
         logger.warn(s"Stopping aggregator $aggregator due to having 10 batches!")
+        println(s"Stopping aggregator $aggregator due to having 10 batches!")
+        results.setLastscanned(ByteString.copyFrom(aggregator.getLastScanned))
         false
       } else if (controller.isCanceled) {
         logger.warn(s"Stopping aggregator $aggregator due to controller being cancelled")
         false
       } else if (timeout.exists(_ < System.currentTimeMillis())) {
+        // In the 'partialResultsTimeout case, we would want to return
+        //       results.setLastscanned(ByteString.copyFrom(aggregator.getLastScanned))
         logger.warn(s"Stopping aggregator $aggregator due to timeout of ${timeout.get}ms")
         false
       } else {
