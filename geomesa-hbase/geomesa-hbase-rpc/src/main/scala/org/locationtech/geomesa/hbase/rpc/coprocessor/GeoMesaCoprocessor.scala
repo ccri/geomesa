@@ -197,8 +197,11 @@ object GeoMesaCoprocessor extends LazyLogging {
 
     def get(): java.util.List[ByteString] = result
 
-    override def run(parameter: GeoMesaCoprocessorResponse): Unit =
-      result = Option(parameter).map(_.getPayloadList).orNull
+    override def run(parameter: GeoMesaCoprocessorResponse): Unit = {
+
+        result = Option(parameter).map(_.getPayloadList).orNull
+        println(s" RUNNING RpcCallbackImpl.  Size is ${result.size}")
+      }
   }
 
 }
