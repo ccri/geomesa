@@ -91,6 +91,8 @@ class CachedThreadPool(maxThreads: Int) extends AbstractExecutorService {
       } else {
         queue.offer(task) // unbounded queue so should always succeed
       }
+    } catch {
+      case t: Throwable => println("*****  Caught ******" + t)
     } finally {
       lock.unlock()
     }
