@@ -73,7 +73,9 @@ trait CoprocessorScan extends StrictLogging {
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
 
-        scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
+        println(s"Scan configured with start: ${new String(scan.getStartRow)} and end: ${new String(scan.getStopRow)}")
+        println(s"Scan configured with filter: ${scan.getFilter}")
+        //scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
 
         WithClose(getScanner(scan)) { scanner =>
           aggregator.setScanner(scanner)
@@ -134,8 +136,8 @@ trait CoprocessorScan extends StrictLogging {
       count += 1
       if (count >= 10) {  // We've got 10 batches.  Let's return
         logger.warn(s"Stopping aggregator $aggregator due to having 10 batches!")
-        println(s"Stopping aggregator $aggregator due to having 10 batches!")
         results.setLastscanned(ByteString.copyFrom(aggregator.getLastScanned))
+        println(s"Stopping aggregator $aggregator due to having 10 batches!")
         false
       } else if (controller.isCanceled) {
         logger.warn(s"Stopping aggregator $aggregator due to controller being cancelled")

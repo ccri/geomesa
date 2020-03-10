@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.protobuf.ProtobufUtil
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.{GeoMesaCoprocessorRequest, GeoMesaCoprocessorResponse, GeoMesaCoprocessorService}
 import org.locationtech.geomesa.utils.collection.CloseableIterator
 import org.locationtech.geomesa.utils.concurrent.CachedThreadPool
+import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.WithClose
 
 /**
@@ -105,7 +106,7 @@ object GeoMesaCoprocessor extends LazyLogging {
     private val closed = new AtomicBoolean(false)
     private val callback = new GeoMesaHBaseCallBack()
 
-    private val request = {
+    private def request = {
       val opts = options ++ Map(
         FilterOpt -> Base64.getEncoder.encodeToString(scan.getFilter.toByteArray),
         ScanOpt   -> Base64.getEncoder.encodeToString(ProtobufUtil.toScan(scan).toByteArray)
@@ -142,10 +143,16 @@ object GeoMesaCoprocessor extends LazyLogging {
           if (!closed.get) {
             htable.coprocessorService(service, scan.getStartRow, scan.getStopRow, callable, callback)
           }
+          println(s"Closed: ${closed.get}.  Callback.isDone: ${callback.isDone}  Callback.lastRow: ${callback.lastRow}")
+
           // If the scan hasn't been killed and we are not done, then re-issue the request!
           while (!closed.get() && !callback.isDone) {
             // TODO: Use 'nextRow mojo to advance and not re-read a row.
-            println(s"Continuing scan from row: ${callback.lastRow}")
+            println(s"Continuing scan from row: ${new String(callback.lastRow)}")
+            // Need to rebuild the 'request' and then the 'callable' from that.
+            scan.setStartRow(callback.lastRow)
+            //scan.setStartRow(ByteArrays.rowFollowingPrefix(callback.lastRow))
+
             htable.coprocessorService(service, callback.lastRow, scan.getStopRow, callable, callback)
           }
 
@@ -210,7 +217,7 @@ object GeoMesaCoprocessor extends LazyLogging {
     override def run(parameter: GeoMesaCoprocessorResponse): Unit = {
       result = Option(parameter).map(_.getPayloadList).orNull
       response = parameter
-      println(s" RUNNING RpcCallbackImpl.  Size is ${result.size}")
+      println(s" RUNNING RpcCallbackImpl.  Size is ${result.size} Size of lastscanned is ${response.getLastscanned.size()}")
     }
   }
 

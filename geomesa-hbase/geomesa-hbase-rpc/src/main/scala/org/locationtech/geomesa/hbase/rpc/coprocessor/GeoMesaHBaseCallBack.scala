@@ -22,16 +22,19 @@ class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
   val result = new LinkedBlockingQueue[ByteString]()
 
   override def update(region: Array[Byte], row: Array[Byte], response: GeoMesaCoprocessorResponse): Unit = {
-    isDone = true
+//    isDone = true
 
     val result =  Option(response).map(_.getPayloadList).orNull
     val lastscanned: ByteString = Option(response).map(_.getLastscanned).orNull
+    println(s"Lastscanned: ${response.getLastscanned}.  Condition: ${lastscanned != null && !lastscanned.isEmpty}  Lastscanned is not null: ${lastscanned != null}. lastscanned.isEmpty: ${lastscanned.isEmpty}")
 
     if (lastscanned != null && !lastscanned.isEmpty) {
-      println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${lastscanned}")
       lastRow = lastscanned.toByteArray
+      println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${lastscanned}")
+
       isDone = false
     } else {
+      isDone = true
       //println("Last scanned is null")
     }
 

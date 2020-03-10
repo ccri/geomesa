@@ -45,6 +45,7 @@ trait HBaseAggregator[T <: AggregatingScan.Result] extends AggregatingScan[T] {
 
   override protected def nextData(): RowValue = {
     val cell = iter.next()
+    println(s"Scanned ${new String(cell.getRowArray)}")
     lastscanned = cell.getRowArray
     RowValue(cell.getRowArray, cell.getRowOffset, cell.getRowLength,
       cell.getValueArray, cell.getValueOffset, cell.getValueLength)

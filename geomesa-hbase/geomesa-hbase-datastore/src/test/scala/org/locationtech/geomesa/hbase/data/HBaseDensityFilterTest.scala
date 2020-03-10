@@ -48,7 +48,9 @@ class HBaseDensityFilterTest extends Specification with LazyLogging {
 
   lazy val params = Map(
     ConnectionParam.getName -> MiniCluster.connection,
-    HBaseCatalogParam.getName -> getClass.getSimpleName)
+    HBaseCatalogParam.getName -> getClass.getSimpleName,
+    CoprocessorThreadsParam.getName -> "1"
+  )
 
   lazy val ds = DataStoreFinder.getDataStore(params).asInstanceOf[HBaseDataStore]
 
@@ -64,32 +66,32 @@ class HBaseDensityFilterTest extends Specification with LazyLogging {
   }
 
   "HBaseDensityCoprocessor" should {
-//    "work with filters" in {
-//      clearFeatures()
-//
-//      val toAdd = (0 until 150).map { i =>
-//        val sf = new ScalaSimpleFeature(sft, i.toString)
-//        sf.setAttribute(0, i.toString)
-//        sf.setAttribute(1, "1.0")
-//        sf.setAttribute(2, "2012-01-01T19:00:00Z")
-//        sf.setAttribute(3, "POINT(-77 38)")
-//        sf
-//      }  :+ {
-//        val sf2 = new ScalaSimpleFeature(sft, "200")
-//        sf2.setAttribute(0, "200")
-//        sf2.setAttribute(1, "1.0")
-//        sf2.setAttribute(2, "2010-01-01T19:00:00Z")
-//        sf2.setAttribute(3, "POINT(1 1)")
-//        sf2
-//      }
-//
-//      val features_list = new ListFeatureCollection(sft, toAdd)
-//      fs.addFeatures(features_list)
-//
-//      val q = "BBOX(geom, 0, 0, 10, 10)"
-//      val density = getDensity(typeName, q, fs)
-//      density.length must equalTo(1)
-//    }
+    "work with filters" in {
+      clearFeatures()
+
+      val toAdd = (0 until 150).map { i =>
+        val sf = new ScalaSimpleFeature(sft, i.toString)
+        sf.setAttribute(0, i.toString)
+        sf.setAttribute(1, "1.0")
+        sf.setAttribute(2, "2012-01-01T19:00:00Z")
+        sf.setAttribute(3, "POINT(-77 38)")
+        sf
+      }  :+ {
+        val sf2 = new ScalaSimpleFeature(sft, "200")
+        sf2.setAttribute(0, "200")
+        sf2.setAttribute(1, "1.0")
+        sf2.setAttribute(2, "2010-01-01T19:00:00Z")
+        sf2.setAttribute(3, "POINT(1 1)")
+        sf2
+      }
+
+      val features_list = new ListFeatureCollection(sft, toAdd)
+      fs.addFeatures(features_list)
+
+      val q = "BBOX(geom, 0, 0, 10, 10)"
+      val density = getDensity(typeName, q, fs)
+      density.length must equalTo(1)
+    }
 
     "reduce total features returned" in {
       clearFeatures()
