@@ -111,7 +111,7 @@ class HBaseDensityFilterTest extends Specification with LazyLogging {
 
       val q = "(dtg between '2012-01-01T18:00:00.000Z' AND '2012-01-01T23:00:00.000Z') and BBOX(geom, -80, 33, -70, 40)"
       val density = getDensity(typeName, q, fs)
-      println(s"Density length ${density.length}")
+      //println(s"Density length ${density.length}")
       density.length must beLessThan(150)
       density.map(_._3).sum must beEqualTo(150)
     }

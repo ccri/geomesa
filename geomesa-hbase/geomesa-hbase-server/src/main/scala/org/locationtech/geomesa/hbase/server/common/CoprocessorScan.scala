@@ -74,19 +74,19 @@ trait CoprocessorScan extends StrictLogging {
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
 
-        println(s"Scan configured with start: ${ByteArrays.printable(scan.getStartRow)} and end: ${new String(scan.getStopRow)}")
-        println(s"Scan configured with filter: ${scan.getFilter}")
-        import scala.collection.JavaConversions._
-        println(s"Scan configured with MRRF: ${printMRRF(scan.getFilter)} ")
+//        println(s"Scan configured with start: ${ByteArrays.printable(scan.getStartRow)} and end: ${new String(scan.getStopRow)}")
+//        println(s"Scan configured with filter: ${scan.getFilter}")
+//        import scala.collection.JavaConversions._
+//        println(s"Scan configured with MRRF: ${printMRRF(scan.getFilter)} ")
 
-        def printMRRF(filter: Filter): String = {
-
-          filter.asInstanceOf[FilterList].getFilters.get(0).asInstanceOf[MultiRowRangeFilter].getRowRanges.map {
-            rr =>
-              ByteArrays.printable(rr.getStartRow) + " : " + ByteArrays.printable(rr.getStopRow)
-          }.mkString(" , ")
-        }
-        scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
+//        def printMRRF(filter: Filter): String = {
+//
+//          filter.asInstanceOf[FilterList].getFilters.get(0).asInstanceOf[MultiRowRangeFilter].getRowRanges.map {
+//            rr =>
+//              ByteArrays.printable(rr.getStartRow) + " : " + ByteArrays.printable(rr.getStopRow)
+//          }.mkString(" , ")
+//        }
+        //scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
 
         WithClose(getScanner(scan)) { scanner =>
           aggregator.setScanner(scanner)
@@ -103,7 +103,7 @@ trait CoprocessorScan extends StrictLogging {
     logger.debug(
       s"Results total size: ${results.getPayloadList.asScala.map(_.size()).sum}" +
         s"\n\tBatch sizes: ${results.getPayloadList.asScala.map(_.size()).mkString(", ")}")
-    println(s"Read ${lastRead.count} and finished on row ${ByteArrays.printable(lastRead.lastRead)}")
+    //println(s"Read ${lastRead.count} and finished on row ${ByteArrays.printable(lastRead.lastRead)}")
     done.run(results.build)
   }
 
@@ -138,7 +138,7 @@ trait CoprocessorScan extends StrictLogging {
       if (continue()) { true } else {
         // add the partial results and stop scanning
         results.addPayload(ByteString.copyFrom(bytes))
-        println("CALL PARTIAL RESULTS")
+//        println("CALL PARTIAL RESULTS")
         false
       }
     }

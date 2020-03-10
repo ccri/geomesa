@@ -27,20 +27,20 @@ class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
 
     val result =  Option(response).map(_.getPayloadList).orNull
     val lastscanned: ByteString = Option(response).map(_.getLastscanned).orNull
-    println(s"Lastscanned: ${response.getLastscanned}.  Condition: ${lastscanned != null && !lastscanned.isEmpty}  Lastscanned is not null: ${lastscanned != null}. lastscanned.isEmpty: ${lastscanned.isEmpty}")
+    //println(s"Lastscanned: ${response.getLastscanned}.  Condition: ${lastscanned != null && !lastscanned.isEmpty}  Lastscanned is not null: ${lastscanned != null}. lastscanned.isEmpty: ${lastscanned.isEmpty}")
 
     if (lastscanned != null && !lastscanned.isEmpty) {
       lastRow = lastscanned.toByteArray
-      println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${ByteArrays.printable(lastscanned.toByteArray)}")
+      //println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${ByteArrays.printable(lastscanned.toByteArray)}")
 
       isDone = false
     } else {
       isDone = true
-      //println("Last scanned is null")
+      ////println("Last scanned is null")
     }
 
     if (result != null) {
-      println(s"In update for region ${region} row: ${ByteArrays.printable(row)}")
+      //println(s"In update for region ${region} row: ${ByteArrays.printable(row)}")
       this.result.addAll(result)
     }
   }

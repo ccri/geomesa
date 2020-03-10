@@ -143,11 +143,11 @@ object GeoMesaCoprocessor extends LazyLogging {
       override def run(): Unit = {
         try {
           if (!closed.get) {
-            println(s"Calling htable.coproService (first time): ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
+            //println(s"Calling htable.coproService (first time): ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
             htable.coprocessorService(service, scan.getStartRow, scan.getStopRow, callable, callback)
           }
-          println(s"Close: ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
-          println(s"Closed: ${closed.get}.  Callback.isDone: ${callback.isDone}  Callback.lastRow: ${ByteArrays.printable(callback.lastRow)}")
+          //println(s"Close: ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
+          //println(s"Closed: ${closed.get}.  Callback.isDone: ${callback.isDone}  Callback.lastRow: ${ByteArrays.printable(callback.lastRow)}")
 
           // If the scan hasn't been killed and we are not done, then re-issue the request!
           while (!closed.get() && !callback.isDone) {
@@ -163,7 +163,7 @@ object GeoMesaCoprocessor extends LazyLogging {
             // Need to rebuild the 'request' and then the 'callable' from that.
             //scan.setStartRow(lastRow)
             scan.setStartRow(nextRow)
-            println(s"Calling htable.coproService (second time(s)): ${ByteArrays.printable(nextRow)} to ${ByteArrays.printable(scan.getStopRow)}")
+            //println(s"Calling htable.coproService (second time(s)): ${ByteArrays.printable(nextRow)} to ${ByteArrays.printable(scan.getStopRow)}")
 
             htable.coprocessorService(service, nextRow, scan.getStopRow, callable, callback)
           }
@@ -171,10 +171,10 @@ object GeoMesaCoprocessor extends LazyLogging {
 
         } catch {
           case e @ (_ :InterruptedException | _ :InterruptedIOException) =>
-            println("Caught an exception" + e)
+            //println("Caught an exception" + e)
             logger.warn("Interrupted executing coprocessor query:", e)
         } finally {
-          println(s"Adding terminator to callback")
+          //println(s"Adding terminator to callback")
           callback.result.add(terminator)
         }
       }
@@ -231,7 +231,7 @@ object GeoMesaCoprocessor extends LazyLogging {
     override def run(parameter: GeoMesaCoprocessorResponse): Unit = {
       result = Option(parameter).map(_.getPayloadList).orNull
       response = parameter
-      println(s" RUNNING RpcCallbackImpl.  Size is ${result.size} Size of lastscanned is ${response.getLastscanned.size()}")
+      //println(s" RUNNING RpcCallbackImpl.  Size is ${result.size} Size of lastscanned is ${response.getLastscanned.size()}")
     }
   }
 
