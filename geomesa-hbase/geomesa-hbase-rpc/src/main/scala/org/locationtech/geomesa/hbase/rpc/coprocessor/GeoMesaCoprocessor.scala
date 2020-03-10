@@ -115,12 +115,14 @@ object GeoMesaCoprocessor extends LazyLogging {
     }
 
     private def callable: Call[GeoMesaCoprocessorService, GeoMesaCoprocessorResponse] = new Call[GeoMesaCoprocessorService, GeoMesaCoprocessorResponse]() {
+      val interalRequest = request
+
       override def call(instance: GeoMesaCoprocessorService): GeoMesaCoprocessorResponse = {
         if (closed.get) { null } else {
           val controller: RpcController = new GeoMesaHBaseRpcController()
           val callback = new RpcCallbackImpl()
           // note: synchronous call
-          try { instance.getResult(controller, request, callback) } catch {
+          try { instance.getResult(controller, interalRequest, callback) } catch {
             case _: InterruptedException | _: InterruptedIOException | _: CancellationException =>
               logger.warn("Cancelling remote coprocessor call")
               controller.startCancel()
@@ -141,26 +143,38 @@ object GeoMesaCoprocessor extends LazyLogging {
       override def run(): Unit = {
         try {
           if (!closed.get) {
+            println(s"Calling htable.coproService (first time): ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
             htable.coprocessorService(service, scan.getStartRow, scan.getStopRow, callable, callback)
           }
-          println(s"Closed: ${closed.get}.  Callback.isDone: ${callback.isDone}  Callback.lastRow: ${callback.lastRow}")
+          println(s"Close: ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
+          println(s"Closed: ${closed.get}.  Callback.isDone: ${callback.isDone}  Callback.lastRow: ${ByteArrays.printable(callback.lastRow)}")
 
           // If the scan hasn't been killed and we are not done, then re-issue the request!
           while (!closed.get() && !callback.isDone) {
             // TODO: Use 'nextRow mojo to advance and not re-read a row.
-            println(s"Continuing scan from row: ${new String(callback.lastRow)}")
-            // Need to rebuild the 'request' and then the 'callable' from that.
-            scan.setStartRow(callback.lastRow)
-            //scan.setStartRow(ByteArrays.rowFollowingPrefix(callback.lastRow))
+            val lastRow = callback.lastRow
+            val nextRow = ByteArrays.rowFollowingRow(lastRow)
 
-            htable.coprocessorService(service, callback.lastRow, scan.getStopRow, callable, callback)
+            println(s"Scan continuing from row: ${ByteArrays.printable(callback.lastRow)}.  Next row is ${ByteArrays.printable(nextRow)}")
+
+            // Reset the callback's status
+            callback.isDone = false
+            callback.lastRow = null
+            // Need to rebuild the 'request' and then the 'callable' from that.
+            //scan.setStartRow(lastRow)
+            scan.setStartRow(nextRow)
+            println(s"Calling htable.coproService (second time(s)): ${ByteArrays.printable(nextRow)} to ${ByteArrays.printable(scan.getStopRow)}")
+
+            htable.coprocessorService(service, nextRow, scan.getStopRow, callable, callback)
           }
 
 
         } catch {
           case e @ (_ :InterruptedException | _ :InterruptedIOException) =>
+            println("Caught an exception" + e)
             logger.warn("Interrupted executing coprocessor query:", e)
         } finally {
+          println(s"Adding terminator to callback")
           callback.result.add(terminator)
         }
       }

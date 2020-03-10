@@ -400,7 +400,13 @@ class HBaseIndexAdapter(ds: HBaseDataStore) extends IndexAdapter[HBaseDataStore]
         }
 
         // shuffle the ranges, otherwise our threads will tend to all hit the same region server at once
-        TableScan(table, Random.shuffle(groupedScans.result))
+        //TableScan(table, Random.shuffle(groupedScans.result))
+        val scans = groupedScans.result
+        scans.foreach {
+          scan =>
+            println(s"Plan calls for: ${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
+        }
+        TableScan(table, scans)
       }
     }
   }

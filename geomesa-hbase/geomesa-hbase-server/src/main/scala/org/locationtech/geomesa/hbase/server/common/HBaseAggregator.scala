@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.Cell
 import org.apache.hadoop.hbase.regionserver.RegionScanner
 import org.locationtech.geomesa.index.iterators.AggregatingScan
 import org.locationtech.geomesa.index.iterators.AggregatingScan.RowValue
+import org.locationtech.geomesa.utils.index.ByteArrays
 import org.opengis.feature.simple.SimpleFeatureType
 
 /**
@@ -28,6 +29,7 @@ trait HBaseAggregator[T <: AggregatingScan.Result] extends AggregatingScan[T] {
   private var lastscanned: Array[Byte] = _
 
   def setScanner(scanner: RegionScanner): Unit = {
+    lastscanned = null
     this.scanner = scanner
     results.clear()
     more = scanner.next(results)
@@ -45,7 +47,7 @@ trait HBaseAggregator[T <: AggregatingScan.Result] extends AggregatingScan[T] {
 
   override protected def nextData(): RowValue = {
     val cell = iter.next()
-    println(s"Scanned ${new String(cell.getRowArray)}")
+    println(s"Scanned ${ByteArrays.printable(cell.getRowArray)}")
     lastscanned = cell.getRowArray
     RowValue(cell.getRowArray, cell.getRowOffset, cell.getRowLength,
       cell.getValueArray, cell.getValueOffset, cell.getValueLength)

@@ -13,6 +13,7 @@ import java.util.concurrent.{ConcurrentLinkedQueue, LinkedBlockingQueue}
 import com.google.protobuf.ByteString
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Callback
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.GeoMesaCoprocessorResponse
+import org.locationtech.geomesa.utils.index.ByteArrays
 
 class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
 
@@ -30,7 +31,7 @@ class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
 
     if (lastscanned != null && !lastscanned.isEmpty) {
       lastRow = lastscanned.toByteArray
-      println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${lastscanned}")
+      println(s"Last Scanned is not null and is not Empty with length ${lastRow.length}: ${ByteArrays.printable(lastscanned.toByteArray)}")
 
       isDone = false
     } else {
@@ -39,11 +40,8 @@ class GeoMesaHBaseCallBack extends Callback[GeoMesaCoprocessorResponse] {
     }
 
     if (result != null) {
-      println(s"In update for region ${region} row: $row")
+      println(s"In update for region ${region} row: ${ByteArrays.printable(row)}")
       this.result.addAll(result)
-
     }
   }
-
-
 }

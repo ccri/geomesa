@@ -26,6 +26,7 @@ import org.locationtech.geomesa.hbase.rpc.filter.LastReadFilter
 import org.locationtech.geomesa.hbase.server.common.CoprocessorScan.Aggregator
 import org.locationtech.geomesa.index.iterators.AggregatingScan
 import org.locationtech.geomesa.index.iterators.AggregatingScan.AggregateCallback
+import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.io.WithClose
 
 import scala.util.control.NonFatal
@@ -69,13 +70,13 @@ trait CoprocessorScan extends StrictLogging {
         logger.debug(s"Initializing aggregator $aggregator with options ${options.mkString(", ")}")
         //aggregator.init(options)
         // JNH: Test with the below to see if partialResults are working.
-        aggregator.init(options.updated("batch", "2"))
+        aggregator.init(options.updated("batch", "1"))
 
         val scan = ProtobufUtil.toScan(ClientProtos.Scan.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.ScanOpt))))
 
-        println(s"Scan configured with start: ${new String(scan.getStartRow)} and end: ${new String(scan.getStopRow)}")
+        println(s"Scan configured with start: ${ByteArrays.printable(scan.getStartRow)} and end: ${new String(scan.getStopRow)}")
         println(s"Scan configured with filter: ${scan.getFilter}")
-        //scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
+        scan.setFilter(new FilterList(lastRead, FilterList.parseFrom(Base64.getDecoder.decode(options(GeoMesaCoprocessor.FilterOpt)))))
 
         WithClose(getScanner(scan)) { scanner =>
           aggregator.setScanner(scanner)
@@ -92,7 +93,7 @@ trait CoprocessorScan extends StrictLogging {
     logger.debug(
       s"Results total size: ${results.getPayloadList.asScala.map(_.size()).sum}" +
           s"\n\tBatch sizes: ${results.getPayloadList.asScala.map(_.size()).mkString(", ")}")
-    println(s"Read ${lastRead.count} and finished on row ${lastRead.lastRead}")
+    println(s"Read ${lastRead.count} and finished on row ${ByteArrays.printable(lastRead.lastRead)}")
     done.run(results.build)
   }
 
