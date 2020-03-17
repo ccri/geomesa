@@ -83,8 +83,8 @@
         <metrics.version>3.2.6</metrics.version>
         <aws.sdk.version>1.11.421</aws.sdk.version>
 
-        <specs2.version>4.3.2</specs2.version>
-        <junit.version>4.12</junit.version>
+        <specs2.version>4.9.2</specs2.version>
+        <junit.version>4.13</junit.version>
 
         <!-- *** provided artifacts, not bundled to support multiple environments *** -->
 
@@ -223,6 +223,8 @@
             </distributionManagement>
         </profile>
 
+		
+
         <profile>
             <id>locationtech</id>
             <!-- TODO locationtech hudson build fails on uploading javadocs for some modules - figure out why -->
@@ -299,6 +301,37 @@
                 </pluginRepository>
             </pluginRepositories>
         </profile>
+        
+<!--
+        <profile>
+            <id>integrationtest</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.22.0</version>
+                        <executions>
+                            <execution>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <excludes>
+                                        <exclude>**/*Test*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>**/*IntegrationTest*</include>
+                                    </includes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+-->
+        
     </profiles>
 
     <dependencies>
@@ -2324,14 +2357,15 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <!-- 3.0.0-M1 was released 2018-11-07. -->
-                    <version>3.0.0-M1</version>
+                    <version>3.0.0-M4</version>
                     <dependencies>
                         <dependency>
                             <groupId>org.apache.maven.surefire</groupId>
                             <artifactId>surefire-junit4</artifactId>
-                            <version>3.0.0-M1</version>
+                            <version>3.0.0-M4</version>
                         </dependency>
+                        
+       
                     </dependencies>
                     <configuration>
                         <forkCount>${test.fork.count}</forkCount>
@@ -2341,6 +2375,7 @@
                         <includes>
                             <include>**/*Test.java</include>
                         </includes>
+                        <excludedGroups>org.locationtech.geomesa.accumulo.IntegrationTest</excludedGroups>
                         <argLine>${maven.test.jvmargs}</argLine>
                         <systemPropertyVariables>
                             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
@@ -2352,6 +2387,7 @@
                             <geomesa.hbase.test.servers>2</geomesa.hbase.test.servers>
                         </systemPropertyVariables>
                     </configuration>
+                  
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -2489,8 +2525,16 @@
                 </plugin>
             </plugins>
         </pluginManagement>
-
+       
         <plugins>
+         <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>3.0.0-M4</version>
+        <configuration>
+            <groups>org.locationtech.geomesa.accumulo.IntegrationTest</groups>
+        </configuration>
+      </plugin>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -2515,6 +2559,25 @@
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile-it</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile-no-it</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                        <includes>
+                            <include>**/*IT.*</include>
+                        </includes>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

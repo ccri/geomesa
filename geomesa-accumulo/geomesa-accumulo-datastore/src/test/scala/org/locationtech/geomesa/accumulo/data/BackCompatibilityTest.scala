@@ -10,6 +10,7 @@ package org.locationtech.geomesa.accumulo.data
 
 import java.io._
 
+import org.locationtech.geomesa.accumulo.IntegrationTest
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.accumulo.core.client.BatchWriterConfig
@@ -38,7 +39,9 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import scala.collection.JavaConversions._
+import org.junit.experimental.categories.Category;
 
+@Category(Array(classOf[IntegrationTest])/*.getClass.getSimpleName*/)
 @RunWith(classOf[JUnitRunner])
 class BackCompatibilityTest extends Specification with LazyLogging {
 
@@ -266,6 +269,7 @@ class BackCompatibilityTest extends Specification with LazyLogging {
   }
 
   "GeoMesa" should {
+    logger.info("BACKCOMPATIBILITYTEST")
     "support backward compatibility to 1.2.0"     >> { testVersion("1.2.0") }
     "support backward compatibility to 1.2.1"     >> { testVersion("1.2.1") }
     "support backward compatibility to 1.2.2"     >> { testVersion("1.2.2") }
