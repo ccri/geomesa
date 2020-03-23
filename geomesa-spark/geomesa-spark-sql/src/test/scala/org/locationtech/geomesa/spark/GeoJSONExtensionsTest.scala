@@ -33,11 +33,15 @@ class GeoJSONExtensionsTest extends Specification {
       import org.locationtech.geomesa.spark.sql.GeoJSONExtensions.GeoJSONDataFrame
       import s.implicits._
 
-      val rows = Seq(("1", 1, WKTUtils.read("POINT(1 2)")))
+      val rows = Seq(("1", 1, WKTUtils.read("POINT(1 2)")),
+        ("2", 2, WKTUtils.read("POINT(1 3)")))
       val df = spark.sparkContext.parallelize(rows).toDF("__fid__", "name", "geom")
 
+      df.toGeoJSON.collect().size mustEqual 2
       df.toGeoJSON.head() mustEqual
           """{"type":"Feature","geometry":{"type":"Point","coordinates":[1,2]},"properties":{"name":1},"id":"1"}"""
+      df.toGeoJSON.collect.last mustEqual
+        """{"type":"Feature","geometry":{"type":"Point","coordinates":[1,3]},"properties":{"name":2},"id":"2"}"""
     }
 
     "convert polygons" >> {
@@ -71,6 +75,21 @@ class GeoJSONExtensionsTest extends Specification {
       df.toGeoJSON.collect mustEqual Array(1, 2, 3).map { i =>
         s"""{"type":"Feature","geometry":{"type":"Point","coordinates":[$i,$i]},"properties":{"name":$i},"id":"$i"}"""
       }
+    }
+
+    "handle multiple rows2" >> {
+      val s = spark
+
+      import org.locationtech.geomesa.spark.sql.GeoJSONExtensions.GeoJSONDataFrame
+      import s.implicits._
+
+      val rows = (1 to 10).map { i => (s"$i", i, WKTUtils.read(s"POINT($i $i)")) }
+
+      val df = spark.sparkContext.parallelize(rows).toDF("__fid__", "name", "geom")
+
+      df.toGeoJSON.collect mustEqual (1 to 10).map { i =>
+        s"""{"type":"Feature","geometry":{"type":"Point","coordinates":[$i,$i]},"properties":{"name":$i},"id":"$i"}"""
+      }.toArray
     }
 
     "handle rows with nulls" >> {
