@@ -144,25 +144,21 @@ object GeoMesaCoprocessor extends LazyLogging {
     private val coprocessor = CachedThreadPool.submit(new Runnable() {
       override def run(): Unit = {
         val callback = new GeoMesaHBaseCallBack(resultQueue)
+        var rowToScan = scan.getStartRow
+
         try {
-          if (!closed.get) {
-            logger.trace(s"Calling htable.coproService (first time): " +
-              s"${ByteArrays.printable(scan.getStartRow)} to ${ByteArrays.printable(scan.getStopRow)}")
-            htable.coprocessorService(service, scan.getStartRow, scan.getStopRow, callable, callback)
-          }
-          logger.trace(s"Closed: ${closed.get}. Callback.lastRow: ${ByteArrays.printable(callback.lastRow)}")
 
-          // If the scan hasn't been killed and we are not done, then re-issue the request.
-          while (!closed.get() && callback.lastRow != null) {
-            // Reset the callback's status
-            callback.lastRow = null
+          while (!closed.get() && rowToScan != null) {
+            logger.warn(s"Scan continuing from next row ${ByteArrays.printable(rowToScan)}")
+            htable.coprocessorService(service, rowToScan, scan.getStopRow, callable, callback)
 
-            val nextRow = ByteArrays.rowFollowingRow(callback.lastRow)
-            logger.trace(s"Scan continuing from next row is ${ByteArrays.printable(nextRow)}")
-
-            scan.setStartRow(nextRow)
-            htable.coprocessorService(service, nextRow, scan.getStopRow, callable, callback)
-            logger.trace(s"Closed: ${closed.get}. Callback.lastRow: ${ByteArrays.printable(callback.lastRow)}")
+            rowToScan = if (callback.lastRow != null) { // The scan should continue
+              val nextRow = ByteArrays.rowFollowingRow(callback.lastRow)
+              callback.lastRow = null
+              nextRow
+            } else { // The scan is done.
+              null
+            }
           }
         } catch {
           case e @ (_ :InterruptedException | _ :InterruptedIOException) =>
