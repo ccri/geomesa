@@ -76,10 +76,26 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <configuration>
-                            <executable>python</executable>
-                        </configuration>
                         <executions>
+                            <execution>
+                                <id>pip-install</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>pip</executable>
+                                    <arguments>
+                                        <argument>install</argument>
+                                        <argument>-r</argument>
+                                        <argument>${project.basedir}/requirements.txt</argument>
+                                        <!--<argument>-i</argument>-->
+                                        <!--<argument> http://artifactoryhost.domain.com/artifactory/api/pypi/<repo-name>/simple</argument>-->
+                                        <!--<argument>&#45;&#45;trusted-host</argument>-->
+                                        <!--<argument>artifactoryhost.domain.com</argument>-->
+                                    </arguments>
+                                </configuration>
+                            </execution>
                             <execution>
                                 <id>setuptools package</id>
                                 <phase>package</phase>
@@ -87,6 +103,7 @@
                                     <goal>exec</goal>
                                 </goals>
                                 <configuration>
+                                    <executable>python</executable>
                                     <workingDirectory>${project.build.directory}/python</workingDirectory>
                                     <arguments>
                                         <argument>setup.py</argument>
@@ -102,6 +119,7 @@
                                     <goal>exec</goal>
                                 </goals>
                                 <configuration>
+                                    <executable>python</executable>
                                     <skip>${skipTests}</skip>
                                     <workingDirectory>${project.basedir}/src/test/python</workingDirectory>
                                     <arguments>
