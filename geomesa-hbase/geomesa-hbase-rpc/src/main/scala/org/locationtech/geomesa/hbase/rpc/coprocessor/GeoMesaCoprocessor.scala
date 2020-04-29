@@ -153,8 +153,7 @@ object GeoMesaCoprocessor extends LazyLogging {
           // If the scan hasn't been killed and we are not done, then re-issue the request.
           while (!closed.get() && callback.lastRow != null) {
             val nextRow = ByteArrays.rowFollowingRow(callback.lastRow)
-            // reset the callback's status
-            callback.lastRow = null
+            callback.lastRow = null // reset the callback's status
             logger.trace(
               s"Call continuing: ${ByteArrays.printable(nextRow)} to ${ByteArrays.printable(scan.getStopRow)}")
             htable.coprocessorService(service, nextRow, scan.getStopRow, callable, callback)

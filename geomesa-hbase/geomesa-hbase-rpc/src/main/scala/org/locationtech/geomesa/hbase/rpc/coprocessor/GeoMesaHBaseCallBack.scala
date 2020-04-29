@@ -16,8 +16,10 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch.Callback
 import org.locationtech.geomesa.hbase.proto.GeoMesaProto.GeoMesaCoprocessorResponse
 import org.locationtech.geomesa.utils.index.ByteArrays
 
-class GeoMesaHBaseCallBack(result: LinkedBlockingQueue[ByteString]) extends Callback[GeoMesaCoprocessorResponse] with LazyLogging {
-  var lastRow: Array[Byte] = _
+class GeoMesaHBaseCallBack(result: LinkedBlockingQueue[ByteString])
+    extends Callback[GeoMesaCoprocessorResponse] with LazyLogging {
+
+  private [coprocessor] var lastRow: Array[Byte] = _
 
   override def update(region: Array[Byte], row: Array[Byte], response: GeoMesaCoprocessorResponse): Unit = {
     logger.trace(s"In update for region ${ByteArrays.printable(region)} and row ${ByteArrays.printable(row)}")
