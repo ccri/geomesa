@@ -94,7 +94,7 @@ class CachedThreadPool(maxThreads: Int) extends AbstractExecutorService {
             // we still need to execute the task to fulfill the executor API
             CachedThreadPool.logger.warn(
               "CachedThreadPool rejected queued task (likely due to shutdown)," +
-                s"creating new single thread pool: $task: $e")
+                s"creating new single thread executor: $task: $e")
             val pool = Executors.newSingleThreadExecutor()
             pool.execute(task)
             pool.shutdown()
