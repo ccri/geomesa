@@ -982,16 +982,18 @@ object DeltaWriter extends StrictLogging {
         val delta = deltas.next
         grouped.getOrElseUpdate(ByteArrays.readLong(delta), Array.newBuilder) += delta
       }
-      val threaded = Array.ofDim[Array[Array[Byte]]](grouped.size)
-      var i = 0
-      grouped.foreach { case (_, builder) => threaded(i) = builder.result; i += 1 }
-      logger.trace(s"merging delta batches from ${threaded.length} thread(s)")
-      val dictionaries = mergeDictionaries(sft, dictionaryFields, threaded, encoding)
-      if (sorted || sort.isEmpty) {
-        reduceNoSort(sft, dictionaryFields, encoding, dictionaries, sort, batchSize, threaded)
-      } else {
-        val Some((s, r)) = sort
-        reduceWithSort(sft, dictionaryFields, encoding, dictionaries, s, r, batchSize, threaded)
+      if (closed.get) { CloseableIterator.empty } else {
+        val threaded = Array.ofDim[Array[Array[Byte]]](grouped.size)
+        var i = 0
+        grouped.foreach { case (_, builder) => threaded(i) = builder.result; i += 1 }
+        logger.trace(s"merging delta batches from ${threaded.length} thread(s)")
+        val dictionaries = mergeDictionaries(sft, dictionaryFields, threaded, encoding)
+        if (sorted || sort.isEmpty) {
+          reduceNoSort(sft, dictionaryFields, encoding, dictionaries, sort, batchSize, threaded)
+        } else {
+          val Some((s, r)) = sort
+          reduceWithSort(sft, dictionaryFields, encoding, dictionaries, s, r, batchSize, threaded)
+        }
       }
     }
 
