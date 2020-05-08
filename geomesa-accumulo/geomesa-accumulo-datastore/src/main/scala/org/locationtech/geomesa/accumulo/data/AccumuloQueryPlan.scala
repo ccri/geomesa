@@ -234,6 +234,7 @@ object AccumuloQueryPlan extends LazyLogging {
     override def next(): Entry[Key, Value] = iter.next()
 
     override def close(): Unit = {
+      logger.debug(s"Closing Accumulo ManagedScanIterator.  terminated?: ${terminated.get} timeout: ${timeout.absolute} at time ${System.currentTimeMillis()}")
       try {
         if (cancel != null) {
           cancel.cancel(false)
@@ -250,5 +251,7 @@ object AccumuloQueryPlan extends LazyLogging {
       terminated.set(true)
       scanner.close()
     }
+
+    override def toString(): String = "ManagedScanIterator (don't ask me who)"
   }
 }
