@@ -8,6 +8,7 @@
 
 package org.locationtech.geomesa.accumulo.data
 
+import java.io.IOException
 import java.util.{Collections, Date}
 
 import org.geotools.data._
@@ -479,7 +480,6 @@ class AccumuloDataStoreQueryTest extends Specification with TestWithMultipleSfts
     }
 
     "kill queries after a configurable timeout" in {
-      import scala.concurrent.duration._
 
       val params = dsParams ++ Map(AccumuloDataStoreParams.QueryTimeoutParam.getName -> "1s")
 
@@ -487,6 +487,7 @@ class AccumuloDataStoreQueryTest extends Specification with TestWithMultipleSfts
       val reader = dsWithTimeout.getFeatureReader(new Query(defaultSft.getTypeName, Filter.INCLUDE), Transaction.AUTO_COMMIT)
       reader.hasNext()
       Thread.sleep(5000)
+      reader.next() must throwA[IOException]
       reader.close() must throwAn[Exception]
 //      eventually(20, 200.millis)(reader.isClosed must beTrue)
     }

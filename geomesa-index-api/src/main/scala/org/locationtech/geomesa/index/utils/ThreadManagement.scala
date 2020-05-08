@@ -8,7 +8,7 @@
 
 package org.locationtech.geomesa.index.utils
 
-import java.io.Closeable
+import java.io.{Closeable, IOException}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 
@@ -77,7 +77,7 @@ object ThreadManagement extends LazyLogging {
 
     private val compare = java.lang.Long.compare(System.currentTimeMillis(), timeout.absolute)
     private val terminated = new AtomicBoolean(compare >= 0)
-    private val iter = if (compare < 0) { underlying.iterator } else { Iterator.empty }
+    private var iter: Iterator[T] = if (compare < 0) { underlying.iterator } else { Iterator.empty }
     private val cancel = if (compare < 0) { ThreadManagement.register(this) } else { null }
 
     // used for log messages
@@ -89,6 +89,14 @@ object ThreadManagement extends LazyLogging {
 
     override def terminate(): Unit = {
       terminated.set(true)
+
+      // Exceptional Iterator!
+      iter = new Iterator[T] {
+        override def hasNext: Boolean = true
+
+        override def next(): T = throw new IOException("This scan has passed the timeout.")
+      }
+
       try {
         logger.warn(
           s"Stopping scan on schema '$typeName' with filter '${filterToString(filter)}' " +
