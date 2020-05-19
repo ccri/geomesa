@@ -25,8 +25,9 @@ private class HBaseBatchScan(connection: Connection, table: TableName, ranges: S
 
   private val htable = connection.getTable(table, new CachedThreadPool(threads))
 
+  var scan: ResultScanner = _
   override protected def scan(range: Scan, out: BlockingQueue[Result]): Unit = {
-    val scan = htable.getScanner(range)
+    scan = htable.getScanner(range)
     try {
       var result = scan.next()
       while (result != null) {
@@ -39,6 +40,7 @@ private class HBaseBatchScan(connection: Connection, table: TableName, ranges: S
   }
 
   override def close(): Unit = {
+    try { scan.close() }
     try { super.close() } finally {
       htable.close()
     }
