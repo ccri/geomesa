@@ -12,7 +12,7 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.vividsolutions.jts.geom.LineString
+import com.vividsolutions.jts.geom.{Geometry, LineString, Point, Polygon}
 import org.apache.arrow.memory.BufferAllocator
 import org.apache.arrow.vector.DirtyRootAllocator
 import org.geotools.filter.text.ecql.ECQL
@@ -22,11 +22,7 @@ import org.locationtech.geomesa.arrow.vector.SimpleFeatureVector.SimpleFeatureEn
 import org.locationtech.geomesa.features.ScalaSimpleFeature
 import org.locationtech.geomesa.utils.geotools.SimpleFeatureTypes
 import org.locationtech.geomesa.utils.io.WithClose
-<<<<<<< HEAD
-=======
-import org.locationtech.geomesa.utils.text.{WKBUtils, WKTUtils}
-import org.locationtech.jts.geom.{Geometry, LineString, Point, Polygon}
->>>>>>> eaa9b5f95a... Local squash.
+import org.locationtech.geomesa.utils.text.WKTUtils
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -240,7 +236,7 @@ class SimpleFeatureArrowFileTest extends Specification {
     "write and read geometries" >> {
       withTestFile("geometries") { file =>
         val encoding = SimpleFeatureEncoding.min(includeFids = true)
-        WithClose(SimpleFeatureArrowFileWriter(new FileOutputStream(file), geomSft, Map.empty, encoding, ipcOpts, None)) {
+        WithClose(SimpleFeatureArrowFileWriter(geomSft, new FileOutputStream(file), Map.empty, encoding, None)) {
           writer =>
             geomFeatures.foreach(writer.add)
         }

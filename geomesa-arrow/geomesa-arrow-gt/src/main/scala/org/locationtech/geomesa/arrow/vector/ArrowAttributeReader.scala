@@ -278,7 +278,7 @@ object ArrowAttributeReader {
             case Encoding.Max => new MultiPointDoubleReader(vector.asInstanceOf[ListVector])
           }
         } else if (binding == ObjectType.GEOMETRY) {
-          new WKBGeometryVector(vector.asInstanceOf[VarBinaryVector])
+          new WKBGeometryVector(vector.asInstanceOf[NullableVarBinaryVector]).getReader
         } else if (binding == ObjectType.GEOMETRY_COLLECTION) {
           throw new NotImplementedError(s"Geometry type $binding is not supported")
         } else {
