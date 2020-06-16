@@ -13,6 +13,8 @@ import org.apache.arrow.vector.NullableVarBinaryVector;
 import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.complex.AbstractContainerVector;
 import org.apache.arrow.vector.holders.NullableVarBinaryHolder;
+import org.apache.arrow.vector.holders.VarBinaryHolder;
+import org.apache.arrow.vector.schema.ArrowBuffer;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
@@ -49,6 +51,7 @@ public class WKBGeometryVector implements GeometryVector<Geometry, NullableVarBi
 //  }
 
   public WKBGeometryVector(NullableVarBinaryVector vector) {
+    vector.allocateNewSafe();
     this.vector = vector;
   }
 
@@ -63,7 +66,10 @@ public class WKBGeometryVector implements GeometryVector<Geometry, NullableVarBi
       byte[] wkb = writer.write(geom);
 
       // JNH Start here tomorrow
-      vector.getMutator().setSafe(i, wkb, 0, wkb.length-1);
+      NullableVarBinaryVector.Mutator mutator = vector.getMutator();
+      mutator.setIndexDefined(i);
+      mutator.setValueLengthSafe(i, wkb.length);
+      mutator.setSafe(i, wkb, 0, wkb.length);
     }
   }
 
@@ -115,8 +121,10 @@ public class WKBGeometryVector implements GeometryVector<Geometry, NullableVarBi
 
   public static class WKBGeometryReader implements GeometryReader<Geometry> {
     NullableVarBinaryVector vector;
+    public NullableVarBinaryVector.Accessor accessor;
 
     public WKBGeometryReader(NullableVarBinaryVector vector) {
+      this.accessor  = vector.getAccessor();
       this.vector = vector;
     }
 
@@ -135,8 +143,10 @@ public class WKBGeometryVector implements GeometryVector<Geometry, NullableVarBi
       return vector.getAccessor().getNullCount();
     }
   }
+
   @Override
   public NullableVarBinaryVector getVector() {
+
     return vector;
   }
 
@@ -158,7 +168,22 @@ public class WKBGeometryVector implements GeometryVector<Geometry, NullableVarBi
 
   @Override
   public void transfer(int fromIndex, int toIndex, GeometryVector<Geometry, NullableVarBinaryVector> to) {
-    to.transfer(toIndex, fromIndex, to);
+    WKBGeometryWriter writer = (WKBGeometryWriter) to.getWriter();
+
+    if (vector.getAccessor().isNull(fromIndex)) {
+      writer.vector.getMutator().setNull(toIndex);
+    } else {
+      byte[] wkb = vector.getAccessor().get(fromIndex);
+      NullableVarBinaryVector.Mutator mutator = writer.vector.getMutator();
+
+      // JNH: Copied from above
+      //vector.allocateNew();
+
+      mutator.setIndexDefined(toIndex);
+      mutator.setValueLengthSafe(toIndex, wkb.length);
+      mutator.setSafe(toIndex, wkb, 0, wkb.length);
+
+    }
   }
 
   @Override
