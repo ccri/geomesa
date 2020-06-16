@@ -217,48 +217,6 @@ object ArrowAttributeWriter {
 
           case ObjectType.LIST =>
             new ArrowListWriter(toVector(MinorType.LIST.getType, null, metadata), bindings(1), encoding)
-//=======
-//  private def geometry(
-//      name: String,
-//      binding: ObjectType,
-//      encoding: Encoding,
-//      metadata: Map[String, String],
-//      factory: VectorFactory): ArrowGeometryWriter = {
-//    val m = metadata.asJava
-//    val vector = (binding, encoding, factory) match {
-//      case (ObjectType.POINT, Encoding.Min, FromStruct(c))              => new PointFloatVector(name, c, m)
-//      case (ObjectType.POINT, Encoding.Min, FromAllocator(c))           => new PointFloatVector(name, c, m)
-//      case (ObjectType.POINT, Encoding.Max, FromStruct(c))              => new PointVector(name, c, m)
-//      case (ObjectType.POINT, Encoding.Max, FromAllocator(c))           => new PointVector(name, c, m)
-//      case (ObjectType.LINESTRING, Encoding.Min, FromStruct(c))         => new LineStringFloatVector(name, c, m)
-//      case (ObjectType.LINESTRING, Encoding.Min, FromAllocator(c))      => new LineStringFloatVector(name, c, m)
-//      case (ObjectType.LINESTRING, Encoding.Max, FromStruct(c))         => new LineStringVector(name, c, m)
-//      case (ObjectType.LINESTRING, Encoding.Max, FromAllocator(c))      => new LineStringVector(name, c, m)
-//      case (ObjectType.POLYGON, Encoding.Min, FromStruct(c))            => new PolygonFloatVector(name, c, m)
-//      case (ObjectType.POLYGON, Encoding.Min, FromAllocator(c))         => new PolygonFloatVector(name, c, m)
-//      case (ObjectType.POLYGON, Encoding.Max, FromStruct(c))            => new PolygonVector(name, c, m)
-//      case (ObjectType.POLYGON, Encoding.Max, FromAllocator(c))         => new PolygonVector(name, c, m)
-//      case (ObjectType.MULTILINESTRING, Encoding.Min, FromStruct(c))    => new MultiLineStringFloatVector(name, c, m)
-//      case (ObjectType.MULTILINESTRING, Encoding.Min, FromAllocator(c)) => new MultiLineStringFloatVector(name, c, m)
-//      case (ObjectType.MULTILINESTRING, Encoding.Max, FromStruct(c))    => new MultiLineStringVector(name, c, m)
-//      case (ObjectType.MULTILINESTRING, Encoding.Max, FromAllocator(c)) => new MultiLineStringVector(name, c, m)
-//      case (ObjectType.MULTIPOLYGON, Encoding.Min, FromStruct(c))       => new MultiPolygonFloatVector(name, c, m)
-//      case (ObjectType.MULTIPOLYGON, Encoding.Min, FromAllocator(c))    => new MultiPolygonFloatVector(name, c, m)
-//      case (ObjectType.MULTIPOLYGON, Encoding.Max, FromStruct(c))       => new MultiPolygonVector(name, c, m)
-//      case (ObjectType.MULTIPOLYGON, Encoding.Max, FromAllocator(c))    => new MultiPolygonVector(name, c, m)
-//      case (ObjectType.MULTIPOINT, Encoding.Min, FromStruct(c))         => new MultiPointFloatVector(name, c, m)
-//      case (ObjectType.MULTIPOINT, Encoding.Min, FromAllocator(c))      => new MultiPointFloatVector(name, c, m)
-//      case (ObjectType.MULTIPOINT, Encoding.Max, FromStruct(c))         => new MultiPointVector(name, c, m)
-//      case (ObjectType.MULTIPOINT, Encoding.Max, FromAllocator(c))      => new MultiPointVector(name, c, m)
-//      case (ObjectType.GEOMETRY, _, FromStruct(c))                      => new WKBGeometryVector(name, c, m)
-//      case (ObjectType.GEOMETRY, _, FromAllocator(c))                   => new WKBGeometryVector(name, c, m)
-//      case (ObjectType.GEOMETRY_COLLECTION, _, _) => throw new NotImplementedError(s"Geometry type $binding is not supported")
-//      case (_, _, FromList(_)) => throw new NotImplementedError("Geometry lists are not supported")
-//      case _ => throw new IllegalArgumentException(s"Unexpected geometry type $binding")
-//    }
-//    new ArrowGeometryWriter(vector.asInstanceOf[GeometryVector[Geometry, FieldVector]])
-//  }
-//>>>>>>> eaa9b5f95a... Local squash.
 
           case ObjectType.MAP =>
             new ArrowMapWriter(toVector(MinorType.MAP.getType, null, metadata), bindings(1), bindings(2), encoding)
@@ -380,7 +338,7 @@ object ArrowAttributeWriter {
           case Encoding.Max => new MultiPointVector(vector).getWriter
         }
         (vector, delegate.asInstanceOf[GeometryWriter[Geometry]])
-      } else if (binding == ObjectType.GEOMETRY_COLLECTION) {
+      } else if (binding == ObjectType.GEOMETRY_COLLECTION || binding == ObjectType.GEOMETRY) {
         val vector = toVector.apply[NullableVarBinaryVector](WKBGeometryVector.createFieldType(metadata))
         val delegate = new WKBGeometryVector(vector).getWriter
         (vector, delegate.asInstanceOf[GeometryWriter[Geometry]])
