@@ -41,7 +41,6 @@ public class WKBGeometryVector implements GeometryVector<Geometry, NullableVarBi
   }
 
   public WKBGeometryVector(NullableVarBinaryVector vector) {
-    vector.allocateNewSafe();
     this.vector = vector;
   }
 
