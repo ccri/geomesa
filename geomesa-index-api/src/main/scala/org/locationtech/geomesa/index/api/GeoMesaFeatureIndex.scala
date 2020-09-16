@@ -344,12 +344,12 @@ abstract class GeoMesaFeatureIndex[T, U](val ds: GeoMesaDataStore[_],
     for {
       min <- sft.getFilterMinDuration
       intervals <- Option(strategy.values).collect { case v: TemporalIndexValues => v.intervals } } {
-      def duration: Duration = intervals.values.foldLeft(Duration.Zero) { (sum, bounds) =>
+      def duration = intervals.values.foldLeft(Duration.Zero) { (sum, bounds) =>
         sum + Duration(bounds.upper.value.get.toEpochSecond - bounds.lower.value.get.toEpochSecond, TimeUnit.SECONDS)
       }
       if (intervals.isEmpty || !intervals.forall(_.isBoundedBothSides) || duration > min) {
         throw new IllegalArgumentException(
-          s"Query exceeds maximum allowed filter duration of $min: $duration")
+          s"Query exceeds maximum allowed filter duration of $min: ${filterToString(filter.filter)}")
       }
     }
 
