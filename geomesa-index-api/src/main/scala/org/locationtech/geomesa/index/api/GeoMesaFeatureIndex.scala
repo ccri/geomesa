@@ -10,6 +10,7 @@ package org.locationtech.geomesa.index.api
 
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 import com.typesafe.scalalogging.LazyLogging
 import org.geotools.util.factory.Hints
@@ -34,6 +35,8 @@ import org.locationtech.geomesa.utils.index.IndexMode.IndexMode
 import org.locationtech.geomesa.utils.text.StringSerialization
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
+
+import scala.concurrent.duration.Duration
 
 /**
   * Represents a particular indexing strategy
@@ -341,10 +344,10 @@ abstract class GeoMesaFeatureIndex[T, U](val ds: GeoMesaDataStore[_],
     for {
       min <- sft.getFilterMinDuration
       intervals <- Option(strategy.values).collect { case v: TemporalIndexValues => v.intervals } } {
-      def duration: Long = intervals.values.foldLeft(0L) { (sum, bounds) =>
-        sum + bounds.upper.value.get.toEpochSecond - bounds.lower.value.get.toEpochSecond
+      def duration: Duration = intervals.values.foldLeft(Duration.Zero) { (sum, bounds) =>
+        sum + Duration(bounds.upper.value.get.toEpochSecond - bounds.lower.value.get.toEpochSecond, TimeUnit.SECONDS)
       }
-      if (intervals.isEmpty || !intervals.forall(_.isBoundedBothSides) || duration > min.toSeconds) {
+      if (intervals.isEmpty || !intervals.forall(_.isBoundedBothSides) || duration > min) {
         throw new IllegalArgumentException(
           s"Query exceeds maximum allowed filter duration of $min: $duration")
       }
