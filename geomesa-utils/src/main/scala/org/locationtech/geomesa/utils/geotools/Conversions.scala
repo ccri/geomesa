@@ -27,6 +27,7 @@ import org.locationtech.jts.geom._
 import org.opengis.feature.`type`.AttributeDescriptor
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
+import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -316,6 +317,9 @@ object RichSimpleFeatureType extends Conversions {
     def isFeatureExpirationEnabled: Boolean = sft.getUserData.containsKey(Configs.FeatureExpiration)
 
     def isTemporalPriority: Boolean = boolean(sft.getUserData.get(TemporalPriority))
+
+    def setFilterMinDuration(min: Duration): Unit = sft.getUserData.put(FilterDuration, min.toString)
+    def getFilterMinDuration: Option[Duration] = userData[String](FilterDuration).map(Duration.apply)
 
     def getRemoteVersion: Option[SemanticVersion] = userData[String](RemoteVersion).map(SemanticVersion.apply)
 

@@ -20,7 +20,7 @@ import org.locationtech.geomesa.index.conf.QueryProperties
 import org.locationtech.geomesa.index.conf.partition.TablePartition
 import org.locationtech.geomesa.index.conf.splitter.TableSplitter
 import org.locationtech.geomesa.index.geotools.GeoMesaDataStore
-import org.locationtech.geomesa.index.index.NamedIndex
+import org.locationtech.geomesa.index.index.{NamedIndex, TemporalIndexValues}
 import org.locationtech.geomesa.index.index.attribute.AttributeIndex
 import org.locationtech.geomesa.index.index.id.IdIndex
 import org.locationtech.geomesa.index.index.z2.{XZ2Index, Z2Index}
@@ -28,6 +28,7 @@ import org.locationtech.geomesa.index.index.z3.{XZ3Index, Z3Index}
 import org.locationtech.geomesa.index.stats.GeoMesaStats
 import org.locationtech.geomesa.index.utils.{ExplainNull, Explainer}
 import org.locationtech.geomesa.utils.conf.IndexId
+import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
 import org.locationtech.geomesa.utils.index.ByteArrays
 import org.locationtech.geomesa.utils.index.IndexMode.IndexMode
 import org.locationtech.geomesa.utils.text.StringSerialization
@@ -256,7 +257,7 @@ abstract class GeoMesaFeatureIndex[T, U](val ds: GeoMesaDataStore[_],
     val useFullFilter = keySpace.useFullFilter(indexValues, Some(ds.config), hints)
     val ecql = if (useFullFilter) { filter.filter } else { filter.secondary }
 
-    indexValues match {
+    val strategy = indexValues match {
       case None =>
         // check that full table scans are allowed
         if (hints.getMaxFeatures.forall(_ > QueryProperties.BlockMaxThreshold.toInt.get)) {
@@ -336,6 +337,20 @@ abstract class GeoMesaFeatureIndex[T, U](val ds: GeoMesaDataStore[_],
           }
         }
     }
+
+    for {
+      min <- sft.getFilterMinDuration
+      intervals <- Option(strategy.values).collect { case v: TemporalIndexValues => v.intervals } } {
+      def duration: Long = intervals.values.foldLeft(0L) { (sum, bounds) =>
+        sum + bounds.upper.value.get.toEpochSecond - bounds.lower.value.get.toEpochSecond
+      }
+      if (intervals.isEmpty || !intervals.forall(_.isBoundedBothSides) || duration > min.toSeconds) {
+        throw new IllegalArgumentException(
+          s"Query exceeds maximum allowed filter duration of $min: $duration")
+      }
+    }
+
+    strategy
   }
 
   /**
