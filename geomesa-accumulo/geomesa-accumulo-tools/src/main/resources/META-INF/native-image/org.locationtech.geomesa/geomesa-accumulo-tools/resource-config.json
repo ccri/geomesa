@@ -1,0 +1,36 @@
+{
+  "resources":{
+  "includes":[
+    {"pattern":"\\QMETA-INF/services/org.geotools.data.DataStoreFactorySpi\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.locationtech.geomesa.index.api.GeoMesaFeatureIndexFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.locationtech.geomesa.utils.audit.AuditProvider\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.feature.type.FeatureTypeFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.filter.FilterFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.referencing.crs.CRSAuthorityFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.referencing.crs.CRSFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.referencing.cs.CSFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.referencing.datum.DatumFactory\\E"}, 
+    {"pattern":"\\QMETA-INF/services/org.opengis.referencing.operation.MathTransformFactory\\E"}, 
+    {"pattern":"\\Qclient.conf\\E"}, 
+    {"pattern":"\\Qcore-default.xml\\E"}, 
+    {"pattern":"\\Qcore-site.xml\\E"}, 
+    {"pattern":"\\Qlibrary.properties\\E"}, 
+    {"pattern":"\\Qmapred-default.xml\\E"}, 
+    {"pattern":"\\Qmapred-site.xml\\E"}, 
+    {"pattern":"\\Qorg/geotools/metadata/i18n/Errors.utf\\E"}, 
+    {"pattern":"\\Qorg/geotools/metadata/i18n/Loggings.utf\\E"}, 
+    {"pattern":"\\Qorg/geotools/metadata/i18n/Vocabulary.utf\\E"}, 
+    {"pattern":"\\Qorg/geotools/referencing/epsg/wkt/epsg.properties\\E"}, 
+    {"pattern":"\\Qorg/geotools/referencing/factory/DatumAliasesTable.txt\\E"}, 
+    {"pattern":"\\Qorg/geotools/util/factory/GeoTools.properties\\E"}, 
+    {"pattern":"\\Qorg/locationtech/geomesa/geomesa-site.xml.template\\E"}, 
+    {"pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"}, 
+    {"pattern":"\\Qyarn-default.xml\\E"}, 
+    {"pattern":"\\Qyarn-site.xml\\E"}
+  ]},
+  "bundles":[
+    {"name":"org.geotools.metadata.i18n.Errors"}, 
+    {"name":"org.geotools.metadata.i18n.Loggings"}, 
+    {"name":"org.geotools.metadata.i18n.Vocabulary"}
+  ]
+}

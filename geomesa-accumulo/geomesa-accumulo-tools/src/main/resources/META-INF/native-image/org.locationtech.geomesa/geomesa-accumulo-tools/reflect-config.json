@@ -1,0 +1,863 @@
+[
+{
+  "name":"byte[]"
+},
+{
+  "name":"byte[][]"
+},
+{
+  "name":"com.beust.jcommander.converters.IntegerConverter",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.beust.jcommander.converters.StringConverter",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.beust.jcommander.validators.NoValidator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.beust.jcommander.validators.NoValueValidator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.esotericsoftware.kryo.io.Input",
+  "methods":[
+    {"name":"readByte","parameterTypes":[] }, 
+    {"name":"readDouble","parameterTypes":[] }, 
+    {"name":"readInt","parameterTypes":["boolean"] }
+  ]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.BLCHeader$DrainStatusRef",
+  "fields":[{"name":"drainStatus", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.BaseMpscLinkedArrayQueueColdProducerFields",
+  "fields":[{"name":"producerLimit", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.BaseMpscLinkedArrayQueueConsumerFields",
+  "fields":[{"name":"consumerIndex", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.BaseMpscLinkedArrayQueueProducerFields",
+  "fields":[{"name":"producerIndex", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.CacheLoader",
+  "methods":[
+    {"name":"asyncLoadAll","parameterTypes":["java.lang.Iterable","java.util.concurrent.Executor"] }, 
+    {"name":"loadAll","parameterTypes":["java.lang.Iterable"] }
+  ]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.NodeFactory$SSt",
+  "fields":[
+    {"name":"key", "allowUnsafeAccess":true}, 
+    {"name":"value", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.NodeFactory$SStA",
+  "fields":[{"name":"accessTime", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.NodeFactory$SStR",
+  "fields":[{"name":"writeTime", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.NodeFactory$SStW",
+  "fields":[{"name":"writeTime", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.github.benmanes.caffeine.cache.StripedBuffer",
+  "fields":[{"name":"tableBusy", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.google.common.primitives.UnsignedBytes$LexicographicalComparatorHolder$UnsafeComparator"
+},
+{
+  "name":"com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.security.auth.UnixPrincipal"
+},
+{
+  "name":"java.lang.Object",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allPublicMethods":true
+},
+{
+  "name":"java.lang.Object[]"
+},
+{
+  "name":"java.lang.String"
+},
+{
+  "name":"java.lang.String[]"
+},
+{
+  "name":"java.lang.Thread",
+  "fields":[{"name":"threadLocalRandomProbe", "allowUnsafeAccess":true}],
+  "methods":[{"name":"getContextClassLoader","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.reflect.Method[]"
+},
+{
+  "name":"javax.imageio.spi.RegisterableService"
+},
+{
+  "name":"org.apache.accumulo.core.conf.Property",
+  "fields":[
+    {"name":"CRYPTO_BLOCK_STREAM_SIZE"}, 
+    {"name":"CRYPTO_CIPHER_ALGORITHM_NAME"}, 
+    {"name":"CRYPTO_CIPHER_KEY_LENGTH"}, 
+    {"name":"CRYPTO_CIPHER_SUITE"}, 
+    {"name":"CRYPTO_DEFAULT_KEY_STRATEGY_CIPHER_SUITE"}, 
+    {"name":"CRYPTO_DEFAULT_KEY_STRATEGY_HDFS_URI"}, 
+    {"name":"CRYPTO_DEFAULT_KEY_STRATEGY_KEY_LOCATION"}, 
+    {"name":"CRYPTO_MODULE_CLASS"}, 
+    {"name":"CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY"}, 
+    {"name":"CRYPTO_PREFIX"}, 
+    {"name":"CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS"}, 
+    {"name":"CRYPTO_SECURE_RNG"}, 
+    {"name":"CRYPTO_SECURE_RNG_PROVIDER"}, 
+    {"name":"GC_CYCLE_DELAY"}, 
+    {"name":"GC_CYCLE_START"}, 
+    {"name":"GC_DELETE_THREADS"}, 
+    {"name":"GC_FILE_ARCHIVE"}, 
+    {"name":"GC_PORT"}, 
+    {"name":"GC_PREFIX"}, 
+    {"name":"GC_TRACE_PERCENT"}, 
+    {"name":"GC_TRASH_IGNORE"}, 
+    {"name":"GENERAL_CLASSPATHS"}, 
+    {"name":"GENERAL_DELEGATION_TOKEN_LIFETIME"}, 
+    {"name":"GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL"}, 
+    {"name":"GENERAL_DYNAMIC_CLASSPATHS"}, 
+    {"name":"GENERAL_KERBEROS_KEYTAB"}, 
+    {"name":"GENERAL_KERBEROS_PRINCIPAL"}, 
+    {"name":"GENERAL_KERBEROS_RENEWAL_PERIOD"}, 
+    {"name":"GENERAL_LEGACY_METRICS"}, 
+    {"name":"GENERAL_MAVEN_PROJECT_BASEDIR"}, 
+    {"name":"GENERAL_MAX_MESSAGE_SIZE"}, 
+    {"name":"GENERAL_MAX_SCANNER_RETRY_PERIOD"}, 
+    {"name":"GENERAL_PREFIX"}, 
+    {"name":"GENERAL_RPC_SERVER_TYPE"}, 
+    {"name":"GENERAL_RPC_TIMEOUT"}, 
+    {"name":"GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS"}, 
+    {"name":"GENERAL_SIMPLETIMER_THREADPOOL_SIZE"}, 
+    {"name":"GENERAL_VOLUME_CHOOSER"}, 
+    {"name":"INSTANCE_DFS_DIR"}, 
+    {"name":"INSTANCE_DFS_URI"}, 
+    {"name":"INSTANCE_PREFIX"}, 
+    {"name":"INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION"}, 
+    {"name":"INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION"}, 
+    {"name":"INSTANCE_RPC_SASL_ENABLED"}, 
+    {"name":"INSTANCE_RPC_SASL_PROXYUSERS"}, 
+    {"name":"INSTANCE_RPC_SSL_CLIENT_AUTH"}, 
+    {"name":"INSTANCE_RPC_SSL_ENABLED"}, 
+    {"name":"INSTANCE_SECRET"}, 
+    {"name":"INSTANCE_SECURITY_AUTHENTICATOR"}, 
+    {"name":"INSTANCE_SECURITY_AUTHORIZOR"}, 
+    {"name":"INSTANCE_SECURITY_PERMISSION_HANDLER"}, 
+    {"name":"INSTANCE_VOLUMES"}, 
+    {"name":"INSTANCE_VOLUMES_REPLACEMENTS"}, 
+    {"name":"INSTANCE_ZK_HOST"}, 
+    {"name":"INSTANCE_ZK_TIMEOUT"}, 
+    {"name":"MASTER_BULK_RENAME_THREADS"}, 
+    {"name":"MASTER_BULK_RETRIES"}, 
+    {"name":"MASTER_BULK_THREADPOOL_SIZE"}, 
+    {"name":"MASTER_BULK_TIMEOUT"}, 
+    {"name":"MASTER_CLIENTPORT"}, 
+    {"name":"MASTER_FATE_THREADPOOL_SIZE"}, 
+    {"name":"MASTER_LEASE_RECOVERY_WAITING_PERIOD"}, 
+    {"name":"MASTER_METADATA_SUSPENDABLE"}, 
+    {"name":"MASTER_MINTHREADS"}, 
+    {"name":"MASTER_PREFIX"}, 
+    {"name":"MASTER_RECOVERY_DELAY"}, 
+    {"name":"MASTER_RECOVERY_MAXAGE"}, 
+    {"name":"MASTER_RECOVERY_MAXTIME"}, 
+    {"name":"MASTER_REPLICATION_COORDINATOR_MINTHREADS"}, 
+    {"name":"MASTER_REPLICATION_COORDINATOR_PORT"}, 
+    {"name":"MASTER_REPLICATION_COORDINATOR_THREADCHECK"}, 
+    {"name":"MASTER_REPLICATION_SCAN_INTERVAL"}, 
+    {"name":"MASTER_STATUS_THREAD_POOL_SIZE"}, 
+    {"name":"MASTER_TABLET_BALANCER"}, 
+    {"name":"MASTER_THREADCHECK"}, 
+    {"name":"MASTER_WALOG_CLOSER_IMPLEMETATION"}, 
+    {"name":"MONITOR_BANNER_BACKGROUND"}, 
+    {"name":"MONITOR_BANNER_COLOR"}, 
+    {"name":"MONITOR_BANNER_TEXT"}, 
+    {"name":"MONITOR_LOCK_CHECK_INTERVAL"}, 
+    {"name":"MONITOR_LOG4J_PORT"}, 
+    {"name":"MONITOR_LOG_DATE_FORMAT"}, 
+    {"name":"MONITOR_PORT"}, 
+    {"name":"MONITOR_PREFIX"}, 
+    {"name":"MONITOR_SSL_EXCLUDE_CIPHERS"}, 
+    {"name":"MONITOR_SSL_INCLUDE_CIPHERS"}, 
+    {"name":"MONITOR_SSL_INCLUDE_PROTOCOLS"}, 
+    {"name":"MONITOR_SSL_KEYSTORE"}, 
+    {"name":"MONITOR_SSL_KEYSTOREPASS"}, 
+    {"name":"MONITOR_SSL_KEYSTORETYPE"}, 
+    {"name":"MONITOR_SSL_TRUSTSTORE"}, 
+    {"name":"MONITOR_SSL_TRUSTSTOREPASS"}, 
+    {"name":"MONITOR_SSL_TRUSTSTORETYPE"}, 
+    {"name":"REPLICATION_DRIVER_DELAY"}, 
+    {"name":"REPLICATION_MAX_UNIT_SIZE"}, 
+    {"name":"REPLICATION_MAX_WORK_QUEUE"}, 
+    {"name":"REPLICATION_MIN_THREADS"}, 
+    {"name":"REPLICATION_NAME"}, 
+    {"name":"REPLICATION_PEERS"}, 
+    {"name":"REPLICATION_PEER_KEYTAB"}, 
+    {"name":"REPLICATION_PEER_PASSWORD"}, 
+    {"name":"REPLICATION_PEER_USER"}, 
+    {"name":"REPLICATION_PREFIX"}, 
+    {"name":"REPLICATION_RECEIPT_SERVICE_PORT"}, 
+    {"name":"REPLICATION_RPC_TIMEOUT"}, 
+    {"name":"REPLICATION_THREADCHECK"}, 
+    {"name":"REPLICATION_TRACE_PERCENT"}, 
+    {"name":"REPLICATION_WORKER_THREADS"}, 
+    {"name":"REPLICATION_WORK_ASSIGNER"}, 
+    {"name":"REPLICATION_WORK_ASSIGNMENT_SLEEP"}, 
+    {"name":"REPLICATION_WORK_ATTEMPTS"}, 
+    {"name":"REPLICATION_WORK_PROCESSOR_DELAY"}, 
+    {"name":"REPLICATION_WORK_PROCESSOR_PERIOD"}, 
+    {"name":"RPC_PREFIX"}, 
+    {"name":"RPC_SASL_QOP"}, 
+    {"name":"RPC_SSL_CIPHER_SUITES"}, 
+    {"name":"RPC_SSL_CLIENT_PROTOCOL"}, 
+    {"name":"RPC_SSL_ENABLED_PROTOCOLS"}, 
+    {"name":"RPC_SSL_KEYSTORE_PASSWORD"}, 
+    {"name":"RPC_SSL_KEYSTORE_PATH"}, 
+    {"name":"RPC_SSL_KEYSTORE_TYPE"}, 
+    {"name":"RPC_SSL_TRUSTSTORE_PASSWORD"}, 
+    {"name":"RPC_SSL_TRUSTSTORE_PATH"}, 
+    {"name":"RPC_SSL_TRUSTSTORE_TYPE"}, 
+    {"name":"RPC_USE_JSSE"}, 
+    {"name":"TABLE_ARBITRARY_PROP_PREFIX"}, 
+    {"name":"TABLE_BLOCKCACHE_ENABLED"}, 
+    {"name":"TABLE_BLOOM_ENABLED"}, 
+    {"name":"TABLE_BLOOM_ERRORRATE"}, 
+    {"name":"TABLE_BLOOM_HASHTYPE"}, 
+    {"name":"TABLE_BLOOM_KEY_FUNCTOR"}, 
+    {"name":"TABLE_BLOOM_LOAD_THRESHOLD"}, 
+    {"name":"TABLE_BLOOM_SIZE"}, 
+    {"name":"TABLE_CLASSPATH"}, 
+    {"name":"TABLE_COMPACTION_STRATEGY"}, 
+    {"name":"TABLE_COMPACTION_STRATEGY_PREFIX"}, 
+    {"name":"TABLE_CONSTRAINT_PREFIX"}, 
+    {"name":"TABLE_DEFAULT_SCANTIME_VISIBILITY"}, 
+    {"name":"TABLE_DURABILITY"}, 
+    {"name":"TABLE_FAILURES_IGNORE"}, 
+    {"name":"TABLE_FILE_BLOCK_SIZE"}, 
+    {"name":"TABLE_FILE_COMPRESSED_BLOCK_SIZE"}, 
+    {"name":"TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX"}, 
+    {"name":"TABLE_FILE_COMPRESSION_TYPE"}, 
+    {"name":"TABLE_FILE_MAX"}, 
+    {"name":"TABLE_FILE_REPLICATION"}, 
+    {"name":"TABLE_FILE_TYPE"}, 
+    {"name":"TABLE_FORMATTER_CLASS"}, 
+    {"name":"TABLE_INDEXCACHE_ENABLED"}, 
+    {"name":"TABLE_INTERPRETER_CLASS"}, 
+    {"name":"TABLE_ITERATOR_MAJC_PREFIX"}, 
+    {"name":"TABLE_ITERATOR_MINC_PREFIX"}, 
+    {"name":"TABLE_ITERATOR_PREFIX"}, 
+    {"name":"TABLE_ITERATOR_SCAN_PREFIX"}, 
+    {"name":"TABLE_LOAD_BALANCER"}, 
+    {"name":"TABLE_LOCALITY_GROUPS"}, 
+    {"name":"TABLE_LOCALITY_GROUP_PREFIX"}, 
+    {"name":"TABLE_MAJC_COMPACTALL_IDLETIME"}, 
+    {"name":"TABLE_MAJC_RATIO"}, 
+    {"name":"TABLE_MAX_END_ROW_SIZE"}, 
+    {"name":"TABLE_MINC_COMPACT_IDLETIME"}, 
+    {"name":"TABLE_MINC_LOGS_MAX"}, 
+    {"name":"TABLE_MINC_MAX_MERGE_FILE_SIZE"}, 
+    {"name":"TABLE_PREFIX"}, 
+    {"name":"TABLE_REPLICATION"}, 
+    {"name":"TABLE_REPLICATION_TARGET"}, 
+    {"name":"TABLE_SAMPLER"}, 
+    {"name":"TABLE_SAMPLER_OPTS"}, 
+    {"name":"TABLE_SCAN_MAXMEM"}, 
+    {"name":"TABLE_SPLIT_THRESHOLD"}, 
+    {"name":"TABLE_SUSPEND_DURATION"}, 
+    {"name":"TABLE_VOLUME_CHOOSER"}, 
+    {"name":"TABLE_WALOG_ENABLED"}, 
+    {"name":"TRACE_PASSWORD"}, 
+    {"name":"TRACE_PORT"}, 
+    {"name":"TRACE_PREFIX"}, 
+    {"name":"TRACE_SPAN_RECEIVERS"}, 
+    {"name":"TRACE_SPAN_RECEIVER_PREFIX"}, 
+    {"name":"TRACE_TABLE"}, 
+    {"name":"TRACE_TOKEN_PROPERTY_PREFIX"}, 
+    {"name":"TRACE_TOKEN_TYPE"}, 
+    {"name":"TRACE_USER"}, 
+    {"name":"TRACE_ZK_PATH"}, 
+    {"name":"TSERV_ARCHIVE_WALOGS"}, 
+    {"name":"TSERV_ASSIGNMENT_DURATION_WARNING"}, 
+    {"name":"TSERV_ASSIGNMENT_MAXCONCURRENT"}, 
+    {"name":"TSERV_BLOOM_LOAD_MAXCONCURRENT"}, 
+    {"name":"TSERV_BULK_ASSIGNMENT_THREADS"}, 
+    {"name":"TSERV_BULK_PROCESS_THREADS"}, 
+    {"name":"TSERV_BULK_RETRY"}, 
+    {"name":"TSERV_BULK_TIMEOUT"}, 
+    {"name":"TSERV_CLIENTPORT"}, 
+    {"name":"TSERV_CLIENT_TIMEOUT"}, 
+    {"name":"TSERV_COMPACTION_WARN_TIME"}, 
+    {"name":"TSERV_DATACACHE_SIZE"}, 
+    {"name":"TSERV_DEFAULT_BLOCKSIZE"}, 
+    {"name":"TSERV_HOLD_TIME_SUICIDE"}, 
+    {"name":"TSERV_INDEXCACHE_SIZE"}, 
+    {"name":"TSERV_MAJC_DELAY"}, 
+    {"name":"TSERV_MAJC_MAXCONCURRENT"}, 
+    {"name":"TSERV_MAJC_THREAD_MAXOPEN"}, 
+    {"name":"TSERV_MAJC_THROUGHPUT"}, 
+    {"name":"TSERV_MAJC_TRACE_PERCENT"}, 
+    {"name":"TSERV_MAXMEM"}, 
+    {"name":"TSERV_MAX_IDLE"}, 
+    {"name":"TSERV_MAX_MESSAGE_SIZE"}, 
+    {"name":"TSERV_MEMDUMP_DIR"}, 
+    {"name":"TSERV_MEM_MGMT"}, 
+    {"name":"TSERV_METADATA_READ_AHEAD_MAXCONCURRENT"}, 
+    {"name":"TSERV_MIGRATE_MAXCONCURRENT"}, 
+    {"name":"TSERV_MINC_MAXCONCURRENT"}, 
+    {"name":"TSERV_MINC_TRACE_PERCENT"}, 
+    {"name":"TSERV_MINTHREADS"}, 
+    {"name":"TSERV_MONITOR_FS"}, 
+    {"name":"TSERV_MUTATION_QUEUE_MAX"}, 
+    {"name":"TSERV_NATIVEMAP_ENABLED"}, 
+    {"name":"TSERV_PORTSEARCH"}, 
+    {"name":"TSERV_PREFIX"}, 
+    {"name":"TSERV_READ_AHEAD_MAXCONCURRENT"}, 
+    {"name":"TSERV_RECOVERY_MAX_CONCURRENT"}, 
+    {"name":"TSERV_REPLICATION_BW_REPLAYER_MEMORY"}, 
+    {"name":"TSERV_REPLICATION_DEFAULT_HANDLER"}, 
+    {"name":"TSERV_REPLICATION_REPLAYERS"}, 
+    {"name":"TSERV_SCAN_MAX_OPENFILES"}, 
+    {"name":"TSERV_SESSION_MAXIDLE"}, 
+    {"name":"TSERV_SLOW_FLUSH_MILLIS"}, 
+    {"name":"TSERV_SORT_BUFFER_SIZE"}, 
+    {"name":"TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN"}, 
+    {"name":"TSERV_THREADCHECK"}, 
+    {"name":"TSERV_TOTAL_MUTATION_QUEUE_MAX"}, 
+    {"name":"TSERV_UPDATE_SESSION_MAXIDLE"}, 
+    {"name":"TSERV_WALOG_MAX_AGE"}, 
+    {"name":"TSERV_WALOG_MAX_SIZE"}, 
+    {"name":"TSERV_WALOG_TOLERATED_CREATION_FAILURES"}, 
+    {"name":"TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION"}, 
+    {"name":"TSERV_WALOG_TOLERATED_WAIT_INCREMENT"}, 
+    {"name":"TSERV_WAL_BLOCKSIZE"}, 
+    {"name":"TSERV_WAL_REPLICATION"}, 
+    {"name":"TSERV_WAL_SYNC"}, 
+    {"name":"TSERV_WAL_SYNC_METHOD"}, 
+    {"name":"TSERV_WORKQ_THREADS"}, 
+    {"name":"VFS_CLASSLOADER_CACHE_DIR"}, 
+    {"name":"VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY"}, 
+    {"name":"VFS_CONTEXT_CLASSPATH_PROPERTY"}
+  ]
+},
+{
+  "name":"org.apache.commons.logging.LogFactory"
+},
+{
+  "name":"org.apache.commons.logging.impl.Log4JLogger",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"org.apache.commons.logging.impl.LogFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.commons.logging.impl.WeakHashtable",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.hadoop.io.FastByteComparisons$LexicographicalComparerHolder$UnsafeComparer"
+},
+{
+  "name":"org.apache.hadoop.mapred.JobConf"
+},
+{
+  "name":"org.apache.hadoop.mapred.JobConfigurable"
+},
+{
+  "name":"org.apache.hadoop.net.NetUtils",
+  "methods":[{"name":"getInputStream","parameterTypes":["java.net.Socket","long"] }]
+},
+{
+  "name":"org.apache.hadoop.security.JniBasedUnixGroupsMappingWithFallback",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.hadoop.security.UserGroupInformation$UgiMetrics",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.apache.htrace.commons.logging.LogFactory"
+},
+{
+  "name":"org.apache.htrace.commons.logging.impl.Log4JLogger",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"org.apache.htrace.commons.logging.impl.LogFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.htrace.commons.logging.impl.WeakHashtable",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.log4j.Appender"
+},
+{
+  "name":"org.apache.log4j.AppenderSkeleton",
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.log4j.Category"
+},
+{
+  "name":"org.apache.log4j.CategoryKey"
+},
+{
+  "name":"org.apache.log4j.ConsoleAppender",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.log4j.FileAppender",
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.log4j.Layout",
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.log4j.Level",
+  "fields":[{"name":"TRACE"}]
+},
+{
+  "name":"org.apache.log4j.Logger"
+},
+{
+  "name":"org.apache.log4j.PatternLayout",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.log4j.Priority"
+},
+{
+  "name":"org.apache.log4j.RollingFileAppender",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.log4j.WriterAppender",
+  "allPublicMethods":true
+},
+{
+  "name":"org.apache.log4j.spi.OptionHandler"
+},
+{
+  "name":"org.apache.zookeeper.ClientCnxnSocketNIO",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.geotools.metadata.iso.citation.CitationImpl",
+  "methods":[
+    {"name":"setAlternateTitles","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setCitedResponsibleParties","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setCollectiveTitle","parameterTypes":["org.opengis.util.InternationalString"] }, 
+    {"name":"setDates","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setEdition","parameterTypes":["org.opengis.util.InternationalString"] }, 
+    {"name":"setEditionDate","parameterTypes":["java.util.Date"] }, 
+    {"name":"setISBN","parameterTypes":["java.lang.String"] }, 
+    {"name":"setISSN","parameterTypes":["java.lang.String"] }, 
+    {"name":"setIdentifiers","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setOtherCitationDetails","parameterTypes":["org.opengis.util.InternationalString"] }, 
+    {"name":"setPresentationForm","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setSeries","parameterTypes":["org.opengis.metadata.citation.Series"] }, 
+    {"name":"setTitle","parameterTypes":["org.opengis.util.InternationalString"] }
+  ]
+},
+{
+  "name":"org.geotools.metadata.iso.extent.ExtentImpl",
+  "methods":[
+    {"name":"setDescription","parameterTypes":["org.opengis.util.InternationalString"] }, 
+    {"name":"setGeographicElements","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setTemporalElements","parameterTypes":["java.util.Collection"] }, 
+    {"name":"setVerticalElements","parameterTypes":["java.util.Collection"] }
+  ]
+},
+{
+  "name":"org.geotools.metadata.iso.extent.GeographicBoundingBoxImpl",
+  "methods":[
+    {"name":"setEastBoundLongitude","parameterTypes":["double"] }, 
+    {"name":"setNorthBoundLatitude","parameterTypes":["double"] }, 
+    {"name":"setSouthBoundLatitude","parameterTypes":["double"] }, 
+    {"name":"setWestBoundLongitude","parameterTypes":["double"] }
+  ]
+},
+{
+  "name":"org.geotools.metadata.iso.extent.GeographicExtentImpl",
+  "methods":[{"name":"setInclusion","parameterTypes":["java.lang.Boolean"] }]
+},
+{
+  "name":"org.geotools.referencing.factory.epsg.ThreadedEpsgFactory",
+  "methods":[{"name":"<init>","parameterTypes":["org.geotools.util.factory.Hints"] }]
+},
+{
+  "name":"org.geotools.util.WeakHashSet$Entry[]"
+},
+{
+  "name":"org.geotools.util.WeakValueHashMap$Entry[]"
+},
+{
+  "name":"org.geotools.util.logging.Logging[]"
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloAgeOffCommand$AccumuloAgeOffParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloCompactCommand$CompactParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloManagePartitionsCommand$AccumuloAddPartitionsParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloManagePartitionsCommand$AccumuloAdoptPartitionParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloManagePartitionsCommand$AccumuloDeletePartitionsParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloManagePartitionsCommand$AccumuloListPartitionsParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AccumuloManagePartitionsCommand$AccumuloNamePartitionsParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AddAttributeIndexCommand$AddAttributeIndexParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.AddIndexCommand$AddIndexParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.TableConfCommand$ListParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.TableConfCommand$TableConfParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.data.TableConfCommand$UpdateParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.export.AccumuloExplainCommand$AccumuloExplainParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.export.AccumuloExportCommand$AccumuloExportParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.export.AccumuloPlaybackCommand$AccumuloPlaybackParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.ingest.AccumuloDeleteFeaturesCommand$AccumuloDeleteFeaturesParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.ingest.AccumuloIngestCommand$AccumuloIngestParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.schema.AccumuloCreateSchemaCommand$AccumuloCreateSchemaParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.schema.AccumuloDeleteCatalogCommand$AccumuloDeleteCatalogParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.schema.AccumuloRemoveSchemaCommand$AccumuloRemoveSchemaParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.schema.AccumuloUpdateSchemaCommand$AccumuloUpdateSchemaParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.stats.AccumuloStatsAnalyzeCommand$AccumuloStatsAnalyzeParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.stats.AccumuloStatsBoundsCommand$AccumuloStatsBoundsParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.stats.AccumuloStatsConfigureCommand$AccumuloStatsConfigureParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.stats.AccumuloStatsCountCommand$AccumuloStatsCountParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.stats.AccumuloStatsHistogramCommand$AccumuloStatsHistogramParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.stats.AccumuloStatsTopKCommand$AccumuloStatsTopKParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.status.AccumuloDescribeSchemaCommand$DescribeParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.status.AccumuloGetSftConfigCommand$AccumuloGetSftConfigParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.status.AccumuloGetTypeNamesCommand$GetTypeNamesParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.accumulo.tools.status.AccumuloVersionRemoteCommand$AccumuloVersionParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.features.kryo.impl.KryoFeatureDeserialization$KryoAttributeReader[]"
+},
+{
+  "name":"org.locationtech.geomesa.features.kryo.impl.KryoFeatureSerialization$KryoAttributeWriter[]"
+},
+{
+  "name":"org.locationtech.geomesa.index.api.IndexManager$$anon$1"
+},
+{
+  "name":"org.locationtech.geomesa.index.conf.QueryHints$",
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.index.conf.QueryHints$Internal$",
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.index.geotools.GeoMesaDataStore$$anon$2"
+},
+{
+  "name":"org.locationtech.geomesa.index.metadata.TableBasedMetadata$$anon$1"
+},
+{
+  "name":"org.locationtech.geomesa.index.metadata.TableBasedMetadata$$anon$2"
+},
+{
+  "name":"org.locationtech.geomesa.index.planning.QueryInterceptor$QueryInterceptorFactory$QueryInterceptorFactoryImpl$$anon$2"
+},
+{
+  "name":"org.locationtech.geomesa.tools.data.DeleteCatalogParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.data.ManagePartitionsCommand$ManagePartitionsParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.export.ConvertCommand$ConvertParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.export.GenerateAvroSchemaCommand$GenerateAvroSchemaParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.ClasspathParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.ConfigureParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.ConsoleParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.EnvironmentParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.ExplainParams",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.FormatValidator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.HelpParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.tools.status.VersionParameters",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.locationtech.geomesa.utils.conf.IndexId[]"
+},
+{
+  "name":"org.locationtech.geomesa.utils.kryo.NonMutatingInput"
+},
+{
+  "name":"org.locationtech.jts.geom.Coordinate[]"
+},
+{
+  "name":"org.opengis.feature.type.FeatureTypeFactory"
+},
+{
+  "name":"org.opengis.filter.FilterFactory"
+},
+{
+  "name":"org.opengis.metadata.citation.Citation",
+  "allPublicMethods":true
+},
+{
+  "name":"org.opengis.metadata.extent.Extent",
+  "allPublicMethods":true
+},
+{
+  "name":"org.opengis.metadata.extent.GeographicBoundingBox",
+  "allPublicMethods":true
+},
+{
+  "name":"org.opengis.referencing.crs.CRSAuthorityFactory"
+},
+{
+  "name":"org.opengis.referencing.crs.CRSFactory"
+},
+{
+  "name":"org.opengis.referencing.cs.CSAuthorityFactory"
+},
+{
+  "name":"org.opengis.referencing.cs.CSFactory"
+},
+{
+  "name":"org.opengis.referencing.datum.DatumAuthorityFactory"
+},
+{
+  "name":"org.opengis.referencing.datum.DatumFactory"
+},
+{
+  "name":"org.opengis.referencing.operation.CoordinateOperationAuthorityFactory"
+},
+{
+  "name":"org.opengis.referencing.operation.MathTransformFactory"
+},
+{
+  "name":"org.parboiled.Rule[]"
+},
+{
+  "name":"org.parboiled.matchers.Matcher[]"
+},
+{
+  "name":"org.parboiled.scala.rules.Rule$$anon$1",
+  "allDeclaredFields":true
+},
+{
+  "name":"sun.misc.Unsafe",
+  "allDeclaredFields":true
+},
+{
+  "name":"sun.security.krb5.Config",
+  "methods":[
+    {"name":"getDefaultRealm","parameterTypes":[] }, 
+    {"name":"getInstance","parameterTypes":[] }
+  ]
+},
+{
+  "name":"sun.security.provider.ConfigFile",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.NativePRNG",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.Sun",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"tec.uom.se.format.SimpleUnitFormat$DefaultFormat",
+  "fields":[
+    {"name":"_nameToUnit"}, 
+    {"name":"_unitToName"}
+  ]
+}
+]

@@ -80,6 +80,10 @@ else
     fi
   fi
 
-  # invoke the main java process
-  java ${GEOMESA_OPTS} -cp ${CLASSPATH} $RUNNER "$@"
+  if [[ $1 = native ]]; then
+    native-image -cp ${CLASSPATH} -jar /opt/devel/src/geomesa/tools/accumulo/lib/geomesa-accumulo-tools_2.11-3.2.0-SNAPSHOT.jar  geomesa-accumulo-native
+  else
+    # invoke the main java process
+    java -agentlib:native-image-agent=config-merge-dir=/opt/devel/src/geomesa/geomesa-accumulo/geomesa-accumulo-tools/src/main/resources/META-INF/native-image/org.locationtech.geomesa/geomesa-accumulo-tools/ ${GEOMESA_OPTS} -cp ${CLASSPATH} $RUNNER "$@"
+  fi
 fi
