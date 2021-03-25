@@ -16,6 +16,7 @@ import org.locationtech.geomesa.filter.index.{BucketIndexSupport, SizeSeparatedB
 import org.locationtech.geomesa.kafka.data.KafkaDataStore.IndexConfig
 import org.locationtech.geomesa.kafka.index.FeatureStateFactory.{FeatureExpiration, FeatureState}
 import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
+import org.locationtech.geomesa.utils.io.Sizable
 import org.locationtech.geomesa.utils.io.Sizable.{deepSizeOf, sizeOf}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
@@ -140,12 +141,20 @@ object KafkaFeatureCacheImpl extends LazyLogging {
         val start = System.currentTimeMillis()
         var count = 0L
         var sizeInMemory = 0L
+
         c.support.index.query().foreach { f =>
+          val recordSize = f match {
+            case s: Sizable => s.calculateSizeOf()
+            case _ => deepSizeOf(f)
+          }
           count += 1
-          sizeInMemory += deepSizeOf(f)
+          sizeInMemory += recordSize
         }
+        val midpoint = System.currentTimeMillis()
+
         val deepSize = deepSizeOf(c)
-        logger.debug(s"Type ${c.sft.getTypeName} has ${count} records with an estimated memory size of $sizeInMemory.  Deep size of cache: $deepSize.  Count time took ${System.currentTimeMillis() - start}")
+
+        logger.debug(s"Type ${c.sft.getTypeName} has ${count} records.  Sizable: $sizeInMemory took ${midpoint-start}.  Deep size of cache: $deepSize took ${System.currentTimeMillis() - midpoint}")
       }
     }
   }
