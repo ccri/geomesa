@@ -241,7 +241,7 @@ trait KafkaDataStoreParams extends NamespaceParams {
   val AuditQueries: GeoMesaParam[java.lang.Boolean] = GeoMesaDataStoreFactory.AuditQueriesParam
   val Authorizations: GeoMesaParam[String] = org.locationtech.geomesa.security.AuthsParam
 
-  val ExecutorTicker =
+  val ExecutorTicker: GeoMesaParam[(ScheduledExecutorService, Ticker)] =
     new GeoMesaParam[(ScheduledExecutorService, Ticker)](
       "kafka.cache.executor",
       "Executor service and ticker to use for expiring features",

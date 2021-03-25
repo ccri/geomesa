@@ -8,14 +8,19 @@
 
 package org.locationtech.geomesa.kafka.index
 
+import java.util
 import java.util.concurrent._
 
-import com.typesafe.scalalogging.StrictLogging
-import org.locationtech.geomesa.filter.index.{BucketIndexSupport, SizeSeparatedBucketIndexSupport}
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
+import org.locationtech.geomesa.filter.index.{BucketIndexSupport, SizeSeparatedBucketIndexSupport, SpatialIndexSupport}
 import org.locationtech.geomesa.kafka.data.KafkaDataStore.IndexConfig
 import org.locationtech.geomesa.kafka.index.FeatureStateFactory.{FeatureExpiration, FeatureState}
+import org.locationtech.geomesa.utils.concurrent.ExitingExecutor
+import org.locationtech.geomesa.utils.io.Sizable.{deepSizeOf, sizeOf}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import org.opengis.filter.Filter
+
+import scala.collection.JavaConversions.asScalaSet
 
 /**
   * Feature cache implementation
@@ -23,7 +28,7 @@ import org.opengis.filter.Filter
   * @param sft simple feature type
   * @param config index config
   */
-class KafkaFeatureCacheImpl(sft: SimpleFeatureType, config: IndexConfig)
+class KafkaFeatureCacheImpl(val sft: SimpleFeatureType, config: IndexConfig)
     extends KafkaFeatureCache with FeatureExpiration with StrictLogging {
 
   import org.locationtech.geomesa.utils.geotools.RichSimpleFeatureType.RichSimpleFeatureType
@@ -33,7 +38,7 @@ class KafkaFeatureCacheImpl(sft: SimpleFeatureType, config: IndexConfig)
   private val state = new ConcurrentHashMap[String, FeatureState]
 
   // note: CQEngine handles points vs non-points internally
-  private val support = if (config.cqAttributes.nonEmpty) {
+  private val support: SpatialIndexSupport = if (config.cqAttributes.nonEmpty) {
     KafkaFeatureCache.cqIndexSupport(sft, config)
   } else if (sft.isPoints) {
     BucketIndexSupport(sft, config.resolution.x, config.resolution.y)
@@ -42,6 +47,8 @@ class KafkaFeatureCacheImpl(sft: SimpleFeatureType, config: IndexConfig)
   }
 
   private val factory = FeatureStateFactory(sft, support.index, config.expiry, this, config.executor)
+
+  KafkaFeatureCacheImpl.add(this)
 
   /**
     * Note: this method is not thread-safe. The `state` and `index` can get out of sync if the same feature
@@ -110,5 +117,36 @@ class KafkaFeatureCacheImpl(sft: SimpleFeatureType, config: IndexConfig)
 
   override def query(filter: Filter): Iterator[SimpleFeature] = support.query(filter)
 
-  override def close(): Unit = factory.close()
+  override def close(): Unit = {
+    factory.close()
+    KafkaFeatureCacheImpl.remove(this)
+  }
+}
+
+
+object KafkaFeatureCacheImpl extends LazyLogging {
+  val caches = new util.HashSet[KafkaFeatureCacheImpl]
+
+  def add(cache: KafkaFeatureCacheImpl) = caches.add(cache)
+  def remove(cache: KafkaFeatureCacheImpl) = caches.remove(cache)
+
+  val executor = ExitingExecutor(Executors.newScheduledThreadPool(2).asInstanceOf[ScheduledThreadPoolExecutor])
+
+  executor.scheduleAtFixedRate(runnable, 60, 60, TimeUnit.SECONDS)
+
+  def runnable = new Runnable {
+    override def run(): Unit = {
+      caches.foreach { c =>
+        val start = System.currentTimeMillis()
+        var count = 0L
+        var sizeInMemory = 0L
+        c.support.index.query().foreach { f =>
+          count += 1
+          sizeInMemory += deepSizeOf(f)
+        }
+        val deepSize = deepSizeOf(c)
+        logger.debug(s"Type ${c.sft.getTypeName} has ${count} records with an estimated memory size of $sizeInMemory.  Deep size of cache: $deepSize.  Count time took ${System.currentTimeMillis() - start}")
+      }
+    }
+  }
 }
